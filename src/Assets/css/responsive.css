@@ -1,0 +1,403 @@
+@media (max-width: 1550px) {
+  .error-text-box {
+    padding-top: 35px;
+  }
+}
+
+@media (max-width: 1499px) {
+}
+
+@media (max-width: 1399.98px) {
+}
+
+@media (max-width: 1199.98px) {
+
+.booking-detail-card {
+  gap: 48px;
+}
+
+}
+
+@media (max-width: 991.98px) {
+
+.footer-links {
+  display: grid;
+  grid-template-columns: auto;
+  padding-bottom: 0px;
+  border-bottom: 1px solid #fff;
+  margin-bottom: 40px;
+  gap: 20px;
+}
+
+
+.link {
+  padding-left: 0px;
+}
+
+
+.search-results-filter {
+  display: grid;
+  grid-template-columns: 46% 54%;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+
+.booking-detail-card {
+  display: grid;
+  grid-template-columns: auto;
+}
+.community-list-contain {
+  margin: 30px 0px;
+  display: grid;
+  grid-template-columns: auto;
+  gap: 30px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+@media (max-width: 767.98px) {
+}
+
+@media (max-width: 575.98px) {
+  .login-box-inner-wrap {
+    padding: 50px 0px;
+  }
+  .left-banner-img {
+    display: none;
+  }
+
+  .otp-banner-img {
+    display: none;
+  }
+
+  .new-otp-banner-img {
+    display: none;
+  }
+
+  .reset-banner-img {
+    display: none;
+  }
+  .login-box-inner-wrap h1 {
+    font-size: 30px;
+  }
+  .banner-left-text h1 {
+    font-size: 30px;
+    line-height: normal;
+  }
+  .header-commn {
+    background: #fff;
+  }
+
+  .user-img-top .dropdown-menu[data-bs-popper] {
+    top: 100%;
+    right: 0;
+    margin-top: var(--bs-dropdown-spacer);
+    left: -100px;
+    min-width: 330px;
+    padding: 0;
+    border-radius: 15px;
+    border: 1px solid #e4e4e7;
+    width: 100%;
+  }
+
+  .notify-icon-top .dropdown-menu[data-bs-popper] {
+    top: 100%;
+    right: 0;
+    margin-top: var(--bs-dropdown-spacer);
+    left: -60px;
+    min-width: 350px;
+    padding: 0;
+    border-radius: 15px;
+    border: 1px solid #e4e4e7;
+    width: 100%;
+  }
+
+  .feature-card-contain {
+    grid-template-columns: auto;
+  }
+
+  .category-list {
+    grid-template-columns: auto;
+    gap: 25px;
+  }
+
+  .services-list {
+    grid-template-columns: auto;
+    padding: 0px 12px ;
+  }
+
+  .get-started-contain {
+    grid-template-columns: auto;
+    gap: 50px;
+  }
+  .footer-links {
+    grid-template-columns: auto;
+  }
+
+  .booked-services-slide button {
+    display: none !important;
+  }
+  .footer-links > div h2 {
+    margin-top: 30px;
+  }
+
+  .category-services-lists .list-title h2 {
+    font-size: 20px;
+  }
+
+  .category-list img {
+    height: 200px;
+  }
+  .get-started-contain .left-side {
+    padding-right: 0;
+  }
+
+  .get-started-contain .left-side h2 {
+    font-size: 25px;
+  }
+  .get-started-contain .left-side p {
+    color: #666;
+    font-family: "Open Sans";
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+  }
+  .get-started-contain .left-side button {
+    font-size: 15px;
+    margin-top: 10px;
+  }
+
+  .footer-links > div button {
+    font-size: 15px;
+  }
+
+  .breadcrumb-nav-contain h2 {
+    font-size: 25px;
+  }
+  .search-results-filter {
+    grid-template-columns: auto;
+    gap: 30px;
+  }
+  .search-results-card {
+    flex-direction: column;
+  }
+  .search-results-card img {
+    width: 100%;
+  }
+
+  .search-results-contain h2 {
+    font-size: 22px;
+  }
+  .service-detail-card {
+    grid-template-columns: auto;
+  }
+  .service-detail-card h3 {
+    font-size: 25px;
+  }
+  .service-detail-card p {
+    font-size: 14px;
+  }
+
+  .booking-status-txt {
+    grid-template-columns: auto;
+    gap: 15px;
+  }
+
+  .bookings-card-item {
+    flex-direction: column;
+  }
+
+  .bookings-card-item > img {
+    min-width: 100%;
+  }
+
+  .task-post-action {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .quotation-requests {
+    flex-direction: column;
+  }
+
+  .quotation-txt-show .profile-side {
+    flex-direction: column;
+    align-items: self-start;
+    text-align: start;
+  }
+
+  .quotation-txt-show {
+    align-items: self-start;
+  }
+
+  .quotation-txt-show div:last-child {
+    text-align: center;
+  }
+
+  .quotation-requests-btns {
+    flex-direction: initial;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .quotation-requests-btns button {
+    min-width: 100% !important;
+  }
+  .message-chat-contain {
+    grid-template-columns: auto;
+  }
+
+  .community-list-contain {
+    grid-template-columns: auto;
+  }
+
+  .community-detail-card {
+    grid-template-columns: auto;
+  }
+
+  .contact-us-box {
+    padding: 30px 20px;
+  }
+
+  .header-commn .navbar-nav-scroll button {
+    text-align: left;
+    margin-bottom: 10px;
+  }
+  .service-img-upd {
+    grid-template-columns: auto;
+  }
+  .my-stats-cards {
+    grid-template-columns: auto;
+  }
+  .training-material-cards {
+    grid-template-columns: auto;
+  }
+
+  .my-subscription-cantain {
+    grid-template-columns: auto;
+  }
+
+  .service-detail-card2 {
+    grid-gap: 20px;
+    align-items: center;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: auto;
+    padding-top: 60px;
+  }
+
+  .store.d-flex {
+    flex-direction: column;
+  }
+
+
+.review-slide-card>div {
+  display: block;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-direction: column;
+}
+
+ .review-slide-card {
+   margin-bottom: 10px;
+ }
+
+
+.services-list-browse {
+  display: grid;
+  grid-template-columns: auto;
+  gap: 15px;
+}
+
+.pagination-flexs {
+  display: flex;
+  justify-content: left;
+}
+
+.link {
+   padding-left: 0px; 
+}
+
+  .service-detail-card2 img {
+    width: 348px;
+  }
+
+
+  .bookings-card-item>img {
+    width: 278px !important;
+  }
+
+.bookings-card-data .status-booking {
+  display: flex;
+  gap: 2px;
+}
+
+.booking-detail-card {
+  display: grid;
+  grid-template-columns: auto;
+}
+
+.booking-detail-card img {
+  width: 324px !important;
+}
+
+.chat-detail-card {
+  grid-template-columns: 100%;
+} 
+
+.info-box-head h6 {
+  margin-bottom: 18px;
+  margin-top: 18px;
+}
+
+
+.service-detail-card3 {
+  display: grid;
+  grid-template-columns: auto;
+}
+
+.category-services-sec {
+  padding: 20px 0px;
+}
+
+.quotation-requests {
+
+ align-items: normal;
+;
+}
+
+.quotation-requests-btns button:last-child {
+  width: 126px;
+}
+
+.service-approved-detail-card {
+
+ grid-template-columns: auto;
+}
+
+.service-btn {
+  margin-top: 34px;
+}
+
+.services-list-browse img {
+  border-radius: 6px;
+  height: 170px;
+  object-fit: cover;
+  width: 100% !important;
+}
+
+
+
+}

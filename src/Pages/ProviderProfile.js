@@ -1,0 +1,148 @@
+import React, { useState } from "react";
+import Container from "react-bootstrap/Container";
+import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
+import { replace, useNavigate } from "react-router-dom";
+import Layout from "../Components/Layout/Layout";
+import ProviderForm from "../CommanComponents/ProviderForm";
+import ServiceActions from "../Redux/Actions/ServiceActions";
+import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
+
+export default function ProviderProfile() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [validateForm, setValidateForm] = useState(null);
+
+  const steps = [
+    "Some basic info",
+    "Company details",
+    "Reference details",
+    "Document Verification",
+    "Your service",
+  ];
+
+  const handleSubmit = async (values) => {
+    try {
+      const formData = new FormData();
+      Object.keys(values).forEach((key) => {
+        if (key === "images") {
+          values[key].forEach((file) => {
+            if (file) formData.append("images", file);
+          });
+        } else if (values[key] instanceof File && values[key]) {
+          formData.append(key, values[key]);
+        } else if (values[key]) {
+          formData.append(key, values[key]);
+        }
+      });
+      const response = await dispatch(ServiceActions.createProfile(formData));
+      console.log("Step 3 response:", response);
+      if (response?.payload?.status_code === 200) {
+        // toast.success(response?.payload?.message);
+      } else {
+        toast.error(response?.payload?.message || "Failed to create profile");
+      }
+    } catch (error) {
+      console.error("Error submitting Step 3 form:", error);
+      throw error;
+    }
+  };
+
+  const handleServiceSubmit = async (values) => {
+    try {
+      const formData = new FormData();
+      Object.keys(values).forEach((key) => {
+        if (key === "images") {
+          values[key].forEach((file) => {
+            if (file) formData.append("images", file);
+          });
+        } else if (key === "dayAvailability") {
+          formData.append("dayAvailability", JSON.stringify(values[key]));
+        } else if (values[key]) {
+          formData.append(key, values[key]);
+        }
+      });
+
+      const response = await dispatch(ServiceActions.createServices(formData));
+
+      if (response?.payload?.status_code === 200) {
+        // toast.success(response?.payload?.message);
+        // toast.success("Success");
+        // let tokenval = localStorage.getItem("temptoken");
+        // localStorage.setItem("token", tokenval);
+        // localStorage.setItem("role", 2);
+        // localStorage.removeItem("temptoken");
+        // navigate("/requests", { replace: true });
+      } else {
+        toast.error(response?.payload?.message || "Failed to create service");
+      }
+    } catch (error) {
+      console.error("Error submitting Step 4 form:", error);
+      toast.error("An error occurred during service submission");
+      throw error;
+    }
+  };
+
+  const handleStepChange = (index) => {
+    console.log(
+      `handleStepChange called with index: ${index}, currentStep: ${currentStep}`
+    );
+    if (index === currentStep) {
+      console.log("Clicked current step, no action taken.");
+      return;
+    }
+    if (index < currentStep) {
+      console.log(`Navigating to previous step: ${index}`);
+      setCurrentStep(index);
+      return;
+    }
+    if (index > currentStep) {
+      console.log(
+        `Attempted to navigate to further step: ${index}. Use Continue button instead.`
+      );
+      toast.info("Please use the Continue button to move to the next step.");
+      return;
+    }
+  };
+
+  return (
+    <Layout>
+      <section className="service-detail-sec">
+        <Container>
+          <Row>
+            <Col lg={12}>
+              <div className="community-list-contain provider-profile-tabs">
+                <div className="community-list-show">
+                  <ul>
+                    {steps.map((step, index) => (
+                      <li
+                        key={index}
+                        className={currentStep === index ? "active" : ""}
+                        onClick={() => handleStepChange(index)}
+                        style={{
+                          cursor:
+                            index > currentStep ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        <p>{step}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <ProviderForm
+                  currentStep={currentStep}
+                  setCurrentStep={setCurrentStep}
+                  handleSubmit={handleSubmit}
+                  handleServiceSubmit={handleServiceSubmit}
+                  setValidateForm={setValidateForm}
+                />
+              </div>
+            </Col>
+          </Row>
+        </Container>
+      </section>
+    </Layout>
+  );
+}
