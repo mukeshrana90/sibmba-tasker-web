@@ -12,6 +12,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import AddressAutocomplete from "../CommanComponents/AddressAutocomplete";
+import moment from "moment";
 
 const validationSchema = Yup.object({
   need_done: Yup.string().required("Task description is required"),
@@ -180,7 +181,7 @@ export default function EditTask() {
                   const formData = new FormData();
                   formData.append("need_done", values.need_done);
                   formData.append("details", values.details);
-                  formData.append("when_done", values.when_done);
+                  formData.append("when_done", moment(values.when_done).format("MM-DD-YYYY"));
                   formData.append("budget", values.budget);
                   formData.append("task_time", values.task_time);
                   formData.append("address", values.address);

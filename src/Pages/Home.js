@@ -9,6 +9,11 @@ import Slider from "react-slick";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { useDispatch, useSelector } from "react-redux";
 import ReadMore from "../CommanComponents/ReadMore";
+import banner5 from "../Assets/Images/image.png"
+import banner4 from "../Assets/Images/ban2.png"
+import banner3 from "../Assets/Images/ban3.png"
+import banner1 from "../Assets/Images/banner1.png"
+import banner2 from "../Assets/Images/banner2.png"
 
 export default function Home() {
   const Navigate = useNavigate();
@@ -19,12 +24,8 @@ export default function Home() {
   const bestservices = useSelector((e) => e.UserSlice.bestservices)
   const nearByServices = useSelector((e) => e.UserSlice.nearByServices)
 
-
-
   const lat = localStorage.getItem("latitude");
   const long = localStorage.getItem("longitude");
-
-
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
@@ -63,8 +64,6 @@ export default function Home() {
       },
     ],
   };
-
-
 
 
   useEffect(() => {
@@ -121,16 +120,34 @@ export default function Home() {
 
   const handleNavigate = () => {
 
-    if(token) {
+    if (token) {
       Navigate("/post-task")
-    }else {
+    } else {
       Navigate("/login")
     }
   }
 
+  const [activeIndex, setActiveIndex] = useState(0);
+  const banners = [
+    banner5,
+    banner1,
+    banner2,
+    banner3,
+    banner4,
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveIndex((prevIndex) => (prevIndex + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
+
   return (
     <Layout>
-      <section className="home-banner-sec">
+
+      {/* <section className="home-banner-sec">
         <Container>
           <Row>
             <Col lg={6}>
@@ -141,12 +158,42 @@ export default function Home() {
                   We provide Performing cleaning tasks using the least amount of
                   time, energy, and money.
                 </p>
-                {/* <div>
+                <div>
                   <button onClick={() => Navigate("/category")}>Explore</button>
                   <button onClick={() => Navigate("/services")}>
                     View all Services
                   </button>
-                </div> */}
+                </div>
+              </div>
+            </Col>
+            <Col lg={6}></Col>
+          </Row>
+        </Container>
+      </section> */}
+
+
+
+      <section className="home-banner-sec">
+        <div className="banner-slider">
+          {banners.map((banner, index) => (
+            <img
+              key={index}
+              src={banner}
+              alt={`Banner ${index + 1}`}
+              className={`banner-image ${index === activeIndex ? 'active' : ''}`}
+              loading="lazy"
+            />
+          ))}
+        </div>
+        <Container>
+          <Row>
+            <Col xs={12} lg={6}>
+              <div className="banner-left-text">
+                <p className="mb-2">Need a Pro? Simba Tasker’s got you.</p>
+                <h1>From major builds to quick fixes — fast, trusted help.</h1>
+                <p>
+                  Tap in. Get it done.
+                </p>
               </div>
             </Col>
             <Col lg={6}></Col>
@@ -300,7 +347,7 @@ export default function Home() {
                 <div className="list-title">
                   <h2>Nearby Services</h2>
                   <Link to="/near-by-services">
-                  Explore More
+                    Explore More
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="20"
@@ -357,7 +404,7 @@ export default function Home() {
                 verified service providers come to you with their best quotes
               </p>
               <button onClick={() => handleNavigate()}>
-               Post a Task
+                Post a Task
               </button>
             </div>
             <div className="right-side">
@@ -411,7 +458,9 @@ export default function Home() {
                             />
                           )}
                         <h3>{ele?.serviceSubCategoryName}</h3>
-                        <p>{ele?.desc}</p>
+                        <p>
+                           <ReadMore desc={ele?.desc} />
+                        </p>
                       </div>
                     ))}
                   </div>

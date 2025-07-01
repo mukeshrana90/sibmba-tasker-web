@@ -197,7 +197,7 @@ const AddService = () => {
 
         return errors;
     };
-
+    console.log(serviceDetail, "serviceDetail")
     return (
         <Layout>
             <section className="search-results-sec">
@@ -529,35 +529,37 @@ const AddService = () => {
                                                                 <Col>
                                                                     <Form.Label>Select Time</Form.Label>
                                                                     <div>
-                                                                        {
-                                                                            timeSchedule?.map((time) => (
+                                                                        {timeSchedule?.map((time) => {
+                                                                            const normalizeTime = (t) => t.replace(/\s+/g, "").replace(/[-–—]/g, "-").toLowerCase();
+                                                                            const selectedTimes = Array.isArray(values?.dayAvailability?.[0]?.timeArr)
+                                                                                ? values.dayAvailability[0].timeArr.map(normalizeTime)
+                                                                                : [];
+
+                                                                            const normalizedTime = normalizeTime(time);
+
+                                                                            return (
                                                                                 <Button
                                                                                     key={time}
-                                                                                    variant={
-                                                                                        values?.dayAvailability[0]?.timeArr?.some((t) => t.toLowerCase() === time.replace(/\s*-\s*/, "-").toLowerCase())
-                                                                                            ? "success"
-                                                                                            : "outline-secondary"
-                                                                                    }
+                                                                                    variant={selectedTimes.includes(normalizedTime) ? "success" : "outline-secondary"}
                                                                                     className="m-1"
                                                                                     onClick={() => {
-                                                                                        const times = Array.isArray(values?.dayAvailability[0]?.timeArr) ? values.dayAvailability[0].timeArr : [];
-                                                                                        const normalizedTime = time.replace(/\s*-\s*/, "-").toLowerCase();
-                                                                                        const updatedTimes = times.some((t) => t.toLowerCase() === normalizedTime)
-                                                                                            ? times.filter((t) => t.toLowerCase() !== normalizedTime)
-                                                                                            : [...times, normalizedTime];
+                                                                                        const updatedTimes = selectedTimes.includes(normalizedTime)
+                                                                                            ? selectedTimes.filter((t) => t !== normalizedTime)
+                                                                                            : [...selectedTimes, normalizedTime];
+
                                                                                         setFieldValue("dayAvailability[0].timeArr", updatedTimes);
                                                                                         setFieldTouched("dayAvailability", true);
                                                                                     }}
                                                                                 >
-                                                                                    {time?.replace(
-                                                                                        /(\d{2})(am|pm)\s*-\s*(\d{2})(am|pm)/,
+                                                                                    {time.replace(
+                                                                                        /(\d{1,2})(am|pm)\s*-\s*(\d{1,2})(am|pm)/i,
                                                                                         (match, p1, p2, p3, p4) => `${parseInt(p1)} ${p2.toLowerCase()} - ${parseInt(p3)} ${p4.toLowerCase()}`
                                                                                     )}
                                                                                 </Button>
-                                                                            ))
-                                                                        }
+                                                                            );
+                                                                        })}
                                                                     </div>
-                                                                    {touched.dayAvailability && (
+                                                                    {touched?.dayAvailability && (
                                                                         <ErrorMessage
                                                                             name="dayAvailability[0].timeArr"
                                                                             component="div"

@@ -54,19 +54,21 @@
 }
 
 
-
-
-
-
-
-
-
-
-
-
 }
 
 @media (max-width: 767.98px) {
+
+  .banner-image, .banner-slider {
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    background: #d8efe6;
+}
+.banner-slider img {
+    display: none;
+}
 }
 
 @media (max-width: 575.98px) {
@@ -398,6 +400,17 @@
   width: 100% !important;
 }
 
+.banner-image, .banner-slider {
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    background: #d8efe6;
+}
 
+.banner-slider img {
+    display: none;
+}
 
 }

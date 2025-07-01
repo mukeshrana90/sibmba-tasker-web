@@ -224,7 +224,7 @@ export default function ServiceTaskDetails() {
                   </Slider>
                 ) : (
                   <img
-                    src={require("../Assets/Images/living-room-cleaning.png")}
+                    src={require("../Assets/Images/placeholder.jpg")}
                     alt="Default"
                   />
                 )}
@@ -277,7 +277,7 @@ export default function ServiceTaskDetails() {
                       <h5>
                         {task?.task_time},{" "}
                         {task?.when_done
-                          ? moment(task.when_done).format("DD MMM")
+                          ? moment(task?.when_done).format("DD MMM")
                           : "N/A"}
                       </h5>
                     </div>

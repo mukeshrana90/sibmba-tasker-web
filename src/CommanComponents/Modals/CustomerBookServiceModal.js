@@ -25,7 +25,7 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
   //   return serviceDetail?.availability?.[0]?.day.includes(dayName);
   // };
 
-  const isDateAvailable = (date) => {
+const isDateAvailable = (date) => {
   const dayName = [
     "Sunday",
     "Monday",
@@ -34,7 +34,7 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
     "Thursday",
     "Friday",
     "Saturday",
-  ][date.getDay()]; 
+  ][date.getDay()].toLowerCase(); // Convert to lowercase
   return serviceDetail?.availability?.[0]?.day.includes(dayName);
 };
 

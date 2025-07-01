@@ -61,7 +61,7 @@ export default function TrainingMaterial() {
               {selectedTraining && (
                 <div className="service-detail-card pt-3">
                   <video
-                    src={`${"https://simbadev-api.bosselt.com"}${selectedTraining.video}`}
+                    src={`${"https://simba-api.bosselt.com"}${selectedTraining.video}`}
                     controls
                     style={{ width: '100%', maxHeight: '400px' }}
                   />

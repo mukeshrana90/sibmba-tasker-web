@@ -25,6 +25,8 @@ import Payment from "../Pages/Payment";
 import ServicePro from "../Pages/ServicePro";
 import ServiceProCategory from "../Pages/ServiceProCategory";
 import ServiceProCategoryDetail from "../Pages/ServiceProCategoryDetail";
+import PrivacyPolicy from "../Pages/PrivacyPolicy";
+import TermsConditions from "../Pages/TermsConditions";
 
 const Login = lazy(() => import("../Pages/Login"));
 const ResetPassword = lazy(() => import("../Pages/ResetPassword"));
@@ -63,6 +65,9 @@ const RoutesPage = () => {
       <Suspense fallback={<Loader />}>
         <Routes>
           {/* Public Routes */}
+          <Route path="/terms-and-conditions" element={<TermsConditions />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
           <Route path="/login" element={<Login />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

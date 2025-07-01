@@ -74,6 +74,15 @@ export default function SearchForService() {
     fetchSubCategoryAndServices();
   }, [dispatch, searchValFromUrl, lng, lat, ratingvalue, kmValues]);
 
+
+  const normalizeCategoryName = (name) => {
+    if (!name) return "";
+    return name
+      .trim() // Remove leading/trailing spaces
+      .replace(/\s*,\s*/g, ", ") // Standardize comma spacing (e.g., "a , b" -> "a, b")
+      .toLowerCase(); // Convert to lowercase
+  };
+
   return (
     <Layout>
       <section className="search-results-sec">
@@ -117,28 +126,30 @@ export default function SearchForService() {
                         {Array.isArray(allUserCategories?.allCat) &&
                           allUserCategories?.allCat?.length > 0 && (
                             <>
-                              {allUserCategories?.allCat.map((ele, index) => (
-                                <li key={index} className="d-flex">
-                                  <input
-                                    type="checkbox"
-                                    checked={
-                                      ele?.service_category_name
-                                        ?.replace(/\s*,\s*/g, ",")
-                                        ?.trim() === searchValFromUrl?.replace(/\s*,\s*/g, ",")
-                                          ?.trim()
-                                    }
-                                    onChange={() => {
-                                      const encodedSearch = encodeURIComponent(
-                                        ele?.service_category_name?.replace(/\s*,\s*/g, ",")?.trim()
-                                      );
-                                      Navigate(
-                                        `/search-for-service?search=${encodedSearch}&id=${ele?._id}`
-                                      );
-                                    }}
-                                  />
-                                  <label>{ele?.service_category_name}</label>
-                                </li>
-                              ))}
+                              {allUserCategories?.allCat.map((ele, index) => {
+                                const normalizedCategory = normalizeCategoryName(
+                                  ele?.service_category_name
+                                );
+                                const normalizedSearchVal = normalizeCategoryName(searchValFromUrl);
+
+                                return (
+                                  <li key={index} className="d-flex">
+                                    <input
+                                      type="checkbox"
+                                      checked={normalizedCategory === normalizedSearchVal}
+                                      onChange={() => {
+                                        const encodedSearch = encodeURIComponent(
+                                          normalizedCategory
+                                        );
+                                        Navigate(
+                                          `/search-for-service?search=${encodedSearch}&id=${ele?._id}`
+                                        );
+                                      }}
+                                    />
+                                    <label>{ele?.service_category_name}</label>
+                                  </li>
+                                );
+                              })}
                             </>
                           )}
                       </ul>

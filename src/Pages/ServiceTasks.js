@@ -13,6 +13,7 @@ import "react-toastify/dist/ReactToastify.css";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
 import CancelModal from "../CommanComponents/Modals/CancelModal";
 import FilterModal from "../CommanComponents/Modals/FilterModal";
+import moment from "moment";
 
 export default function ServiceTasks() {
   const navigate = useNavigate();
@@ -104,6 +105,10 @@ export default function ServiceTasks() {
     });
   };
 
+  const formatDatee = (dateString) => {
+  return moment(dateString).format("DD MMM");
+};
+
   // Handle reject button
   const handleReject = (id) => {
     setShowModalCancel(true);
@@ -140,7 +145,7 @@ export default function ServiceTasks() {
           src={
             task?.images?.length > 0
               ? `${process.env.REACT_APP_API_URLL}${task.images[0]}`
-              : ""
+              : require("../Assets/Images/placeholder.jpg")
           }
           alt="Task"
           className="task-image"
@@ -176,7 +181,7 @@ export default function ServiceTasks() {
         <div className="requests-time-checkup">
           <h3>{task?.need_done || ""}</h3>
           <p>
-            {task?.task_time}, {formatDate(task?.when_done)} - {task?.address}
+            {task?.task_time}, {formatDatee(task?.when_done)} - {task?.address}
           </p>
           <p>{task.details}</p>
           <p className="task-price">${task.budget}</p>

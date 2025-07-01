@@ -45,8 +45,8 @@ export default function Footer({ isActive, setIsActive, setShow, show }) {
                 <Link to="/contact-us">Customer Support</Link>
               </li> */}
               <li className="mb-3">
-                <Link
-                  to="https://simbatasker.com/"
+                <a
+                  href="mailto:info@simbatasker.com"
                   onClick={() =>
                     window.scrollTo({
                       top: document.body.scrollHeight,
@@ -54,12 +54,13 @@ export default function Footer({ isActive, setIsActive, setShow, show }) {
                     })
                   }
                 >
-                  Contact us{" "}
-                </Link>
+                  Contact us
+                </a>
+
               </li>
               <li className="mb-3">
                 <Link
-                  to="https://simbatasker.com/terms-and-conditions"
+                  to={`https://simbatasker.com/terms-and-conditions`}
                   target="_blank"
                 >
                   Terms & Conditions{" "}
@@ -67,7 +68,7 @@ export default function Footer({ isActive, setIsActive, setShow, show }) {
               </li>
               <li>
                 <Link
-                  to="https://simbatasker.com/privacy-policy"
+                  to={`https://simbatasker.com/privacy-policy`}
                   target="_blank"
                 >
                   Privacy Policy{" "}

@@ -7,7 +7,7 @@ import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
-
+ 
 export default function Category() {
   const dispatch = useDispatch();
   const Navigate = useNavigate();

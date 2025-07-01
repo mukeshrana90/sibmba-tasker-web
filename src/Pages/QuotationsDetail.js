@@ -212,7 +212,7 @@ export default function QuotationsDetail() {
       </section>
 
 
-      <section className="category-services-sec pt-0 mt-5">
+      {/* <section className="category-services-sec pt-0 mt-5">
         <Container>
           <div className="category-services-lists">
             <div className="list-title">
@@ -684,7 +684,7 @@ export default function QuotationsDetail() {
             </div>
           </div>
         </Container>
-      </section>
+      </section> */}
 
       <Modal show={show} onHide={handleClose} centered>
         <Modal.Body>
