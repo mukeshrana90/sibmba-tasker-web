@@ -64,9 +64,9 @@ export default function MyServices() {
             <Row>
               <Col lg={12}>
                 <div className="search-results-contain">
-                  <div className=" services-secs d-flex justify-content-between align-items-center mb-3 px-1">
+                  <div className="services-secs d-flex justify-content-between align-items-center mb-3 px-1">
                     <h2 className="mb-1">Services</h2>
-                    <button className="service-btn" onClick={handleAddService}>
+                    <button className="service-btn mt-5" onClick={handleAddService}>
                       + Add Service
                     </button>
                   </div>
@@ -109,7 +109,7 @@ export default function MyServices() {
                                           />
                                           <div className="bookings-card-data my-task-ad-card">
                                             <div>
-                                              <h3>
+                                              <h3 className="text-capitalize">
                                                 {service.serviceSubCategoryName ||
                                                   "N/A"}
                                               </h3>

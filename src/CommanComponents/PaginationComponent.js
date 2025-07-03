@@ -106,7 +106,6 @@ export default function PaginationComponent({ page, setPage, totalPages }) {
     <div className="pagination-block">
       <Pagination
         className="green-pagination d-flex flex-wrap justify-content-center"
-        size="sm"
       >
         <Pagination.First onClick={() => setPage(1)} disabled={page === 1} />
         <Pagination.Prev

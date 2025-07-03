@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
-import { Link, replace, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import eyeOpenIcon from "../Assets/Images/eye-fill.svg";
 import eyeClosedIcon from "../Assets/Images/eye-off-fill.svg";
 import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import { Button } from "react-bootstrap";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import { emit } from "../utils/socketService";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
@@ -25,7 +23,6 @@ export default function Login() {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-
   useEffect(() => {
     const handleGetFirebaseToken = async () => {
       try {
@@ -114,7 +111,6 @@ export default function Login() {
   }
   setLocalLoading(true);
   const response = await dispatch(CustomerActions.loginCustomer(payload));
-  console.log(response, "response");
 
   if (response?.payload?.status_code === 200) {
     const token = response?.payload?.data?.token;
@@ -202,7 +198,7 @@ useEffect(() => {
             <div className="right-banner-part">
               <div className="login-cmn-box">
                 <div className="login-box-inner-wrap">
-                  <div className="login-logo">
+                  <div className="login-logo cursor-pointer"  onClick={() => navigate("/")}>
                     {" "}
                     <img src={require("../Assets/Images/dark-logo.png")} />
                   </div>

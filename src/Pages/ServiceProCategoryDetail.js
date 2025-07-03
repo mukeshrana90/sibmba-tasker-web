@@ -233,24 +233,16 @@
 
 
 
-import React, { useEffect, useRef, useState } from "react";
+import  { useEffect, useRef, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import Slider from "react-slick";
-import Form from "react-bootstrap/Form";
-import Modal from "react-bootstrap/Modal";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
-import { Button } from "react-bootstrap";
-import CustomerActions from "../Redux/Actions/CustomerActions";
-import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
-import StarRating from "../CommanComponents/StarRating";
-import { formatDate } from "fullcalendar/index.js";
 import { chunk } from "lodash";
-import MapComponent from "../CommanComponents/MapComponent";
 
 var settings = {
     dots: false,
@@ -294,15 +286,7 @@ export default function ServiceProCategoryDetail() {
     const service_id = searchParams.get("service_id");
 
     const [show, setShow] = useState(false);
-
     const categoryDetail = useSelector((e) => e.service.categoryData);
-    console.log(categoryDetail, "categoryDetail");
-
-    const handleClose = () => setShow(false);
-    const handleShow = () => setShow(true);
-
-    const [showMapModal, setShowMapModal] = useState(false);
-
     useEffect(() => {
         dispatch(ServiceActions.getServiceCategoryDetailId({ id }));
     }, []);
@@ -489,49 +473,46 @@ export default function ServiceProCategoryDetail() {
                     <h6>Verification Status</h6>
                   </div>
                   <div className="info-box">
-                    <p>
+                    <p className="info-box-item">
                       <strong>Account Verified:</strong>{" "}
                       <span
-                        style={{
-                          color: categoryDetail?.serviceProviderId
-                            ?.account_verified
-                            ? "green"
-                            : "red",
-                        }}
+                        className={
+                          categoryDetail?.serviceProviderId?.account_verified
+                            ? "badge badge-success"
+                            : "badge badge-danger"
+                        }
                       >
                         {categoryDetail?.serviceProviderId?.account_verified
-                          ? "VERIFIED"
-                          : "NOT VERIFIED"}
+                          ? "Verified"
+                          : "Not Verified"}
                       </span>
                     </p>
-                    <p>
+                    <p className="info-box-item">
                       <strong>Email Verified:</strong>{" "}
                       <span
-                        style={{
-                          color: categoryDetail?.serviceProviderId
-                            ?.email_verified
-                            ? "green"
-                            : "red",
-                        }}
+                        className={
+                          categoryDetail?.serviceProviderId?.email_verified
+                            ? "badge badge-success"
+                            : "badge badge-danger"
+                        }
                       >
                         {categoryDetail?.serviceProviderId?.email_verified
-                          ? "VERIFIED"
-                          : "NOT VERIFIED"}
+                          ? "Verified"
+                          : "Not Verified"}
                       </span>
                     </p>
-                    <p>
+                    <p className="info-box-item">
                       <strong>Phone Verified:</strong>{" "}
                       <span
-                        style={{
-                          color: categoryDetail?.serviceProviderId
-                            ?.phone_verified
-                            ? "green"
-                            : "red",
-                        }}
+                        className={
+                          categoryDetail?.serviceProviderId?.phone_verified
+                            ? "badge badge-success"
+                            : "badge badge-danger"
+                        }
                       >
                         {categoryDetail?.serviceProviderId?.phone_verified
-                          ? "VERIFIED"
-                          : "NOT VERIFIED"}
+                          ? "Verified"
+                          : "Not Verified"}
                       </span>
                     </p>
                   </div>

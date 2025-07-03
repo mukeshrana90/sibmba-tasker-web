@@ -48,13 +48,13 @@ export default function ForgotPassword() {
       <Container fluid className="">
         <div className="row  sign-banner-part">
           <Col lg={6} className="p-0">
-            <div className="otp-banner-img"></div>
+            <div className="forgot-banner-img"></div>
           </Col>
           <Col lg={6}>
             <div className="right-banner-part">
               <div className="login-cmn-box">
                 <div className="login-box-inner-wrap">
-                  <div className="login-logo">
+                  <div className="login-logo cursor-pointer" onClick={() => navigate("/")}>
                     {" "}
                     <img src={require("../Assets/Images/dark-logo.png")} />
                   </div>

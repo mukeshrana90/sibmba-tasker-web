@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
-import { Link, replace, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -11,7 +10,6 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import eyeOpenIcon from "../Assets/Images/eye-fill.svg";
 import eyeClosedIcon from "../Assets/Images/eye-off-fill.svg";
-import { Button } from "react-bootstrap";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { useQuery } from "../utils/CommonFunction";
@@ -46,10 +44,7 @@ export default function SignUp() {
       terms: Yup.boolean().oneOf([true], "You must accept the terms"),
     }),
     onSubmit: async (values) => {
-      console.log("valeu", values);
-
       localStorage.setItem("signupFormData", JSON.stringify(values));
-
       let payload = {
         email: values?.email,
         country_code: values?.country_code || "+91",
@@ -61,14 +56,12 @@ export default function SignUp() {
       setLocalLoading(true);
       const response = await dispatch(CustomerActions.createCustomer(payload));
       if (response?.payload?.status_code === 200) {
-        console.log("res", response);
         navigate(
           `/otp-varification?userId=${response?.payload?.data?._id}&role=${role || 1 // changed
           }`
         );
       }
       setLocalLoading(false);
-      console.log("Success:", response.data);
     },
   });
 
@@ -97,13 +90,13 @@ export default function SignUp() {
       <Container fluid className="">
         <div className="row  sign-banner-part">
           <Col lg={6} className="p-0">
-            <div className="otp-banner-img"></div>
+            <div className="signUp-banner-img"></div>
           </Col>
           <Col lg={6}>
             <div className="right-banner-part">
               <div className="login-cmn-box">
                 <div className="login-box-inner-wrap">
-                  <div className="login-logo">
+                  <div className="login-logo cursor-pointer" onClick={() => navigate("/")}>
                     {" "}
                     <img src={require("../Assets/Images/dark-logo.png")} />
                   </div>

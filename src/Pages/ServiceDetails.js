@@ -179,7 +179,7 @@ export default function ServiceDetails() {
                 <div>
                   <StarRating averageRating={serviceDetail?.averageRating} />
 
-                  <h3>{serviceDetail?.serviceSubCategoryName || ""}</h3>
+                  <h3 className="text-capitalize">{serviceDetail?.serviceSubCategoryName || ""}</h3>
                   <h4> {serviceDetail?.serviceCategoryId?.service_category_name}</h4>
                   <p>{serviceDetail?.desc}</p>
                   <div className="book-service-action-btn">

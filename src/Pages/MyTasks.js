@@ -73,7 +73,7 @@ export default function MyTasks() {
                               </Nav.Link>
                             </Nav.Item>
                           </Nav>
-                          <button onClick={() => navigate("/post-task")}>
+                          <button className="mb-2" onClick={() => navigate("/post-task")}>
                             Post
                           </button>
                         </div>

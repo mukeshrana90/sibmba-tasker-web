@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { ChatContext } from '../context/ChatProvider';
 import moment from 'moment';
 
@@ -6,8 +6,6 @@ const ChatList = () => {
   const { chatList, selectedUser, setSelectedUser, setChatList } = useContext(ChatContext);
   const role = localStorage.getItem('role');
   const [searchTerm, setSearchTerm] = useState('');
-
-  console.log('ChatList: chatList:', chatList);
 
   const handleChatSelect = (receiverId, chatIndex) => {
     if (selectedUser !== receiverId) {
@@ -31,7 +29,6 @@ const ChatList = () => {
     : [];
 
   return (
-    <div>
       <div className="message-chat-list">
         <div className="chat-search">
           <svg
@@ -106,7 +103,6 @@ const ChatList = () => {
             <li>{searchTerm ? 'No matching chats found' : 'No chats available'}</li>
           )}
         </ul>
-      </div>
     </div>
   );
 };

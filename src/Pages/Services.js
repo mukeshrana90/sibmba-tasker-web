@@ -47,7 +47,6 @@ export default function Services() {
     }
   };
 
-  console.log(AllUserServices, "AllUserServicesAllUserServices");
   return (
     <Layout>
       <section className="breadcrumb-nav">

@@ -79,11 +79,7 @@
     display: none;
   }
 
-  .otp-banner-img {
-    display: none;
-  }
-
-  .new-otp-banner-img {
+  .otp-banner-img,.new-otp-banner-img,.forgot-banner-img,.resetPassowrd-banner-img,.signUp-banner-img {
     display: none;
   }
 

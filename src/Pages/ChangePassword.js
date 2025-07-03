@@ -97,7 +97,7 @@ export default function ChangePassword() {
                             current: !passwordShow.current,
                           })
                         }
-                        // className="password-toggle-icon"
+                        className="password-toggle-icon"
                       />
 
                       {/* <svg

@@ -92,7 +92,6 @@ export default function OtpVarification() {
     let res = await dispatch(
       CustomerActions.resendOtp({ user_id: userId, type: 1 })
     );
-    console.log(res, "res");
     if (res?.payload?.success) {
       toast.success("OTP has been resent to your provided email")
       // toast.success(res?.payload?.message);
@@ -199,7 +198,7 @@ export default function OtpVarification() {
             <div className="right-banner-part">
               <div className="login-cmn-box">
                 <div className="login-box-inner-wrap">
-                  <div className="login-logo">
+                  <div className="login-logo cursor-pointer" onClick={() => navigate("/")}>
                     <img src={require("../Assets/Images/dark-logo.png")} />
                   </div>
                   <h2>OTP</h2>

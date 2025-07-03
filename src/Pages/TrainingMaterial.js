@@ -63,7 +63,7 @@ export default function TrainingMaterial() {
                   <video
                     src={`${"https://simba-api.bosselt.com"}${selectedTraining.video}`}
                     controls
-                    style={{ width: '100%', maxHeight: '400px' }}
+                    style={{ width: '100%', maxHeight: '400px', borderRadius: '8px', boxShadow: '0px 1px 2px 0px #1018280D'}}
                   />
                   <div>
                     <h3>{selectedTraining.title}</h3>

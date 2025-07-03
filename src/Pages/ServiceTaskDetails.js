@@ -472,7 +472,7 @@ export default function ServiceTaskDetails() {
                           <div>
                             {status !== "task" && (
                               <div
-                                className="chat-btn-card"
+                                className="chat-btn-card mb-3"
                                 style={{ position: "relative" }}
                                 ref={(el) => (dropdownRefs.current[quotation._id] = el)}
                               >

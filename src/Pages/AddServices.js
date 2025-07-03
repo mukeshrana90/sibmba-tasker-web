@@ -200,7 +200,7 @@ const AddService = () => {
     console.log(serviceDetail, "serviceDetail")
     return (
         <Layout>
-            <section className="search-results-sec">
+            <section className="search-results-sec service-details-sec">
                 <Container>
                     <Row>
                         <Col lg={12}>
@@ -266,7 +266,7 @@ const AddService = () => {
                                                 </Col>
                                                 <Col lg={12}>
                                                     <div
-                                                        className="image-scroll-container"
+                                                        className="image-scroll-container  edittask-image-scroll"
                                                         style={{
                                                             overflowX: "auto",
                                                             whiteSpace: "nowrap",
@@ -275,7 +275,7 @@ const AddService = () => {
                                                             borderRadius: "5px",
                                                             maxWidth: "100%",
                                                             display: "flex",
-                                                            justifyContent: "center",
+                                                            // justifyContent: "center",
                                                         }}
                                                     >
                                                         {previews.map((preview, index) => (
@@ -296,7 +296,7 @@ const AddService = () => {
                                                                     src={preview}
                                                                     alt={`Service Image ${index + 1} Preview`}
                                                                     style={{
-                                                                        width: "150px",
+                                                                        width: "200px",
                                                                         height: "180px",
                                                                         objectFit: "cover",
                                                                         borderRadius: "",

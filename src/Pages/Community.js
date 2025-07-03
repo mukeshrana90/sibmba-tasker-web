@@ -210,7 +210,7 @@ export default function Community() {
                           className={
                             selectedEvent && selectedEvent._id === event._id
                               ? "active"
-                              : ""
+                              : "list-inner"
                           }
                           onClick={() => handleEventClick(event)}
                         >

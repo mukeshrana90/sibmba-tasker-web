@@ -84,7 +84,6 @@ export default function EditProfileUser() {
       post_code: Yup.string().required("Post Code or PO Box is required"),
     }),
     onSubmit: async (values) => {
-      console.log("Form Submitted", values);
       if (!values?.profile_image && !customerDetails?.profile_image) {
         return toast.warn("Please add profile image");
       }
@@ -195,7 +194,7 @@ export default function EditProfileUser() {
 
   return (
     <Layout>
-      <div className="p-2 p-md-5">
+      <div className="p-2 p-md-5 mt-5">
         <Container fluid className="">
           <div className="row">
             <Col lg={6} className="mx-auto">

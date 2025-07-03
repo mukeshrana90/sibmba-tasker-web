@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
-
+import Loader from "../CommanComponents/Loader";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
 
@@ -58,7 +58,7 @@ export default function ServicePro() {
                                 <section className="category-services-sec pt-0 mt-3">
                                     <Container>
                                         <div className="category-services-lists">
-                                            {Array.isArray(categories?.allCat) &&
+                                            {loading ? ( <Loader />) : Array.isArray(categories?.allCat) &&
                                                 categories?.allCat.length > 0 ? (
                                                 <>
                                                     <div className="services-list-browse">

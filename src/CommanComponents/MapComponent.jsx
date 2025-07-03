@@ -36,7 +36,7 @@ const GoogleMap = ({ coordinates, address }) => {
     return <div>No location data available</div>;
   }
 
-  return <div ref={mapRef} style={{ height: "300px", width: "100%" }} />;
+  return <div ref={mapRef} style={{ height: "400px", width: "100%" }} />;
 };
     
 const MapComponent = ({ coordinates, address }) => {

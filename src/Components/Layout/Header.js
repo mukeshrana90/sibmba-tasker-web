@@ -1,19 +1,19 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Form from "react-bootstrap/Form";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Nav from "react-bootstrap/Nav";
 import Navbar from "react-bootstrap/Navbar";
 import Dropdown from "react-bootstrap/Dropdown";
 import DeleteAccountModal from "../../CommanComponents/Modals/DeleteAccountModal";
 import { toast } from "react-toastify";
-// import SearchCategory from "../../CommanComponents/SearchCategory";
 import Search from "../../CommanComponents/Search";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { setCustomer } from "../../Redux/Reducers/LoginSlice";
 import { ImagePathCustomer } from "../../utils/ImagePath";
 import { Modal } from "react-bootstrap";
+import { Roles } from "../../utils/Roles";
 
 export default function Header() {
   const dispatch = useDispatch();
@@ -22,20 +22,19 @@ export default function Header() {
   const Navigate = useNavigate();
   const [isDeleteModal, setIsDeleteModal] = useState(false);
   const { customerDetails } = useSelector((state) => state.login);
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const currentPath = location.pathname;
 
   const notificationDetail = useSelector((e) => e.UserSlice.notificationData);
   const role = localStorage.getItem("role");
 
   const hideNavbarCollapse = location.pathname === "/provider";
-  const hideSearchbarCollapse = location.pathname === "/requests" || role == 2;
+  const hideSearchbarCollapse = location.pathname === "/requests" || role === Roles.SERVICE_PROVIDER;
 
   const getProfileApiCall = async () => {
     let apiRes = await dispatch(CustomerActions.getProfile());
-    console.log("apires", apiRes);
     if (apiRes?.payload?.success) {
       dispatch(setCustomer(apiRes?.payload?.data));
-      console.log("apires", apiRes);
     }
   };
 
@@ -56,7 +55,6 @@ export default function Header() {
     });
   };
 
-  console.log(customerDetails?.notification_visibility, "customerDetails");
   // dispatch(CustomerActions.notificationToggler())
 
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(
@@ -85,14 +83,13 @@ export default function Header() {
     Navigate(`/`);
     window.location.reload();
   };
-
   return (
     <>
       <div className="header-commn">
         <Container>
           <Navbar expand="lg">
             <Container fluid>
-              <Navbar.Brand href={role == 2 ? "/requests" : "/"}>
+              <Navbar.Brand as={Link} to={role == Roles.SERVICE_PROVIDER ? "/requests" : "/"}>
                 <img src={require("../../Assets/Images/dark-logo.png")} />
               </Navbar.Brand>
               <Navbar.Toggle aria-controls="navbarScroll" />
@@ -147,38 +144,36 @@ export default function Header() {
                   >
                     {token && (
                       <>
-                        <button onClick={() => Navigate(role == 2 ? '/requests' : '/')}>Home</button>
-                        <button onClick={() => Navigate(role == 2 ? '/allmyservices' : '/services')}>  Service </button>
+                        <Link to={role == Roles.SERVICE_PROVIDER ? "/requests" : "/"} 
+                          className={currentPath === (role == Roles.SERVICE_PROVIDER ? '/requests' : '/') ? "nav-link active" : "nav-link"}> Home</Link>
+                        <Link className={currentPath === (role == Roles.SERVICE_PROVIDER ? "/allmyservices" : "/services") ? "nav-link active" : "nav-link"}
+                         to={role == Roles.SERVICE_PROVIDER ? "/allmyservices" : "/services"} >  Service </Link>
                       </>
                     )
                     }
                     {token ? (
                       <>
-                        {role == 2 ? (
+                        {role == Roles.SERVICE_PROVIDER ? (
                           <>
-                          <button onClick={() => Navigate("/taskslist")}>
-                            Tasks
-                          </button>
-
-                           <button onClick={() => Navigate("/service-pro")}>
+                           <Link to="/taskslist" className={currentPath === "/taskslist" ? "nav-link active" : "nav-link"}>Tasks</Link>
+                           <Link className={currentPath === "/service-pro" ? "nav-link active" : "nav-link"} to="/service-pro">
                             Service Pro
-                          </button>
+                          </Link>
 
                           </>
                         ) : (
                           <>
-                          <button onClick={() => Navigate("/bookings")}>
+                          <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"} to="/bookings">
                             Bookings
-                          </button>
-                          <button onClick={() => Navigate("/my-task")}>
+                          </Link>
+                          <Link className={currentPath === "/my-task" ? "nav-link active" : "nav-link"} to="/my-task">
                             My Tasks
-                          </button>
+                          </Link>
                           </>
                         )}
                       </>
                     ) : (
                       <>
-                        {/* <button onClick={() => Navigate("/sign-up?role=2")}> Join as Service Provider </button> */}
                         <button
                           className="sv-btn"
                           onClick={() => Navigate("/sign-up?role=2")}
@@ -205,7 +200,7 @@ export default function Header() {
                     <>
                       <div className="after-login-action">
                         <div>
-                          <button onClick={() => Navigate("/messages")}>
+                          <Link className={`icon-button ${currentPath === "/messages" ? "active" : ""}`} to="/messages">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               width="25"
@@ -218,14 +213,14 @@ export default function Header() {
                                 fill="#545454"
                               />
                             </svg>
-                          </button>
+                          </Link>
                         </div>
 
                         <div className="notify-icon-top">
                           <Dropdown>
                             <Dropdown.Toggle
                               variant="success"
-                              id="dropdown-basic"
+                              id="dropdown-basic" className={`icon-button ${currentPath === "/notifications" ? "active" : ""}`}
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -313,7 +308,7 @@ export default function Header() {
                                   <h2>{customerDetails?.full_name || "N/A"}</h2>
                                   <p
                                     onClick={() =>
-                                      role == 2
+                                      role == Roles.SERVICE_PROVIDER
                                         ? Navigate(`/edit-profile-company`)
                                         : Navigate(`/edit-profile`)
                                     }
@@ -325,7 +320,7 @@ export default function Header() {
                               </div>
                               <div className="nav-profile-menu">
                                 {/* ======================== Role = 2 ( Service ) */}
-                                {role == 2 ? (
+                                {role == Roles.SERVICE_PROVIDER ? (
                                   <>
                                     <div>
                                       <div className="avail-toggle">
@@ -340,47 +335,41 @@ export default function Header() {
                                       </div>
                                     </div>
                                     <Dropdown.Divider />
-                                    <button
-                                      onClick={() =>
-                                        Navigate("/training-material")
-                                      }
+                                    <Link className={currentPath === "/training-material" ? "nav-link active" : "nav-link"}
+                                      to="/training-material"
                                     >
                                       Training Material
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
 
-                                    <button
-                                      onClick={() => Navigate("/community")}
+                                    <Link className={currentPath === "/community" ? "nav-link active" : "nav-link"}
+                                      to="/community"
                                     >
                                       Community
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
-                                    <button
-                                      onClick={() => Navigate("/my-stats")}
+                                    <Link className={currentPath === "/my-stats" ? "nav-link active" : "nav-link"}
+                                      to="/my-stats"
                                     >
                                       My Stats
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
-                                    <button
-                                      onClick={() => Navigate("/payment")}
-                                    >
+                                    <Link className={currentPath === "/payment" ? "nav-link active" : "nav-link"}
+                                      to="/payment">
                                       Payment / Subscription
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
-                                    <button
-                                      onClick={() => Navigate("/wallet")}
-                                    >
+                                    <Link className={currentPath === "/wallet" ? "nav-link active" : "nav-link"}
+                                      to="/wallet">
                                       My Wallet
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
 
-                                    <button
-                                      onClick={() =>
-                                        Navigate("/customerreviews")
-                                      }
+                                    <Link className={currentPath === "/customerreviews" ? "nav-link active" : "nav-link"}
+                                      to="/customerreviews"
                                     >
                                       Customer Reviews
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
                                     {/* <button
                                   // onClick={() => Navigate("/change-password")}
@@ -391,35 +380,33 @@ export default function Header() {
                                   </>
                                 ) : (
                                   <>
-                                    <button
-                                      onClick={() => Navigate("/bookings")}
-                                    >
+                                    <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"}
+                                     to="/bookings">
                                       Bookings
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
-                                    <button
-                                      onClick={() => Navigate("/community")}
+                                    <Link className={currentPath === "/community" ? "nav-link active" : "nav-link"}
+                                     to="/community"
                                     >
                                       Community
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
-                                    <button
-                                      onClick={() => Navigate("/my-task")}
-                                    >
+                                    <Link className={currentPath === "/my-task" ? "nav-link active" : "nav-link"}
+                                     to="/my-task">
                                       My Tasks
-                                    </button>
+                                    </Link>
                                     <Dropdown.Divider />
                                   </>
                                 )}
                                 {/* =============================================== */}
 
-                                <button
-                                  onClick={() => Navigate("/change-password")}
+                                <Link  className={currentPath === "/change-password" ? "nav-link active" : "nav-link"}
+                                  to="/change-password"
                                 >
                                   Change Password
-                                </button>
+                                </Link>
                                 <Dropdown.Divider />
-                                <button onClick={() => setIsDeleteModal(true)}>
+                                <button onClick={() => setIsDeleteModal(true)} >
                                   Delete account
                                 </button>
                                 <Dropdown.Divider />
@@ -495,7 +482,7 @@ export default function Header() {
             </div>
             <h3 className="mb-2">Log Out</h3>
             <p>Are you sure to Log Out? </p>
-            <div className="comman-pop-action-double">
+            <div className="comman-pop-action-double logout-action">
               <button className="btn-fill-danger"  onClick={handleLogout}>Log Out</button>
               <button className="btn-outline"  onClick={() => setShowLogoutModal(false)}>Cancel</button>
             </div>

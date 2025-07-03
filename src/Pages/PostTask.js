@@ -85,7 +85,6 @@ export default function PostTask() {
     const ref = serviceImagesInputRefs.current[index]?.current;
     if (ref) {
       ref.click();
-      console.log(`Triggered click for index ${index}, ref exists:`, ref);
     } else {
       console.error(`Ref at index ${index} is null. Check input rendering.`);
     }
@@ -93,7 +92,6 @@ export default function PostTask() {
 
   useEffect(() => {
     serviceImagesInputRefs.current.forEach((ref, index) => {
-      console.log(`Ref[${index}] current:`, ref.current);
     });
   }, [previews]);
 
@@ -201,7 +199,7 @@ export default function PostTask() {
                       <div>
                          <Form.Group className="mb-3" controlId="formBasicEmail">
                           <Form.Label>Select Service Category</Form.Label>
-                          <Field
+                          <Field className="form-select form-select-custom"
                             name="category_id"
                             as={Form.Select}
                           >
@@ -311,7 +309,6 @@ export default function PostTask() {
                                     overflow: "hidden",
                                   }}
                                   onClick={() => {
-                                    console.log(`Click on image ${index}, triggering input`); // Debug log
                                     triggerFileInput(index);
                                   }} // Trigger file input on image click
                                 >
@@ -353,10 +350,9 @@ export default function PostTask() {
                                     padding: "10px",
                                     cursor: "pointer",
                                     paddingTop: "62px",
-                                    marginLeft:"20px"
+                                    // marginLeft:"20px"
                                   }}
                                   onClick={() => {
-                                    console.log(`Click on placeholder, triggering input ${previews.length}`);
                                     triggerFileInput(previews.length);
                                   }}
                                 >

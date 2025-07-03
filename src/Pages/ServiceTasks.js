@@ -209,7 +209,7 @@ export default function ServiceTasks() {
             />
             <div>
               <h5>{task?.user_details?.full_name || ""}</h5>
-              <p>{task?.user_details?.address || ""}</p>
+               <p>{task?.user_details?.address && task.user_details.address !== "undefined" ? task.user_details.address : "-"}</p>
               {/* <div className="rating-stars">
                 <ul> <StarRating averageRating={task.averageRating} /></ul>
               </div> */}
@@ -245,7 +245,7 @@ export default function ServiceTasks() {
                         onChange={handleSearchChange}
                       />
                       {activeTab != "second" && <div className="mt-1" onClick={() => setShowModal(true)}>
-                        <svg
+                        <svg className="cursor-pointer"
                           width="24"
                           height="25"
                           viewBox="0 0 24 25"
