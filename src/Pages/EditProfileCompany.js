@@ -278,6 +278,7 @@ export default function EditProfileCompany() {
                             name="full_name"
                             value={formik.values.full_name}
                             onChange={formik.handleChange}
+                            placeholder="Enter Owner Name"
                           />
                         </Form.Group>
                       </Col>
@@ -311,6 +312,7 @@ export default function EditProfileCompany() {
                             name="company_name"
                             value={formik.values.company_name}
                             onChange={formik.handleChange}
+                            placeholder="Enter Company Name"
                           />
                         </Form.Group>
                       </Col>
@@ -355,6 +357,7 @@ export default function EditProfileCompany() {
                             name="house_number"
                             value={formik.values.house_number}
                             onChange={formik.handleChange}
+                            placeholder="Enter House Number"
                           />
                         </Form.Group>
                       </Col>
@@ -388,6 +391,7 @@ export default function EditProfileCompany() {
                             name="suburbs"
                             value={formik.values.suburbs}
                             onChange={formik.handleChange}
+                            placeholder="Enter Suburbs"
                           />
                         </Form.Group>
                       </Col>
@@ -399,6 +403,7 @@ export default function EditProfileCompany() {
                             name="country"
                             value={formik.values.country}
                             onChange={formik.handleChange}
+                            placeholder="Enter Country"
                           />
                         </Form.Group>
                       </Col>
@@ -410,6 +415,7 @@ export default function EditProfileCompany() {
                             name="post_code"
                             value={formik.values.post_code}
                             onChange={formik.handleChange}
+                            placeholder="Enter Post Code or PO Box"
                           />
                         </Form.Group>
                       </Col>
@@ -421,6 +427,7 @@ export default function EditProfileCompany() {
                             name="landMark"
                             value={formik.values.landMark}
                             onChange={formik.handleChange}
+                            placeholder="Enter Landmark (Optional)"
                           />
                         </Form.Group>
                       </Col>

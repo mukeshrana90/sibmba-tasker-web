@@ -436,8 +436,8 @@ export default function EditProfileUser() {
                             <Form.Control
                               type="text"
                               name="house_number"
-                              placeholder="Enter here"
-                              value={formik.values.house_number}
+                              placeholder="Enter House Number"
+                              value={formik.values.house_number  !== "undefined" ? formik.values.house_number : ""}
                               onChange={formik.handleChange}
                               isInvalid={
                                 !!formik.errors.house_number &&
@@ -467,7 +467,7 @@ export default function EditProfileUser() {
                                   formik.values
                                 )
                               }
-                              defaultValue={formik.values.address}
+                              defaultValue={formik.values.address !== "undefined" ? formik.values.address : ""}
                               options={{
                                 types: ["address"],
                               }}
@@ -492,8 +492,8 @@ export default function EditProfileUser() {
                             <Form.Control
                               type="text"
                               name="suburbs"
-                              placeholder="Enter here"
-                              value={formik.values.suburbs}
+                              placeholder="Enter Suburbs"
+                              value={formik.values.suburbs !== "undefined" ? formik.values.suburbs : ""}
                               onChange={formik.handleChange}
                               isInvalid={
                                 !!formik.errors.suburbs &&
@@ -516,8 +516,8 @@ export default function EditProfileUser() {
                             <Form.Control
                               type="text"
                               name="country"
-                              placeholder="Enter here"
-                              value={formik.values.country}
+                              placeholder="Enter Country"
+                              value={formik.values.country !== "undefined" ? formik.values.country : ""}
                               onChange={formik.handleChange}
                               isInvalid={
                                 !!formik.errors.country &&
@@ -540,7 +540,7 @@ export default function EditProfileUser() {
                             <Form.Control
                               type="text"
                               name="post_code"
-                              placeholder="Enter here"
+                              placeholder="Enter Post Code or PO Box"
                               value={formik.values.post_code}
                               onChange={formik.handleChange}
                               isInvalid={
@@ -564,7 +564,7 @@ export default function EditProfileUser() {
                             <Form.Control
                               type="text"
                               name="landMark"
-                              placeholder="Enter here"
+                              placeholder="Enter Landmark"
                               value={formik.values.landMark}
                               onChange={formik.handleChange}
                             />

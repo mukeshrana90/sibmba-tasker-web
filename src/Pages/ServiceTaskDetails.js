@@ -206,7 +206,7 @@ export default function ServiceTaskDetails() {
         <Container>
           <Row>
             <Col lg={12}>
-              <div className="bookings-details-title">
+              <div className="bookings-details-title task-details-title">
                 <h2>Task Details</h2>
               </div>
               <div className="service-detail-card pt-3">

@@ -348,7 +348,7 @@ export default function CustomerServiceDetail() {
               />
               <div>
                 <h5>{serviceDetail?.serviceProviderId?.company_name}</h5>
-                <p>{serviceDetail?.serviceProviderId?.street_address}</p>
+                <p>{serviceDetail?.serviceProviderId?.street_address !== "undefined" ? serviceDetail?.serviceProviderId?.street_address : "-"}</p>
               </div>
             </div>
           </div>

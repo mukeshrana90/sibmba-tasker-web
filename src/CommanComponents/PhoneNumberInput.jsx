@@ -28,7 +28,7 @@ const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, init
             defaultCountry={initialCountry || "in"}
             value={value}
             onChange={handleChange}
-            placeholder="Enter here"
+            placeholder="Enter phone number"
             disableFlags
             inputClassName="form-control"
             countrySelectorStyleProps={{

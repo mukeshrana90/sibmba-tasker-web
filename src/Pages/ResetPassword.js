@@ -1,15 +1,15 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { useQuery } from "../utils/CommonFunction";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast } from "react-toastify";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
-
+import eyeOpenIcon from "../Assets/Images/eye-fill.svg";
+import eyeClosedIcon from "../Assets/Images/eye-off-fill.svg";
 export default function ResetPassword() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -22,7 +22,8 @@ export default function ResetPassword() {
   const [passwordStrength, setPasswordStrength] = useState("weak");
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -115,10 +116,10 @@ export default function ResetPassword() {
                   <p className="mb-0">Please create a new strong password</p>
                   <Form onSubmit={handleSubmit}>
                     <div className="form-set">
-                      <Form.Group className="mb-3" controlId="formBasicEmail">
+                      <Form.Group className="mb-3 pass-eys" controlId="formBasicEmail">
                         <Form.Label>New Password</Form.Label>
                         <Form.Control
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           placeholder="Enter here"
                           name="password"
                           value={formData.password}
@@ -126,17 +127,29 @@ export default function ResetPassword() {
                           onFocus={handlePasswordFocus}
                           onBlur={handlePasswordBlur}
                         />
+                        <img
+                        src={showPassword ? eyeClosedIcon : eyeOpenIcon}
+                        alt="Toggle password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="password-toggle-icon"
+                      />
                       </Form.Group>
 
-                      <Form.Group className="mb-3" controlId="formBasicEmail">
+                      <Form.Group className="mb-3 pass-eys" controlId="formBasicEmail">
                         <Form.Label>Confirm Password</Form.Label>
                         <Form.Control
-                          type="password"
+                         type={showConfirmPassword ? "text" : "password"}
                           placeholder="Enter here"
                           name="confirmPassword"
                           value={formData.confirmPassword}
                           onChange={handleInputChange}
                         />
+                        <img
+                        src={showConfirmPassword ? eyeClosedIcon : eyeOpenIcon}
+                        alt="Toggle password visibility"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="password-toggle-icon"
+                      />
                       </Form.Group>
 
                       {formData.password && (

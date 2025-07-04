@@ -403,7 +403,7 @@ const ProviderForm = ({
                       name="full_name"
                       as={Form.Control}
                       type="text"
-                      placeholder="Type here"
+                      placeholder="Enter Owner Name"
                     />
                     <ErrorMessage
                       name="full_name"
@@ -426,7 +426,7 @@ const ProviderForm = ({
                       name="facebook_link"
                       as={Form.Control}
                       type="text"
-                      placeholder="Enter here"
+                      placeholder="Enter Facebook Link"
                     />
                     <ErrorMessage
                       name="facebook_link"
@@ -444,7 +444,7 @@ const ProviderForm = ({
                       name="instagram_link"
                       as={Form.Control}
                       type="text"
-                      placeholder="Enter here"
+                      placeholder="Enter Instagram Link"
                     />
                     <ErrorMessage
                       name="instagram_link"
@@ -462,7 +462,7 @@ const ProviderForm = ({
                       name="website_link"
                       as={Form.Control}
                       type="text"
-                      placeholder="Enter here"
+                      placeholder="Enter Website Link"
                     />
                     <ErrorMessage
                       name="website_link"
@@ -657,7 +657,7 @@ const ProviderForm = ({
                       name="reference_name"
                       as={Form.Control}
                       type="text"
-                      placeholder="Enter here"
+                      placeholder="Enter Name"
                     />
                     <ErrorMessage
                       name="reference_name"
@@ -675,7 +675,7 @@ const ProviderForm = ({
                       name="relation"
                       as={Form.Control}
                       type="text"
-                      placeholder="Enter here"
+                      placeholder="Enter Relation"
                     />
                     <ErrorMessage
                       name="relation"
@@ -693,7 +693,7 @@ const ProviderForm = ({
                       name="designation"
                       as={Form.Control}
                       type="text"
-                      placeholder="Enter here"
+                      placeholder="Enter Designation"
                     />
                   </Form.Group>
                 </div>
@@ -706,7 +706,7 @@ const ProviderForm = ({
                       name="referenceEmail"
                       as={Form.Control}
                       type="email"
-                      placeholder="Enter here"
+                      placeholder="Enter Email"
                     />
                     <ErrorMessage
                       name="referenceEmail"
@@ -918,7 +918,7 @@ const ProviderForm = ({
                               src={previews.images[index]}
                               alt={`Service Image ${index + 1} Preview`}
                               style={{
-                                width: "192px",
+                                width: "274px",
                                 height: "150px",
                                 objectFit: "cover",
                                 borderRadius: "5px",
