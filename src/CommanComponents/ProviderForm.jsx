@@ -15,58 +15,6 @@ import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 
-const validationSchemas = [
-  // Step 0: Personal Information
-  Yup.object({
-    full_name: Yup.string().trim().required("Owner Name is required"),
-    facebook_link: Yup.string().url("Invalid URL").nullable(),
-    instagram_link: Yup.string().url("Invalid URL").nullable(),
-    website_link: Yup.string().url("Invalid URL").nullable(),
-  }),
-  // Step 1: Company Details
-  Yup.object({
-    identify_yourself: Yup.string().required("Identify yourself is required"),
-    company_name: Yup.string().trim().required("Company Name is required"),
-    house_number: Yup.string().trim().required("House Number is required"),
-    street_address: Yup.string().trim().required("Street Address is required"),
-    suburbs: Yup.string().trim().nullable(),
-    country: Yup.string().trim().nullable(),
-    post_code_or_po_box: Yup.string().trim().nullable(),
-    landmark: Yup.string().trim().nullable(),
-  }),
-  // Step 2: Reference Details
-  Yup.object({
-    reference_name: Yup.string().trim().required("Name is required"),
-    relation: Yup.string().trim().required("Relation is required"),
-    designation: Yup.string().trim().nullable(),
-    referenceEmail: Yup.string()
-      .email("Invalid email")
-      .required("Email is required"),
-    phone_number: Yup.string().trim().required("Phone number is required"),
-  }),
-  Yup.object({}),
-  // Step 4: Service Details
-  Yup.object({
-    dayAvailability: Yup.object({
-      day: Yup.array().min(1, "At least one day is required"),
-      timeArr: Yup.array().min(1, "At least one time slot is required"),
-    }),
-    serviceCategoryId: Yup.string().required("Service category is required"),
-    serviceSubCategoryName: Yup.string()
-      .trim()
-      .required("Service Name is required"),
-    price: Yup.number()
-      .required("Price is required")
-      .positive("Price must be positive"),
-    desc: Yup.string().trim().required("Description is required"),
-    images: Yup.array().test(
-      "atLeastOneImage",
-      "At least one service image is required",
-      (value) => value && value.filter(Boolean).length > 0
-    ),
-  }),
-];
-
 const ProviderForm = ({
   currentStep,
   setCurrentStep,
@@ -107,6 +55,69 @@ const ProviderForm = ({
     desc: "",
     shop_name: "",
   };
+
+  const validationSchemas = [
+    // Step 0: Personal Information
+    Yup.object({
+      full_name: Yup.string().trim().required("Owner Name is required"),
+      facebook_link: Yup.string().url("Invalid URL").nullable(),
+      instagram_link: Yup.string().url("Invalid URL").nullable(),
+      website_link: Yup.string().url("Invalid URL").nullable(),
+    }),
+    // Step 1: Company Details
+    Yup.object({
+      identify_yourself: Yup.string().required("Identify yourself is required"),
+      ...(isCorporate
+        ? {
+            shop_name: Yup.string().trim().required("Shop Name is required"),
+          }
+        : {
+            company_name: Yup.string()
+              .trim()
+              .required("Company Name is required"),
+          }),
+
+      house_number: Yup.string().trim().required("House Number is required"),
+      street_address: Yup.string()
+        .trim()
+        .required("Street Address is required"),
+      suburbs: Yup.string().trim().nullable(),
+      country: Yup.string().trim().nullable(),
+      post_code_or_po_box: Yup.string().trim().nullable(),
+      landmark: Yup.string().trim().nullable(),
+    }),
+    // Step 2: Reference Details
+    Yup.object({
+      reference_name: Yup.string().trim().required("Name is required"),
+      relation: Yup.string().trim().required("Relation is required"),
+      designation: Yup.string().trim().nullable(),
+      referenceEmail: Yup.string()
+        .email("Invalid email")
+        .required("Email is required"),
+      phone_number: Yup.string().trim().required("Phone number is required"),
+    }),
+    Yup.object({}),
+    // Step 4: Service Details
+    Yup.object({
+      dayAvailability: Yup.object({
+        day: Yup.array().min(1, "At least one day is required"),
+        timeArr: Yup.array().min(1, "At least one time slot is required"),
+      }),
+      serviceCategoryId: Yup.string().required("Service category is required"),
+      serviceSubCategoryName: Yup.string()
+        .trim()
+        .required("Service Name is required"),
+      price: Yup.number()
+        .required("Price is required")
+        .positive("Price must be positive"),
+      desc: Yup.string().trim().required("Description is required"),
+      images: Yup.array().test(
+        "atLeastOneImage",
+        "At least one service image is required",
+        (value) => value && value.filter(Boolean).length > 0
+      ),
+    }),
+  ];
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -1315,13 +1326,30 @@ const ProviderForm = ({
             }}
             message="You’re all set!"
             onNext={() => {
+              const tokenval = localStorage.getItem("temptoken");
+              if (tokenval) {
+                localStorage.setItem("token", tokenval);
+                if (isCorporate) {
+                  localStorage.setItem("role", 3);
+                  navigate("/corporate", { replace: true });
+                } else {
+                  localStorage.setItem("role", 2);
+                  navigate("/requests", { replace: true });
+                }
+                localStorage.removeItem("temptoken");
+              } else {
+                toast.error("Temporary token missing. Please try again.");
+              }
               setShowModal(false);
-              let tokenval = localStorage.getItem("temptoken");
-              localStorage.setItem("token", tokenval);
-              localStorage.setItem("role", 2);
-              localStorage.removeItem("temptoken");
-              navigate("/requests", { replace: true });
             }}
+            // onNext={() => {
+            //   setShowModal(false);
+            //   let tokenval = localStorage.getItem("temptoken");
+            //   localStorage.setItem("token", tokenval);
+            //   localStorage.setItem("role", 2);
+            //   localStorage.removeItem("temptoken");
+            //   navigate("/requests", { replace: true });
+            // }}
           />
         </FormikForm>
       )}

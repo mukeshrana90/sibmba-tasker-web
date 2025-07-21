@@ -28,8 +28,6 @@ export default function ProviderProfile() {
     ...(!isCorporate ? ["Your service"] : [])
   ];
   const handleSubmit = async (values) => {
-console.log(values,"values")
-    return
     try {
       const formData = new FormData();
       Object.keys(values).forEach((key) => {
