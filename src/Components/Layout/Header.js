@@ -178,8 +178,14 @@ export default function Header() {
                           className="sv-btn"
                           onClick={() => Navigate("/sign-up?role=2")}
                         >
-                          {" "}
-                          Join as Service Provider{" "}
+                          Join as Service Provider
+                        </button>
+
+                        <button
+                          className="sv-btn cooperative-btn"
+                          onClick={() => Navigate("/sign-up?role=3")}
+                        >
+                          Join as Cooperative
                         </button>
                       </>
                     )}
