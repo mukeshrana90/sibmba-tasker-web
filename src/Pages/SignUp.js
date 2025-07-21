@@ -33,14 +33,14 @@ export default function SignUp() {
       country_code: "+91",
     },
     validationSchema: Yup.object({
-      email: Yup.string().email("Invalid email address").required("Required"),
-      phone: Yup.string().required("Required"),
+      email: Yup.string().email("Invalid email address").required("Email is Required"),
+      phone: Yup.string().required("Phone Number is Required"),
       password: Yup.string()
         .min(6, "Password must be at least 6 characters")
-        .required("Required"),
+        .required("Password is Required"),
       confirmPassword: Yup.string()
         .oneOf([Yup.ref("password"), null], "Passwords must match")
-        .required("Required"),
+        .required("Confirm password is Required"),
       terms: Yup.boolean().oneOf([true], "You must accept the terms"),
     }),
     onSubmit: async (values) => {

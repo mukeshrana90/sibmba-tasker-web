@@ -476,7 +476,7 @@ export default function EditProfileCompany() {
                         <Form.Group className="mb-3">
                           <Form.Label>Facebook</Form.Label>
                           <Form.Control
-                            type="text"
+                            type="text" placeholder="Enter Facebook Link"
                             name="facebook_link"
                             value={formik.values.facebook_link}
                             onChange={formik.handleChange}
@@ -485,7 +485,7 @@ export default function EditProfileCompany() {
                         <Form.Group className="mb-3">
                           <Form.Label>Instagram</Form.Label>
                           <Form.Control
-                            type="text"
+                            type="text" placeholder="Enter Instagram Link"
                             name="instagram_link"
                             value={formik.values.instagram_link}
                             onChange={formik.handleChange}
@@ -493,7 +493,7 @@ export default function EditProfileCompany() {
                         </Form.Group>
                         <Form.Group className="mb-3">
                           <Form.Label>Website</Form.Label>
-                          <Form.Control
+                          <Form.Control placeholder="Enter Website Link"
                             type="text"
                             name="website_link"
                             value={formik.values.website_link}

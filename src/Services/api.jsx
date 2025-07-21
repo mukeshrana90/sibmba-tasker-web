@@ -1,5 +1,4 @@
 import axios from "axios";
-import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 
 const Api = axios.create({

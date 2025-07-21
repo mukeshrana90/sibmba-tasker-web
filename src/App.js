@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RoutesPage from "./routes/Routes";
@@ -14,7 +14,7 @@ function App() {
   
     if (existingLat && existingLng) {
       console.log("Location already stored:", existingLat, existingLng);
-      setLocationHandled(true); // ✅ Mark as handled if already available
+      setLocationHandled(true);
       return;
     }
   
@@ -27,16 +27,16 @@ function App() {
           localStorage.setItem("latitude", lat);
           localStorage.setItem("longitude", lng);
           console.log("Location saved:", lat, lng);
-          setLocationHandled(true); // ✅ Location access handled (granted)
+          setLocationHandled(true); // Location access handled (granted)
         },
         error => {
           console.error("Error getting location:", error);
-          setLocationHandled(true); // ✅ Location access handled (denied or error)
+          setLocationHandled(true); // Location access handled (denied or error)
         }
       );
     } else {
       console.error("Geolocation is not supported by this browser.");
-      setLocationHandled(true); // ✅ Fallback if not supported
+      setLocationHandled(true); //  Fallback if not supported
     }
   }, []);
 
@@ -67,7 +67,6 @@ function App() {
 
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
     const BASE_URL = process.env.REACT_APP_API_URLL;
 
     const initializeSocket = async () => {
