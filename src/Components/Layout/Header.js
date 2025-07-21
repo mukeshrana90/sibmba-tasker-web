@@ -148,6 +148,7 @@ export default function Header() {
                           className={currentPath === (role == Roles.SERVICE_PROVIDER ? '/requests' : '/') ? "nav-link active" : "nav-link"}> Home</Link>
                         <Link className={currentPath === (role == Roles.SERVICE_PROVIDER ? "/allmyservices" : "/services") ? "nav-link active" : "nav-link"}
                          to={role == Roles.SERVICE_PROVIDER ? "/allmyservices" : "/services"} >  Service </Link>
+                        
                       </>
                     )
                     }
@@ -161,7 +162,26 @@ export default function Header() {
                           </Link>
 
                           </>
-                        ) : (
+                        ) : (!Roles.COOPERATIVE === role && 
+                          <>
+                          <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"} to="/bookings">
+                            Bookings
+                          </Link>
+                          <Link className={currentPath === "/my-task" ? "nav-link active" : "nav-link"} to="/my-task">
+                            My Tasks
+                          </Link>
+                          </>
+                        )}
+                         {role == Roles.COOPERATIVE ? (
+                          <>
+<Link
+  to="/corporate/products"
+  className={currentPath === "/corporate/products" ? "nav-link active" : "nav-link"}
+>
+  Product
+</Link>
+                          </>
+                        ) : (!Roles.COOPERATIVE === role && 
                           <>
                           <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"} to="/bookings">
                             Bookings
