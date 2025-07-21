@@ -166,11 +166,11 @@ export default function OtpVarification() {
         localStorage.setItem("userId", userId);
         localStorage.setItem("expiresAt", expiresAt);
         navigate("/complete-profile", { replace: true });
-      } else if (userRole == "2") {
+      } else if (userRole == "2" || userRole == "3") {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         localStorage.setItem("expiresAt", expiresAt);
-        navigate("/provider", { replace: true });
+        navigate(`/provider?${userRole}`, { replace: true });
       } else {
         localStorage.removeItem("temptoken");
         localStorage.setItem("token", token);
