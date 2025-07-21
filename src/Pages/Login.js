@@ -102,55 +102,64 @@ export default function Login() {
   // };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateForm()) return;
-
-  let payload = formData;
-  if (fcmToken) {
-    payload = { ...payload, device_token: fcmToken };
-  }
-  setLocalLoading(true);
-  const response = await dispatch(CustomerActions.loginCustomer(payload));
-
-  if (response?.payload?.status_code === 200) {
-    const token = response?.payload?.data?.token;
-    const userId = response?.payload?.data?._id;
-    const role = response?.payload?.data?.role;
-
-    localStorage.setItem("token", token);
-    localStorage.setItem("userId", userId);
-    localStorage.setItem("role", role);
-    localStorage.setItem("expiresAt", expiresAt);
-
-    if (response?.payload?.data?.email_verified == 0) {
-      navigate(`/otp-verification?userId=${userId}`, { replace: true });
-      toast.success(response?.payload?.message);
-    } else if (response?.payload?.data?.is_completeProfile == 0 && role == 1) {
-      localStorage.setItem("temptoken", token);
-      localStorage.setItem("userId", userId);
-      navigate("/complete-profile", { replace: true });
-      toast.success("Please Complete Your Profile.");
-    } else if (response?.payload?.data?.is_completeProfile == 0 && role == 2) {
-      localStorage.setItem("temptoken", token);
-      localStorage.setItem("userId", userId);
-      navigate("/provider", { replace: true });
-      toast.success("Please Complete Your Profile.");
-    } else {
-      localStorage.removeItem("temptoken");
-      if (role == 1) {
-        emit("new_user_connect", { userid: userId });
-        navigate("/");
-      } else {
-        navigate("/requests");
-        emit("new_user_connect", { userid: userId });
-      }
-      toast.success(response?.payload?.message);
+    e.preventDefault();
+    if (!validateForm()) return;
+  
+    let payload = formData;
+    if (fcmToken) {
+      payload = { ...payload, device_token: fcmToken };
     }
-  } else {
-    toast.error(response?.payload?.message);
-  }
-  setLocalLoading(false);
-};
+    setLocalLoading(true);
+    const response = await dispatch(CustomerActions.loginCustomer(payload));
+  
+    if (response?.payload?.status_code === 200) {
+      const token = response?.payload?.data?.token;
+      const userId = response?.payload?.data?._id;
+      const role = response?.payload?.data?.role;
+  
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("role", role);
+      localStorage.setItem("expiresAt", expiresAt);
+  
+      if (response?.payload?.data?.email_verified == 0) {
+        navigate(`/otp-verification?userId=${userId}`, { replace: true });
+        toast.success(response?.payload?.message);
+      } else if (response?.payload?.data?.is_completeProfile == 0 && role == 1) {
+        localStorage.setItem("temptoken", token);
+        localStorage.setItem("userId", userId);
+        navigate("/complete-profile", { replace: true });
+        toast.success("Please Complete Your Profile.");
+      } else if (response?.payload?.data?.is_completeProfile == 0 && role == 2) {
+        localStorage.setItem("temptoken", token);
+        localStorage.setItem("userId", userId);
+        navigate("/provider", { replace: true });
+        toast.success("Please Complete Your Profile.");
+      } else if (response?.payload?.data?.is_completeProfile == 0 && role == 3) {
+        localStorage.setItem("temptoken", token);
+        localStorage.setItem("userId", userId);
+        navigate("/corporate", { replace: true });
+        toast.success("Please Complete Your Profile.");
+      } else {
+        localStorage.removeItem("temptoken");
+        if (role == 1) {
+          emit("new_user_connect", { userid: userId });
+          navigate("/");
+        } else if (role == 2) {
+          navigate("/requests");
+          emit("new_user_connect", { userid: userId });
+        } else if (role == 3) {
+          navigate("/corporate");
+          emit("new_user_connect", { userid: userId });
+        }
+        toast.success(response?.payload?.message);
+      }
+    } else {
+      toast.error(response?.payload?.message);
+    }
+    setLocalLoading(false);
+  };
+  
 
 const isTokenValid = () => {
   const token = localStorage.getItem("token");

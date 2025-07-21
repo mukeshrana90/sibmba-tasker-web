@@ -27,6 +27,9 @@ import ServiceProCategory from "../Pages/ServiceProCategory";
 import ServiceProCategoryDetail from "../Pages/ServiceProCategoryDetail";
 import PrivacyPolicy from "../Pages/PrivacyPolicy";
 import TermsConditions from "../Pages/TermsConditions";
+import CorporateProfile from "../Pages/Corporate";
+import PrivateCorporate from "./PrivateCorporate";
+import CorporateDashboard from "../Pages/Corporate";
 
 const Login = lazy(() => import("../Pages/Login"));
 const ResetPassword = lazy(() => import("../Pages/ResetPassword"));
@@ -89,38 +92,62 @@ const RoutesPage = () => {
             <Route path="/requests" element={<Requests />} />
           </Route>
 
+          <Route path="/corporate" element={<PrivateCorporate />}>
+            <Route index element={<CorporateDashboard />} />
+            {/* <Route path="leads" element={<CorporateLeads />} />
+            <Route path="materials" element={<CorporateMaterials />} />
+            <Route path="subscription" element={<CorporateSubscription />} /> */}
+          </Route>
+
           {/* Private Routes */}
           <Route element={<PrivateRoute />}>
-
             {/* User Routes */}
             <Route path="/edit-profile" element={<EditProfileUser />} />
 
             {/* Comapny Routes */}
-            <Route path="/edit-profile-company" element={<EditProfileCompany />} />
+            <Route
+              path="/edit-profile-company"
+              element={<EditProfileCompany />}
+            />
 
             <Route path="/allmyservices" element={<MyServices />} />
             <Route path="/search-for-service" element={<SearchForService />} />
             <Route path="/service/:type" element={<AddServices />} />
-            <Route path="/customer-service-detail" element={<CustomerServiceDetail />} />
-            <Route path="/customer-category-detail" element={<CustomerCategoryDetail />} />
+            <Route
+              path="/customer-service-detail"
+              element={<CustomerServiceDetail />}
+            />
+            <Route
+              path="/customer-category-detail"
+              element={<CustomerCategoryDetail />}
+            />
             <Route path="/service-details/:id" element={<ServiceDetails />} />
 
             <Route path="/service-detail" element={<ServiceDetail />} />
             <Route path="/service-provider/:id" element={<ServiceProvider />} />
             <Route path="/bookings" element={<Bookings />} />
             <Route path="/booking-detail" element={<BookingsDetail />} />
-            <Route path="/user-booking-detail/:id" element={<UserBookingDetails />} />
+            <Route
+              path="/user-booking-detail/:id"
+              element={<UserBookingDetails />}
+            />
             <Route path="/post-task" element={<PostTask />} />
             <Route path="/my-task" element={<MyTasks />} />
             <Route path="/edit-task/:id" element={<EditTask />} />
             <Route path="/task-detail/:id" element={<TaskDetail />} />
-            <Route path="/quotations-detail/:id" element={<QuotationsDetail />} />
+            <Route
+              path="/quotations-detail/:id"
+              element={<QuotationsDetail />}
+            />
             <Route path="/messages" element={<Messages />} />
             <Route path="/community" element={<Community />} />
             <Route path="/customerreviews" element={<CustomerReviews />} />
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/change-password" element={<ChangePassword />} />
-            <Route path="/servicetasksdetails/:id" element={<ServiceTaskDetails />} />
+            <Route
+              path="/servicetasksdetails/:id"
+              element={<ServiceTaskDetails />}
+            />
 
             <Route path="/requestreject/:id" element={<ServiceReject />} />
             <Route path="/requestdetail/:id" element={<ServiceRequest />} />
@@ -128,8 +155,14 @@ const RoutesPage = () => {
             <Route path="/taskslist" element={<ServiceTasks />} />
             <Route path="/payment" element={<Payment />} />
             <Route path="/service-pro" element={<ServicePro />} />
-            <Route path="/serviceprocategory/:id" element={<ServiceProCategory />} />
-            <Route path="/serviceprocategorydetail/:id" element={<ServiceProCategoryDetail />} />
+            <Route
+              path="/serviceprocategory/:id"
+              element={<ServiceProCategory />}
+            />
+            <Route
+              path="/serviceprocategorydetail/:id"
+              element={<ServiceProCategoryDetail />}
+            />
 
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/training-material" element={<TrainingMaterial />} />
