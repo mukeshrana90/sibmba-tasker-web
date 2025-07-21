@@ -131,11 +131,13 @@ export default function Login() {
         localStorage.setItem("userId", userId);
         navigate("/complete-profile", { replace: true });
         toast.success("Please Complete Your Profile.");
-      } else if (response?.payload?.data?.is_completeProfile == 0 && role == Roles.SERVICE_PROVIDER ||role == Roles.CORPORATE ) {
+      } else if (response?.payload?.data?.is_completeProfile === 0) {
+        if(role == Roles.SERVICE_PROVIDER || role == Roles.CORPORATE ){
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         navigate(`/provider?role=${role}`, { replace: true });
         toast.success("Please Complete Your Profile.");
+        }
       }  else {
         localStorage.removeItem("temptoken");
         if (role == Roles.CUSTOMER) {

@@ -1263,15 +1263,18 @@ const ProviderForm = ({
           try {
             const filteredValues = filterApiPayload(values);
             await handleSubmit(filteredValues);
-            // setShowModal(true);
-            setCurrentStep(currentStep + 1);
+            if(isCorporate){
+              setShowModal(true);
+            }else{
+                setCurrentStep(currentStep + 1);
+            }       
           } catch (error) {
             console.error("Step 3 submission failed:", error);
             toast.error("An error occurred during submission.");
           } finally {
             setSubmitting(false);
           }
-        } else if (currentStep === 4) {
+        } else if (currentStep === 4 && !isCorporate) {
           setSubmitting(true);
           try {
             // const servicePayload = createServicePayload(values);

@@ -41,6 +41,9 @@ export default function ProviderProfile() {
           formData.append(key, values[key]);
         }
       });
+      if(isCorporate && currentStep === 3){
+        formData.append('is_completeProfile', 1);
+      }
       const response = await dispatch(ServiceActions.createProfile(formData));
       console.log("Step 3 response:", response);
       if (response?.payload?.status_code === 200) {

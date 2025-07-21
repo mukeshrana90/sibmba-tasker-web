@@ -411,8 +411,6 @@ const CustomerActions = {
       return response.data;
     }
   ),
-
-
 };
 
 
