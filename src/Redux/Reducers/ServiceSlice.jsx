@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { toast } from "react-toastify";
 import ServiceActions from "../Actions/ServiceActions";
+import CustomerActions from "../Actions/CustomerActions";
 
 const serviceSlice = createSlice({
   name: "service",
@@ -8,6 +9,7 @@ const serviceSlice = createSlice({
     category: null,
     identificationList: null,
     myservices: null,
+    myProducts: null,
     serviceDetail: null,
     getServiceRequestList: null,
     getBookingRequestList: null,
@@ -76,6 +78,25 @@ const serviceSlice = createSlice({
     );
     builder.addCase(
       ServiceActions.getMyServicesList.rejected,
+      (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      }
+    );
+    // Products
+
+    builder.addCase(CustomerActions.getMyProductList.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(
+      CustomerActions.getMyProductList.fulfilled,
+      (state, action) => {
+        state.loading = false;
+        state.myProducts = action.payload.data;
+      }
+    );
+    builder.addCase(
+      CustomerActions.getMyProductList.rejected,
       (state, action) => {
         state.loading = false;
         state.error = action.payload;

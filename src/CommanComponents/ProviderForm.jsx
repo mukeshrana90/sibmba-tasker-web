@@ -118,7 +118,6 @@ const ProviderForm = ({
       ),
     }),
   ];
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const categoryList = useSelector((e) => e.service.category);
@@ -1263,11 +1262,8 @@ const ProviderForm = ({
           try {
             const filteredValues = filterApiPayload(values);
             await handleSubmit(filteredValues);
-            if(isCorporate){
-              setShowModal(true);
-            }else{
-                setCurrentStep(currentStep + 1);
-            }       
+            // setShowModal(true);
+            setCurrentStep(currentStep + 1);
           } catch (error) {
             console.error("Step 3 submission failed:", error);
             toast.error("An error occurred during submission.");

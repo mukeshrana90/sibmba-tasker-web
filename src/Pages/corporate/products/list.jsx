@@ -1,102 +1,222 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Container, Row, Col, Tab, Nav } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import Layout from "../../../Components/Layout/Layout";
-import Container from "react-bootstrap/Container";
-import Button from "react-bootstrap/Button";
-import Table from "react-bootstrap/Table";
-import { toast } from "react-toastify";
+import CustomerActions from "../../../Redux/Actions/CustomerActions";
 
-const CorporateProducts = () => {
-  const navigate = useNavigate();
+export default function CorporateProducts() {
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const dropdownRefs = useRef({});
 
-  useEffect(() => {
-    const role = localStorage.getItem("role");
-    if (role !== "3") {
-      toast.error("Unauthorized access.");
-      navigate("/", { replace: true });
-    }
-  }, [navigate]);
+    const [dropdownStates, setDropdownStates] = useState({});
+    const { myProducts, loading, error } = useSelector((state) => state.myProducts);
+    console.log(myProducts,'myProducts')
+    useEffect(() => {
+        dispatch(CustomerActions.getMyProductList());
+    }, [dispatch]);
 
-  // Static placeholder product data
-  const products = [
-    {
-      id: 1,
-      name: "Kwikot 150L Geyser",
-      category: "Plumbing",
-      stock: 10,
-      price: 450.0,
-    },
-    {
-      id: 2,
-      name: "22mm Gate Valve",
-      category: "Fittings",
-      stock: 25,
-      price: 15.5,
-    },
-    {
-      id: 3,
-      name: "Copper Pipe 22mm (per meter)",
-      category: "Piping",
-      stock: 50,
-      price: 8.0,
-    },
-  ];
+    const handleServiceClick = (serviceId) => {
+        navigate(`/service-details/${serviceId}`);
+    };
 
-  return (
-    <Layout>
-      <section className="search-results-sec py-8">
-        <Container>
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h3 className="fw-semibold mb-0">Product Listings</h3>
-            <Button variant="primary" onClick={() => navigate("/corporate/products/add")}>
-              Add New Product
-            </Button>
-          </div>
+    const handleAddService = () => {
+        navigate("/corporate/products/add");
+    };
 
-          <Table bordered hover responsive>
-            <thead className="table-light">
-              <tr>
-                <th>#</th>
-                <th>Product</th>
-                <th>Category</th>
-                <th>Stock</th>
-                <th>Price (USD)</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.length > 0 ? (
-                products.map((product, idx) => (
-                  <tr key={product.id}>
-                    <td>{idx + 1}</td>
-                    <td>{product.name}</td>
-                    <td>{product.category}</td>
-                    <td>{product.stock}</td>
-                    <td>${product.price.toFixed(2)}</td>
-                    <td>
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={() => navigate(`/corporate/products/edit/${product.id}`)}
-                      >
-                        Edit
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="text-center text-muted py-3">
-                    No products found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </Container>
-      </section>
-    </Layout>
-  );
-};
+    const handleButtonClick = (id) => {
+      setDropdownStates((prev) => ({
+        ...prev,
+        [id]: !prev[id], 
+      }));
+    };
 
-export default CorporateProducts;
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            let shouldCloseAll = true;
+            Object.values(dropdownRefs.current).forEach((ref) => {
+                if (ref && ref.contains(event.target)) {
+                    shouldCloseAll = false;
+                }
+            });
+            if (shouldCloseAll) {
+                setDropdownStates((prev) => {
+                    let newStates = { ...prev };
+                    Object.keys(newStates).forEach((key) => {
+                        newStates[key] = false;
+                    });
+                    return newStates;
+                });
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    return (
+      <Layout>
+        <section className="search-results-sec">
+          <Container>
+            <Row>
+              <Col lg={12}>
+                <div className="search-results-contain">
+                  <div className="services-secs d-flex justify-content-between align-items-center mb-3 px-1">
+                    <h2 className="mb-1">Products</h2>
+                    <button className="service-btn mt-5" onClick={handleAddService}>
+                      + Add Product
+                    </button>
+                  </div>
+
+                  <div className="bookings-tabs">
+                    <Tab.Container
+                      id="left-tabs-example"
+                      defaultActiveKey="first"
+                    >
+                      <Row>
+                        <Col sm={12}>
+                          <Tab.Content>
+                            <Tab.Pane eventKey="first">
+                              {error && <p className="text-danger">{error}</p>}
+                              {!loading &&
+                                !error &&
+                                myProducts?.length === 0 && (
+                                  <p>No services available.</p>
+                                )}
+                              {!loading && myProducts?.length > 0 && (
+                                <div className="bookings-cards">
+                                  <ul className="list-unstyled">
+                                    {myProducts?.map((service) => (
+                                      <li key={service._id}>
+                                        <div className="bookings-card-item">
+                                          <img
+                                            src={
+                                              service.images?.length
+                                                ? `${process.env.REACT_APP_API_URL}/user/${service?.images[0]}`
+                                                : ""
+                                            }
+                                            alt={""}
+                                            onClick={() =>
+                                              handleServiceClick(service?._id)
+                                            }
+                                            style={{
+                                              cursor: "pointer",
+                                              maxWidth: "200px",
+                                            }}
+                                          />
+                                          <div className="bookings-card-data my-task-ad-card">
+                                            <div>
+                                              <h3 className="text-capitalize">
+                                                {service.serviceSubCategoryName ||
+                                                  "N/A"}
+                                              </h3>
+                                              <p>
+                                                {" "}
+                                                {service.serviceCategoryId
+                                                  ?.service_category_name ||
+                                                  "N/A"}{" "}
+                                              </p>
+                                              <span>
+                                                {service.desc ||
+                                                  "No description available."}
+                                              </span>
+                                            </div>
+                                            <div
+                                              className="chat-btn-card"
+                                              style={{ position: "relative" }}
+                                              ref={(el) =>
+                                                (dropdownRefs.current[
+                                                  service._id
+                                                ] = el)
+                                              }
+                                            >
+                                              <button
+                                                className="btn"
+                                                onClick={() =>
+                                                  handleButtonClick(
+                                                    service?._id
+                                                  )
+                                                }
+                                              >
+                                                <svg
+                                                  xmlns="http://www.w3.org/2000/svg"
+                                                  width="32"
+                                                  height="35"
+                                                  viewBox="0 0 32 35"
+                                                  fill="none"
+                                                >
+                                                  <path
+                                                    d="M16.0001 11.084C16.8838 11.084 17.6001 10.3005 17.6001 9.33398C17.6001 8.36749 16.8838 7.58398 16.0001 7.58398C15.1165 7.58398 14.4001 8.36749 14.4001 9.33398C14.4001 10.3005 15.1165 11.084 16.0001 11.084Z"
+                                                    fill="#545454"
+                                                  />
+                                                  <path
+                                                    d="M16.0001 19.25C16.8838 19.25 17.6001 18.4665 17.6001 17.5C17.6001 16.5335 16.8838 15.75 16.0001 15.75C15.1165 15.75 14.4001 16.5335 14.4001 17.5C14.4001 18.4665 15.1165 19.25 16.0001 19.25Z"
+                                                    fill="#545454"
+                                                  />
+                                                  <path
+                                                    d="M16.0001 27.418C16.8838 27.418 17.6001 26.6345 17.6001 25.668C17.6001 24.7015 16.8838 23.918 16.0001 23.918C15.1165 23.918 14.4001 24.7015 14.4001 25.668C14.4001 26.6345 15.1165 27.418 16.0001 27.418Z"
+                                                    fill="#545454"
+                                                  />
+                                                </svg>
+                                              </button>
+                                              {dropdownStates[service._id] && (
+                                                <div
+                                                  style={{
+                                                    position: "absolute",
+                                                    top: "100%",
+                                                    left: "0",
+                                                    background: "#fff",
+                                                    border: "1px solid #ccc",
+                                                    borderRadius: "5px",
+                                                    boxShadow:
+                                                      "0 2px 5px rgba(0,0,0,0.2)",
+                                                    padding: "5px 0",
+                                                    zIndex: 10,
+                                                    maxWidth: "48px",
+                                                  }}
+                                                >
+                                                  <button
+                                                    style={{
+                                                      display: "block",
+                                                      width: "100%",
+                                                      padding: "5px 10px",
+                                                      textAlign: "left",
+                                                      background: "none",
+                                                      border: "none",
+                                                      cursor: "pointer",
+                                                    }}
+                                                    onClick={() => {
+                                                      navigate(
+                                                        `/service/edit?service_id=${service?._id}`
+                                                      );
+                                                    }}
+                                                  >
+                                                    Edit
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </Tab.Pane>
+                          </Tab.Content>
+                        </Col>
+                      </Row>
+                    </Tab.Container>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Container>
+        </section>
+      </Layout>
+    );
+}

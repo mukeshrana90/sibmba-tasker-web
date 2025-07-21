@@ -399,7 +399,7 @@ const CustomerActions = {
       }
     ),
 
-      getServiceDetailReview: createAsyncThunk(
+    getServiceDetailReview: createAsyncThunk(
     "/getServiceDetailReview/getServicewith_reviews",
     async (reqBody) => {
      
@@ -410,6 +410,23 @@ const CustomerActions = {
       } );
       return response.data;
     }
+  ),
+   // corporate/product
+ 
+  getMyProductList: createAsyncThunk("/corporate/product", async (customerData) => {
+    const response = await Api.get("/corporate/product", customerData);
+    return response.data;
+  }
+  ),
+    CreateProduct: createAsyncThunk("/corporate/product", async (customerData) => {
+    const response = await Api.post("/corporate/product", customerData);
+    return response.data;
+  }
+  ),
+    updateProduct: createAsyncThunk("corporate/product", async (customerData) => {
+    const response = await Api.post("corporate/product", customerData);
+    return response.data;
+  }
   ),
 };
 
