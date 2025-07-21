@@ -39,7 +39,7 @@ const CorporateAddProduct = () => {
   const handleSubmit = (values) => {
     const uploaded = images.filter((img) => img !== null);
     if (uploaded.length === 0) {
-      toast.error("Please upload at least one product image.");
+      toast.error("Please upload at least one product image");
       return;
     }
 
