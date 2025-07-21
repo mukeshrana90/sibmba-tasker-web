@@ -28,9 +28,11 @@ import ServiceProCategoryDetail from "../Pages/ServiceProCategoryDetail";
 import PrivacyPolicy from "../Pages/PrivacyPolicy";
 import TermsConditions from "../Pages/TermsConditions";
 import PrivateCorporate from "./PrivateCorporate";
-import CorporateProducts from "../Pages/corporate/products";
 import CorporateBookings from "../Pages/corporate/bookings";
 import CorporateDashboard from "../Pages/corporate";
+import CorporateAddProduct from "../Pages/corporate/products/addForm";
+import CorporateEditProduct from "../Pages/corporate/products/editForm";
+import CorporateProducts from "../Pages/corporate/products/list";
 
 const Login = lazy(() => import("../Pages/Login"));
 const ResetPassword = lazy(() => import("../Pages/ResetPassword"));
@@ -94,11 +96,11 @@ const RoutesPage = () => {
 
           <Route path="/corporate" element={<PrivateCorporate />}>
             <Route index element={<CorporateDashboard />} />
-            <Route path="products" element={<CorporateProducts />} />
-            <Route path="bookings" element={<CorporateBookings />} />
-            {/* <Route path="leads" element={<CorporateLeads />} />
-            <Route path="materials" element={<CorporateMaterials />} />
-            <Route path="subscription" element={<CorporateSubscription />} /> */}
+         <Route path="products" element={<CorporateProducts />} />
+  <Route path="products/add" element={<CorporateAddProduct />} />
+  <Route path="products/edit/:id" element={<CorporateEditProduct />} />
+  <Route path="bookings" element={<CorporateBookings />} />
+        
           </Route>
 
           {/* Private Routes */}

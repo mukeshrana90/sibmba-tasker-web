@@ -1,12 +1,12 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import Layout from "../../Components/Layout/Layout";
+import Layout from "../../../Components/Layout/Layout";
 import Container from "react-bootstrap/Container";
 import Button from "react-bootstrap/Button";
 import Table from "react-bootstrap/Table";
+import { toast } from "react-toastify";
 
-const CorporateProductPage = () => {
+const CorporateProducts = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,8 +47,8 @@ const CorporateProductPage = () => {
       <section className="search-results-sec py-8">
         <Container>
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h4 fw-semibold mb-0">Product Listings</h1>
-            <Button variant="primary" onClick={() => toast.info("Coming soon!")}>
+            <h3 className="fw-semibold mb-0">Product Listings</h3>
+            <Button variant="primary" onClick={() => navigate("/corporate/products/add")}>
               Add New Product
             </Button>
           </div>
@@ -61,6 +61,7 @@ const CorporateProductPage = () => {
                 <th>Category</th>
                 <th>Stock</th>
                 <th>Price (USD)</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -72,11 +73,20 @@ const CorporateProductPage = () => {
                     <td>{product.category}</td>
                     <td>{product.stock}</td>
                     <td>${product.price.toFixed(2)}</td>
+                    <td>
+                      <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        onClick={() => navigate(`/corporate/products/edit/${product.id}`)}
+                      >
+                        Edit
+                      </Button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="text-center text-muted py-3">
+                  <td colSpan="6" className="text-center text-muted py-3">
                     No products found.
                   </td>
                 </tr>
@@ -89,4 +99,4 @@ const CorporateProductPage = () => {
   );
 };
 
-export default CorporateProductPage;
+export default CorporateProducts;
