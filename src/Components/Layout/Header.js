@@ -162,7 +162,7 @@ export default function Header() {
                           </Link>
 
                           </>
-                        ) : (!Roles.COOPERATIVE === role && 
+                        ) : (!Roles.CORPORATE === role && 
                           <>
                           <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"} to="/bookings">
                             Bookings
@@ -172,16 +172,16 @@ export default function Header() {
                           </Link>
                           </>
                         )}
-                         {role == Roles.COOPERATIVE ? (
+                         {role == Roles.CORPORATE ? (
                           <>
-<Link
-  to="/corporate/products"
-  className={currentPath === "/corporate/products" ? "nav-link active" : "nav-link"}
->
-  Product
-</Link>
+                        <Link
+                          to="/corporate/products"
+                          className={currentPath === "/corporate/products" ? "nav-link active" : "nav-link"}
+                        >
+                          Product
+                        </Link>
                           </>
-                        ) : (!Roles.COOPERATIVE === role && 
+                        ) : (!Roles.CORPORATE === role && 
                           <>
                           <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"} to="/bookings">
                             Bookings
@@ -202,10 +202,10 @@ export default function Header() {
                         </button>
 
                         <button
-                          className="sv-btn cooperative-btn"
+                          className="sv-btn CORPORATE-btn"
                           onClick={() => Navigate("/sign-up?role=3")}
                         >
-                          Join as Cooperative
+                          Join as CORPORATE
                         </button>
                       </>
                     )}
