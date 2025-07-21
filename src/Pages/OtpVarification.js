@@ -170,7 +170,7 @@ export default function OtpVarification() {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         localStorage.setItem("expiresAt", expiresAt);
-        navigate(`/provider?${userRole}`, { replace: true });
+        navigate(`/provider?role=${userRole}`, { replace: true });
       } else {
         localStorage.removeItem("temptoken");
         localStorage.setItem("token", token);

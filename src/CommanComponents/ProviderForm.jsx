@@ -72,6 +72,7 @@ const ProviderForm = ({
   setCurrentStep,
   handleSubmit,
   handleServiceSubmit,
+  isCorporate,
 }) => {
   const initialValues = {
     full_name: "",
@@ -104,6 +105,7 @@ const ProviderForm = ({
     serviceSubCategoryName: "",
     price: "",
     desc: "",
+    shop_name: "",
   };
 
   const dispatch = useDispatch();
@@ -503,24 +505,46 @@ const ProviderForm = ({
                   </Form.Group>
                 </div>
               </Col>
-              <Col lg={6}>
-                <div className="form-set">
-                  <Form.Group className="mb-3" controlId="formCompanyName">
-                    <Form.Label>Company Name*</Form.Label>
-                    <Field
-                      name="company_name"
-                      as={Form.Control}
-                      type="text"
-                      placeholder="Name"
-                    />
-                    <ErrorMessage
-                      name="company_name"
-                      component="div"
-                      className="text-danger"
-                    />
-                  </Form.Group>
-                </div>
-              </Col>
+              {isCorporate ? (
+                <Col lg={6}>
+                  <div className="form-set">
+                    <Form.Group className="mb-3" controlId="formShopName">
+                      <Form.Label>Shop Name*</Form.Label>
+                      <Field
+                        name="shop_name"
+                        as={Form.Control}
+                        type="text"
+                        placeholder="Shop Name"
+                      />
+                      <ErrorMessage
+                        name="shop_name"
+                        component="div"
+                        className="text-danger"
+                      />
+                    </Form.Group>
+                  </div>
+                </Col>
+              ) : (
+                <Col lg={6}>
+                  <div className="form-set">
+                    <Form.Group className="mb-3" controlId="formCompanyName">
+                      <Form.Label>Company Name*</Form.Label>
+                      <Field
+                        name="company_name"
+                        as={Form.Control}
+                        type="text"
+                        placeholder="Name"
+                      />
+                      <ErrorMessage
+                        name="company_name"
+                        component="div"
+                        className="text-danger"
+                      />
+                    </Form.Group>
+                  </div>
+                </Col>
+              )}
+
               <Col lg={6}>
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formHouseNumber">
@@ -859,10 +883,10 @@ const ProviderForm = ({
                             field === "govtIssueId"
                               ? govtIssueIdInputRef
                               : field === "businessLicence"
-                                ? businessLicenceInputRef
-                                : field === "permit"
-                                  ? permitInputRef
-                                  : certificationsInputRef
+                              ? businessLicenceInputRef
+                              : field === "permit"
+                              ? permitInputRef
+                              : certificationsInputRef
                           }
                           className="d-none"
                           accept="image/*,application/pdf"
@@ -1094,20 +1118,36 @@ const ProviderForm = ({
                             <button
                               key={day}
                               type="button"
-                              className={`btn ${values.dayAvailability.day.some((d) => d.toLowerCase() === day.toLowerCase())
+                              className={`btn ${
+                                values.dayAvailability.day.some(
+                                  (d) => d.toLowerCase() === day.toLowerCase()
+                                )
                                   ? "btn-success"
                                   : "btn-outline-secondary"
-                                } m-1`}
+                              } m-1`}
                               onClick={() => {
-                                const days = Array.isArray(values.dayAvailability.day) ? values.dayAvailability.day : [];
-                                const updatedDays = days.some((d) => d.toLowerCase() === day.toLowerCase())
-                                  ? days.filter((d) => d.toLowerCase() !== day.toLowerCase())
+                                const days = Array.isArray(
+                                  values.dayAvailability.day
+                                )
+                                  ? values.dayAvailability.day
+                                  : [];
+                                const updatedDays = days.some(
+                                  (d) => d.toLowerCase() === day.toLowerCase()
+                                )
+                                  ? days.filter(
+                                      (d) =>
+                                        d.toLowerCase() !== day.toLowerCase()
+                                    )
                                   : [...days, day.toLowerCase()];
-                                setFieldValue("dayAvailability.day", updatedDays);
+                                setFieldValue(
+                                  "dayAvailability.day",
+                                  updatedDays
+                                );
                                 setFieldTouched("dayAvailability", true);
                               }}
                             >
-                              {day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()}
+                              {day.charAt(0).toUpperCase() +
+                                day.slice(1).toLowerCase()}
                             </button>
                           ))}
                           {touched.dayAvailability && (
@@ -1129,16 +1169,17 @@ const ProviderForm = ({
                             <button
                               key={time}
                               type="button"
-                              className={`btn ${values.dayAvailability.timeArr.includes(time)
+                              className={`btn ${
+                                values.dayAvailability.timeArr.includes(time)
                                   ? "btn-success"
                                   : "btn-outline-secondary"
-                                } m-1`}
+                              } m-1`}
                               onClick={() => {
                                 const updatedTimes =
                                   values.dayAvailability.timeArr.includes(time)
                                     ? values.dayAvailability.timeArr.filter(
-                                      (t) => t !== time
-                                    )
+                                        (t) => t !== time
+                                      )
                                     : [...values.dayAvailability.timeArr, time];
                                 setFieldValue(
                                   "dayAvailability.timeArr",

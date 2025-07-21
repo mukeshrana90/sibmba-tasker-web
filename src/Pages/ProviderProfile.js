@@ -8,22 +8,28 @@ import ProviderForm from "../CommanComponents/ProviderForm";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
+import { useQuery } from "../utils/CommonFunction";
+import { Roles } from "../utils/Roles";
 
 export default function ProviderProfile() {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const query = useQuery();
+  const role = query.get("role");
+  const isCorporate = role == Roles.CORPORATE;
   const [validateForm, setValidateForm] = useState(null);
 
   const steps = [
     "Some basic info",
-    "Company details",
+    isCorporate ? "Shop details" : "Company details",
     "Reference details",
     "Document Verification",
-    "Your service",
+    ...(!isCorporate ? ["Your service"] : [])
   ];
-
   const handleSubmit = async (values) => {
+console.log(values,"values")
+    return
     try {
       const formData = new FormData();
       Object.keys(values).forEach((key) => {
@@ -137,6 +143,7 @@ export default function ProviderProfile() {
                   handleSubmit={handleSubmit}
                   handleServiceSubmit={handleServiceSubmit}
                   setValidateForm={setValidateForm}
+                  isCorporate={isCorporate}
                 />
               </div>
             </Col>
