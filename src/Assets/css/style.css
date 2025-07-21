@@ -4578,7 +4578,9 @@ button.sv-btn {
   padding: 7px 20px !important;
   color: #000 !important;
 }
-
+button,.cooperative-btn{
+  margin-left: 10px;
+}
 .store.d-flex {
   gap: 10px;
 }
