@@ -202,10 +202,10 @@ export default function Header() {
                         </button>
 
                         <button
-                          className="sv-btn CORPORATE-btn"
+                          className="sv-btn corporate-btn"
                           onClick={() => Navigate("/sign-up?role=3")}
                         >
-                          Join as CORPORATE
+                          Join as Corporate 
                         </button>
                       </>
                     )}
