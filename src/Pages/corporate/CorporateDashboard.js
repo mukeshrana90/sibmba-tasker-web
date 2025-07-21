@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import Layout from "../Components/Layout/Layout";
+import Layout from "../../Components/Layout/Layout";
 
 const CorporateDashboard = () => {
   const navigate = useNavigate();
