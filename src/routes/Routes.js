@@ -70,7 +70,6 @@ const RoutesPage = () => {
           {/* Public Routes */}
           <Route path="/terms-and-conditions" element={<TermsConditions />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-
           <Route path="/login" element={<Login />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
