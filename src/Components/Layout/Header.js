@@ -15,6 +15,25 @@ import { ImagePathCustomer } from "../../utils/ImagePath";
 import { Modal } from "react-bootstrap";
 import { Roles } from "../../utils/Roles";
 
+const serviceProviderRoutes = [
+  { label: "Home", path: "/requests" },
+  { label: "Service", path: "/allmyservices" },
+  { label: "Tasks", path: "/taskslist" },
+  { label: "Service Pro", path: "/service-pro" },
+];
+
+const corporateRoutes = [
+  { label: "Home", path: "/" },
+  { label: "Product", path: "/corporate/products" },
+  { label: "Bookings", path: "/corporate/bookings" },
+];
+
+const clientRoutes = [
+  { label: "Home", path: "/" },
+  { label: "Service", path: "/services" },
+  { label: "Bookings", path: "/bookings" },
+  { label: "My Tasks", path: "/my-task" },
+];
 export default function Header() {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -29,7 +48,8 @@ export default function Header() {
   const role = localStorage.getItem("role");
 
   const hideNavbarCollapse = location.pathname === "/provider";
-  const hideSearchbarCollapse = location.pathname === "/requests" || role === Roles.SERVICE_PROVIDER;
+  const hideSearchbarCollapse =
+    location.pathname === "/requests" || role === Roles.SERVICE_PROVIDER;
 
   const getProfileApiCall = async () => {
     let apiRes = await dispatch(CustomerActions.getProfile());
@@ -74,14 +94,18 @@ export default function Header() {
     dispatch(CustomerActions.notificationToggler());
   };
 
-
-  
   const handleLogout = () => {
-    setShowLogoutModal(false)
+    setShowLogoutModal(false);
     toast.success("Log out successfully");
     localStorage.clear();
     Navigate(`/`);
     window.location.reload();
+  };
+
+  const getNavRoutes = () => {
+    if (role == Roles.SERVICE_PROVIDER) return serviceProviderRoutes;
+    if (role == Roles.CORPORATE) return corporateRoutes;
+    return clientRoutes;
   };
   return (
     <>
@@ -89,110 +113,48 @@ export default function Header() {
         <Container>
           <Navbar expand="lg">
             <Container fluid>
-              <Navbar.Brand as={Link} to={role == Roles.SERVICE_PROVIDER ? "/requests" : "/"}>
+              <Navbar.Brand
+                as={Link}
+                to={role == Roles.SERVICE_PROVIDER ? "/requests" : "/"}
+              >
                 <img src={require("../../Assets/Images/dark-logo.png")} />
               </Navbar.Brand>
               <Navbar.Toggle aria-controls="navbarScroll" />
 
               {!hideNavbarCollapse && (
                 <Navbar.Collapse id="navbarScroll">
-                  {token &&
-                    (!hideSearchbarCollapse &&
-                      <div className="nav-serch-bar ms-0 mt-2 mt-md-0 ms-md-5">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="14"
-                          height="15"
-                          viewBox="0 0 14 15"
-                          fill="none"
-                        >
-                          <path
-                            d="M11.0735 10.4015C11.9543 11.28 12.8216 12.1518 13.6956 13.0214C13.9326 13.2561 14.0555 13.5244 13.9728 13.8619C13.8231 14.4677 13.1144 14.7024 12.6361 14.3001C12.5176 14.1995 12.4125 14.0855 12.3007 13.9759C11.5116 13.1891 10.7248 12.4 9.93568 11.6131C9.92673 11.6042 9.91556 11.5975 9.89097 11.5818C8.22111 12.7778 6.3836 13.1444 4.39632 12.5676C2.95001 12.1474 1.81666 11.2845 0.998495 10.026C-0.660182 7.47759 -0.210864 4.09541 2.03796 2.08577C4.32926 0.0381303 7.72038 -0.033403 10.0899 1.91141C12.5265 3.91434 13.1524 7.64971 11.0735 10.4015ZM6.16677 11.166C8.65925 11.1638 10.6599 9.16085 10.6622 6.6706C10.6644 4.17141 8.65478 2.16401 6.15559 2.16624C3.66534 2.16624 1.66465 4.16917 1.66241 6.66166C1.66018 9.16085 3.66758 11.1683 6.16677 11.166Z"
-                            fill="#545454"
-                            fill-opacity="0.5"
-                          />
-                        </svg>
+                  {token && !hideSearchbarCollapse && (
+                    <div className="nav-serch-bar ms-0 mt-2 mt-md-0 ms-md-5">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="15"
+                        viewBox="0 0 14 15"
+                        fill="none"
+                      >
+                        <path d="..." fill="#545454" fillOpacity="0.5" />
+                      </svg>
+                      <Search />
+                    </div>
+                  )}
 
-                        <Search />
-                      </div>
-                    )
-                  }
-
-                  {/* <div
-                    className="search-top-header"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="15"
-                      viewBox="0 0 14 15"
-                      fill="none"
-                    >
-                      <path
-                        d="M11.0735 10.4015C11.9543 11.28 12.8216 12.1518 13.6956 13.0214C13.9326 13.2561 14.0555 13.5244 13.9728 13.8619C13.8231 14.4677 13.1144 14.7024 12.6361 14.3001C12.5176 14.1995 12.4125 14.0855 12.3007 13.9759C11.5116 13.1891 10.7248 12.4 9.93568 11.6131C9.92673 11.6042 9.91556 11.5975 9.89097 11.5818C8.22111 12.7778 6.3836 13.1444 4.39632 12.5676C2.95001 12.1474 1.81666 11.2845 0.998495 10.026C-0.660182 7.47759 -0.210864 4.09541 2.03796 2.08577C4.32926 0.0381303 7.72038 -0.033403 10.0899 1.91141C12.5265 3.91434 13.1524 7.64971 11.0735 10.4015ZM6.16677 11.166C8.65925 11.1638 10.6599 9.16085 10.6622 6.6706C10.6644 4.17141 8.65478 2.16401 6.15559 2.16624C3.66534 2.16624 1.66465 4.16917 1.66241 6.66166C1.66018 9.16085 3.66758 11.1683 6.16677 11.166Z"
-                        fill="#545454"
-                        fill-opacity="0.5"
-                      />
-                    </svg>
-          
-                    <SearchCategory/>
-                  </div> */}
-                  <Nav
-                    className="ms-auto my-2 my-lg-0 me-3"
-                    style={{ maxHeight: "100px" }}
-                    navbarScroll
-                  >
-                    {token && (
-                      <>
-                        <Link to={role == Roles.SERVICE_PROVIDER ? "/requests" : "/"} 
-                          className={currentPath === (role == Roles.SERVICE_PROVIDER ? '/requests' : '/') ? "nav-link active" : "nav-link"}> Home</Link>
-                        <Link className={currentPath === (role == Roles.SERVICE_PROVIDER ? "/allmyservices" : "/services") ? "nav-link active" : "nav-link"}
-                         to={role == Roles.SERVICE_PROVIDER ? "/allmyservices" : "/services"} >  Service </Link>
-                        
-                      </>
-                    )
-                    }
-                    {token ? (
-                      <>
-                        {role == Roles.SERVICE_PROVIDER ? (
-                          <>
-                           <Link to="/taskslist" className={currentPath === "/taskslist" ? "nav-link active" : "nav-link"}>Tasks</Link>
-                           <Link className={currentPath === "/service-pro" ? "nav-link active" : "nav-link"} to="/service-pro">
-                            Service Pro
-                          </Link>
-
-                          </>
-                        ) : (!Roles.CORPORATE === role && 
-                          <>
-                          <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"} to="/bookings">
-                            Bookings
-                          </Link>
-                          <Link className={currentPath === "/my-task" ? "nav-link active" : "nav-link"} to="/my-task">
-                            My Tasks
-                          </Link>
-                          </>
-                        )}
-                         {role == Roles.CORPORATE ? (
-                          <>
+                  <Nav className="ms-auto my-2 my-lg-0 me-3" navbarScroll>
+                    {token &&
+                      getNavRoutes().map((route) => (
                         <Link
-                          to="/corporate/products"
-                          className={currentPath === "/corporate/products" ? "nav-link active" : "nav-link"}
+                          key={route.path}
+                          to={route.path}
+                          className={
+                            currentPath === route.path
+                              ? "nav-link active"
+                              : "nav-link"
+                          }
                         >
-                          Product
+                          {route.label}
                         </Link>
-                          </>
-                        ) : (!Roles.CORPORATE === role && 
-                          <>
-                          <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"} to="/bookings">
-                            Bookings
-                          </Link>
-                          <Link className={currentPath === "/my-task" ? "nav-link active" : "nav-link"} to="/my-task">
-                            My Tasks
-                          </Link>
-                          </>
-                        )}
-                      </>
-                    ) : (
+                      ))}
+
+                    {!token && (
                       <>
                         <button
                           className="sv-btn"
@@ -200,16 +162,16 @@ export default function Header() {
                         >
                           Join as Service Provider
                         </button>
-
                         <button
                           className="sv-btn corporate-btn"
                           onClick={() => Navigate("/sign-up?role=3")}
                         >
-                          Join as Corporate 
+                          Join as Corporate
                         </button>
                       </>
                     )}
                   </Nav>
+
                   {!token && (
                     <Form className="d-flex">
                       <button
@@ -226,7 +188,12 @@ export default function Header() {
                     <>
                       <div className="after-login-action">
                         <div>
-                          <Link className={`icon-button ${currentPath === "/messages" ? "active" : ""}`} to="/messages">
+                          <Link
+                            className={`icon-button ${
+                              currentPath === "/messages" ? "active" : ""
+                            }`}
+                            to="/messages"
+                          >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               width="25"
@@ -246,7 +213,10 @@ export default function Header() {
                           <Dropdown>
                             <Dropdown.Toggle
                               variant="success"
-                              id="dropdown-basic" className={`icon-button ${currentPath === "/notifications" ? "active" : ""}`}
+                              id="dropdown-basic"
+                              className={`icon-button ${
+                                currentPath === "/notifications" ? "active" : ""
+                              }`}
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -309,10 +279,10 @@ export default function Header() {
                                   src={
                                     customerDetails?.profile_image
                                       ? ImagePathCustomer(
-                                        customerDetails?.profile_image
-                                      )
+                                          customerDetails?.profile_image
+                                        )
                                       : require("../../Assets/Images/my-profile.svg")
-                                        .default
+                                          .default
                                   }
                                 />
                               </div>
@@ -324,10 +294,10 @@ export default function Header() {
                                   src={
                                     customerDetails?.profile_image
                                       ? ImagePathCustomer(
-                                        customerDetails?.profile_image
-                                      )
+                                          customerDetails?.profile_image
+                                        )
                                       : require("../../Assets/Images/my-profile.svg")
-                                        .default
+                                          .default
                                   }
                                 />
                                 <div>
@@ -355,70 +325,119 @@ export default function Header() {
                                           type="switch"
                                           checked={isNotificationsEnabled}
                                           onChange={handleToggleChange}
-                                        // disabled={isTokenLoading}
-                                        // label={isTokenLoading ? "Loading..." : ""}
+                                          // disabled={isTokenLoading}
+                                          // label={isTokenLoading ? "Loading..." : ""}
                                         />
                                       </div>
                                     </div>
                                     <Dropdown.Divider />
-                                    <Link className={currentPath === "/training-material" ? "nav-link active" : "nav-link"}
+                                    <Link
+                                      className={
+                                        currentPath === "/training-material"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
                                       to="/training-material"
                                     >
                                       Training Material
                                     </Link>
                                     <Dropdown.Divider />
 
-                                    <Link className={currentPath === "/community" ? "nav-link active" : "nav-link"}
+                                    <Link
+                                      className={
+                                        currentPath === "/community"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
                                       to="/community"
                                     >
                                       Community
                                     </Link>
                                     <Dropdown.Divider />
-                                    <Link className={currentPath === "/my-stats" ? "nav-link active" : "nav-link"}
+                                    <Link
+                                      className={
+                                        currentPath === "/my-stats"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
                                       to="/my-stats"
                                     >
                                       My Stats
                                     </Link>
                                     <Dropdown.Divider />
-                                    <Link className={currentPath === "/payment" ? "nav-link active" : "nav-link"}
-                                      to="/payment">
+                                    <Link
+                                      className={
+                                        currentPath === "/payment"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/payment"
+                                    >
                                       Payment / Subscription
                                     </Link>
                                     <Dropdown.Divider />
-                                    <Link className={currentPath === "/wallet" ? "nav-link active" : "nav-link"}
-                                      to="/wallet">
+                                    <Link
+                                      className={
+                                        currentPath === "/wallet"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/wallet"
+                                    >
                                       My Wallet
                                     </Link>
                                     <Dropdown.Divider />
 
-                                    <Link className={currentPath === "/customerreviews" ? "nav-link active" : "nav-link"}
+                                    <Link
+                                      className={
+                                        currentPath === "/customerreviews"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
                                       to="/customerreviews"
                                     >
                                       Customer Reviews
                                     </Link>
                                     <Dropdown.Divider />
                                     {/* <button
-                                  // onClick={() => Navigate("/change-password")}
-                                  >
-                                    Language
-                                  </button>
-                                  <Dropdown.Divider />  */}
+                                                   // onClick={() => Navigate("/change-password")}
+                                                   >
+                                                     Language
+                                                   </button>
+                                                   <Dropdown.Divider />  */}
                                   </>
                                 ) : (
                                   <>
-                                    <Link className={currentPath === "/bookings" ? "nav-link active" : "nav-link"}
-                                     to="/bookings">
+                                    <Link
+                                      className={
+                                        currentPath === "/bookings"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/bookings"
+                                    >
                                       Bookings
                                     </Link>
                                     <Dropdown.Divider />
-                                    <Link className={currentPath === "/community" ? "nav-link active" : "nav-link"}
-                                     to="/community"
+                                    <Link
+                                      className={
+                                        currentPath === "/community"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/community"
                                     >
                                       Community
                                     </Link>
                                     <Dropdown.Divider />
-                                    <Link className={currentPath === "/my-task" ? "nav-link active" : "nav-link"}
-                                     to="/my-task">
+                                    <Link
+                                      className={
+                                        currentPath === "/my-task"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/my-task"
+                                    >
                                       My Tasks
                                     </Link>
                                     <Dropdown.Divider />
@@ -426,13 +445,18 @@ export default function Header() {
                                 )}
                                 {/* =============================================== */}
 
-                                <Link  className={currentPath === "/change-password" ? "nav-link active" : "nav-link"}
+                                <Link
+                                  className={
+                                    currentPath === "/change-password"
+                                      ? "nav-link active"
+                                      : "nav-link"
+                                  }
                                   to="/change-password"
                                 >
                                   Change Password
                                 </Link>
                                 <Dropdown.Divider />
-                                <button onClick={() => setIsDeleteModal(true)} >
+                                <button onClick={() => setIsDeleteModal(true)}>
                                   Delete account
                                 </button>
                                 <Dropdown.Divider />
@@ -481,11 +505,13 @@ export default function Header() {
         setIsDeleteModal={setIsDeleteModal}
       />
 
-
-
       {/* Log Out start  */}
 
-       <Modal  show={showLogoutModal} onHide={() => setShowLogoutModal(false)} centered>
+      <Modal
+        show={showLogoutModal}
+        onHide={() => setShowLogoutModal(false)}
+        centered
+      >
         <Modal.Body>
           <div className="comman-small-pop">
             <div className="center-icon">
@@ -509,12 +535,19 @@ export default function Header() {
             <h3 className="mb-2">Log Out</h3>
             <p>Are you sure to Log Out? </p>
             <div className="comman-pop-action-double logout-action">
-              <button className="btn-fill-danger"  onClick={handleLogout}>Log Out</button>
-              <button className="btn-outline"  onClick={() => setShowLogoutModal(false)}>Cancel</button>
+              <button className="btn-fill-danger" onClick={handleLogout}>
+                Log Out
+              </button>
+              <button
+                className="btn-outline"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </Modal.Body>
-      </Modal> 
+      </Modal>
 
       {/* Log Out end  */}
     </>
