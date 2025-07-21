@@ -12,6 +12,7 @@ import ButtonLoader from "../CommanComponents/ButtonLoader";
 import { emit } from "../utils/socketService";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
 import { expiresAt } from "../utils/CommonFunction";
+import { Roles } from "../utils/Roles";
 
 export default function Login() {
   const [fcmToken, setFcmToken] = useState(null);
@@ -125,30 +126,30 @@ export default function Login() {
       if (response?.payload?.data?.email_verified == 0) {
         navigate(`/otp-verification?userId=${userId}`, { replace: true });
         toast.success(response?.payload?.message);
-      } else if (response?.payload?.data?.is_completeProfile == 0 && role == 1) {
+      } else if (response?.payload?.data?.is_completeProfile == 0 && role == Roles.CUSTOMER) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         navigate("/complete-profile", { replace: true });
         toast.success("Please Complete Your Profile.");
-      } else if (response?.payload?.data?.is_completeProfile == 0 && role == 2) {
+      } else if (response?.payload?.data?.is_completeProfile == 0 && role == Roles.SERVICE_PROVIDER) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         navigate("/provider", { replace: true });
         toast.success("Please Complete Your Profile.");
-      } else if (response?.payload?.data?.is_completeProfile == 0 && role == 3) {
+      } else if (response?.payload?.data?.is_completeProfile == 0 && role == Roles.CORPORATE) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         navigate("/corporate", { replace: true });
         toast.success("Please Complete Your Profile.");
       } else {
         localStorage.removeItem("temptoken");
-        if (role == 1) {
+        if (role == Roles.CUSTOMER) {
           emit("new_user_connect", { userid: userId });
           navigate("/");
-        } else if (role == 2) {
+        } else if (role ==  Roles.SERVICE_PROVIDER) {
           navigate("/requests");
           emit("new_user_connect", { userid: userId });
-        } else if (role == 3) {
+        } else if (role == Roles.CORPORATE) {
           navigate("/corporate");
           emit("new_user_connect", { userid: userId });
         }
