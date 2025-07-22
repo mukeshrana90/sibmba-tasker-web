@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../../../Components/Layout/Layout";
 import CustomerActions from "../../../Redux/Actions/CustomerActions";
+import ProductActions from "../../../Redux/Actions/ProductActions";
 
 export default function CorporateProducts() {
     const navigate = useNavigate();
@@ -11,12 +12,12 @@ export default function CorporateProducts() {
     const dropdownRefs = useRef({});
 
     const [dropdownStates, setDropdownStates] = useState({});
-    const { myProducts, loading, error } = useSelector((state) => state.myProducts);
-    console.log(myProducts,'myProducts')
-    useEffect(() => {
-        dispatch(CustomerActions.getMyProductList());
-    }, [dispatch]);
+  const { items: myProducts, loading, error } = useSelector((state) => state.products);
+console.log(myProducts, 'myProducts');
 
+useEffect(() => {
+  dispatch(ProductActions.fetchProducts()); 
+}, [dispatch]);
     const handleServiceClick = (serviceId) => {
         navigate(`/service-details/${serviceId}`);
     };
