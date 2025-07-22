@@ -1263,7 +1263,12 @@ const ProviderForm = ({
             const filteredValues = filterApiPayload(values);
             await handleSubmit(filteredValues);
             // setShowModal(true);
-            setCurrentStep(currentStep + 1);
+            // setCurrentStep(currentStep + 1);
+            if(isCorporate){
+              setShowModal(true);
+            }else{
+                setCurrentStep(currentStep + 1);
+            }    
           } catch (error) {
             console.error("Step 3 submission failed:", error);
             toast.error("An error occurred during submission.");
