@@ -3,23 +3,20 @@ import { Container, Row, Col, Tab, Nav } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../../../Components/Layout/Layout";
-import CustomerActions from "../../../Redux/Actions/CustomerActions";
 import ProductActions from "../../../Redux/Actions/ProductActions";
 
 export default function CorporateProducts() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const dropdownRefs = useRef({});
-
     const [dropdownStates, setDropdownStates] = useState({});
-  const { items: myProducts, loading, error } = useSelector((state) => state.products);
-console.log(myProducts, 'myProducts');
+    const { items: myProducts, loading, error } = useSelector((state) => state.products);
 
 useEffect(() => {
   dispatch(ProductActions.fetchProducts()); 
 }, [dispatch]);
-    const handleServiceClick = (serviceId) => {
-        navigate(`/service-details/${serviceId}`);
+    const handleServiceClick = (prodId) => {
+        navigate(`/corporate/products/details/${prodId}`);
     };
 
     const handleAddService = () => {
@@ -96,7 +93,7 @@ useEffect(() => {
                                           <img
                                             src={
                                               item.images?.length
-                                                ? `${process.env.REACT_APP_API_URL}/${item?.images[0]}`
+                                                ? `${process.env.REACT_APP_API_URL}/products/${item?.images[0]}`
                                                 : ""
                                             }
                                             alt={""}
@@ -116,7 +113,7 @@ useEffect(() => {
                                               </h3>
                                               <p>
                                                 {" "}
-                                                {item?.category.service_category_name
+                                                {item?.category?.service_category_name
                                                    ||
                                                   "N/A"}{" "}
                                               </p>
@@ -189,13 +186,9 @@ useEffect(() => {
                                                       border: "none",
                                                       cursor: "pointer",
                                                     }}
-                                                    onClick={() => {
-                                                      navigate(
-                                                        `/corporate/products/edit?id=${item?._id}`
-                                                      );
-                                                    }}
+                                                     onClick={() => navigate(`/corporate/products/edit/${item._id}`)}
                                                   >
-                                                    Edit Product
+                                                    Edit
                                                   </button>
                                                 </div>
                                               )}

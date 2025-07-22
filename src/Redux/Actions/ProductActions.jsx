@@ -1,5 +1,4 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { toast } from "react-toastify";
 import Api from "../../Services/api";
 
 export const fetchProducts = createAsyncThunk(
@@ -19,10 +18,8 @@ export const addProduct = createAsyncThunk(
   async (productData, { rejectWithValue }) => {
     try {
       const response = await Api.post("/corporate/product", productData);
-      toast.success("Product added successfully!");
       return response.data;
     } catch (error) {
-      toast.error("Failed to add product.");
       return rejectWithValue(error?.response?.data?.message || "Add failed");
     }
   }
@@ -33,10 +30,8 @@ export const updateProduct = createAsyncThunk(
   async ({ id, productData }, { rejectWithValue }) => {
     try {
       const response = await Api.put(`/corporate/product/${id}`, productData);
-      toast.success("Product updated successfully!");
       return response.data;
     } catch (error) {
-      toast.error("Failed to update product.");
       return rejectWithValue(error?.response?.data?.message || "Update failed");
     }
   }
@@ -48,18 +43,30 @@ export const deleteProduct = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       await Api.delete(`/corporate/product/${id}`);
-      toast.success("Product deleted successfully!");
       return { id };
     } catch (error) {
-      toast.error("Failed to delete product.");
       return rejectWithValue(error?.response?.data?.message || "Delete failed");
     }
   }
 );
+
+export const getProductById = createAsyncThunk(
+  "products/getProductById",
+  async ({ id }, { rejectWithValue }) => {
+    try {
+      const response = await Api.get(`/corporate/product/${id}`);
+      return response.data; // This should return { data: { ...product } }
+    } catch (error) {
+      return rejectWithValue(error?.response?.data?.message || "Failed to fetch product");
+    }
+  }
+);
+
 
 export default {
   fetchProducts,
   addProduct,
   updateProduct,
   deleteProduct,
+  getProductById
 };

@@ -13,7 +13,7 @@ const loginSlice = createSlice({
   },
   reducers: {
     setCustomer: (state, action) => {
-      console.log(action.payload, "action.payload");
+      // console.log(action.payload, "action.payload");
       state.customerDetails = action.payload;
     },
   },

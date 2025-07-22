@@ -6,6 +6,7 @@ const productSlice = createSlice({
   initialState: {
     items: [],
     loading: false,
+    productDetail: null,
     error: null,
   },
   reducers: {},
@@ -15,6 +16,26 @@ const productSlice = createSlice({
       state.loading = true;
       state.error = null;
     });
+    // === GET PRODUCT BY ID ===
+    builder.addCase(ProductActions.getProductById.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+
+    builder.addCase(
+      ProductActions.getProductById.fulfilled,
+      (state, action) => {
+        state.loading = false;
+        state.productDetail = action.payload.data; 
+      }
+    );
+
+    builder.addCase(ProductActions.getProductById.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+      state.productDetail = null;
+    });
+
     builder.addCase(ProductActions.fetchProducts.fulfilled, (state, action) => {
       state.loading = false;
       state.items = action.payload.data; // Assuming your API returns { data: [...] }
