@@ -8,7 +8,6 @@ import Button from "react-bootstrap/Button";
 const CorporateEditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [form, setForm] = useState({
     name: "",
     category: "",

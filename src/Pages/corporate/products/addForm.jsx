@@ -13,6 +13,7 @@ import Layout from "../../../Components/Layout/Layout";
 import { useQuery } from "../../../utils/CommonFunction";
 import CustomerActions from "../../../Redux/Actions/CustomerActions";
 import ServiceActions from "../../../Redux/Actions/ServiceActions";
+import ProductActions from "../../../Redux/Actions/ProductActions";
 
 const validationSchema = Yup.object({
     images: Yup.array()
@@ -218,8 +219,8 @@ const CorporateAddProduct = () => {
                                         }
 
                                         const action = searchValFromUrl
-                                            ? CustomerActions.updateProduct(formData)
-                                            : CustomerActions.CreateProduct(formData);
+                                            ? ProductActions.updateProduct(formData)
+                                            : ProductActions.addProduct(formData);
 
                                         const response = await dispatch(action);
 
@@ -282,46 +283,6 @@ const CorporateAddProduct = () => {
                                                                         borderRadius: "",
                                                                     }}
                                                                 />
-                                                                {/* <span
-                                                                    onClick={() => triggerFileInput(index)}
-                                                                    style={{
-                                                                        position: "absolute",
-                                                                        bottom: "5px",
-                                                                        left: "5px",
-                                                                        background: "#28a745",
-                                                                        borderRadius: "50%",
-                                                                        width: "30px",
-                                                                        height: "30px",
-                                                                        display: "flex",
-                                                                        alignItems: "center",
-                                                                        justifyContent: "center",
-                                                                        color: "white",
-                                                                        fontSize: "20px",
-                                                                        cursor: "pointer",
-                                                                    }}
-                                                                >
-                                                                    ✏️
-                                                                </span> */}
-                                                                {/* <span
-                                                                    onClick={() => handleDeleteImage(index, setFieldValue, values)}
-                                                                    style={{
-                                                                        position: "absolute",
-                                                                        top: "5px",
-                                                                        right: "5px",
-                                                                        background: "#038654",
-                                                                        borderRadius: "50%",
-                                                                        width: "30px",
-                                                                        height: "30px",
-                                                                        display: "flex",
-                                                                        alignItems: "center",
-                                                                        justifyContent: "center",
-                                                                        color: "white",
-                                                                        fontSize: "20px",
-                                                                        cursor: "pointer",
-                                                                    }}
-                                                                >
-                                                                    X
-                                                                </span> */}
                                                                 <input
                                                                     type="file"
                                                                     id={`upload-service-images-${index}`}
@@ -378,7 +339,7 @@ const CorporateAddProduct = () => {
                                                         <ErrorMessage name="images" component="div" className="text-danger" />
                                                     )}
                                                 </Col>
-                                                <Col lg={6}>
+                                                <Col lg={12}>
                                                     <div className="form-set mt-3">
                                                         <Form.Group className="mb-3" controlId="formServiceCategoryId">
                                                             <Form.Label>Service Category*</Form.Label>

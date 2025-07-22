@@ -97,9 +97,9 @@ const RoutesPage = () => {
           <Route path="/corporate" element={<PrivateCorporate />}>
             <Route index element={<CorporateDashboard />} />
          <Route path="products" element={<CorporateProducts />} />
-  <Route path="products/add" element={<CorporateAddProduct />} />
-  <Route path="products/edit/:id" element={<CorporateEditProduct />} />
-  <Route path="bookings" element={<CorporateBookings />} />
+        <Route path="products/add" element={<CorporateAddProduct />} />
+        <Route path="products/edit/:id" element={<CorporateEditProduct />} />
+        <Route path="bookings" element={<CorporateBookings />} />
         
           </Route>
 

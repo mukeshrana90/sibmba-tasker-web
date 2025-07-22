@@ -18,7 +18,7 @@ export const addProduct = createAsyncThunk(
   "products/addProduct",
   async (productData, { rejectWithValue }) => {
     try {
-      const response = await Api.post("/corporate/products", productData);
+      const response = await Api.post("/corporate/product", productData);
       toast.success("Product added successfully!");
       return response.data;
     } catch (error) {
@@ -32,7 +32,7 @@ export const updateProduct = createAsyncThunk(
   "products/updateProduct",
   async ({ id, productData }, { rejectWithValue }) => {
     try {
-      const response = await Api.put(`/corporate/products/${id}`, productData);
+      const response = await Api.put(`/corporate/product/${id}`, productData);
       toast.success("Product updated successfully!");
       return response.data;
     } catch (error) {
@@ -47,7 +47,7 @@ export const deleteProduct = createAsyncThunk(
   "products/deleteProduct",
   async (id, { rejectWithValue }) => {
     try {
-      await Api.delete(`/corporate/products/${id}`);
+      await Api.delete(`/corporate/product/${id}`);
       toast.success("Product deleted successfully!");
       return { id };
     } catch (error) {

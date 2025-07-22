@@ -90,18 +90,18 @@ useEffect(() => {
                               {!loading && myProducts?.length > 0 && (
                                 <div className="bookings-cards">
                                   <ul className="list-unstyled">
-                                    {myProducts?.map((service) => (
-                                      <li key={service._id}>
+                                    {myProducts?.map((item) => (
+                                      <li key={item._id}>
                                         <div className="bookings-card-item">
                                           <img
                                             src={
-                                              service.images?.length
-                                                ? `${process.env.REACT_APP_API_URL}/user/${service?.images[0]}`
+                                              item.images?.length
+                                                ? `${process.env.REACT_APP_API_URL}/${item?.images[0]}`
                                                 : ""
                                             }
                                             alt={""}
                                             onClick={() =>
-                                              handleServiceClick(service?._id)
+                                              handleServiceClick(item?._id)
                                             }
                                             style={{
                                               cursor: "pointer",
@@ -111,17 +111,17 @@ useEffect(() => {
                                           <div className="bookings-card-data my-task-ad-card">
                                             <div>
                                               <h3 className="text-capitalize">
-                                                {service.serviceSubCategoryName ||
+                                                {item.name ||
                                                   "N/A"}
                                               </h3>
                                               <p>
                                                 {" "}
-                                                {service.serviceCategoryId
-                                                  ?.service_category_name ||
+                                                {item?.category.service_category_name
+                                                   ||
                                                   "N/A"}{" "}
                                               </p>
                                               <span>
-                                                {service.desc ||
+                                                {item.description ||
                                                   "No description available."}
                                               </span>
                                             </div>
@@ -130,7 +130,7 @@ useEffect(() => {
                                               style={{ position: "relative" }}
                                               ref={(el) =>
                                                 (dropdownRefs.current[
-                                                  service._id
+                                                  item._id
                                                 ] = el)
                                               }
                                             >
@@ -138,7 +138,7 @@ useEffect(() => {
                                                 className="btn"
                                                 onClick={() =>
                                                   handleButtonClick(
-                                                    service?._id
+                                                    item?._id
                                                   )
                                                 }
                                               >
@@ -163,7 +163,7 @@ useEffect(() => {
                                                   />
                                                 </svg>
                                               </button>
-                                              {dropdownStates[service._id] && (
+                                              {dropdownStates[item._id] && (
                                                 <div
                                                   style={{
                                                     position: "absolute",
@@ -191,11 +191,11 @@ useEffect(() => {
                                                     }}
                                                     onClick={() => {
                                                       navigate(
-                                                        `/service/edit?service_id=${service?._id}`
+                                                        `/corporate/products/edit?id=${item?._id}`
                                                       );
                                                     }}
                                                   >
-                                                    Edit
+                                                    Edit Product
                                                   </button>
                                                 </div>
                                               )}
