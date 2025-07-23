@@ -410,14 +410,22 @@ export default function Header() {
                                   <>
                                     <Link
                                       className={
-                                        currentPath === "/bookings"
+                                        currentPath ===
+                                        (role == Roles.CORPORATE
+                                          ? "/corporate/bookings"
+                                          : "/bookings")
                                           ? "nav-link active"
                                           : "nav-link"
                                       }
-                                      to="/bookings"
+                                      to={
+                                        role == Roles.CORPORATE
+                                          ? "/corporate/bookings"
+                                          : "/bookings"
+                                      }
                                     >
                                       Bookings
                                     </Link>
+
                                     <Dropdown.Divider />
                                     <Link
                                       className={

@@ -29,21 +29,18 @@ export default function ServiceTasks() {
     myQuotations: [],
     tasks: [],
   });
-
   const postTasksList = useSelector(
     (state) => state.service.getPostTaskService
   );
 
-
   // Fetch post tasks list on mount
   useEffect(() => {
-
     let data = {
       need_done: "",
       budget: "",
       date: "",
-      time: ""
-    }
+      time: "",
+    };
 
     dispatch(ServiceActions.getPostTaskList(data));
   }, [dispatch]);
@@ -51,50 +48,91 @@ export default function ServiceTasks() {
   useEffect(() => {
     if (!postTasksList) return;
 
-    const filterData = () => {
-      const query = searchQuery.toLowerCase().trim();
+    const query = searchQuery.toLowerCase().trim();
 
-      if (!query) {
-        // If search query is empty, show all data
-        setFilteredData({
-          acceptedTasks: postTasksList.tasks || [],
-          myQuotations: postTasksList.myQuotations || [],
-          tasks: postTasksList.acceptedTasks || [],
-        });
-        return;
-      }
-
-      // Filter based on active tab
+    if (activeTab === "first") {
+      const filteredAccepted = (postTasksList.acceptedTasks || []).filter(
+        (task) =>
+          task?.need_done?.toLowerCase().includes(query) ||
+          task?.user_details?.full_name?.toLowerCase().includes(query)
+      );
       setFilteredData({
-        acceptedTasks:
-          activeTab === "first"
-            ? (postTasksList.acceptedTasks || []).filter(
-              (task) =>
-                task?.need_done?.toLowerCase().includes(query) ||
-                task?.user_details?.full_name?.toLowerCase().includes(query)
-            )
-            : postTasksList.acceptedTasks || [],
-        myQuotations:
-          activeTab === "second"
-            ? (postTasksList.myQuotations || []).filter(
-              (quotation) =>
-                quotation?.need_done?.toLowerCase().includes(query) ||
-                quotation?.user_details?.full_name?.toLowerCase().includes(query)
-            )
-            : postTasksList.myQuotations || [],
-        tasks:
-          activeTab === "third"
-            ? (postTasksList.tasks || []).filter(
-              (task) =>
-                task?.need_done?.toLowerCase().includes(query) ||
-                task?.user_details?.full_name?.toLowerCase().includes(query)
-            )
-            : postTasksList.tasks || [],
+        acceptedTasks: filteredAccepted,
+        myQuotations: [],
+        tasks: [],
       });
-    };
-
-    filterData();
+    } else if (activeTab === "second") {
+      const filteredQuotations = (postTasksList.myQuotations || []).filter(
+        (quotation) =>
+          quotation?.need_done?.toLowerCase().includes(query) ||
+          quotation?.user_details?.full_name?.toLowerCase().includes(query)
+      );
+      setFilteredData({
+        acceptedTasks: [],
+        myQuotations: filteredQuotations,
+        tasks: [],
+      });
+    } else if (activeTab === "third") {
+      const filteredTasks = (postTasksList.tasks || []).filter(
+        (task) =>
+          task?.need_done?.toLowerCase().includes(query) ||
+          task?.user_details?.full_name?.toLowerCase().includes(query)
+      );
+      setFilteredData({
+        acceptedTasks: [],
+        myQuotations: [],
+        tasks: filteredTasks,
+      });
+    }
   }, [postTasksList, searchQuery, activeTab]);
+
+  // useEffect(() => {
+  //   if (!postTasksList) return;
+
+  //   const filterData = () => {
+  //     const query = searchQuery.toLowerCase().trim();
+
+  //     if (!query) {
+  //       // If search query is empty, show all data
+  //       setFilteredData({
+  //         acceptedTasks: postTasksList.tasks || [],
+  //         myQuotations: postTasksList.myQuotations || [],
+  //         tasks: postTasksList.acceptedTasks || [],
+  //       });
+  //       return;
+  //     }
+
+  //     // Filter based on active tab
+  //     setFilteredData({
+  //       acceptedTasks:
+  //         activeTab === "first"
+  //           ? (postTasksList.acceptedTasks || []).filter(
+  //             (task) =>
+  //               task?.need_done?.toLowerCase().includes(query) ||
+  //               task?.user_details?.full_name?.toLowerCase().includes(query)
+  //           )
+  //           : postTasksList.acceptedTasks || [],
+  //       myQuotations:
+  //         activeTab === "second"
+  //           ? (postTasksList.myQuotations || []).filter(
+  //             (quotation) =>
+  //               quotation?.need_done?.toLowerCase().includes(query) ||
+  //               quotation?.user_details?.full_name?.toLowerCase().includes(query)
+  //           )
+  //           : postTasksList.myQuotations || [],
+  //       tasks:
+  //         activeTab === "third"
+  //           ? (postTasksList.tasks || []).filter(
+  //             (task) =>
+  //               task?.need_done?.toLowerCase().includes(query) ||
+  //               task?.user_details?.full_name?.toLowerCase().includes(query)
+  //           )
+  //           : postTasksList.tasks || [],
+  //     });
+  //   };
+
+  //   filterData();
+  // }, [postTasksList, searchQuery, activeTab]);
 
   // Format date (e.g., "24 Apr")
   const formatDate = (dateString) => {
@@ -106,8 +144,8 @@ export default function ServiceTasks() {
   };
 
   const formatDatee = (dateString) => {
-  return moment(dateString).format("DD MMM");
-};
+    return moment(dateString).format("DD MMM");
+  };
 
   // Handle reject button
   const handleReject = (id) => {
@@ -209,7 +247,12 @@ export default function ServiceTasks() {
             />
             <div>
               <h5>{task?.user_details?.full_name || ""}</h5>
-               <p>{task?.user_details?.address && task.user_details.address !== "undefined" ? task.user_details.address : "-"}</p>
+              <p>
+                {task?.user_details?.address &&
+                task.user_details.address !== "undefined"
+                  ? task.user_details.address
+                  : "-"}
+              </p>
               {/* <div className="rating-stars">
                 <ul> <StarRating averageRating={task.averageRating} /></ul>
               </div> */}
@@ -244,20 +287,26 @@ export default function ServiceTasks() {
                         value={searchQuery}
                         onChange={handleSearchChange}
                       />
-                      {activeTab != "second" && <div className="mt-1" onClick={() => setShowModal(true)}>
-                        <svg className="cursor-pointer"
-                          width="24"
-                          height="25"
-                          viewBox="0 0 24 25"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
+                      {activeTab != "second" && (
+                        <div
+                          className="mt-1"
+                          onClick={() => setShowModal(true)}
                         >
-                          <path
-                            d="M20.0215 3.5H3.97905C3.57179 3.50032 3.17338 3.61885 2.83216 3.84119C2.49095 4.06353 2.22162 4.38013 2.05684 4.75257C1.89206 5.12501 1.83893 5.53727 1.90389 5.93931C1.96885 6.34136 2.14911 6.71591 2.4228 7.0175L9.3753 14.6637V21.875C9.37536 22.016 9.41515 22.1541 9.49009 22.2734C9.56504 22.3928 9.67212 22.4887 9.79905 22.55C9.90049 22.6 10.0122 22.6257 10.1253 22.625C10.2958 22.6249 10.4611 22.5667 10.594 22.46L12.0003 21.335L14.344 19.46C14.4318 19.3898 14.5026 19.3008 14.5512 19.1995C14.5999 19.0982 14.6252 18.9873 14.6253 18.875V14.6637L21.5778 7.0175C21.8515 6.71591 22.0317 6.34136 22.0967 5.93931C22.1617 5.53727 22.1085 5.12501 21.9438 4.75257C21.779 4.38013 21.5096 4.06353 21.1684 3.84119C20.8272 3.61885 20.4288 3.50032 20.0215 3.5Z"
-                            fill="#252525"
-                          />
-                        </svg>
-                      </div>}
+                          <svg
+                            className="cursor-pointer"
+                            width="24"
+                            height="25"
+                            viewBox="0 0 24 25"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M20.0215 3.5H3.97905C3.57179 3.50032 3.17338 3.61885 2.83216 3.84119C2.49095 4.06353 2.22162 4.38013 2.05684 4.75257C1.89206 5.12501 1.83893 5.53727 1.90389 5.93931C1.96885 6.34136 2.14911 6.71591 2.4228 7.0175L9.3753 14.6637V21.875C9.37536 22.016 9.41515 22.1541 9.49009 22.2734C9.56504 22.3928 9.67212 22.4887 9.79905 22.55C9.90049 22.6 10.0122 22.6257 10.1253 22.625C10.2958 22.6249 10.4611 22.5667 10.594 22.46L12.0003 21.335L14.344 19.46C14.4318 19.3898 14.5026 19.3008 14.5512 19.1995C14.5999 19.0982 14.6252 18.9873 14.6253 18.875V14.6637L21.5778 7.0175C21.8515 6.71591 22.0317 6.34136 22.0967 5.93931C22.1617 5.53727 22.1085 5.12501 21.9438 4.75257C21.779 4.38013 21.5096 4.06353 21.1684 3.84119C20.8272 3.61885 20.4288 3.50032 20.0215 3.5Z"
+                              fill="#252525"
+                            />
+                          </svg>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -288,7 +337,9 @@ export default function ServiceTasks() {
                           {/* Tasks Tab (acceptedTasks) */}
                           <Tab.Pane eventKey="first">
                             {filteredData?.acceptedTasks?.length > 0 ? (
-                              filteredData?.acceptedTasks?.map(renderTaskCardTask)
+                              filteredData?.acceptedTasks?.map(
+                                renderTaskCardTask
+                              )
                             ) : (
                               <div className="no-upcoming-bookings">
                                 <svg
@@ -319,7 +370,9 @@ export default function ServiceTasks() {
                           {/* Quotation Tab (myQuotations) */}
                           <Tab.Pane eventKey="second">
                             {filteredData?.myQuotations?.length > 0 ? (
-                              filteredData?.myQuotations?.map(renderMyQuotations)
+                              filteredData?.myQuotations?.map(
+                                renderMyQuotations
+                              )
                             ) : (
                               <div className="no-upcoming-bookings">
                                 <svg
@@ -369,7 +422,7 @@ export default function ServiceTasks() {
                                     fill="#CCCCCC"
                                   />
                                 </svg>
-                                <h3>No Upcoming Tasks Found</h3>
+                                <h3>No Upcoming Tasks Founddddd</h3>
                                 <p>
                                   {searchQuery
                                     ? "No upcoming tasks match your search."
@@ -397,7 +450,11 @@ export default function ServiceTasks() {
           handleConfirm={handleConfirmCancel}
           handleCloseModal={handleCloseModalCancel}
         />
-        <FilterModal show={showModal} handleClose={() => setShowModal(false)} type={activeTab} />
+        <FilterModal
+          show={showModal}
+          handleClose={() => setShowModal(false)}
+          type={activeTab}
+        />
         <ToastContainer />
       </section>
     </Layout>
