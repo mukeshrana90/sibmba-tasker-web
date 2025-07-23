@@ -406,6 +406,44 @@ export default function Header() {
                                                    </button>
                                                    <Dropdown.Divider />  */}
                                   </>
+                                ) : role == Roles.CORPORATE ? (
+                                  <>
+                                    <Link
+                                      className={
+                                        currentPath === "/corporate/bookings" ? "nav-link active" : "nav-link"
+                                      }
+                                      to="/corporate/bookings"
+                                    >
+                                      Booking
+                                    </Link>
+                                    <Dropdown.Divider />
+                                    <Link
+                                      className={currentPath === "/community" ? "nav-link active" : "nav-link"}
+                                      to="/community"
+                                    >
+                                      Community
+                                    </Link>
+                                    <Dropdown.Divider />
+                                    <Link
+                                      className={currentPath === "/corporate/products" ? "nav-link active" : "nav-link"}
+                                      to="/corporate/products"
+                                    >
+                                      My Products
+                                    </Link>
+                                    <Dropdown.Divider />
+
+                                    <Link
+                                      className={
+                                        currentPath === "/customerreviews"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/customerreviews"
+                                    >
+                                      Customer Reviews
+                                    </Link>
+                                    <Dropdown.Divider />
+                                  </>
                                 ) : (
                                   <>
                                     <Link

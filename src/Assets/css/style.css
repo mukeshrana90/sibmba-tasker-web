@@ -1941,10 +1941,6 @@ input[type="checkbox"]:checked::before {
   background: #038654;
 }
 
-.bookings-tab-nav {
-  /* border-bottom: 2px solid #ccc; */
-}
-
 .bookings-tab-nav .nav-link {
   border-radius: var(--bs-nav-pills-border-radius);
   color: #545454;
@@ -5017,5 +5013,93 @@ section.page-mt {
 .badge-danger {
   background: #C10C001A;
   color: #C10C00 !important;
+}
+.badge-pending {
+   background-color: #fce5cd;
+  color: #d17f00;
+}
+.cancelled {
+  background-color: #f8d7da;
+  color: #a30000;
+}
+}
+.corporate-wrapper {
+  padding-top: 120px; 
+  margin: 0 auto;
+
+.dashbox-box-wrap{
+  margin: 0px 1px 16px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+.dashbox-box {
+  background: #FFFFFF;
+  border: 1px solid #dff0e9;
+  border-radius: 12px;
+  padding: 20px 16px;
+  flex: 1;
+  box-shadow: 0 1px 2px #1018280d;
+  font-family: "Inter", sans-serif;
+  margin: 10px 1% 0 0;
+  &.pointer {
+    cursor: pointer;  
+  }
+  .title-wrap {
+    display: flex;
+    align-items: center;
+    .dashboard-value {
+      font-family: "Inter", sans-serif !important;
+      font-style: normal;
+      font-weight: 500;
+      font-size: 24px;
+      letter-spacing: normal;
+      font-weight: 600;
+      line-height: 44px;
+      margin: 0px;
+      color: #252525
+    }
+    .icon-img{
+      width: 40px;
+      height: 40px;
+      background-color:#cde7dd;
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      padding: 16px
+    }
+  }
+    .title {
+      color: #545454;
+      font-family: "Inter", sans-serif !important;
+      font-style: normal;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 24px;
+      letter-spacing: normal;
+      margin: 16px 0 0 !important;
+    }
+  }
+}
+
+}
+.corporate_inner {
+  padding: 2px 15px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 12px;
+  line-height: 20px;
+  text-transform: capitalize;
+  &.cancelled {
+    background: rgba(250, 82, 82, .1);
+    border: .5px solid #fa5252;
+    color: #fa5252;
+}
+&.pending {
+  background-color: #fce5cd;
+  color: #d17f00;
+  border: 1px solid #d17f00;
 }
 }
