@@ -5,6 +5,7 @@ import serviceSlice from "./Reducers/ServiceSlice";
 import loginSlice from "./Reducers/LoginSlice";
 import UserSlice from "./Reducers/UserSlice";
 import ProductSlice from "./Reducers/productSlice";
+import corporateSlice from "./Reducers/corporateSlice";
 
 
 const rootReducer = combineReducers({
@@ -13,7 +14,7 @@ const rootReducer = combineReducers({
   products: ProductSlice,
   login: loginSlice,
   UserSlice:UserSlice,
-
+  corporateSlice:corporateSlice,
 });
 
 const Store = configureStore({

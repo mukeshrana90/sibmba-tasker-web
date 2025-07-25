@@ -34,6 +34,7 @@ import CorporateAddProduct from "../Pages/corporate/products/addForm";
 import CorporateEditProduct from "../Pages/corporate/products/editForm";
 import CorporateProducts from "../Pages/corporate/products/list";
 import ProductDetailsPage from "../Pages/corporate/products/details";
+import MyLeadDetails from "../Pages/corporate/LeadDetails";
 
 const Login = lazy(() => import("../Pages/Login"));
 const ResetPassword = lazy(() => import("../Pages/ResetPassword"));
@@ -106,6 +107,7 @@ const RoutesPage = () => {
            <Route path="/corporate/products/details/:id" element={<ProductDetailsPage />} />
 
             <Route path="bookings" element={<CorporateBookings />} />
+            <Route path="/corporate/lead-details/:id" element={<MyLeadDetails />} />
           </Route>
 
           {/* Private Routes */}

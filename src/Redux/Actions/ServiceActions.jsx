@@ -170,6 +170,21 @@ const ServiceActions = {
   }
   ),
 
+  // get post suggestion list
+getNearbyCorporateUser: createAsyncThunk(
+  "service/getNearbyCorporate",
+  async (data) => {
+    const response = await Api.get("/service/getNearbyCorporate", {
+      params: {
+        lat: data.lat,
+        lng: data.lng,
+        category_id: data.category_id,
+      },
+    });
+    return response.data;
+  }
+),
+
 };
 
 export default ServiceActions;

@@ -230,7 +230,7 @@ export default function UserBookingDetails() {
 
                     <></> :
                     <div className="book-service-action-btn">
-                      {bookingState?.status == "4" ? <></> : <button type="button" className="outline" onClick={handleShow}>
+                      {bookingState?.status == "4" ? <></> : <button type="button" className="outline text-white" onClick={handleShow}>
                         Cancel Booking
                       </button>}
                       {bookingState?.status == "1" && <button type="button"

@@ -21,6 +21,8 @@ const serviceSlice = createSlice({
     categoryData: null,
     loading: false,
     error: null,
+    corporateSuggestions:null,
+    getLeads:null
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -278,8 +280,19 @@ const serviceSlice = createSlice({
         state.error = action.payload;
       }
     );
-
-
+    // start suggestion
+    builder.addCase(ServiceActions.getNearbyCorporateUser.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(ServiceActions.getNearbyCorporateUser.fulfilled, (state, action) => {
+      state.loading = false;
+      state.corporateSuggestions = action.payload.data; 
+    });
+    builder.addCase(ServiceActions.getNearbyCorporateUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error;
+    });
+    // end suggestion
   },
 });
 

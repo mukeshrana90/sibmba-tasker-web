@@ -29,10 +29,6 @@ export default function Bookings() {
     });
   }, [show]);
 
-  console.log("bookingList", bookingList);
-
-console.log(bookingList, "bookingList")
-
 
   const handleOpen = (id) => {
     setShow(true)
