@@ -9,21 +9,16 @@ const serialNumber = (currentPage, limit, index) => {
   return (currentPage - 1) * limit + index + 1;
 };
 
-const constructQueryString = (obj) => {
-  if (obj) {
-    const queryString = Object.keys(obj)
-      .filter(
-        (key) => obj[key] !== "" && obj[key] !== null && obj[key] !== undefined
-      )
-      .map(
-        (key) => `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`
-      )
-      .join("&");
-    return queryString;
-  } else {
-    return "";
-  }
+const constructQueryString = (params = {}) => {
+  return Object.entries(params)
+    .filter(([_, value]) => value !== "" && value !== null && value !== undefined)
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+    )
+    .join("&");
 };
+
 
 const capitalizeFirstLetter = (string) => {
   if (string) {

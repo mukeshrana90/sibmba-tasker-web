@@ -24,6 +24,7 @@ export default function Requests() {
   const serviceRequestList = useSelector(
     (e) => e.service.getServiceRequestList
   );
+  
   useEffect(() => {
     let status;
     if (activeTab === "first") status = 1; // Pending

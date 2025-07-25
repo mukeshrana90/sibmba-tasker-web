@@ -25,12 +25,14 @@ const CustomerActions = {
   ),
 
   // MARK: - GET Categories
-  getCategories: createAsyncThunk("/customer/categories_web",
+  getCategories: createAsyncThunk(
+    "/customer/categories_web",
     async (payload) => {
       const queryString = constructQueryString(payload);
       const response = await Api.get(`/customer/categories_web?${queryString}`);
       return response.data;
-    }),
+    }
+  ),
 
   // MARK: -  Get Best Services
   getBestServices: createAsyncThunk("/customer/getBestServices", async () => {
@@ -47,7 +49,6 @@ const CustomerActions = {
       return response.data;
     }
   ),
-
 
   // MARK: - get Sub Category By Id ///
   getSubCategoryById: createAsyncThunk(
@@ -73,10 +74,6 @@ const CustomerActions = {
     }
   ),
 
-
-
-
-
   // MARK: - All Services Detail
   getServiceDetail: createAsyncThunk(
     "/customer/getServicewith_reviews",
@@ -94,9 +91,7 @@ const CustomerActions = {
     "/customer/NearByServices",
     async (payload) => {
       const queryString = constructQueryString(payload);
-      const response = await Api.get(
-        `/customer/NearByServices?${queryString}`
-      );
+      const response = await Api.get(`/customer/NearByServices?${queryString}`);
       return response.data;
     }
   ),
@@ -231,9 +226,12 @@ const CustomerActions = {
   editBooking: createAsyncThunk(
     "/customer/updatebooking ",
     async (customerData) => {
-      debugger
+      debugger;
       const { booking_id, ...dataWithoutId } = customerData;
-      const response = await Api.put(`/customer/updatebooking/${booking_id}`, dataWithoutId);
+      const response = await Api.put(
+        `/customer/updatebooking/${booking_id}`,
+        dataWithoutId
+      );
       return response.data;
     }
   ),
@@ -241,24 +239,45 @@ const CustomerActions = {
   // MARK: - ALL BOOKING LIST
   getAllBookingList: createAsyncThunk(
     "/customer/bookinglist",
-    async (payload) => {
-      const queryString = constructQueryString(payload);
-      const response = await Api.get(
-        `/customer/Bookinglist_userside${queryString ? `?${queryString}` : ""}`
-      );
+    async (payload = {}) => {
+      const { status } = payload;
+
+      const url =
+        status !== null && status !== undefined
+          ? `/customer/Bookinglist_user?status=${status}`
+          : `/customer/Bookinglist_user`;
+
+      const response = await Api.get(url);
       return response.data;
     }
   ),
-
   // MARK: - BOOKING DETAILS BY ID
+  // getBookingById: createAsyncThunk(
+  //   "/customer/booking",
+  //   async (reqBody) => {
+  //     const route =
+  //     type === "task"
+  //       ? `/customer/task-booking-detail/${id}`
+  //       : `/customer/booking-detail/${id}`;
+  //     const response = await Api.get(`/customer/booking/${reqBody?.id}`);
+  //     return response.data;
+  //   }
+  // ),
+
   getBookingById: createAsyncThunk(
-    "/customer/booking",
-    async (reqBody) => {
-      const response = await Api.get(`/customer/booking/${reqBody?.id}`);
+    "customer/getBookingById",
+    async ({ id, type }) => {
+      const bookingId = typeof id === "object" ? id._id || id.id : id;
+
+      const route =
+        type === "task"
+          ? `/customer/get_task_by_id/${bookingId}`
+          : `/customer/booking/${bookingId}`;
+
+      const response = await Api.get(route);
       return response.data;
     }
   ),
-
   createPost: createAsyncThunk(
     "/customer/post_tasks  ",
     async (customerData) => {
@@ -266,7 +285,6 @@ const CustomerActions = {
       return response.data;
     }
   ),
-
 
   payBooking: createAsyncThunk(
     "/customer/initiate_payment ",
@@ -276,8 +294,6 @@ const CustomerActions = {
     }
   ),
 
-
-
   // get post list user side
   getPostList: createAsyncThunk("/customer/post_task_listing", async () => {
     const response = await Api.get(`customer/post_task_listing`);
@@ -285,10 +301,13 @@ const CustomerActions = {
   }),
 
   // get task detail
-  getPostTaskDetail: createAsyncThunk("/customer/get_task_by_id", async (id) => {
-    const response = await Api.get(`customer/get_task_by_id/${id}`);
-    return response.data;
-  }),
+  getPostTaskDetail: createAsyncThunk(
+    "/customer/get_task_by_id",
+    async (id) => {
+      const response = await Api.get(`customer/get_task_by_id/${id}`);
+      return response.data;
+    }
+  ),
 
   updatePost: createAsyncThunk(
     "/customer/update_task ",
@@ -299,33 +318,40 @@ const CustomerActions = {
   ),
 
   // accept, reject post tasks
-  acceptRejectTaskStatus: createAsyncThunk("/customer/accept_reject_task ",
+  acceptRejectTaskStatus: createAsyncThunk(
+    "/customer/accept_reject_task ",
     async (customerData) => {
-      const response = await Api.post("/customer/accept_reject_task", customerData);
+      const response = await Api.post(
+        "/customer/accept_reject_task",
+        customerData
+      );
       return response.data;
     }
   ),
 
   // delete tasks
-  deleteTasks: createAsyncThunk("customer/remove_task",
+  deleteTasks: createAsyncThunk("customer/remove_task", async (id) => {
+    const response = await Api.delete(`/customer/remove_task/${id}`);
+    return response.data;
+  }),
+
+  // get my quotations
+  getMyQuotationsList: createAsyncThunk(
+    "customer/my_quatations",
     async (id) => {
-      const response = await Api.delete(`/customer/remove_task/${id}`);
+      const response = await Api.get(`/customer/my_quatations`);
       return response.data;
     }
   ),
 
   // get my quotations
-  getMyQuotationsList: createAsyncThunk("customer/my_quatations", async (id) => {
-    const response = await Api.get(`/customer/my_quatations`);
-    return response.data;
-  }),
-
-
-  // get my quotations
-  getQuotationDataById: createAsyncThunk("customer/getquatation_by_id", async (id) => {
-    const response = await Api.get(`/customer/getquatation_by_id/${id}`);
-    return response.data;
-  }),
+  getQuotationDataById: createAsyncThunk(
+    "customer/getquatation_by_id",
+    async (id) => {
+      const response = await Api.get(`/customer/getquatation_by_id/${id}`);
+      return response.data;
+    }
+  ),
 
   getFilterSearch: createAsyncThunk("customer/filtered_task", async (data) => {
     const response = await Api.get(`/customer/filtered_task`, {
@@ -333,8 +359,8 @@ const CustomerActions = {
         need_done: data.need_done,
         budget: data.budget,
         date: data.date,
-        time: data.time
-      }
+        time: data.time,
+      },
     });
     return response.data;
   }),
@@ -344,91 +370,99 @@ const CustomerActions = {
     return response.data;
   }),
 
-  getCommunityById: createAsyncThunk("customer/getCommunityById", async (id) => {
-    const response = await Api.get(`/customer/getCommunityById`, {
-      params: {
-        communityId : id
-      }
-    });
-    return response.data;
-  }),
+  getCommunityById: createAsyncThunk(
+    "customer/getCommunityById",
+    async (id) => {
+      const response = await Api.get(`/customer/getCommunityById`, {
+        params: {
+          communityId: id,
+        },
+      });
+      return response.data;
+    }
+  ),
 
-  // feedback api 
-  feedbackActions: createAsyncThunk("customer/Give_feedback",
+  // feedback api
+  feedbackActions: createAsyncThunk(
+    "customer/Give_feedback",
     async (customerData) => {
       const response = await Api.post("/customer/Give_feedback", customerData);
       return response.data;
     }
   ),
 
-  faqsListingAction: createAsyncThunk("customer/faqs_listing",
+  faqsListingAction: createAsyncThunk(
+    "customer/faqs_listing",
     async (customerData) => {
       const response = await Api.get("/customer/faqs_listing");
       return response.data;
     }
   ),
 
-
-  trainingListing: createAsyncThunk("customer/training_list",
+  trainingListing: createAsyncThunk(
+    "customer/training_list",
     async (customerData) => {
       const response = await Api.get("/customer/training_list");
       return response.data;
     }
   ),
 
-  
-  statsListing: createAsyncThunk("customer/get_stats",
-    async (customerData) => {
-      const response = await Api.get("/customer/get_stats");
-      return response.data;
-    }
-  ),
+  statsListing: createAsyncThunk("customer/get_stats", async (customerData) => {
+    const response = await Api.get("/customer/get_stats");
+    return response.data;
+  }),
 
-  notificationListing: createAsyncThunk("customer/Notificationlist_user",
+  notificationListing: createAsyncThunk(
+    "customer/Notificationlist_user",
     async (customerData) => {
       const response = await Api.get("/customer/Notificationlist_user");
       return response.data;
     }
   ),
 
-    // notificatio toggle api 
-    notificationToggler : createAsyncThunk("customer/updateNotificationStatus",
-      async (customerData) => {
-        const response = await Api.post("/customer/updateNotificationStatus", customerData);
-        return response.data;
-      }
-    ),
-
-    getServiceDetailReview: createAsyncThunk(
-    "/getServiceDetailReview/getServicewith_reviews",
-    async (reqBody) => {
-     
-      const response = await Api.get(`/customer/getServicewith_reviews`, {
-        params: {
-          service_id : reqBody.id
-        }
-      } );
+  // notificatio toggle api
+  notificationToggler: createAsyncThunk(
+    "customer/updateNotificationStatus",
+    async (customerData) => {
+      const response = await Api.post(
+        "/customer/updateNotificationStatus",
+        customerData
+      );
       return response.data;
     }
   ),
-   // corporate/product
- 
-  getMyProductList: createAsyncThunk("/corporate/product", async (customerData) => {
-    const response = await Api.get("/corporate/product", customerData);
-    return response.data;
-  }
+
+  getServiceDetailReview: createAsyncThunk(
+    "/getServiceDetailReview/getServicewith_reviews",
+    async (reqBody) => {
+      const response = await Api.get(`/customer/getServicewith_reviews`, {
+        params: {
+          service_id: reqBody.id,
+        },
+      });
+      return response.data;
+    }
   ),
-    CreateProduct: createAsyncThunk("/corporate/product", async (customerData) => {
-    const response = await Api.post("/corporate/product", customerData);
-    return response.data;
-  }
+  // corporate/product
+
+  getMyProductList: createAsyncThunk(
+    "/corporate/product",
+    async (customerData) => {
+      const response = await Api.get("/corporate/product", customerData);
+      return response.data;
+    }
   ),
-    updateProduct: createAsyncThunk("corporate/product", async (customerData) => {
+  CreateProduct: createAsyncThunk(
+    "/corporate/product",
+    async (customerData) => {
+      const response = await Api.post("/corporate/product", customerData);
+      return response.data;
+    }
+  ),
+  updateProduct: createAsyncThunk("corporate/product", async (customerData) => {
     const response = await Api.post("corporate/product", customerData);
     return response.data;
-  }
-  ),
+  }),
 };
-
 
 export default CustomerActions;

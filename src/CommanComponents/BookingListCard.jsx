@@ -1,5 +1,4 @@
 import moment from "moment";
-import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getStatusLabel } from "../utils/CommonFunction";
 import CustomerBookServiceModal from "./Modals/CustomerBookServiceModal";
