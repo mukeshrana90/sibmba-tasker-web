@@ -1677,6 +1677,7 @@ input[type="checkbox"]:checked::before {
   display: flex;
   gap: 20px;
   align-items: center;
+
 }
 
 .book-service-action-btn button {
@@ -1693,6 +1694,11 @@ input[type="checkbox"]:checked::before {
 }
 .leads-btn button{
  padding: 10px 30px !important; 
+}
+.addQuotation{
+&:disabled{
+  opacity: 0.5;
+}
 }
 
 .book-service-action-btn button:first-child {

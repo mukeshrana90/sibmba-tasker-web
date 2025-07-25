@@ -240,7 +240,10 @@ export default function ServiceTaskDetails() {
                   <div className="book-service-action-btn">
                     <h4>${task?.budget || "N/A"}</h4>
                     {status !== "task" ? (
-                      <button onClick={handleShowQuotation}>
+                   <button className="addQuotation"
+                        onClick={handleShowQuotation}
+                        disabled={quotations?.length > 0}
+                      >
                         Add Quotation
                       </button>
                     ) : (
