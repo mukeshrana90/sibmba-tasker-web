@@ -1,9 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
 import { toast } from "react-toastify";
 import { Formik, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import SuggestCorporateModal from "./SuggestCorporateModal";
+import ServiceActions from "../../Redux/Actions/ServiceActions";
+import CustomerActions from "../../Redux/Actions/CustomerActions";
+import { useDispatch } from "react-redux";
 
 // Validation schema using Yup
 const validationSchema = Yup.object({
@@ -19,9 +23,17 @@ const validationSchema = Yup.object({
     .min(10, "Description must be at least 10 characters")
     .max(500, "Description cannot exceed 500 characters"),
 });
-
-const AddQuotationModal = ({ show, handleClose, task, onSubmit, quatation }) => {
+const AddQuotationModal = ({
+  show,
+  handleClose,
+  task,
+  onSubmit,
+  quatation,
+}) => {
   const isEdit = !!quatation;
+  const [showSuggestModal, setShowSuggestModal] = useState(false);
+  const [selectedCorporate, setSelectedCorporate] = useState(null);
+  const dispatch = useDispatch();
 
   // Initial form values
   const initialValues = {
@@ -34,6 +46,17 @@ const AddQuotationModal = ({ show, handleClose, task, onSubmit, quatation }) => 
     if (!show) {
       initialValues.price = "";
       initialValues.description = "";
+      setSelectedCorporate(null);
+    } else {
+      if (
+        Array.isArray(quatation?.corporateSuggestion) &&
+        quatation.corporateSuggestion.length > 0
+      ) {
+        const firstCorporate = quatation.corporateSuggestion.find(
+          (corp) => !!corp._id
+        );
+        setSelectedCorporate(firstCorporate?.corporateIds);
+      }
     }
   }, [show, quatation]);
 
@@ -45,9 +68,31 @@ const AddQuotationModal = ({ show, handleClose, task, onSubmit, quatation }) => 
       ...(isEdit && { quatation_id: quatation._id }),
     };
 
-    onSubmit(payload);
-    resetForm();
-    handleClose();
+    // onSubmit(payload);
+    // resetForm();
+    // handleClose();
+    if (selectedCorporate && !isEdit) {
+      dispatch(
+        CustomerActions.createCorporateSuggestionsForTask({
+          taskId: task?._id,
+          corporateIds: [selectedCorporate._id],
+        })
+      )
+        .unwrap()
+        .then(() => {
+          onSubmit(payload);
+          toast.success("Corporate suggested successfully.");
+          resetForm();
+          handleClose();
+        })
+        .catch((err) => {
+          toast.error("Failed to suggest corporate");
+        });
+    } else {
+      onSubmit(payload);
+      resetForm();
+      handleClose();
+    }
   };
 
   return (
@@ -93,6 +138,66 @@ const AddQuotationModal = ({ show, handleClose, task, onSubmit, quatation }) => 
                     className="text-danger"
                   />
                 </Form.Group>
+                {/* Show profile OR Add Corporate button */}
+                {selectedCorporate ? (
+                  <>
+                    <div className="d-block">
+                      <Form.Label className="mt-2">
+                        Suggested Corporate
+                      </Form.Label>
+                    </div>
+                    <div className="selected-corporate  p-2 border rounded d-flex justify-content-between align-items-center">
+                      <div className="d-flex align-items-center">
+                        <img
+                          src={`${process.env.REACT_APP_API_URL}/${selectedCorporate.profile_image}`}
+                          alt={selectedCorporate.full_name}
+                          width={40}
+                          height={40}
+                          className="rounded-circle me-2"
+                        />
+                        <div>
+                          <div className="fw-bold">
+                            {selectedCorporate.full_name}
+                          </div>
+                          <div className="text-muted small">
+                            {selectedCorporate.shop_name}
+                          </div>
+                        </div>
+                      </div>
+                     {!isEdit && (
+                      <button
+                        type="button"
+                        className="btn-close"
+                        onClick={() => setSelectedCorporate(null)}
+                      />
+                    )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center mt-4">
+                    <button
+                      type="button"
+                      className="quotation-btn text-success px-4 py-2"
+                      onClick={() => setShowSuggestModal(true)}
+                    >
+                      <span className="icon">+</span>
+                      Add Corporate
+                    </button>
+                  </div>
+                )}
+
+                {/* Suggest Modal */}
+                <SuggestCorporateModal
+                  show={showSuggestModal}
+                  onClose={() => setShowSuggestModal(false)}
+                  onSave={(corp) => {
+                    setSelectedCorporate(corp);
+                    setShowSuggestModal(false);
+                    toast.success(`You selected ${corp.full_name}`);
+                  }}
+                  customerData={task}
+                />
+
                 <div className="quotation-requestss mt-3">
                   <button type="submit" className="btn-fill">
                     {isEdit ? "Update" : "Send"}

@@ -542,6 +542,38 @@ export default function ServiceTaskDetails() {
                         </div>
                         <p>{quotation?.description}</p>
                       </div>
+                    {quotation?.corporateSuggestion?.length > 0 && (
+                      <div className="suggested-caproate">
+                        <h5>Suggested Corporate</h5>
+                        <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                          {quotation.corporateSuggestion.map((item, index) => {
+                            const corp = item?.corporateIds;
+                            if (!corp) return null;
+
+                            return (
+                              <div
+                                key={item._id || index}
+                                className="corporate-item d-flex align-items-center py-2"
+                                style={{ gap: "10px" }}
+                              >
+                                <img
+                                  src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                                  alt={corp.full_name}
+                                  className="rounded-circle"
+                                  width={40}
+                                  height={40}
+                                />
+                                <div className="flex-grow-1">
+                                  <div className="fw-bold">{corp.full_name}</div>
+                                  <div className="text-muted small">{corp.shop_name}</div>
+                                  <div className="text-muted small">{corp.email}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     </div>
                   ))}
 

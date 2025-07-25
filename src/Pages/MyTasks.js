@@ -184,7 +184,8 @@ export default function MyTasks() {
                             <div>
                               {allMyQuotations?.length > 0 ?
                                 allMyQuotations?.map((quotation, i) => (
-                                  <div className="quotation-requests">
+                                  <div className="quotation-requests-wrap">
+                                  <div className="quotation-requests quotation-requests-inner">
                                     <div>
                                       <div className="quotation-txt-show">
                                         <div className="profile-side">
@@ -235,6 +236,41 @@ export default function MyTasks() {
                                           Reject
                                         </button>
                                       </div>
+                                    </div>
+                                  </div>
+                                   <div className="quotation-wrapper">
+                                       {quotation?.corporateSuggestion?.length > 0 && (
+                                        <div className="suggested-caproate">
+                                          <h5>Suggested Corporate</h5>
+                                          <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                                            {quotation.corporateSuggestion.map((item, index) => {
+                                              const corp = item?.corporateIds;
+                                              if (!corp) return null;
+
+                                              return (
+                                                <div
+                                                  key={item._id || index}
+                                                  className="corporate-item d-flex align-items-center py-2"
+                                                  style={{ gap: "10px" }}
+                                                >
+                                                  <img
+                                                    src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                                                    alt={corp.full_name}
+                                                    className="rounded-circle"
+                                                    width={40}
+                                                    height={40}
+                                                  />
+                                                  <div className="flex-grow-1">
+                                                    <div className="fw-bold">{corp.full_name}</div>
+                                                    <div className="text-muted small">{corp.shop_name}</div>
+                                                    <div className="text-muted small">{corp.email}</div>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 )) : (

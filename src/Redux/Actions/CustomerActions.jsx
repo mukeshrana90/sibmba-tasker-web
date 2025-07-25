@@ -328,6 +328,13 @@ const CustomerActions = {
       return response.data;
     }
   ),
+    // accept, reject post tasks
+  acceptRejectTaskCorporateSuggestion: createAsyncThunk("/customer/accept-reject-corporate-suggestion",
+    async (customerData) => {
+      const response = await Api.post("/customer/accept-reject-corporate-suggestion", customerData);
+      return response.data;
+    }
+  ),
 
   // delete tasks
   deleteTasks: createAsyncThunk("customer/remove_task", async (id) => {
@@ -462,7 +469,15 @@ const CustomerActions = {
   updateProduct: createAsyncThunk("corporate/product", async (customerData) => {
     const response = await Api.post("corporate/product", customerData);
     return response.data;
-  }),
+  }
+  ),
+  createCorporateSuggestionsForTask: createAsyncThunk(
+    "/service/createCorporateSuggestion ",
+    async (customerData) => {
+      const response = await Api.post("/service/createCorporateSuggestion", customerData);
+      return response.data;
+    }
+  ),
 };
 
 export default CustomerActions;

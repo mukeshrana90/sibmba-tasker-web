@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -18,12 +18,10 @@ export default function TaskDetail() {
   const dispatch = useDispatch();
   const { id } = useParams();
   const [show, setShow] = useState(false);
-
   const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
-
-  const postTaskDetails = useSelector((state) => state.UserSlice.postTaskDetail);
-
+  const postTaskDetails = useSelector(
+    (state) => state.UserSlice.postTaskDetail
+  );
   const sliderSettings = {
     dots: true,
     arrows: false,
@@ -67,49 +65,54 @@ export default function TaskDetail() {
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
 
-  console.log(quotations, "quotations")
-
   const handleAccept = (data, type) => {
-    let obj = {
+    const statusValue = type === "accept" ? 1 : 2;
+
+    const taskStatusPayload = {
       quatation_id: data?._id,
       task_id: id,
       service_provider_id: data?.service_provider?._id,
-      status: type == "accept" ? 1 : 2
-    }
-    if (type == "accept") {
-      dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
+      status: statusValue,
+    };
+
+    const suggestionStatusPayload = {
+      taskId: id,
+      status: statusValue,
+    };
+
+    // Helper function to dispatch and handle toast
+    const handleDispatch = (action, successMessage, errorMessage) => {
+      return dispatch(action).then((res) => {
         if (res?.payload?.success) {
-          toast.success("Accepted.")
-          navigate("/my-task")
-        } else {
-          toast.error(res?.payload?.message)
+          toast.success(successMessage);
+          navigate("/my-task");
         }
-      })
-    } else {
-      dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
-        if (res?.payload?.success) {
-          toast.success("Rejected.")
-          navigate("/my-task")
-        } else {
-          toast.error(res?.payload?.message)
-        }
-      })
-    }
-  }
+      });
+    };
+
+    handleDispatch(
+      CustomerActions.acceptRejectTaskStatus(taskStatusPayload),
+      type === "accept" ? "Accepted." : "Rejected.",
+      "Failed to update task status"
+    );
+
+    handleDispatch(
+      CustomerActions.acceptRejectTaskCorporateSuggestion(
+        suggestionStatusPayload
+      ),
+      type === "accept" ? "Accepted." : "Rejected.",
+      "Failed to update suggestion status"
+    );
+  };
 
   const handleDeletePost = (id) => {
-
     dispatch(CustomerActions.deleteTasks(id)).then((res) => {
-      if (res?.payload?.success) {
-        toast.success("Task Deleted Successfully")
-        navigate("/my-task")
-      } else {
-        toast.error(res?.payload?.message)
+      if (res && res?.payload) {
+        toast.success(res?.payload?.message);
+        navigate("/my-task");
       }
-    })
-  }
-
-  console.log(quotations, "5555555555555555")
+    });
+  };
 
   return (
     <Layout>
@@ -216,7 +219,12 @@ export default function TaskDetail() {
                             <h5>{quotation?.service_provider?.full_name}</h5>
                             <p>{quotation?.service_provider?.address}</p>
                             <div className="rating-stars">
-                              <ul> <StarRating averageRating={quotation.averageRating} /></ul>
+                              <ul>
+                                {" "}
+                                <StarRating
+                                  averageRating={quotation.averageRating}
+                                />
+                              </ul>
                             </div>
                           </div>
                         </div>
