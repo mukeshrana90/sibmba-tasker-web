@@ -25,7 +25,7 @@ const serviceProviderRoutes = [
 const corporateRoutes = [
   { label: "Home", path: "/" },
   { label: "Product", path: "/corporate/products" },
-  { label: "Bookings", path: "/corporate/bookings" },
+  { label: "Leads", path: "/corporate/leads" },
 ];
 
 const clientRoutes = [
@@ -410,11 +410,11 @@ export default function Header() {
                                   <>
                                     <Link
                                       className={
-                                        currentPath === "/corporate/bookings" ? "nav-link active" : "nav-link"
+                                        currentPath === "/corporate/leads" ? "nav-link active" : "nav-link"
                                       }
-                                      to="/corporate/bookings"
+                                      to="/corporate/leads"
                                     >
-                                      Booking
+                                      Leeds
                                     </Link>
                                     <Dropdown.Divider />
                                     <Link
@@ -450,18 +450,18 @@ export default function Header() {
                                       className={
                                         currentPath ===
                                         (role == Roles.CORPORATE
-                                          ? "/corporate/bookings"
+                                          ? "/corporate/leads"
                                           : "/bookings")
                                           ? "nav-link active"
                                           : "nav-link"
                                       }
                                       to={
                                         role == Roles.CORPORATE
-                                          ? "/corporate/bookings"
+                                          ? "/corporate/leads"
                                           : "/bookings"
                                       }
                                     >
-                                      Bookings
+                                    {role === Roles.CORPORATE ? "Leads" : "Bookings"}
                                     </Link>
 
                                     <Dropdown.Divider />

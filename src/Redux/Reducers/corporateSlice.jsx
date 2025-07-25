@@ -8,6 +8,8 @@ const corporateSlice = createSlice({
     loading: false,
     leads:null,
     error: null,
+    corporateDashboard:null
+    
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -24,6 +26,18 @@ const corporateSlice = createSlice({
       state.error = action.error;
     });
    // end lead
+
+      builder.addCase(CorporateActions.getCorporateDashboard.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(CorporateActions.getCorporateDashboard.fulfilled, (state, action) => {
+      state.loading = false;
+      state.corporateDashboard = action.payload.data; 
+    });
+    builder.addCase(CorporateActions.getCorporateDashboard.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error;
+    });
   },
 });
 
