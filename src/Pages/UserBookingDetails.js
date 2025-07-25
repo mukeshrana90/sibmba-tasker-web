@@ -394,18 +394,30 @@ export default function UserBookingDetails() {
                       {/* Pay Now (Conditional) */}
                       {task?.payment?.status === "pending" && (
                         <div className="mt-3 text-center">
-                          <button className="btn btn-outline-success w-100">
+                          <button
+                            className="btn btn-outline-success w-100"
+                            onClick={() => {
+                              handlePaymentOpen(task?._id);
+                              setSelectedBoooking(task);
+                            }}
+                          >
                             Pay Now
                           </button>
                         </div>
                       )}
                       {/* Footer Buttons */}
                       <div className="d-flex justify-content-between mt-3">
-                        <button className="btn btn-light w-50 me-2">
+                        <button
+                          className="btn btn-light w-50 me-2"
+                          onClick={handleFeedbackOpen}
+                        >
                           Give Feedback
                         </button>
-                        <button className="btn btn-success w-50">
-                          Book Again
+                        <button
+                          className="btn btn-outline-success w-50 me-2"
+                          onClick={() => navigate("/post-task")}
+                        >
+                          Post another task
                         </button>
                       </div>
                     </>
@@ -433,95 +445,92 @@ export default function UserBookingDetails() {
                 </section>
               ) : bookingState ? (
                 <section className="feedback_section p-3 mt-3 border rounded bg-light">
-                  <div className="booking-detail-card pt-3">
+                  <div className="booking-detail-card pt-3 d-flex gap-3">
+                    {/* Service Image */}
                     <img
                       src={
-                        bookingState?.serviceSubCategory?.images[0]
-                          ? `${process.env.REACT_APP_API_URL}/user/${bookingState?.serviceSubCategory?.images[0]}`
+                        bookingState.serviceSubCategory?.images?.[0]
+                          ? `${process.env.REACT_APP_API_URL}/user/${bookingState.serviceSubCategory.images[0]}`
                           : require("../Assets/Images/living-room-cleaning.png")
                       }
+                      alt="Service"
+                      className="img-fluid rounded"
+                      style={{ width: "150px", height: "auto" }}
                     />
+
+                    {/* Service Info */}
                     <div>
                       <h3>
-                        {bookingState?.serviceSubCategory
-                          ?.serviceSubCategoryName ||
-                          task?.need_done ||
-                          "N/A"}
+                        {bookingState.serviceSubCategory
+                          ?.serviceSubCategoryName || "N/A"}
                       </h3>
                       <p>
-                        {bookingState?.serviceCategory.service_category_name ||
-                          task?.details ||
+                        {bookingState.serviceCategory?.service_category_name ||
                           "N/A"}
                       </p>
-                      {bookingState?.payment?.status !== "paid" ||
-                      task?.payment?.status !== "paid" ? (
-                        bookingState?.status === "3" ||
-                        task?.status === "3" ||
-                        bookingState?.status === "5" ||
-                        task?.status === "5" ? null : (
-                          <div className="book-service-action-btn">
-                            {bookingState?.status !== "4" ||
-                              (task?.status !== "4" && (
-                                <button
-                                  type="button"
-                                  className="outline  text-white"
-                                  onClick={handleShow}
-                                >
-                                  Cancel Booking
-                                </button>
-                              ))}
 
-                            {bookingState?.status === "1" ||
-                              (task?.status === "1" && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleEditOpen(
-                                      bookingState?.serviceSubCategory?._id
-                                    );
-                                    setSelectedBoooking(bookingState);
-                                  }}
-                                >
-                                  Edit
-                                </button>
-                              ))}
+                      {/* Payment Buttons */}
+                      {!["paid"].includes(bookingState.payment?.status) &&
+                        ![3, 5].includes(bookingState.status) && (
+                          <div className="book-service-action-btn d-flex gap-2 mt-2">
+                            {[1].includes(bookingState.status) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleEditOpen(
+                                    bookingState.serviceSubCategory?._id
+                                  );
+                                  setSelectedBoooking(bookingState);
+                                }}
+                              >
+                                Edit
+                              </button>
+                            )}
 
-                            {bookingState?.status === "2" ||
-                              (task?.status === "2" && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigate(
-                                      `/messages?userID=${bookingState?.serviceProvider?._id}`
-                                    );
-                                    localStorage.setItem(
-                                      "reciverID",
-                                      bookingState?.serviceProvider?._id
-                                    );
-                                  }}
-                                >
-                                  Message
-                                </button>
-                              ))}
+                            {[2].includes(bookingState.status) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigate(
+                                    `/messages?userID=${bookingState.serviceProvider?._id}`
+                                  );
+                                  localStorage.setItem(
+                                    "reciverID",
+                                    bookingState.serviceProvider?._id
+                                  );
+                                }}
+                              >
+                                Message
+                              </button>
+                            )}
 
-                            {bookingState?.status === 4 ||
-                              (task?.status === 3 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handlePaymentOpen(
-                                      bookingState?._id || task?._id
-                                    );
-                                    setSelectedBoooking(bookingState || task);
-                                  }}
-                                >
-                                  Pay Now
-                                </button>
-                              ))}
+                            {[4].includes(bookingState.status) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handlePaymentOpen(bookingState._id);
+                                  setSelectedBoooking(bookingState);
+                                }}
+                              >
+                                Pay Now
+                              </button>
+                            )}
+
+                            {[1, 2].includes(bookingState.status) && (
+                              <button
+                                type="button"
+                                className="outline text-white"
+                                onClick={handleShow}
+                              >
+                                Cancel Booking
+                              </button>
+                            )}
                           </div>
-                        )
-                      ) : (
-                        <div className="design-button">
+                        )}
+
+                      {/* Paid Buttons */}
+                      {bookingState.payment?.status === "paid" && (
+                        <div className="design-button d-flex gap-2 mt-2">
                           <button
                             className="feedback-btn"
                             onClick={handleFeedbackOpen}
@@ -538,59 +547,93 @@ export default function UserBookingDetails() {
                       )}
                     </div>
                   </div>
-                  <section className="booking-status-sec ">
+
+                  {/* Booking Status */}
+                  <section className="booking-status-sec mt-4">
                     <Container>
-                      <div className="booking-status-txt pt-0">
-                        <div className="booking-status-left-txt">
-                          <h2>Status</h2>
-                          <h3 className={getStatusColor(bookingState?.status)}>
-                            Booking {getStatusLabel(bookingState?.status)}{" "}
-                          </h3>
-                          {/* {bookingState?.payment?.status == "paid" ?   <p>{`Service provider has completed this service.`}</p>
-             : <p>{`Service provider has ${bookingState?.status === 1 ? `not accepted` : "accepted"}  your booking.`}</p>
-              } */}
-                          {bookingState?.status === 3 ? (
-                            <p>{`Service provider has canceled your booking.`}</p>
-                          ) : bookingState?.payment?.status === "paid" ? (
-                            <p>{`Service provider has completed this service.`}</p>
-                          ) : (
-                            <p>{`Service provider has ${
-                              bookingState?.status === 1
-                                ? `not accepted`
-                                : "completed"
-                            } your booking.`}</p>
-                          )}
+                      <div className="booking-status-txt">
+                        <h2>Status</h2>
+                        <h3 className={getStatusColor(bookingState.status)}>
+                          Booking {getStatusLabel(bookingState.status)}
+                        </h3>
+                        <p>
+                          {bookingState.status === 3
+                            ? "Service provider has canceled your booking."
+                            : bookingState.payment?.status === "paid"
+                            ? "Service provider has completed this service."
+                            : `Service provider has ${
+                                bookingState.status === 1
+                                  ? "not accepted"
+                                  : "completed"
+                              } your booking.`}
+                        </p>
+                        <h4>
+                          {bookingState.slotTime?.[0] || "Time N/A"},{" "}
+                          {moment(bookingState.date).format("DD MMM")}
+                        </h4>
 
-                          <h4>
-                            {`${bookingState?.slotTime}, ${moment(
-                              bookingState?.date
-                            ).format("DD MMM")}`}{" "}
-                          </h4>
-                        </div>
-
-                        {bookingState?.status == 3 && bookingState?.message && (
-                          <>
-                            <div className="reason-for-cancellation">
-                              <h5>Reason for cancellation</h5>
-                              <p>{bookingState?.message}</p>
-                            </div>
-                          </>
-                        )}
-
-                        {bookingState?.rescheduledBy && (
-                          <div className="status-service-provider ">
-                            <h4>
-                              Service provider has rescheduled your booking
-                            </h4>
-                            <hr />
-                            <h5>
-                              {`${bookingState?.slotTime}, ${moment(
-                                bookingState?.date
-                              ).format("DD MMM")}`}
-                            </h5>
-                            <p>{bookingState?.message}</p>
+                        {bookingState.status === 3 && bookingState.message && (
+                          <div className="reason-for-cancellation mt-3">
+                            <h5>Reason for cancellation</h5>
+                            <p>{bookingState.message}</p>
                           </div>
                         )}
+
+                        {bookingState.rescheduledBy && (
+                          <div className="status-service-provider mt-3">
+                            <h5>
+                              Service provider has rescheduled your booking
+                            </h5>
+                            <hr />
+                            <p>
+                              {bookingState.slotTime?.[0]},{" "}
+                              {moment(bookingState.date).format("DD MMM")}
+                            </p>
+                            <p>{bookingState.message}</p>
+                          </div>
+                        )}
+                      </div>
+                    </Container>
+                  </section>
+
+                  {/* Message and Provider Info */}
+                  <section className="category-services-sec mt-4">
+                    <Container>
+                      <div className="category-services-lists">
+                        <div className="list-title">
+                          <h2>Message</h2>
+                        </div>
+                        <p>{bookingState.message || "No message provided."}</p>
+                      </div>
+
+                      <div className="category-services-lists mt-4">
+                        <div className="list-title">
+                          <h2>About Service Provider</h2>
+                        </div>
+                        <div className="provider-view-pro d-flex gap-3 align-items-center">
+                          <img
+                            src={
+                              bookingState.serviceProvider?.profile_image
+                                ? ImagePathCustomer(
+                                    bookingState.serviceProvider.profile_image
+                                  )
+                                : require("../Assets/Images/user.png")
+                            }
+                            alt="Provider"
+                            className="rounded-circle"
+                            style={{ width: "80px", height: "80px" }}
+                          />
+                          <div>
+                            <h5>
+                              {bookingState.serviceProvider?.company_name ||
+                                "N/A"}
+                            </h5>
+                            <p>
+                              {bookingState.serviceProvider?.street_address ||
+                                "N/A"}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </Container>
                   </section>
@@ -600,43 +643,8 @@ export default function UserBookingDetails() {
           </Row>
         </Container>
       </section>
-      {/* <section className="category-services-sec ">
-        <Container>
-          <section className="category-services-sec ">
-            <div className="category-services-lists">
-              <div className="list-title">
-                <h2>Message</h2>
-              </div>
-              <div className="provider-view-pro">
-                <p>{bookingState?.message} </p>
-              </div>
-            </div>
-          </section>
-          <div className="category-services-lists">
-            <div className="list-title">
-              <h2>About Service Provider</h2>
-            </div>
-            <div className="provider-view-pro">
-              <img
-                src={
-                  bookingState?.serviceProvider.profile_image
-                    ? ImagePathCustomer(
-                        bookingState?.serviceProvider.profile_image
-                      )
-                    : require("../Assets/Images/user.png")
-                }
-              />
-              <div>
-                <h5>{bookingState?.serviceProvider.company_name || "N/A"}</h5>
-                <p>{bookingState?.serviceProvider.street_address} </p>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section> */}
 
       {/* Are you sure about popup start  */}
-
       <Modal show={show} onHide={handleClose} centered>
         <Modal.Body>
           <div className="comman-small-pop">
