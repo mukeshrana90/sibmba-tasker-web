@@ -293,7 +293,7 @@ export default function UserBookingDetails() {
                           (task?.status !== "4" && (
                             <button
                               type="button"
-                              className="outline"
+                              className="outline  text-white"
                               onClick={handleShow}
                             >
                               Cancel Booking
