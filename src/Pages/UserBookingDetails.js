@@ -253,125 +253,354 @@ export default function UserBookingDetails() {
     }
     return null;
   };
+  const selectedQuotation = quotations?.find(
+    (q) => q._id === task?.quatation_id
+  );
 
   return (
     <Layout>
-      <section className="service-detail-sec">
+      <section className="service-detail-sec mb-5">
         <Container>
           <Row>
             <Col lg={12}>
               <div className="bookings-details-title">
                 <h2>Bookings Details</h2>
               </div>
-              <div className="booking-detail-card pt-3">
-                <img
-                  src={
-                    bookingState?.serviceSubCategory?.images[0]
-                      ? `${process.env.REACT_APP_API_URL}/user/${bookingState?.serviceSubCategory?.images[0]}`
-                      : require("../Assets/Images/living-room-cleaning.png")
-                  }
-                />
-                <div>
-                  <h3>
-                    {bookingState?.serviceSubCategory?.serviceSubCategoryName ||
-                      task?.need_done ||
-                      "N/A"}
-                  </h3>
-                  <p>
-                    {bookingState?.serviceCategory.service_category_name ||
-                      task?.details ||
-                      "N/A"}
-                  </p>
-                  {bookingState?.payment?.status !== "paid" ||
-                  task?.payment?.status !== "paid" ? (
-                    bookingState?.status === "3" ||
-                    task?.status === "3" ||
-                    bookingState?.status === "5" ||
-                    task?.status === "5" ? null : (
-                      <div className="book-service-action-btn">
-                        {bookingState?.status !== "4" ||
-                          (task?.status !== "4" && (
-                            <button
-                              type="button"
-                              className="outline  text-white"
-                              onClick={handleShow}
-                            >
-                              Cancel Booking
-                            </button>
-                          ))}
+              {task ? (
+                <section className="booking_details p-3 rounded shadow-sm bg-white mt-3">
+                  {/* Header Image */}
+                  <img
+                    src={
+                      task?.images?.[0]
+                        ? `${process.env.REACT_APP_API_URLL}/${task?.images?.[0]}`
+                        : "../Assets/Images/default-task-image.jpg"
+                    }
+                    alt="Task"
+                    className="w-100 rounded"
+                    style={{ height: 300, objectFit: "cover" }}
+                  />
 
-                        {bookingState?.status === "1" ||
-                          (task?.status === "1" && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleEditOpen(
-                                  bookingState?.serviceSubCategory?._id
-                                );
-                                setSelectedBoooking(bookingState);
-                              }}
-                            >
-                              Edit
-                            </button>
-                          ))}
+                  {/* Task Title */}
+                  <h5 className="mt-3">
+                    {task?.category_id?.service_category_name}
+                  </h5>
 
-                        {bookingState?.status === "2" ||
-                          (task?.status === "2" && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigate(
-                                  `/messages?userID=${bookingState?.serviceProvider?._id}`
-                                );
-                                localStorage.setItem(
-                                  "reciverID",
-                                  bookingState?.serviceProvider?._id
-                                );
-                              }}
-                            >
-                              Message
-                            </button>
-                          ))}
-
-                        {bookingState?.status === 4 ||
-                          (task?.status === 3 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handlePaymentOpen(
-                                  bookingState?._id || task?._id
-                                );
-                                setSelectedBoooking(bookingState || task);
-                              }}
-                            >
-                              Pay Now
-                            </button>
-                          ))}
+                  {/* Task Description */}
+                  <p className="text-muted">{task?.need_done}</p>
+                  <p className="text-muted">{task?.details}</p>
+                  {/* About Service Provider */}
+                  <div className="mt-4">
+                    <h6>About Service Provider</h6>
+                    <div className="d-flex align-items-center gap-3">
+                      <img
+                        src={`${process.env.REACT_APP_API_URL}${selectedQuotation?.service_provider?.profile_image}`}
+                        className="rounded-circle"
+                        style={{ width: 50, height: 50, objectFit: "cover" }}
+                        alt="Provider"
+                      />
+                      <div>
+                        <strong>
+                          {selectedQuotation?.service_provider?.full_name}
+                        </strong>
+                        <p className="mb-0 text-muted">
+                          {selectedQuotation?.service_provider?.company_name}
+                        </p>
                       </div>
-                    )
-                  ) : (
-                    <div className="design-button">
+                      <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
+                    </div>
+                  </div>
+
+                  {/* About Service Corporate */}
+                  {selectedQuotation?.corporateSuggestion?.length > 0 && (
+                    <div className="mt-4">
+                      <h6>About Service Corporate</h6>
+
+                      {selectedQuotation.corporateSuggestion.map(
+                        (corp, idx) => (
+                          <div
+                            key={corp._id || idx}
+                            className="d-flex align-items-center gap-3 mb-3"
+                          >
+                            <img
+                              src={
+                                corp?.corporateIds?.profile_image
+                                  ? `${process.env.REACT_APP_API_URL}${corp.corporateIds.profile_image}`
+                                  : "../Assets/Images/default-user.png"
+                              }
+                              className="rounded-circle"
+                              style={{
+                                width: 50,
+                                height: 50,
+                                objectFit: "cover",
+                              }}
+                              alt="Corporate"
+                            />
+                            <div>
+                              <strong>{corp.corporateIds?.full_name}</strong>
+                              <p className="mb-0 text-muted">
+                                {corp.corporateIds?.shop_name}
+                              </p>
+                            </div>
+
+                            <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {/* Booking Status */}
+                  <div className="mt-4">
+                    <span className="fw-semibold mb-0">Status</span>
+                    {task?.status === 1 && (
+                      <>
+                        <p className="text-warning fw-semibold mb-0">Pending</p>
+                        <span>
+                          Service provider has not accepted your booking.
+                        </span>
+                      </>
+                    )}
+
+                    {task?.status === 2 && (
+                      <>
+                        <p className="text-danger fw-semibold mb-0">
+                          Cancelled
+                        </p>
+                        <span>
+                          Service provider has cancelled your booking.
+                        </span>
+                      </>
+                    )}
+
+                    {task?.status === 3 && (
+                      <>
+                        <p className="text-success fw-semibold mb-0">
+                          Booking Completed
+                        </p>
+                        <span>Service provider has completed your task.</span>
+                      </>
+                    )}
+
+                    <p className="mb-1 text-muted">
+                      Task scheduled for: <strong>{task?.task_time}</strong>,{" "}
+                      {moment(task?.when_done, "MM-DD-YYYY").format(
+                        "DD MMMM YYYY"
+                      )}
+                    </p>
+                  </div>
+
+                  {task?.status !== 1 && task?.status !== 2 && (
+                    <>
+                      {/* Pay Now (Conditional) */}
+                      {task?.payment?.status === "pending" && (
+                        <div className="mt-3 text-center">
+                          <button className="btn btn-outline-success w-100">
+                            Pay Now
+                          </button>
+                        </div>
+                      )}
+                      {/* Footer Buttons */}
+                      <div className="d-flex justify-content-between mt-3">
+                        <button className="btn btn-light w-50 me-2">
+                          Give Feedback
+                        </button>
+                        <button className="btn btn-success w-50">
+                          Book Again
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {task?.status === 1 && (
+                    <div className="book-service-action-btn mt-2">
                       <button
-                        className="feedback-btn"
-                        onClick={handleFeedbackOpen}
+                        type="button"
+                        className="outline "
+                        onClick={handleShow}
                       >
-                        Give Feedback
+                        Cancel Booking
                       </button>
                       <button
-                        className="book-btn"
-                        onClick={() => navigate("/services")}
+                        type="button"
+                        onClick={() => {
+                          handleEditOpen(bookingState?.serviceSubCategory?._id);
+                          setSelectedBoooking(bookingState);
+                        }}
                       >
-                        Book Again
+                        Edit
                       </button>
                     </div>
                   )}
-                </div>
-              </div>
+                </section>
+              ) : bookingState ? (
+                <section className="feedback_section p-3 mt-3 border rounded bg-light">
+                  <div className="booking-detail-card pt-3">
+                    <img
+                      src={
+                        bookingState?.serviceSubCategory?.images[0]
+                          ? `${process.env.REACT_APP_API_URL}/user/${bookingState?.serviceSubCategory?.images[0]}`
+                          : require("../Assets/Images/living-room-cleaning.png")
+                      }
+                    />
+                    <div>
+                      <h3>
+                        {bookingState?.serviceSubCategory
+                          ?.serviceSubCategoryName ||
+                          task?.need_done ||
+                          "N/A"}
+                      </h3>
+                      <p>
+                        {bookingState?.serviceCategory.service_category_name ||
+                          task?.details ||
+                          "N/A"}
+                      </p>
+                      {bookingState?.payment?.status !== "paid" ||
+                      task?.payment?.status !== "paid" ? (
+                        bookingState?.status === "3" ||
+                        task?.status === "3" ||
+                        bookingState?.status === "5" ||
+                        task?.status === "5" ? null : (
+                          <div className="book-service-action-btn">
+                            {bookingState?.status !== "4" ||
+                              (task?.status !== "4" && (
+                                <button
+                                  type="button"
+                                  className="outline  text-white"
+                                  onClick={handleShow}
+                                >
+                                  Cancel Booking
+                                </button>
+                              ))}
+
+                            {bookingState?.status === "1" ||
+                              (task?.status === "1" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleEditOpen(
+                                      bookingState?.serviceSubCategory?._id
+                                    );
+                                    setSelectedBoooking(bookingState);
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                              ))}
+
+                            {bookingState?.status === "2" ||
+                              (task?.status === "2" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigate(
+                                      `/messages?userID=${bookingState?.serviceProvider?._id}`
+                                    );
+                                    localStorage.setItem(
+                                      "reciverID",
+                                      bookingState?.serviceProvider?._id
+                                    );
+                                  }}
+                                >
+                                  Message
+                                </button>
+                              ))}
+
+                            {bookingState?.status === 4 ||
+                              (task?.status === 3 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handlePaymentOpen(
+                                      bookingState?._id || task?._id
+                                    );
+                                    setSelectedBoooking(bookingState || task);
+                                  }}
+                                >
+                                  Pay Now
+                                </button>
+                              ))}
+                          </div>
+                        )
+                      ) : (
+                        <div className="design-button">
+                          <button
+                            className="feedback-btn"
+                            onClick={handleFeedbackOpen}
+                          >
+                            Give Feedback
+                          </button>
+                          <button
+                            className="book-btn"
+                            onClick={() => navigate("/services")}
+                          >
+                            Book Again
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <section className="booking-status-sec ">
+                    <Container>
+                      <div className="booking-status-txt pt-0">
+                        <div className="booking-status-left-txt">
+                          <h2>Status</h2>
+                          <h3 className={getStatusColor(bookingState?.status)}>
+                            Booking {getStatusLabel(bookingState?.status)}{" "}
+                          </h3>
+                          {/* {bookingState?.payment?.status == "paid" ?   <p>{`Service provider has completed this service.`}</p>
+             : <p>{`Service provider has ${bookingState?.status === 1 ? `not accepted` : "accepted"}  your booking.`}</p>
+              } */}
+                          {bookingState?.status === 3 ? (
+                            <p>{`Service provider has canceled your booking.`}</p>
+                          ) : bookingState?.payment?.status === "paid" ? (
+                            <p>{`Service provider has completed this service.`}</p>
+                          ) : (
+                            <p>{`Service provider has ${
+                              bookingState?.status === 1
+                                ? `not accepted`
+                                : "completed"
+                            } your booking.`}</p>
+                          )}
+
+                          <h4>
+                            {`${bookingState?.slotTime}, ${moment(
+                              bookingState?.date
+                            ).format("DD MMM")}`}{" "}
+                          </h4>
+                        </div>
+
+                        {bookingState?.status == 3 && bookingState?.message && (
+                          <>
+                            <div className="reason-for-cancellation">
+                              <h5>Reason for cancellation</h5>
+                              <p>{bookingState?.message}</p>
+                            </div>
+                          </>
+                        )}
+
+                        {bookingState?.rescheduledBy && (
+                          <div className="status-service-provider ">
+                            <h4>
+                              Service provider has rescheduled your booking
+                            </h4>
+                            <hr />
+                            <h5>
+                              {`${bookingState?.slotTime}, ${moment(
+                                bookingState?.date
+                              ).format("DD MMM")}`}
+                            </h5>
+                            <p>{bookingState?.message}</p>
+                          </div>
+                        )}
+                      </div>
+                    </Container>
+                  </section>
+                </section>
+              ) : null}
             </Col>
           </Row>
         </Container>
       </section>
-      <section className="category-services-sec ">
+      {/* <section className="category-services-sec ">
         <Container>
           <section className="category-services-sec ">
             <div className="category-services-lists">
@@ -404,60 +633,7 @@ export default function UserBookingDetails() {
             </div>
           </div>
         </Container>
-      </section>
-
-      <section className="booking-status-sec ">
-        <Container>
-          <div className="booking-status-txt pt-0">
-            <div className="booking-status-left-txt">
-              <h2>Status</h2>
-              <h3 className={getStatusColor(bookingState?.status)}>
-                Booking {getStatusLabel(bookingState?.status)}{" "}
-              </h3>
-              {/* {bookingState?.payment?.status == "paid" ?   <p>{`Service provider has completed this service.`}</p>
-             : <p>{`Service provider has ${bookingState?.status === 1 ? `not accepted` : "accepted"}  your booking.`}</p>
-              } */}
-              {bookingState?.status === 3 ? (
-                <p>{`Service provider has canceled your booking.`}</p>
-              ) : bookingState?.payment?.status === "paid" ? (
-                <p>{`Service provider has completed this service.`}</p>
-              ) : (
-                <p>{`Service provider has ${
-                  bookingState?.status === 1 ? `not accepted` : "completed"
-                } your booking.`}</p>
-              )}
-
-              <h4>
-                {`${bookingState?.slotTime}, ${moment(
-                  bookingState?.date
-                ).format("DD MMM")}`}{" "}
-              </h4>
-            </div>
-
-            {bookingState?.status == 3 && bookingState?.message && (
-              <>
-                <div className="reason-for-cancellation">
-                  <h5>Reason for cancellation</h5>
-                  <p>{bookingState?.message}</p>
-                </div>
-              </>
-            )}
-
-            {bookingState?.rescheduledBy && (
-              <div className="status-service-provider ">
-                <h4>Service provider has rescheduled your booking</h4>
-                <hr />
-                <h5>
-                  {`${bookingState?.slotTime}, ${moment(
-                    bookingState?.date
-                  ).format("DD MMM")}`}
-                </h5>
-                <p>{bookingState?.message}</p>
-              </div>
-            )}
-          </div>
-        </Container>
-      </section>
+      </section> */}
 
       {/* Are you sure about popup start  */}
 

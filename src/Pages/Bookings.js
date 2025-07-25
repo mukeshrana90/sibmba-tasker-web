@@ -55,7 +55,7 @@ export default function Bookings() {
       case 1:
         return "Pending";
       case 2:
-        return "Accepted";
+        return "Cancelled";
       case 3:
         return "Completed";
       case 4:
