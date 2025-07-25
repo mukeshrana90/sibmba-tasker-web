@@ -24,11 +24,11 @@ import { toast } from "react-toastify";
 
 const getStatusColor = (status) => {
   const statusMap = {
-    1: "yellow",
-    2: "green",
-    3: "red",
-    4: "green",
-    5: "red",
+    1: "pending",
+    2: "completed",
+    3: "rejected",
+    4: "completed",
+    5: "rejected",
   };
 
   return statusMap[status] || "N/A";
@@ -293,7 +293,7 @@ export default function UserBookingDetails() {
                     <h6>About Service Provider</h6>
                     <div className="d-flex align-items-center gap-3">
                       <img
-                        src={`${process.env.REACT_APP_API_URL}${selectedQuotation?.service_provider?.profile_image}`}
+                        src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}`}
                         className="rounded-circle"
                         style={{ width: 50, height: 50, objectFit: "cover" }}
                         alt="Provider"
@@ -408,7 +408,7 @@ export default function UserBookingDetails() {
                       {/* Footer Buttons */}
                       <div className="d-flex justify-content-between mt-3">
                         <button
-                          className="btn btn-light w-50 me-2"
+                          className="btn btn-light border w-50 me-2"
                           onClick={handleFeedbackOpen}
                         >
                           Give Feedback
@@ -553,7 +553,7 @@ export default function UserBookingDetails() {
                     <Container>
                       <div className="booking-status-txt">
                         <h2>Status</h2>
-                        <h3 className={getStatusColor(bookingState.status)}>
+                        <h3  className={`corporate_inner ${getStatusColor(bookingState.status)}`}>
                           Booking {getStatusLabel(bookingState.status)}
                         </h3>
                         <p>

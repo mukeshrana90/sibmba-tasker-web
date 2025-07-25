@@ -132,8 +132,8 @@ export default function CorporateLeedsPage() {
 
                           <Tab.Pane eventKey="leads">
                             <div className="bookings-cards">
-                              <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
-                                <div className="nav-serch-bar leads-search-wrapper d-flex align-items-center mr-0 gap-2">
+                              <div className="d-flex flex-column flex-md-row justify-content-end align-items-start align-items-md-center mb-3">
+                                {/* <div className="nav-serch-bar leads-search-wrapper d-flex align-items-center mr-0 gap-2">
                                   <img
                                     className="search-icn leads-search mt-0"
                                     src={
@@ -151,7 +151,7 @@ export default function CorporateLeedsPage() {
                                       setSearchText(e.target.value)
                                     }
                                   />
-                                </div>
+                                </div> */}
 
                                 {/* Filter */}
                                 <div className="mt-3 mt-md-0">

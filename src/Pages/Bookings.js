@@ -20,11 +20,11 @@ export default function Bookings() {
   const [selectedBoooking, setSelectedBoooking] = useState(null);
   const getStatusColor = (status) => {
     const statusMap = {
-      1: "yellow",
-      2: "green",
-      3: "red",
-      4: "green",
-      5: "red",
+      1: "pending",
+      2: "completed",
+      3: "rejected",
+      4: "completed",
+      5: "rejected",
     };
 
     return statusMap[status] || "N/A";
@@ -66,6 +66,7 @@ export default function Bookings() {
         return "Unknown";
     }
   };
+
 
   const renderBookingList = (list) => {
     if (!list.length) {
@@ -181,15 +182,14 @@ export default function Bookings() {
                         </div>
                       </div>
                       <div>
-                        <div className="status-booking">
-                          Status:
-                          <span className={getStatusColor(data?.status)}>
+                        <div>
+                          <span className={`corporate_inner ${getStatusColor(data?.status)}`}>
                             {getStatusLabel(data?.status)}
                           </span>
                         </div>
 
                         {(data?.status === 2 || data?.status === 3) && (
-                          <div className="chat-btn-card">
+                          <div className="chat-btn-card mt-2">
                             <button className="">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
