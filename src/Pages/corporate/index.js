@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Layout from "../../Components/Layout/Layout";
 import { Row, Nav, Col, Tab } from "react-bootstrap";
@@ -7,21 +7,38 @@ import TotalLeadsIcon from "../../Assets/Images/corporate/TotalLeads.svg";
 import PendingIcon from "../../Assets/Images/corporate/PendingIcon.svg";
 import ProductsIcon from "../../Assets/Images/corporate/ProductsIcon.svg";
 import TierIcon from "../../Assets/Images/corporate/TierIcon.svg";
-import dummyIcon from "../../Assets/Images/my-profile.svg";
 import { useDispatch, useSelector } from "react-redux";
 import CorporateActions from "../../Redux/Actions/corporateActions";
+import PaginationComponent from "../../CommanComponents/PaginationComponent";
+import { Status } from "@googlemaps/react-wrapper";
+import CustomSelect from "../../CommanComponents/CustomSelect";
 
 const CorporateDashboard = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-
   const leads = useSelector((state) => state.corporateSlice?.leads);
+  const corporateDashboard = useSelector(
+    (state) => state.corporateSlice?.corporateDashboard
+  );
+  const totalPages = leads?.totalPages;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    searchParams?.get("page") || "tasks"
+  );
+  const [leadFilter, setLeadFilter] = useState("all");
 
   useEffect(() => {
-    dispatch(CorporateActions.getCorporateLeads({ page, limit }));
-  }, [dispatch, page, limit]);
+    dispatch(
+      CorporateActions.getCorporateLeads({ page, limit, status: leadFilter })
+    );
+    dispatch(CorporateActions.getCorporateDashboard());
+  }, [dispatch, page, limit, leadFilter]);
+
+  useEffect(() => {
+    setSearchParams({ page: activeTab });
+  }, [activeTab, setSearchParams]);
 
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -32,29 +49,46 @@ const CorporateDashboard = () => {
   }, [navigate]);
 
   const handleAccept = (id, status) => {
-  dispatch(
-    CorporateActions.acceptRejectCorporateSuggestion({
-      taskId: id._id,
-      status: status,
-    })
-  ).then((res) => {
-    if (res?.payload) {
-      if(status === 1 ){
-      toast.success("Accepted successfully." );
-      }else{
-      toast.error("Rejected successfully.");
-      }
-    }
-  }).catch((error) => {
-    toast.error("An error occurred. Please try again.");
-  });
-};
+    dispatch(
+      CorporateActions.acceptRejectCorporateSuggestion({
+        taskId: id._id,
+        status: status,
+      })
+    )
+      .then((res) => {
+        if (res?.payload) {
+          status === 1
+            ? toast.success("Accepted successfully.")
+            : toast.error("Rejected successfully.");
+          dispatch(CorporateActions.getCorporateLeads({ page, limit }));
+        }
+      })
+      .catch(() => {
+        toast.error("An error occurred. Please try again.");
+      });
+  };
 
-  const summaryData = [
-    { label: "Total Leads", value: 198, icon: TotalLeadsIcon },
-    { label: "Pending", value: 15, icon: PendingIcon },
-    { label: "Products", value: 15, icon: ProductsIcon },
-    { label: "Current Tier", value: "Bronze", icon: TierIcon },
+  const CorporateDashboard = [
+    {
+      label: "Total Leads",
+      value: corporateDashboard?.total_leads,
+      icon: TotalLeadsIcon,
+    },
+    {
+      label: "Pending",
+      value: corporateDashboard?.total_leads_pending,
+      icon: PendingIcon,
+    },
+    {
+      label: "Products",
+      value: corporateDashboard?.total_products,
+      icon: ProductsIcon,
+    },
+    {
+      label: "Current Tier",
+      value: corporateDashboard?.current_subscription?.subscriptionPlan,
+      icon: TierIcon,
+    },
   ];
 
   const upcomingTasks = [
@@ -79,7 +113,7 @@ const CorporateDashboard = () => {
           <h1 className="h4 mb-4 fw-semibold">Corporate Dashboard</h1>
 
           <div className="dashbox-box-wrap">
-            {summaryData.map((item, idx) => (
+            {CorporateDashboard.map((item, idx) => (
               <div key={idx} className="dashbox-box">
                 <div className="title-wrap">
                   <span className="icon-img">
@@ -92,29 +126,35 @@ const CorporateDashboard = () => {
             ))}
           </div>
 
-          <Tab.Container defaultActiveKey="first">
+          <Tab.Container
+            activeKey={activeTab}
+            onSelect={(k) => setActiveTab(k)}
+            defaultActiveKey="tasks"
+          >
             <Row>
               <Col sm={12}>
                 <Nav variant="pills" className="bookings-tab-nav mb-4">
                   <Nav.Item>
-                    <Nav.Link eventKey="first">Upcoming Tasks</Nav.Link>
+                    <Nav.Link eventKey="tasks">Upcoming Tasks</Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
-                    <Nav.Link eventKey="second">New Leads</Nav.Link>
+                    <Nav.Link eventKey="leads">New Leads</Nav.Link>
                   </Nav.Item>
                 </Nav>
               </Col>
 
               <Col sm={12}>
                 <Tab.Content>
-                  <Tab.Pane eventKey="first">
+                  <Tab.Pane eventKey="tasks">
                     <div className="bookings-cards">
                       <ul className="list-unstyled">
                         {upcomingTasks.map((res, idx) => (
                           <li key={idx} className="mb-3">
                             <div className="booking-card">
                               <h5 className="mb-1">{res.title}</h5>
-                              <p className="mb-1 small text-muted">{res.subtitle}</p>
+                              <p className="mb-1 small text-muted">
+                                {res.subtitle}
+                              </p>
                               <small className="text-muted">{res.date}</small>
                             </div>
                           </li>
@@ -123,88 +163,119 @@ const CorporateDashboard = () => {
                     </div>
                   </Tab.Pane>
 
-                  <Tab.Pane eventKey="second">
+                  <Tab.Pane eventKey="leads">
                     <div className="bookings-cards">
+                      <div className="d-flex justify-content-end mb-3">
+                        <button
+                          className="view-more-btn"
+                          onClick={() =>
+                            navigate(`/corporate/leads?page=leads`)
+                          }
+                        >
+                          View More
+                        </button>
+                      </div>
                       <ul className="list-unstyled">
                         {leads?.leads?.length > 0 ? (
-                          leads.leads.map((res, idx) => {
-                            const corp = res.corporateIds || {};
-                            const item = res.taskId || {};
-                            const status = res.corporateStatus && res.userStatus === 1 ? "In Progress" : "Pending";
+                          leads.leads
+                            .filter((res) =>
+                              leadFilter === "all"
+                                ? true
+                                : res.status === leadFilter
+                            ) .slice(0, 10)
+                            .map((res, idx) => {
+                              const corp = res.corporateIds || {};
+                              const item = res.taskId || {};
+                              const status = res.status;
 
-                            return (
-                              <li key={res._id || idx} className="mb-3">
-                                <div className="booking-card p-3 border rounded shadow-sm">
-                                  <div className="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                      <h5 className="mb-1">
-                                        {item.need_done || "Untitled Task"}
-                                      </h5>
-                                      <div className="small text-muted">
-                                        <i className="bi bi-geo-alt-fill me-1"></i>
-                                        {item.address || "No Location"} &nbsp; | &nbsp;
-                                        <i className="bi bi-calendar-event me-1"></i>
-                                        {item.when_done || "No Date"}
+                              return (
+                                <li key={res._id || idx} className="mb-3">
+                                  <div className="booking-card">
+                                    <div className="d-flex justify-content-between align-items-start mb-2">
+                                      <div>
+                                        <h5 className="mb-1">
+                                          {item.need_done || "Untitled Task"}
+                                        </h5>
+                                        <div className="small text-muted">
+                                          <i className="bi bi-geo-alt-fill me-1"></i>
+                                          {item.address || "No Location"} &nbsp;
+                                          | &nbsp;
+                                          <i className="bi bi-calendar-event me-1"></i>
+                                          {item.when_done || "No Date"}
+                                        </div>
                                       </div>
+                                      <span
+                                        className={`corporate_inner ${status}`}
+                                      >
+                                        {status}
+                                      </span>
                                     </div>
-                                    <span
-                                    className={`corporate_inner ${
-                                      status === "In Progress" ? "in-progress" : "pending"
-                                    }`}
-                                  >
-                                    {status}
-                                  </span>
-                                  </div>
 
-                                  <div className="d-flex align-items-center gap-2 mb-3">
-                                    <img
-                                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
-                                      alt={corp.full_name}
-                                      className="booking-avatar rounded-circle"
-                                      width={40}
-                                      height={40}
-                                    />
-                                    <p className="mb-0 small">
-                                      Suggested by: <strong>{corp.full_name}</strong>
-                                    </p>
-                                  </div>
+                                    <div className="d-flex align-items-center gap-2 mb-3">
+                                      <img
+                                        src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                                        alt={corp.full_name}
+                                        className="booking-avatar rounded-circle"
+                                        width={40}
+                                        height={40}
+                                      />
+                                      <p className="mb-0 small">
+                                        Suggested by:{" "}
+                                        <strong>{corp.full_name}</strong>
+                                      </p>
+                                    </div>
 
-                                  {res.userStatus === 1 && res.corporateStatus === 1 ? (
-                                  <div className="book-service-action-btn leads-btn d-flex gap-2">
-                                    <button
-                                      className="btn btn-success btn-sm text-white"
-                                      onClick={() => navigate(`/corporate/lead-details/${item?._id}`)}
-                                    >
-                                      See More
-                                    </button>
+                                    {(res.userStatus === 1 &&
+                                      res.corporateStatus === 1) ||
+                                    status === "rejected" ? (
+                                      <div className="book-service-action-btn leads-btn d-flex gap-2">
+                                        <button
+                                          className="btn btn-success btn-sm text-white"
+                                          onClick={() =>
+                                            navigate(
+                                              `/corporate/lead-details/${item?._id}`
+                                            )
+                                          }
+                                        >
+                                          See More
+                                        </button>
+                                      </div>
+                                    ) : res.userStatus === 1 &&
+                                      status !== "rejected" ? (
+                                      <div className="book-service-action-btn d-flex gap-2">
+                                        <button
+                                          className="btn btn-outline-danger btn-sm"
+                                          onClick={() => handleAccept(item, 0)}
+                                        >
+                                          Reject
+                                        </button>
+                                        <button
+                                          className="btn btn-success btn-sm"
+                                          onClick={() => handleAccept(item, 1)}
+                                        >
+                                          Accept
+                                        </button>
+                                      </div>
+                                    ) : null}
                                   </div>
-                                ) : res.userStatus === 1 ? (
-                                  <div className="book-service-action-btn d-flex gap-2">
-                                    <button
-                                      className="btn btn-outline-danger btn-sm"
-                                      onClick={() => handleAccept(item, 0)}
-                                    >
-                                      Reject
-                                    </button>
-                                    <button
-                                      className="btn btn-success btn-sm"
-                                      onClick={() => handleAccept(item, 1)}
-                                    >
-                                      Accept
-                                    </button>
-                                  </div>
-                                ) : null}
-
-                                 
-                                </div>
-                              </li>
-                            );
-                          })
+                                </li>
+                              );
+                            })
                         ) : (
                           <li className="text-muted">No leads available.</li>
                         )}
                       </ul>
                     </div>
+
+                    {totalPages > 10 && (
+                      <div className="pagination-flexs mt-5">
+                        <PaginationComponent
+                          page={page}
+                          setPage={setPage}
+                          totalPages={totalPages}
+                        />
+                      </div>
+                    )}
                   </Tab.Pane>
                 </Tab.Content>
               </Col>

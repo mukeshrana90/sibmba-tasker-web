@@ -3,7 +3,7 @@ import Api from "../../Services/api";
 import { constructQueryString } from "../../utils/CommonFunction";
 
 const CorporateActions = {
- getCorporateLeads: createAsyncThunk(
+  getCorporateLeads: createAsyncThunk(
     "/corporate/get-corporate-leads",
     async (payload) => {
       const queryString = constructQueryString(payload);
@@ -13,14 +13,20 @@ const CorporateActions = {
       return response.data;
     }
   ),
-    acceptRejectCorporateSuggestion: createAsyncThunk(
+  acceptRejectCorporateSuggestion: createAsyncThunk(
     "/corporate/accept-reject-corporate-suggestion",
     async (customerData) => {
-      const response = await Api.post("/corporate/accept-reject-corporate-suggestion", customerData);
+      const response = await Api.post(
+        "/corporate/accept-reject-corporate-suggestion",
+        customerData
+      );
       return response.data;
     }
   ),
-  
+  getCorporateDashboard: createAsyncThunk("/corporate/dashboard", async () => {
+    const response = await Api.get(`/corporate/dashboard`);
+    return response.data;
+  }),
 };
 
 export default CorporateActions;

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Layout from "../../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
@@ -68,9 +68,24 @@ export default function LeadDetails() {
         <Container>
           <Row>
             <Col lg={12}>
-              <div className="bookings-details-title">
-                <h2>Task Details</h2>
-              </div>
+              <div className="bookings-details-title lead-details-wrapper d-flex align-items-center gap-2">
+                  <Link onClick={() => navigate(-1)} className="d-flex">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="40"
+                    height="42"
+                    viewBox="0 0 40 42"
+                    fill="none"
+                  >
+                    <path
+                      d="M10 21L8.91379 22.0345L7.92857 21L8.91379 19.9655L10 21ZM30 19.5C30.8284 19.5 31.5 20.1716 31.5 21C31.5 21.8284 30.8284 22.5 30 22.5V19.5ZM15.5805 29.0345L8.91379 22.0345L11.0862 19.9655L17.7529 26.9655L15.5805 29.0345ZM8.91379 19.9655L15.5805 12.9655L17.7529 15.0345L11.0862 22.0345L8.91379 19.9655ZM10 19.5H30V22.5L10 22.5L10 19.5Z"
+                      fill="#40413A"
+                    />
+                  </svg>
+                </Link>
+                    <h2 className="mt-0">Task Details</h2>
+                  </div>
+
               <div className="service-detail-card pt-3">
                 {task?.images?.length > 0 ? (
                   <Slider {...sliderSettings}>
@@ -190,15 +205,19 @@ export default function LeadDetails() {
               </div>
             )}
 
-            {/* Bottom Buttons */}
-            <div className="d-flex justify-content-center gap-4 mt-3">
-              <button className="btn btn-outline-success d-flex align-items-center gap-2">
-                <img src={ChatIcon}/>Chat
-              </button>
-              <button className="btn btn-outline-success d-flex align-items-center gap-2">
-                <img src={mapIcon}/>Map
-              </button>
-            </div>
+           <div className="quotation-inner d-flex justify-content-center gap-4 mt-3">
+            {quotation?.corporateSuggestion?.some(s => s.status !== 'rejected') && (
+              <>
+                <button>
+                  <img src={ChatIcon} alt="" /> Chat
+                </button>
+                <button>
+                  <img src={mapIcon} alt="" /> Map
+                </button>
+              </>
+            )}
+          </div>
+
           </div>
         ))}
       </div>

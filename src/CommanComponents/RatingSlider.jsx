@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import  { useState, useEffect } from 'react';
 import { Range } from 'react-range';
 
 const RatingSlider = ({ ratingvalue, setRatingValue }) => {

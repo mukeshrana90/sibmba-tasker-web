@@ -28,7 +28,7 @@ import ServiceProCategoryDetail from "../Pages/ServiceProCategoryDetail";
 import PrivacyPolicy from "../Pages/PrivacyPolicy";
 import TermsConditions from "../Pages/TermsConditions";
 import PrivateCorporate from "./PrivateCorporate";
-import CorporateBookings from "../Pages/corporate/bookings";
+import CorporateLeeds from "../Pages/corporate/leads";
 import CorporateDashboard from "../Pages/corporate";
 import CorporateAddProduct from "../Pages/corporate/products/addForm";
 import CorporateEditProduct from "../Pages/corporate/products/editForm";
@@ -106,7 +106,7 @@ const RoutesPage = () => {
             />
            <Route path="/corporate/products/details/:id" element={<ProductDetailsPage />} />
 
-            <Route path="bookings" element={<CorporateBookings />} />
+            <Route path="leads" element={<CorporateLeeds />} />
             <Route path="/corporate/lead-details/:id" element={<MyLeadDetails />} />
           </Route>
 
