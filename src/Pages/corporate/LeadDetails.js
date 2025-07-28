@@ -69,7 +69,7 @@ export default function LeadDetails() {
           <Row>
             <Col lg={12}>
               <div className="bookings-details-title lead-details-wrapper d-flex align-items-center gap-2">
-                  <Link onClick={() => navigate(-1)} className="d-flex">
+                <Link onClick={() => navigate(-1)} className="d-flex">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="40"
@@ -83,8 +83,8 @@ export default function LeadDetails() {
                     />
                   </svg>
                 </Link>
-                    <h2 className="mt-0">Task Details</h2>
-                  </div>
+                <h2 className="mt-0">Task Details</h2>
+              </div>
 
               <div className="service-detail-card pt-3">
                 {task?.images?.length > 0 ? (
@@ -114,7 +114,7 @@ export default function LeadDetails() {
                       : "N/A"}
                   </h5>
                   <p>{task?.details || "No description provided."}</p>
-                   <p>Budget:${task?.budget || "-"}</p>
+                  <p>Budget:${task?.budget || "-"}</p>
                 </div>
               </div>
             </Col>
@@ -122,110 +122,157 @@ export default function LeadDetails() {
         </Container>
       </section>
       <section className="category-services-sec pt-0 mt-5">
-       <Container>
-    <div className="category-services-lists">
-    <div className="list-title">
-      <h2 className="mb-0">Quotations</h2>
-    </div>
-      <p className="mt-0">About Service Provider</p>
-
-    {quotations?.length === 0 ? (
-      <div className="no-upcoming-bookings">
-        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" fill="none">
-          {/* SVG paths omitted for brevity */}
-        </svg>
-        <h3>No Quotations Yet</h3>
-        <p>Currently you don’t have any offers</p>
-      </div>
-    ) : (
-      <div>
-        {quotations?.map((quotation, index) => (
-          <div className="quotation-requests-wrap" key={index}>
-            <div className="quotation-requests quotation-requests-inner">
-              <div>
-                <div className="quotation-txt-show">
-                  <div
-                    className="profile-side cursor-pointer"
-                    onClick={() => navigate(`/quotations-detail/${quotation?._id}`)}
-                  >
-                    <img
-                      className="point-cursor"
-                      src={`${process.env.REACT_APP_API_URL}/${quotation?.service_provider?.profile_image}`}
-                      alt="categories-img"
-                    />
-                    <div>
-                      <h5>{quotation?.service_provider?.full_name}</h5>
-                      <p>{quotation?.service_provider?.email}</p>
-                      <p>{quotation?.service_provider?.address}</p>
-                      <div className="rating-stars">
-                        <ul>
-                          <StarRating averageRating={quotation.averageRating} />
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <p>{quotation?.description}</p>
-              </div>
-              <div className="quotation-requests-task-btns">
-                <div>
-                  <h5>${quotation?.offer_price}</h5>
-                  <p>Offer Price</p>
-                </div>
-              </div>
+        <Container>
+          <div className="category-services-lists">
+            <div className="list-title">
+              <h2 className="mb-0">Quotations</h2>
             </div>
+            <p className="mt-0">About Service Provider</p>
 
-            {quotation?.corporateSuggestion?.length > 0 && (
-              <div className="quotation-wrapper">
-                <div className="suggested-caproate">
-                  <h5>Suggested Corporate</h5>
-                  <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
-                    {quotation.corporateSuggestion.map((item, idx) => (
-                      <div
-                        key={item._id || idx}
-                        className="corporate-item d-flex align-items-center py-2"
-                        style={{ gap: "10px" }}
-                      >
-                        <img
-                          src={`${process.env.REACT_APP_API_URL}/${item?.corporateIds?.profile_image}`}
-                          alt={item.corporateIds?.full_name}
-                          className="rounded-circle"
-                          width={40}
-                          height={40}
-                        />
-                        <div className="flex-grow-1">
-                          <div className="fw-bold">{item.corporateIds?.full_name}</div>
-                          <div className="text-muted small">{item.corporateIds?.shop_name}</div>
-                          <div className="text-muted small">{item.corporateIds?.email}</div>
+            {quotations?.length === 0 ? (
+              <div className="no-upcoming-bookings">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="80"
+                  height="80"
+                  viewBox="0 0 80 80"
+                  fill="none"
+                >
+                  {/* SVG paths omitted for brevity */}
+                </svg>
+                <h3>No Quotations Yet</h3>
+                <p>Currently you don’t have any offers</p>
+              </div>
+            ) : (
+              <div>
+                {quotations?.map((quotation, index) => {
+                  const status =
+                    quotation?.corporateSuggestion[index]?.corporateStatus;
+                  const statusMap = {
+                    0: { label: "Pending Booking", className: "pending" },
+                    1: { label: "Accepted", className: "completed" },
+                    2: { label: "Rejected", className: "rejected" },
+                  };
+                  const currentStatus = statusMap[status] || {
+                    label: "Unknown",
+                    className: "unknown",
+                  };
+                  return (
+                    <div className="quotation-requests-wrap" key={index}>
+                      <div className="quotation-requests quotation-requests-inner">
+                        <div>
+                          <div className="quotation-txt-show">
+                            <div
+                              className="profile-side cursor-pointer"
+                              onClick={() =>
+                                navigate(`/quotations-detail/${quotation?._id}`)
+                              }
+                            >
+                              <img
+                                className="point-cursor"
+                                src={`${process.env.REACT_APP_API_URL}/${quotation?.service_provider?.profile_image}`}
+                                alt="categories-img"
+                              />
+                              <div>
+                                <h5>
+                                  {quotation?.service_provider?.full_name}
+                                </h5>
+                                <p>{quotation?.service_provider?.email}</p>
+                                <p>{quotation?.service_provider?.address}</p>
+                                <div className="rating-stars">
+                                  <ul>
+                                    <StarRating
+                                      averageRating={quotation.averageRating}
+                                    />
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <p>{quotation?.description}</p>
+                          <div className="d-flex gap-2 mt-2">
+                            {" "}
+                            Status:
+                            <span
+                              className={`corporate_inner ${currentStatus.className}`}
+                            >
+                              {currentStatus?.label}
+                            </span>
+                          </div>
+                          <p>
+                            {task?.task_time},{" "}
+                            {task?.when_done
+                              ? moment(task.when_done).format("DD MMM YY")
+                              : "N/A"}
+                          </p>
+                        </div>
+                        <div className="quotation-requests-task-btns">
+                          <div>
+                            <h5>${quotation?.offer_price}</h5>
+                            <p>Offer Price</p>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+
+                      {quotation?.corporateSuggestion?.length > 0 && (
+                        <div className="quotation-wrapper">
+                          <div className="suggested-caproate">
+                            <h5>Suggested Corporate</h5>
+                            <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                              {quotation.corporateSuggestion.map(
+                                (item, idx) => (
+                                  <div
+                                    key={item._id || idx}
+                                    className="corporate-item d-flex align-items-center py-2"
+                                    style={{ gap: "10px" }}
+                                  >
+                                    <img
+                                      src={`${process.env.REACT_APP_API_URL}/${item?.corporateIds?.profile_image}`}
+                                      alt={item.corporateIds?.full_name}
+                                      className="rounded-circle"
+                                      width={40}
+                                      height={40}
+                                    />
+                                    <div className="flex-grow-1">
+                                      <div className="fw-bold">
+                                        {item.corporateIds?.full_name}
+                                      </div>
+                                      <div className="text-muted small">
+                                        {item.corporateIds?.shop_name}
+                                      </div>
+                                      <div className="text-muted small">
+                                        {item.corporateIds?.email}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="quotation-inner d-flex justify-content-center gap-4 mt-3">
+                        {quotation?.corporateSuggestion?.some(
+                          (s) => s.status !== "rejected"
+                        ) && (
+                          <>
+                            <button onClick={() => navigate(`/messages`)}>
+                              <img src={ChatIcon} alt="" /> Chat
+                            </button>
+                            <button>
+                              <img src={mapIcon} alt="" /> Map
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
-
-           <div className="quotation-inner d-flex justify-content-center gap-4 mt-3">
-            {quotation?.corporateSuggestion?.some(s => s.status !== 'rejected') && (
-              <>
-                <button onClick={() => navigate(`/messages`)}>
-                  <img src={ChatIcon} alt="" /> Chat
-                </button>
-                <button>
-                  <img src={mapIcon} alt="" /> Map
-                </button>
-              </>
-              
-            )}
           </div>
-
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-      </Container>
-
+        </Container>
       </section>
     </Layout>
   );

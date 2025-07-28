@@ -186,7 +186,7 @@ export default function MyTasks() {
                                 allMyQuotations?.map((quotation, i) => (
                                   <div className="quotation-requests-wrap">
                                   <div className="quotation-requests quotation-requests-inner">
-                                    <div>
+                                    <div className="quotation-requests-inner">
                                       <div className="quotation-txt-show">
                                         <div className="profile-side">
                                           <img

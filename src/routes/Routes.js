@@ -35,6 +35,9 @@ import CorporateEditProduct from "../Pages/corporate/products/editForm";
 import CorporateProducts from "../Pages/corporate/products/list";
 import ProductDetailsPage from "../Pages/corporate/products/details";
 import MyLeadDetails from "../Pages/corporate/LeadDetails";
+import SuggestedCorporatePage from "../Pages/suggestedCorporate";
+import CorporateProductDetailPage from "../Pages/corporateProductDetail";
+
 
 const Login = lazy(() => import("../Pages/Login"));
 const ResetPassword = lazy(() => import("../Pages/ResetPassword"));
@@ -150,6 +153,9 @@ const RoutesPage = () => {
               path="/quotations-detail/:id"
               element={<QuotationsDetail />}
             />
+            <Route path="/get-corporate/:id" element={<SuggestedCorporatePage/>} />
+            <Route path="/product-detail/:id" element={<CorporateProductDetailPage/>} />
+            
             <Route path="/messages" element={<Messages />} />
             <Route path="/community" element={<Community />} />
             <Route path="/customerreviews" element={<CustomerReviews />} />
@@ -174,7 +180,6 @@ const RoutesPage = () => {
               path="/serviceprocategorydetail/:id"
               element={<ServiceProCategoryDetail />}
             />
-
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/training-material" element={<TrainingMaterial />} />
             <Route path="/my-stats" element={<MyStats />} />

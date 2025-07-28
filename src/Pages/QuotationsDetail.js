@@ -17,7 +17,7 @@ export default function QuotationsDetail() {
 
   const [show, setShow] = useState(false);
 
-  const quotationDetailById = useSelector((state) => state.UserSlice.quotationDetail)?.Quatation;
+  const quotationDetailById = useSelector((state) => state.UserSlice.quotationDetail)?.quotation;
 
   const handleClose = () => setShow(false);
   var settings = {
@@ -113,6 +113,7 @@ export default function QuotationsDetail() {
                       />
                       <div>
                         <h5>{quotationDetailById?.service_provider?.full_name || ""}</h5>
+                        <p>{quotationDetailById?.service_provider?.company_name || ""}</p>
                         <p>{quotationDetailById?.service_provider?.address || ""}</p>
                         <div className="rating-stars">
                           <ul>
@@ -197,11 +198,11 @@ export default function QuotationsDetail() {
                     </div>
                   </div>
                   <p>{quotationDetailById?.description || "No description provided"}</p>
-                     {quotationDetailById?.corporateSuggestion?.length > 0 && (
+                     {quotationDetailById?.service_provider?.corporateSuggestions?.length > 0 && (
                       <div className="suggested-caproate">
                         <h5>Suggested Corporate</h5>
                         <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
-                          {quotationDetailById.corporateSuggestion.map((item, index) => {
+                          {quotationDetailById?.service_provider.corporateSuggestions?.map((item, index) => {
                             const corp = item?.corporateIds;
                             if (!corp) return null;
 
@@ -230,7 +231,7 @@ export default function QuotationsDetail() {
                       </div>
                     )}
                 </div>
-                    {quotationDetailById?.service_provider?.corporateSuggestion?.length > 0 && (
+                {quotationDetailById?.service_provider?.corporateSuggestion?.length > 0 && (
                 <div className="suggested-caproate">
                   <h5>Suggested Corporate</h5>
                   <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">

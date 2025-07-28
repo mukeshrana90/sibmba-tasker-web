@@ -408,30 +408,54 @@ export default function Header() {
                                   </>
                                 ) : role == Roles.CORPORATE ? (
                                   <>
+                                    <div>
+                                      <div className="avail-toggle">
+                                        Notification
+                                        <Form.Check
+                                          type="switch"
+                                          checked={isNotificationsEnabled}
+                                          onChange={handleToggleChange}
+                                          // disabled={isTokenLoading}
+                                          // label={isTokenLoading ? "Loading..." : ""}
+                                        />
+                                      </div>
+                                    </div>
+                                    <Dropdown.Divider />
                                     <Link
                                       className={
-                                        currentPath === "/corporate/leads" ? "nav-link active" : "nav-link"
+                                        currentPath === "/training-material"
+                                          ? "nav-link active"
+                                          : "nav-link"
                                       }
-                                      to="/corporate/leads"
+                                      to="/training-material"
                                     >
-                                      Leeds
+                                      Training Material
                                     </Link>
                                     <Dropdown.Divider />
                                     <Link
-                                      className={currentPath === "/community" ? "nav-link active" : "nav-link"}
+                                      className={
+                                        currentPath === "/my-stats"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/my-stats"
+                                    >
+                                      My Stats
+                                    </Link>
+                                    <Dropdown.Divider />
+
+                                    <Link
+                                      className={
+                                        currentPath === "/community"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
                                       to="/community"
                                     >
                                       Community
                                     </Link>
-                                    <Dropdown.Divider />
-                                    <Link
-                                      className={currentPath === "/corporate/products" ? "nav-link active" : "nav-link"}
-                                      to="/corporate/products"
-                                    >
-                                      My Products
-                                    </Link>
-                                    <Dropdown.Divider />
 
+                                    <Dropdown.Divider />
                                     <Link
                                       className={
                                         currentPath === "/customerreviews"
@@ -441,6 +465,28 @@ export default function Header() {
                                       to="/customerreviews"
                                     >
                                       Customer Reviews
+                                    </Link>
+                                    <Dropdown.Divider />
+                                    <Link
+                                      className={
+                                        currentPath === "/payment"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/payment"
+                                    >
+                                      Payment / Subscription
+                                    </Link>
+                                    <Dropdown.Divider />
+                                    <Link
+                                      className={
+                                        currentPath === "/wallet"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/wallet"
+                                    >
+                                      My Wallet
                                     </Link>
                                     <Dropdown.Divider />
                                   </>
@@ -461,7 +507,9 @@ export default function Header() {
                                           : "/bookings"
                                       }
                                     >
-                                    {role === Roles.CORPORATE ? "Leads" : "Bookings"}
+                                      {role === Roles.CORPORATE
+                                        ? "Leads"
+                                        : "Bookings"}
                                     </Link>
 
                                     <Dropdown.Divider />

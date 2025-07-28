@@ -201,53 +201,102 @@ export default function TaskDetail() {
             ) : (
               <div>
                 {quotations?.map((quotation, index) => (
-                  <div className="quotation-requests" key={index}>
-                    <div>
-                      <div className="quotation-txt-show">
-                        <div
-                          className="profile-side cursor-pointer"
-                          onClick={() =>
-                            navigate(`/quotations-detail/${quotation?._id}`)
-                          }
-                        >
-                          <img
-                            className="point-cursor"
-                            src={`${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`}
-                            alt="categories-img"
-                          />
-                          <div>
-                            <h5>{quotation?.service_provider?.full_name}</h5>
-                            <p>{quotation?.service_provider?.address}</p>
-                            <div className="rating-stars">
-                              <ul>
-                                {" "}
-                                <StarRating
-                                  averageRating={quotation.averageRating}
-                                />
-                              </ul>
+                  <div className="quotation-requests-wrap">
+                    <div
+                      className="quotation-requests quotation-requests-inner"
+                      key={index}
+                    >
+                      <div className="quotation-requests-inner">
+                        <div className="quotation-txt-show">
+                          <div
+                            className="profile-side cursor-pointer"
+                            onClick={() =>
+                              navigate(`/quotations-detail/${quotation?._id}`)
+                            }
+                          >
+                            <img
+                              className="point-cursor"
+                              src={`${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`}
+                              alt="categories-img"
+                            />
+                            <div>
+                              <h5>{quotation?.service_provider?.full_name}</h5>
+                              <p>{quotation?.service_provider?.address}</p>
+                              <div className="rating-stars">
+                                <ul>
+                                  {" "}
+                                  <StarRating
+                                    averageRating={quotation.averageRating}
+                                  />
+                                </ul>
+                              </div>
                             </div>
                           </div>
                         </div>
+                        <p>{quotation?.description}</p>
                       </div>
-                      <p>{quotation?.description}</p>
+                      <div className="quotation-requests-task-btns">
+                        <div>
+                          <h5>${quotation?.offer_price}</h5>
+                          <p>Offer Price</p>
+                        </div>
+                        <div className="btn-price">
+                          <button
+                            onClick={() => handleAccept(quotation, "accept")}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleAccept(quotation, "reject")}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="quotation-requests-task-btns">
-                      <div>
-                        <h5>${quotation?.offer_price}</h5>
-                        <p>Offer Price</p>
-                      </div>
-                      <div className="btn-price">
-                        <button
-                          onClick={() => handleAccept(quotation, "accept")}
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleAccept(quotation, "reject")}
-                        >
-                          Reject
-                        </button>
-                      </div>
+                    <div className="quotation-wrapper">
+                      {quotation?.corporateSuggestion?.length > 0 && (
+                        <div className="suggested-caproate cursor-pointer">
+                          <h5>Suggested Corporate</h5>
+                          <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                            {quotation.corporateSuggestion.map(
+                              (item, index) => {
+                                const corp = item?.corporateIds;
+                                if (!corp) return null;
+
+                                return (
+                                  <div
+                                    key={item._id || index} onClick={() =>
+                                      navigate(`/get-corporate/${item?.corporateIds?._id}`)
+                                    }
+                                    className="corporate-item d-flex align-items-center py-2"
+                                    style={{ gap: "10px" }}
+                                  >
+                                    <img
+                                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                                      alt={corp.full_name}
+                                      className="rounded-circle"
+                                      width={40}
+                                      height={40}
+                                    />
+                                    <div className="flex-grow-1">
+                                      <div className="fw-bold">
+                                        {corp.full_name}
+                                      </div>
+                                      <div className="text-muted small">
+                                        {corp.shop_name}
+                                      </div>
+                                      <div className="text-muted small">
+                                        {corp.email}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

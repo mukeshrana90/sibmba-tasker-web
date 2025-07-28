@@ -290,6 +290,8 @@ export default function UserBookingDetails() {
                   <p className="text-muted">{task?.details}</p>
                   {/* About Service Provider */}
                   <div className="mt-4">
+                 {selectedQuotation && (
+                  <div className="mt-4">
                     <h6>About Service Provider</h6>
                     <div className="d-flex align-items-center gap-3">
                       <img
@@ -309,6 +311,8 @@ export default function UserBookingDetails() {
                       <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
                     </div>
                   </div>
+                )}
+                </div>
 
                   {/* About Service Corporate */}
                   {selectedQuotation?.corporateSuggestion?.length > 0 && (

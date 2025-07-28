@@ -7,6 +7,9 @@ import { useDispatch, useSelector } from "react-redux";
 import CorporateActions from "../../Redux/Actions/corporateActions";
 import PaginationComponent from "../../CommanComponents/PaginationComponent";
 import CustomSelect from "../../CommanComponents/CustomSelect";
+import locationPin from "../../Assets/Images/corporate/locationPin.svg";
+import calenderIcon from "../../Assets/Images/corporate/calenderIcon.svg";
+
 
 export default function CorporateLeadsPage() {
   const navigate = useNavigate();
@@ -219,13 +222,13 @@ export default function CorporateLeadsPage() {
                                                     "Untitled Task"}
                                                 </h5>
                                                 <div className="small text-muted">
-                                                  <i className="bi bi-geo-alt-fill me-1"></i>
+                                                <img src={locationPin} alt="" height={20} width={20}></img>
                                                   {item.address ||
                                                     "No Location"}{" "}
                                                   &nbsp; | &nbsp;
-                                                  <i className="bi bi-calendar-event me-1"></i>
-                                                  {item.when_done || "No Date"}
-                                                </div>
+                                                
+                                                  <img src={calenderIcon} alt="" height={20} width={20}></img> {item.when_done || "No Date"}</div>
+                                                
                                               </div>
                                               <span
                                                 className={`corporate_inner ${status}`}

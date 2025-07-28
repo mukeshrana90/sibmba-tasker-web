@@ -328,10 +328,14 @@ const CustomerActions = {
       return response.data;
     }
   ),
-    // accept, reject post tasks
-  acceptRejectTaskCorporateSuggestion: createAsyncThunk("/customer/accept-reject-corporate-suggestion",
+  // accept, reject post tasks
+  acceptRejectTaskCorporateSuggestion: createAsyncThunk(
+    "/customer/accept-reject-corporate-suggestion",
     async (customerData) => {
-      const response = await Api.post("/customer/accept-reject-corporate-suggestion", customerData);
+      const response = await Api.post(
+        "/customer/accept-reject-corporate-suggestion",
+        customerData
+      );
       return response.data;
     }
   ),
@@ -469,13 +473,30 @@ const CustomerActions = {
   updateProduct: createAsyncThunk("corporate/product", async (customerData) => {
     const response = await Api.post("corporate/product", customerData);
     return response.data;
-  }
-  ),
+  }),
   createCorporateSuggestionsForTask: createAsyncThunk(
     "/service/createCorporateSuggestion ",
     async (customerData) => {
-      const response = await Api.post("/service/createCorporateSuggestion", customerData);
+      const response = await Api.post(
+        "/service/createCorporateSuggestion",
+        customerData
+      );
       return response.data;
+    }
+  ),
+  corpoInfoProductListUser: createAsyncThunk(
+    "/customer/list-product",
+    async (customerData) => {
+      if (customerData && customerData.productId) {
+        const response = await Api.get(
+          `/customer/list-product/${customerData?.productId}`
+        );
+        return response;
+      } else {
+        const queryParams = new URLSearchParams(customerData).toString();
+        const response = await Api.get(`/customer/list-product?${queryParams}`);
+        return response;
+      }
     }
   ),
 };

@@ -3,7 +3,9 @@ import { Container, Row, Col, Tab, Nav } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../../../Components/Layout/Layout";
-import ProductActions from "../../../Redux/Actions/ProductActions";
+import ProductActions, { removeProduct } from "../../../Redux/Actions/ProductActions";
+import { toast } from "react-toastify";
+import * as bootstrap from 'bootstrap';
 
 export default function CorporateProducts() {
     const navigate = useNavigate();
@@ -11,11 +13,12 @@ export default function CorporateProducts() {
     const dropdownRefs = useRef({});
     const [dropdownStates, setDropdownStates] = useState({});
     const { items: myProducts, loading, error } = useSelector((state) => state.products);
+    const [deleteProductId, setDeleteProductId] = useState(null);
 
 useEffect(() => {
   dispatch(ProductActions.fetchProducts()); 
 }, [dispatch]);
-    const handleServiceClick = (prodId) => {
+    const handleProviderClick = (prodId) => {
         navigate(`/corporate/products/details/${prodId}`);
     };
 
@@ -55,6 +58,25 @@ useEffect(() => {
         };
     }, []);
 
+const handleRemoveProduct = (prodId) => {
+  setDeleteProductId(prodId);
+  const modal = new bootstrap.Modal(document.getElementById("deleteConfirmModal"));
+  modal.show();
+};
+const handleConfirmDelete = () => {
+  if (!deleteProductId) return;
+
+  dispatch(removeProduct(deleteProductId))
+    .unwrap()
+    .then(() => {
+      toast.success("Product deleted successfully");
+      setDeleteProductId(null);
+      dispatch(ProductActions.fetchProducts()); 
+    })
+    .catch((err) => {
+      toast.error("Failed to delete product");
+    });
+};
     return (
       <Layout>
         <section className="search-results-sec">
@@ -113,13 +135,13 @@ useEffect(() => {
                                         <div className="bookings-card-item">
                                           <img
                                             src={
-                                              item.images?.length
+                                              item?.images?.length
                                                 ? `${process.env.REACT_APP_API_URL}/products/${item?.images[0]}`
                                                 : ""
                                             }
                                             alt={""}
                                             onClick={() =>
-                                              handleServiceClick(item?._id)
+                                              handleProviderClick(item?._id)
                                             }
                                             style={{
                                               cursor: "pointer",
@@ -129,7 +151,7 @@ useEffect(() => {
                                           <div className="bookings-card-data my-task-ad-card">
                                             <div>
                                               <h3 className="text-capitalize">
-                                                {item.name ||
+                                                {item?.name ||
                                                   "N/A"}
                                               </h3>
                                               <p>
@@ -139,7 +161,7 @@ useEffect(() => {
                                                   "N/A"}{" "}
                                               </p>
                                               <span>
-                                                {item.description ||
+                                                {item?.description ||
                                                   "No description available."}
                                               </span>
                                             </div>
@@ -186,7 +208,7 @@ useEffect(() => {
                                                   style={{
                                                     position: "absolute",
                                                     top: "100%",
-                                                    left: "0",
+                                                    left: "-50",
                                                     background: "#fff",
                                                     border: "1px solid #ccc",
                                                     borderRadius: "5px",
@@ -194,7 +216,7 @@ useEffect(() => {
                                                       "0 2px 5px rgba(0,0,0,0.2)",
                                                     padding: "5px 0",
                                                     zIndex: 10,
-                                                    maxWidth: "48px",
+                                                    maxWidth: "200px",
                                                   }}
                                                 >
                                                   <button
@@ -210,6 +232,20 @@ useEffect(() => {
                                                      onClick={() => navigate(`/corporate/products/edit/${item._id}`)}
                                                   >
                                                     Edit
+                                                  </button>
+                                                  <button
+                                                    style={{
+                                                      display: "block",
+                                                      width: "100%",
+                                                      padding: "5px 10px",
+                                                      textAlign: "left",
+                                                      background: "none",
+                                                      border: "none",
+                                                      cursor: "pointer",
+                                                    }}
+                                                      onClick={() => handleRemoveProduct(item._id)}
+                                                  >
+                                                    Remove
                                                   </button>
                                                 </div>
                                               )}
@@ -232,6 +268,44 @@ useEffect(() => {
             </Row>
           </Container>
         </section>
+          <div
+            className="modal fade deleteConfirmModal"
+            id="deleteConfirmModal"
+            tabIndex="-1"
+            aria-labelledby="deleteConfirmModalLabel"
+            aria-hidden="true"
+          >
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title" id="deleteConfirmModalLabel">Confirm Deletion</h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div className="modal-body">
+                  Are you sure you want to delete this product?
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-default btn-sm action-btn"
+                    data-bs-dismiss="modal"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-success btn-sm text-white action-btn "
+                    onClick={handleConfirmDelete}
+                    data-bs-dismiss="modal"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
       </Layout>
+      
     );
 }

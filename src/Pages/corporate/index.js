@@ -10,6 +10,8 @@ import TierIcon from "../../Assets/Images/corporate/TierIcon.svg";
 import { useDispatch, useSelector } from "react-redux";
 import CorporateActions from "../../Redux/Actions/corporateActions";
 import PaginationComponent from "../../CommanComponents/PaginationComponent";
+import locationPin from "../../Assets/Images/corporate/locationPin.svg";
+import calenderIcon from "../../Assets/Images/corporate/calenderIcon.svg";
 
 const CorporateDashboard = () => {
   const navigate = useNavigate();
@@ -76,23 +78,24 @@ const CorporateDashboard = () => {
   const CorporateDashboard = [
     {
       label: "Total Leads",
-      value: corporateDashboard?.total_leads,
+      value: corporateDashboard?.total_leads|| 0,
       icon: TotalLeadsIcon,
     },
     {
       label: "Pending",
-      value: corporateDashboard?.total_leads_pending,
+      value: corporateDashboard?.total_leads_pending  || 0,
       icon: PendingIcon,
     },
     {
       label: "Products",
-      value: corporateDashboard?.total_products,
+      value: corporateDashboard?.total_products || 0,
       icon: ProductsIcon,
     },
     {
       label: "Current Tier",
-      value: corporateDashboard?.current_subscription?.subscriptionPlan,
+      value: corporateDashboard?.current_subscription?.subscriptionPlan || 'Subscribe Now',
       icon: TierIcon,
+      router: "/payment",
     },
   ];
 
@@ -104,7 +107,7 @@ const CorporateDashboard = () => {
 
           <div className="dashbox-box-wrap">
             {CorporateDashboard?.map((item, idx) => (
-              <div key={idx} className="dashbox-box">
+              <div key={idx} className="dashbox-box cursor-pointer"  onClick={() => navigate(item.router)}>
                 <div className="title-wrap">
                   <span className="icon-img">
                     <img src={item.icon} alt="" />
@@ -241,11 +244,10 @@ const CorporateDashboard = () => {
                                           {item.need_done || "Untitled Task"}
                                         </h5>
                                         <div className="small text-muted">
-                                          <i className="bi bi-geo-alt-fill me-1"></i>
+                                         <img src={locationPin} alt="" height={20} width={20}></img>
                                           {item.address || "No Location"} &nbsp;
                                           | &nbsp;
-                                          <i className="bi bi-calendar-event me-1"></i>
-                                          {item.when_done || "No Date"}
+                                          <img src={calenderIcon} alt="" height={20} width={20}></img>  {item.when_done || "No Date"}
                                         </div>
                                       </div>
                                       <span

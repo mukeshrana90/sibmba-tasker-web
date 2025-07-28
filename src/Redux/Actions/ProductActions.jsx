@@ -61,6 +61,17 @@ export const getProductById = createAsyncThunk(
     }
   }
 );
+  export const removeProduct = createAsyncThunk(
+    "products/removeProduct",
+    async (productId, thunkAPI) => {
+      try {
+        const response = await Api.delete(`/corporate/product/${productId}`);
+        return response.data;
+      } catch (error) {
+        return thunkAPI.rejectWithValue(error.response?.data || "Delete failed");
+      }
+    }
+  );
 
 
 export default {
@@ -68,5 +79,6 @@ export default {
   addProduct,
   updateProduct,
   deleteProduct,
-  getProductById
+  getProductById,
+  removeProduct
 };

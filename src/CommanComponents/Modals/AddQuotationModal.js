@@ -86,7 +86,7 @@ const AddQuotationModal = ({
           handleClose();
         })
         .catch((err) => {
-          toast.error("Failed to suggest corporate");
+          toast.error(err,"Failed to suggest corporate");
         });
     } else {
       onSubmit(payload);
