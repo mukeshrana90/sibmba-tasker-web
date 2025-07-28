@@ -4531,6 +4531,9 @@ button.read-more-btn {
   display: flex;
   gap: 12px;
   align-items: center;
+   .quotation-price{
+max-width: 200px;
+  }
 }
 
 .tasks-btn {

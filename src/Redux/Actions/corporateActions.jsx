@@ -27,6 +27,12 @@ const CorporateActions = {
     const response = await Api.get(`/corporate/dashboard`);
     return response.data;
   }),
+
+  getUpcomingCorporateLeads: createAsyncThunk("corporate/get-upcoming-corporate-leads", async () => {
+  const response = await Api.get(`/corporate/get-upcoming-corporate-leads`);
+  return response.data;
+}),
+  
 };
 
 export default CorporateActions;

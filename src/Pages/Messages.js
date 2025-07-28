@@ -1,26 +1,21 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Link, Navigate, useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import Accordion from "react-bootstrap/Accordion";
-import Slider from "react-slick";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import ChatList from "../Components/ChatList";
 import MainChat from "../Components/MainChat";
 import { ChatProvider } from "../context/ChatProvider";
 import io from 'socket.io-client';
-const socket = io(`${process.env.REACT_APP_API_URLL}`); // replace with your backend URL
+const socket = io(`${process.env.REACT_APP_API_URLL}`); 
 
 export default function Messages() {
   const sender_id = localStorage.getItem('userId');
   const reciverID = localStorage.getItem('reciverID');
-  const Navigate = useNavigate();
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
 
   var settings = {
     dots: false,

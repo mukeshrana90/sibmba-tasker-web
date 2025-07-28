@@ -216,7 +216,7 @@ export default function MyTasks() {
                                       <p>{quotation?.description}</p>
                                     </div>
                                     <div className="tasks-requests-btns">
-                                      <div>
+                                      <div className="quotation-price">
                                         <h5>${quotation?.offer_price}</h5>
                                         <p>Offer Price</p>
                                       </div>

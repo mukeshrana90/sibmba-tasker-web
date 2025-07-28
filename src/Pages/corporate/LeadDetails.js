@@ -208,13 +208,14 @@ export default function LeadDetails() {
            <div className="quotation-inner d-flex justify-content-center gap-4 mt-3">
             {quotation?.corporateSuggestion?.some(s => s.status !== 'rejected') && (
               <>
-                <button>
+                <button onClick={() => navigate(`/messages`)}>
                   <img src={ChatIcon} alt="" /> Chat
                 </button>
                 <button>
                   <img src={mapIcon} alt="" /> Map
                 </button>
               </>
+              
             )}
           </div>
 

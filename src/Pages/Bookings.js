@@ -21,10 +21,10 @@ export default function Bookings() {
   const getStatusColor = (status) => {
     const statusMap = {
       1: "pending",
-      2: "completed",
-      3: "rejected",
-      4: "completed",
-      5: "rejected",
+      2: "cancelled",
+      3: "completed",
+      4: "in-progress",
+      5: "cancelled",
     };
 
     return statusMap[status] || "N/A";
