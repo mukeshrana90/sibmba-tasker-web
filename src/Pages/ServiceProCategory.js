@@ -57,7 +57,6 @@ export default function ServiceProCategory() {
         };
     }, []);
 
-    console.log(myservices,"44444444444444")
 
     return (
       <Layout>

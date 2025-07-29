@@ -23,6 +23,16 @@ const CorporateActions = {
       return response.data;
     }
   ),
+    acceptRejectCorporateSuggestionFromUser: createAsyncThunk(
+    "/customer/accept-reject-corporate-suggestion",
+    async (customerData) => {
+      const response = await Api.post(
+        "/customer/accept-reject-corporate-suggestion",
+        customerData
+      );
+      return response.data;
+    }
+  ),
   getCorporateDashboard: createAsyncThunk("/corporate/dashboard", async () => {
     const response = await Api.get(`/corporate/dashboard`);
     return response.data;

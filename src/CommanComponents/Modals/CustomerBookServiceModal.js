@@ -25,7 +25,7 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
   //   return serviceDetail?.availability?.[0]?.day.includes(dayName);
   // };
 
-const isDateAvailable = (date) => {
+const isDateAvailable1 = (date) => {
   const dayName = [
     "Sunday",
     "Monday",
@@ -36,6 +36,12 @@ const isDateAvailable = (date) => {
     "Saturday",
   ][date.getDay()].toLowerCase(); // Convert to lowercase
   return serviceDetail?.availability?.[0]?.day.includes(dayName);
+};
+const isDateAvailable = (date) => {
+  const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+  return serviceDetail?.availability?.some((slot) =>
+    slot.day.includes(dayName)
+  );
 };
 
   const handleBooking = async () => {
@@ -77,7 +83,6 @@ const isDateAvailable = (date) => {
       };
       apiRes = await dispatch(CustomerActions.createBooking(payload));
     }
-    console.log("apires", apiRes);
     if (apiRes?.payload.success) {
       if (data) {
         toast.success(apiRes?.payload?.message);
@@ -91,8 +96,6 @@ const isDateAvailable = (date) => {
       toast.error(apiRes?.payload?.message);
     }
   };
-
-  console.log("timeState", timeState);
 
   useEffect(() => {
     dispatch(CustomerActions.getServiceDetail({ service_id }));

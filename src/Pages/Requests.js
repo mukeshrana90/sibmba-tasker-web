@@ -32,7 +32,11 @@ export default function Requests() {
     else if (activeTab === "third") status = 3; // Rejected
     dispatch(ServiceActions.getRequestList({ status }));
   }, [dispatch, activeTab]);
-
+  const statusMap = {
+    1: "pending",
+    2: "accepted",
+    3: "rejected"
+  };
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-GB", {
@@ -146,6 +150,8 @@ export default function Requests() {
                                         {request.serviceSubCategory
                                           ?.serviceSubCategoryName || "Service"}
                                       </h3>
+                                      <p className="text-muted">{request?.message}</p>
+
                                       <p>
                                         <svg
                                           width="20"
@@ -191,7 +197,11 @@ export default function Requests() {
                                       </p>
                                     </div>
                                   </div>
-                                  <div className="quotation-requests-btns">
+                                  <div className={`corporate_inner ${statusMap[request.status] || ""}`}>
+                                    {statusMap[request.status]?.charAt(0).toUpperCase() + statusMap[request.status]?.slice(1) || "Unknown"}
+                                  </div>
+                                  
+                                  {/* <div className="quotation-requests-btns">
                                     <button
                                       onClick={() => {
                                         setSelectedRequest(request);
@@ -220,42 +230,12 @@ export default function Requests() {
                                     >
                                       Accept
                                     </button>
-                                    {/* <button
-                                      onClick={() => {
-                                        dispatch(
-                                          ServiceActions.updateBookingStatus({
-                                            booking_id: request._id,
-                                            status: 3, // Rejected
-                                          })
-                                        )
-                                          .then((e) => {
-                                            if (e?.payload?.success) {
-                                              toast.success(
-                                                "Booking rejected successfully!"
-                                              );
-                                              // Optionally refetch requests for the current tab
-                                              dispatch(
-                                                ServiceActions.getRequestList({
-                                                  status: 1,
-                                                })
-                                              );
-                                            }
-                                          })
-                                          .catch(() => {
-                                            toast.error(
-                                              "Failed to reject booking."
-                                            );
-                                          });
-                                      }}
-                                    >
-                                      Reject
-                                    </button> */}
                                     <button
                                       onClick={() => handleReject(request?._id)}
                                     >
                                       Reject
                                     </button>
-                                  </div>
+                                  </div> */}
                                 </div>
                               ))
                             ) : (
@@ -401,7 +381,7 @@ export default function Requests() {
                             {filteredRequests("third")?.length > 0 ? (
                               filteredRequests("third")?.map((request) => (
                                 <div
-                                  className="quotation-requests"
+                                  className="+"
                                   key={request._id}
                                 >
                                   <div>

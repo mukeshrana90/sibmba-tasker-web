@@ -326,7 +326,7 @@ export default function Home() {
                           <img
                             onClick={() => handleProfiles("category", ele._id)}
                             className="point-cursor"
-                            src={`${process.env.REACT_APP_API_URL}${ele?.image}`}
+                            src={`${process.env.REACT_APP_API_URL}/${ele?.image}`}
                             alt="categories-img"
                           />
                         </>

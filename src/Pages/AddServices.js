@@ -197,7 +197,6 @@ const AddService = () => {
 
         return errors;
     };
-    console.log(serviceDetail, "serviceDetail")
     return (
         <Layout>
             <section className="search-results-sec service-details-sec">

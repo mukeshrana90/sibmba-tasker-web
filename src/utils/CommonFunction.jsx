@@ -107,7 +107,6 @@ const createCsv = async (data) => {
   return result;
 };
 const downloadCSV = async (name, array) => {
-  console.log("array", array);
   if (array?.length > 0) {
     let csv = "data:text/csv;charset=utf-8," + (await createCsv(array));
     let excel = encodeURI(csv);

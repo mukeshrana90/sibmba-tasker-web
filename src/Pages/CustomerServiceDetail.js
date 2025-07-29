@@ -41,7 +41,6 @@ export default function CustomerServiceDetail() {
   const [showMapModal, setShowMapModal] = useState(false);
 
   const serviceDetail = useSelector((e) => e.UserSlice.serviceDetail);
-  console.log(serviceDetail, "serviceDetail");
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);

@@ -67,7 +67,6 @@ export default function Login() {
   //   }
   //   setLocalLoading(true);
   //   const response = await dispatch(CustomerActions.loginCustomer(payload));
-  //   console.log(response, "response");
   //   if (response?.payload?.status_code === 200) {
   //     if (response?.payload?.data?.email_verified == 0) {
   //       navigate(`/otp-verification?userId=${response?.payload?.data?._id}`, { replace: true });

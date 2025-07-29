@@ -226,7 +226,6 @@ const CustomerActions = {
   editBooking: createAsyncThunk(
     "/customer/updatebooking ",
     async (customerData) => {
-      debugger;
       const { booking_id, ...dataWithoutId } = customerData;
       const response = await Api.put(
         `/customer/updatebooking/${booking_id}`,

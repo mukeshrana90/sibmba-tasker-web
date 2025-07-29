@@ -91,7 +91,7 @@ export default function MyTasks() {
                                           className="my-task"
                                           src={
                                             post?.images?.length
-                                              ? `${process.env.REACT_APP_API_URLL}/${post?.images[0]}`
+                                              ? `${process.env.REACT_APP_API_URL}/${post?.images[0]}`
                                               : ""
                                           }
                                           alt={post.need_done}
@@ -191,7 +191,7 @@ export default function MyTasks() {
                                         <div className="profile-side">
                                           <img
                                             className="point-cursor"
-                                            src={`${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`}
+                                            src={`${process.env.REACT_APP_API_URL}/${quotation?.service_provider?.profile_image}`}
                                             alt="categories-img"
                                           />
                                           <div>

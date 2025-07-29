@@ -38,7 +38,6 @@ export default function ServiceReject() {
     const searchParams = new URLSearchParams(location.search);
     const servicetype = searchParams.get("service");
 
-    console.log(servicetype, "servicetype")
     const [show, setShow] = useState(false);
     const [showReschedule, setShowReschedule] = useState(false);
     const [isRequestModal, setIsRequestModal] = useState(false);
@@ -164,7 +163,6 @@ export default function ServiceReject() {
             });
     };
 
-    console.log(bookingReqDetail, "bookingReqDetail")
 
     return (
         <Layout>

@@ -40,7 +40,6 @@ export default function ForgotPassword() {
       toast.error(res.payload.message);
     }
     setForgotLoading(false);
-    console.log("Sending reset password email to:", email);
   };
 
   return (

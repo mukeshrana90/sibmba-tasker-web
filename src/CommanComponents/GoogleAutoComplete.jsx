@@ -5,8 +5,6 @@ import GooglePlacesAutocomplete, {
 } from "react-google-places-autocomplete";
 
 const GoogleAutoComplete = ({ intialState, setIntialState }) => {
-  console.log("GoogleAutoComplete intialState", intialState);
-
   const handleSelect = async (place) => {
     try {
       if (!place) {

@@ -50,8 +50,6 @@ export default function CustomerCategoryDetail() {
     }
   };
 
-  console.log("categoriesDetail44", categoriesDetail);
-
   return (
     <Layout>
       <section className="breadcrumb-nav">

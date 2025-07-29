@@ -80,16 +80,19 @@ const CorporateDashboard = () => {
       label: "Total Leads",
       value: corporateDashboard?.total_leads|| 0,
       icon: TotalLeadsIcon,
+      router: "/corporate/leads?page=tasks",
     },
     {
       label: "Pending",
       value: corporateDashboard?.total_leads_pending  || 0,
       icon: PendingIcon,
+      router: "/corporate/leads?page=leads",
     },
     {
       label: "Products",
       value: corporateDashboard?.total_products || 0,
       icon: ProductsIcon,
+      router: "/corporate/products"
     },
     {
       label: "Current Tier",
@@ -231,7 +234,7 @@ const CorporateDashboard = () => {
                             )
                             .slice(0, 10)
                             .map((res, idx) => {
-                              const corp = res.corporateIds || {};
+                              const corp = res?.corporateIds || {};
                               const item = res.taskId || {};
                               const status = res.status;
 

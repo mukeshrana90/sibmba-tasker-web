@@ -2203,6 +2203,11 @@ input[type="checkbox"]:checked::before {
   align-items: center;
 }
 
+.booking-status-booking {
+  display: grid;
+}
+
+
 .reason-for-cancellation h5 {
   color: #252525;
   font-family: "Open Sans";
@@ -3336,7 +3341,8 @@ button.quotation-btn{
   border: 1px solid #03865433 !important;
   border-radius: 8px;
   font-size: 16px;
-  line-height: 24px;
+  line-height: 21px;
+  padding: 10px 10px;
   .icon{
     font-size: 25px;
     margin: 5px;
@@ -5392,4 +5398,9 @@ section.page-mt {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+.requestBookingBtn{
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
 }

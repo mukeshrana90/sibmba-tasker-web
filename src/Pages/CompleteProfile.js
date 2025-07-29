@@ -78,7 +78,6 @@ export default function CompleteProfile() {
       post_code: Yup.string().required("Post Code or PO Box is required"),
     }),
     onSubmit: async (values) => {
-      console.log("Form Submitted", values);
       if (!values?.profile_image) {
         return toast.warn("Please add profile image");
       }

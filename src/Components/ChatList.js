@@ -17,7 +17,6 @@ const ChatList = () => {
           index === chatIndex ? { ...chat, unreadCount: 0 } : chat
         )
       );
-      // console.log('ChatList: Selected user:', receiverId, 'Reset unreadCount to 0');
     }
   };
 

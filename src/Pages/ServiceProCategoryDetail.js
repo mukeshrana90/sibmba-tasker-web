@@ -61,7 +61,6 @@
 //   const [show, setShow] = useState(false);
 
 //   const categoryDetail = useSelector((e) => e.service.categoryData);
-//   console.log(categoryDetail, "categoryDetail");
 
 //   const handleClose = () => setShow(false);
 //   const handleShow = () => setShow(true);

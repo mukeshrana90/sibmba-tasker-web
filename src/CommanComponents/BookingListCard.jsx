@@ -18,7 +18,6 @@ const getStatusColor = (status) => {
 const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
   const navigate = useNavigate();
 
-  console.log("data", data);
   return (
     <>
       <li>

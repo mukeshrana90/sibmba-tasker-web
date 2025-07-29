@@ -2,13 +2,7 @@ import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import {
-  Link,
-  Navigate,
-  useLocation,
-  useNavigate,
-  useParams,
-} from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import Modal from "react-bootstrap/Modal";
 import { useDispatch } from "react-redux";
@@ -16,20 +10,20 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import { ImagePathCustomer } from "../utils/ImagePath";
 import { getStatusLabel } from "../utils/CommonFunction";
 import moment from "moment";
-import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import PaymentModal from "../CommanComponents/Modals/PaymentModal";
 import { Form } from "react-bootstrap";
 import { toast } from "react-toastify";
+import CorporateActions from "../Redux/Actions/corporateActions";
 
 const getStatusColor = (status) => {
   const statusMap = {
-      1: "pending",
-      2: "cancelled",
-      3: "completed",
-      4: "in-progress",
-      5: "cancelled",
-    };
+    1: "pending",
+    2: "cancelled",
+    3: "completed",
+    4: "in-progress",
+    5: "cancelled",
+  };
 
   return statusMap[status] || "N/A";
 };
@@ -48,12 +42,14 @@ export default function UserBookingDetails() {
   const [paymentshow, setPaymentShow] = useState(false);
   const [boookingId, setBookingId] = useState(null);
   const [selectedBoooking, setSelectedBoooking] = useState(null);
-
+  const [respondedCorporateIds, setRespondedCorporateIds] = useState([]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
+  const [corporateSuggestions, setCorporateSuggestions] = useState([]);
   let { task, quotations } = taskbooking || {};
+const [refetchToggle, setRefetchToggle] = useState(false);
 
   const handleEditOpen = (id) => {
     seteditShow(true);
@@ -83,8 +79,9 @@ export default function UserBookingDetails() {
       } else {
         setTaskBookingState(res?.payload?.data);
       }
+      setCorporateSuggestions(res?.payload?.data?.corporateSuggestions);
     });
-  }, [id, type, editshow, show]);
+  }, [id, type, editshow, show,refetchToggle]);
 
   const handleFeedbackOpen = () => setShowFeedback(true);
   const handleFeedbackClose = () => {
@@ -115,6 +112,26 @@ export default function UserBookingDetails() {
     dispatch(CustomerActions.feedbackActions(feedbackData));
     handleFeedbackClose();
     setShowThankYou(true);
+  };
+
+  const handleAccept = (id, status) => {
+    dispatch(
+      CorporateActions.acceptRejectCorporateSuggestionFromUser({
+        bookingId: id?.bookingId,
+        status: status,
+      })
+    )
+      .then((res) => {
+        if (res?.payload) {
+          status === 1
+            ? toast.success("Accepted successfully.")
+            : toast.error("Rejected successfully.");
+        }
+       setRefetchToggle((prev) => !prev);
+      })
+      .catch(() => {
+        toast.error("An error occurred. Please try again.");
+      });
   };
 
   const renderModalContent = () => {
@@ -290,29 +307,36 @@ export default function UserBookingDetails() {
                   <p className="text-muted">{task?.details}</p>
                   {/* About Service Provider */}
                   <div className="mt-4">
-                 {selectedQuotation && (
-                  <div className="mt-4">
-                    <h6>About Service Provider</h6>
-                    <div className="d-flex align-items-center gap-3">
-                      <img
-                        src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}`}
-                        className="rounded-circle"
-                        style={{ width: 50, height: 50, objectFit: "cover" }}
-                        alt="Provider"
-                      />
-                      <div>
-                        <strong>
-                          {selectedQuotation?.service_provider?.full_name}
-                        </strong>
-                        <p className="mb-0 text-muted">
-                          {selectedQuotation?.service_provider?.company_name}
-                        </p>
+                    {selectedQuotation && (
+                      <div className="mt-4">
+                        <h6>About Service Provider</h6>
+                        <div className="d-flex align-items-center gap-3">
+                          <img
+                            src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}`}
+                            className="rounded-circle"
+                            style={{
+                              width: 50,
+                              height: 50,
+                              objectFit: "cover",
+                            }}
+                            alt="Provider"
+                          />
+                          <div>
+                            <strong>
+                              {selectedQuotation?.service_provider?.full_name}
+                            </strong>
+                            <p className="mb-0 text-muted">
+                              {
+                                selectedQuotation?.service_provider
+                                  ?.company_name
+                              }
+                            </p>
+                          </div>
+                          <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
+                        </div>
                       </div>
-                      <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
-                    </div>
+                    )}
                   </div>
-                )}
-                </div>
 
                   {/* About Service Corporate */}
                   {selectedQuotation?.corporateSuggestion?.length > 0 && (
@@ -449,7 +473,7 @@ export default function UserBookingDetails() {
                 </section>
               ) : bookingState ? (
                 <section className="feedback_section p-3 mt-3 border rounded bg-light">
-                  <div className="booking-detail-card pt-3 d-flex gap-3">
+                  <div className="booking-detail-card pt-3">
                     {/* Service Image */}
                     <img
                       src={
@@ -459,7 +483,6 @@ export default function UserBookingDetails() {
                       }
                       alt="Service"
                       className="img-fluid rounded"
-                      style={{ width: "150px", height: "auto" }}
                     />
 
                     {/* Service Info */}
@@ -555,11 +578,17 @@ export default function UserBookingDetails() {
                   {/* Booking Status */}
                   <section className="booking-status-sec mt-4">
                     <Container>
-                      <div className="booking-status-txt">
-                        <h2>Status</h2>
-                        <h3  className={`corporate_inner ${getStatusColor(bookingState.status)}`}>
-                          Booking {getStatusLabel(bookingState.status)}
-                        </h3>
+                      <div className="booking-status-booking">
+                        <div className="flex">
+                          Status:{" "}
+                          <h3
+                            className={`corporate_inner ${getStatusColor(
+                              bookingState.status
+                            )}`}
+                          >
+                            Booking {getStatusLabel(bookingState.status)}
+                          </h3>
+                        </div>
                         <p>
                           {bookingState.status === 3
                             ? "Service provider has canceled your booking."
@@ -571,10 +600,10 @@ export default function UserBookingDetails() {
                                   : "completed"
                               } your booking.`}
                         </p>
-                        <h4>
+                        <p className="text-trnsform">
                           {bookingState.slotTime?.[0] || "Time N/A"},{" "}
                           {moment(bookingState.date).format("DD MMM")}
-                        </h4>
+                        </p>
 
                         {bookingState.status === 3 && bookingState.message && (
                           <div className="reason-for-cancellation mt-3">
@@ -601,11 +630,11 @@ export default function UserBookingDetails() {
                   </section>
 
                   {/* Message and Provider Info */}
-                  <section className="category-services-sec mt-4">
+                  <section className="category-services-sec">
                     <Container>
                       <div className="category-services-lists">
-                        <div className="list-title">
-                          <h2>Message</h2>
+                        <div className="list-title mb-0">
+                          <h3>Message</h3>
                         </div>
                         <p>{bookingState.message || "No message provided."}</p>
                       </div>
@@ -614,7 +643,7 @@ export default function UserBookingDetails() {
                         <div className="list-title">
                           <h2>About Service Provider</h2>
                         </div>
-                        <div className="provider-view-pro d-flex gap-3 align-items-center">
+                        <div className="provider-view-pro d-flex gap-3 align-items-center mb-3">
                           <img
                             src={
                               bookingState.serviceProvider?.profile_image
@@ -636,6 +665,75 @@ export default function UserBookingDetails() {
                               {bookingState.serviceProvider?.street_address ||
                                 "N/A"}
                             </p>
+                          </div>
+                        </div>
+
+                        {/* About Service Corporate */}
+                        <div className="suggested-caproate">
+                          <div className="list-title">
+                            <h5>Suggested Corporate</h5>
+                          </div>
+
+                          <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                            {corporateSuggestions &&
+                            corporateSuggestions.length > 0 ? (
+                              corporateSuggestions.map((corp, idx) => (
+                                <div
+                                  key={corp._id || idx}
+                                  className="d-flex justify-content-between align-items-center gap-3 mb-3"
+                                >
+                                  {/* Left: Corporate info */}
+                                  <div className="d-flex align-items-center gap-3">
+                                    <img
+                                      src={
+                                        corp?.corporateIds?.profile_image
+                                          ? `${process.env.REACT_APP_API_URL}/${corp.corporateIds.profile_image}`
+                                          : "/Assets/Images/default-user.png"
+                                      }
+                                      className="rounded-circle"
+                                      style={{
+                                        width: 50,
+                                        height: 50,
+                                        objectFit: "cover",
+                                      }}
+                                      alt="Corporate"
+                                    />
+                                    <div>
+                                      <strong>
+                                        {corp.corporateIds?.full_name || "N/A"}
+                                      </strong>
+                                      <p className="mb-0 text-muted">
+                                        {corp.corporateIds?.shop_name ||
+                                        corp.corporateIds?.email}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Right: Action Buttons (Only if status is pending) */}
+                                  {bookingState.status !== 3 &&
+                                    corp.userStatus === 0 && (
+                                      <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAccept(corp, 2)} // Reject
+                                        >
+                                          Reject
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAccept(corp, 1)} // Accept
+                                        >
+                                          Accept
+                                        </button>
+                                      </div>
+                                    )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-muted">
+                                No corporate suggestions yet.
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>

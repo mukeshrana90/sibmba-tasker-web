@@ -29,7 +29,6 @@
 //     setSelectedEvent(event);
 //      dispatch(CustomerActions.getCommunityById(event?._id))
 //   };
-//   console.log(communityDataId, "communityDataId")
 
 //   // Extract image URL from the photos field (assuming format like "timestamp--url")
 //   const getImageUrl = (photo) => {

@@ -5,7 +5,6 @@ import { toast } from "react-toastify";
 import { Formik, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import SuggestCorporateModal from "./SuggestCorporateModal";
-import ServiceActions from "../../Redux/Actions/ServiceActions";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { useDispatch } from "react-redux";
 
@@ -177,7 +176,7 @@ const AddQuotationModal = ({
                   <div className="text-center mt-4">
                     <button
                       type="button"
-                      className="quotation-btn text-success px-4 py-2"
+                      className="quotation-btn text-success"
                       onClick={() => setShowSuggestModal(true)}
                     >
                       <span className="icon">+</span>

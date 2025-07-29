@@ -15,10 +15,7 @@ export default function CustomerReviews() {
   const Navigate = useNavigate();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("all");
-
   const reviewList = useSelector((e) => e.service.getReviewList);
-
-  console.log(reviewList, "reviewList");
 
   useEffect(() => {
     let status;

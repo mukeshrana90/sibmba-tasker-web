@@ -18,7 +18,6 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
 
   const socketRef = useRef(null);
 
-  console.log('selectedUser:', selectedUser, 'receiver_id:', receiver_id);
 
   useEffect(() => {
     if (!selectedUser && reciverID) {

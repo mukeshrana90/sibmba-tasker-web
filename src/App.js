@@ -13,7 +13,6 @@ function App() {
     const existingLng = localStorage.getItem("longitude");
   
     if (existingLat && existingLng) {
-      console.log("Location already stored:", existingLat, existingLng);
       setLocationHandled(true);
       return;
     }
@@ -26,7 +25,6 @@ function App() {
 
           localStorage.setItem("latitude", lat);
           localStorage.setItem("longitude", lng);
-          console.log("Location saved:", lat, lng);
           setLocationHandled(true); // Location access handled (granted)
         },
         error => {
@@ -49,7 +47,6 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = onForegroundMessage((payload) => {
-      console.log("Received foreground message: ", payload);
       const { notification: { title, body } } = payload;
       const toastId = `notification-${payload.messageId}`;
   
