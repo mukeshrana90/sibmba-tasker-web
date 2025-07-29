@@ -11,11 +11,14 @@ import moment from "moment";
 import StarRating from "../../CommanComponents/StarRating";
 import ChatIcon from "../../Assets/Images/chat.svg";
 import mapIcon from "../../Assets/Images/map.svg";
+import { Modal } from "react-bootstrap";
+import MapComponent from "../../CommanComponents/MapComponent";
 
 export default function LeadDetails() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id } = useParams();
+  const [showMapModal, setShowMapModal] = useState(false);
   const postTaskDetails = useSelector(
     (state) => state.UserSlice.postTaskDetail
   );
@@ -254,17 +257,53 @@ export default function LeadDetails() {
 
                       <div className="quotation-inner d-flex justify-content-center gap-4 mt-3">
                         {quotation?.corporateSuggestion?.some(
-                          (s) => s.status !== "rejected"
+                          (s, index) => s.status !== "rejected"
                         ) && (
                           <>
-                            <button onClick={() => navigate(`/messages`)}>
+                            <button
+                              onClick={() => {
+                                navigate(
+                                  `/messages?userID=${quotation.service_provider?._id}`
+                                );
+                                localStorage.setItem(
+                                  "reciverID",
+                                  quotation.service_provider?._id
+                                );
+                              }}
+                            >
                               <img src={ChatIcon} alt="" /> Chat
                             </button>
-                            <button>
+                            <button onClick={() => setShowMapModal(true)}>
                               <img src={mapIcon} alt="" /> Map
                             </button>
                           </>
                         )}
+                        <Modal
+                          show={showMapModal}
+                          onHide={() => setShowMapModal(false)}
+                          centered
+                          size="lg"
+                        >
+                          <Modal.Header
+                            closeButton
+                            className="border-none pb-0"
+                          >
+                            <Modal.Title>Service Location</Modal.Title>
+                          </Modal.Header>
+                          <Modal.Body>
+                            <div className="comman-small-pop text-center">
+                              <MapComponent
+                                coordinates={
+                                  quotation?.service_provider.location
+                                    ?.coordinates
+                                }
+                                address={
+                                  quotation?.service_provider?.street_address
+                                }
+                              />
+                            </div>
+                          </Modal.Body>
+                        </Modal>
                       </div>
                     </div>
                   );

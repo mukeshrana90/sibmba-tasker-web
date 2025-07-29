@@ -190,7 +190,7 @@ export default function Bookings() {
 
                         {(data?.status === 2 || data?.status === 3) && (
                           <div className="chat-btn-card mt-2">
-                            <button className="">
+                            <button className="" >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="40"

@@ -16,6 +16,7 @@ const getStatusColor = (status) => {
 };
 
 const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
+  console.log(data,'ssssssssss')
   const navigate = useNavigate();
 
   return (
@@ -89,7 +90,7 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
               {(data?.status === 2 || data?.status === 4) && (
                 <div className="chat-btn-card">
                   <button className="">
-                    <svg
+                    <svg 
                       xmlns="http://www.w3.org/2000/svg"
                       width="40"
                       height="40"

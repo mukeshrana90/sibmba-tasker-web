@@ -532,7 +532,7 @@ const [refetchToggle, setRefetchToggle] = useState(false);
                             )}
 
                             {[4].includes(bookingState.status) && (
-                              <button
+                              <button className="text-white"
                                 type="button"
                                 onClick={() => {
                                   handlePaymentOpen(bookingState._id);
