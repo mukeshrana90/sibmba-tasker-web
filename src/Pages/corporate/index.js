@@ -96,7 +96,7 @@ const CorporateDashboard = () => {
     },
     {
       label: "Current Tier",
-      value: corporateDashboard?.current_subscription?.subscriptionPlan || 'Subscribe Now',
+      value: corporateDashboard?.current_subscription?.subscriptionPlan?.split('.')[1] || 'Subscribe Now',
       icon: TierIcon,
       router: "/payment",
     },
@@ -115,7 +115,7 @@ const CorporateDashboard = () => {
                   <span className="icon-img">
                     <img src={item.icon} alt="" />
                   </span>
-                  <p className="dashboard-value">{item.value}</p>
+                  <p className="dashboard-value" style={{textTransform:'capitalize'}}>{item.value}</p>
                 </div>
                 <h4 className="title">{item.label}</h4>
               </div>
