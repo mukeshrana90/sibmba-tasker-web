@@ -53,7 +53,7 @@ const ProviderForm = ({
     serviceSubCategoryName: "",
     price: "",
     desc: "",
-    shop_name: "",
+    address: "",
   };
 
   const validationSchemas = [
@@ -69,13 +69,13 @@ const ProviderForm = ({
       identify_yourself: Yup.string().required("Identify yourself is required"),
       ...(isCorporate
         ? {
-            shop_name: Yup.string().trim().required("Shop Name is required"),
-          }
+          address: Yup.string().trim().required("Company address is required"),
+        }
         : {
-            company_name: Yup.string()
-              .trim()
-              .required("Company Name is required"),
-          }),
+          company_name: Yup.string()
+            .trim()
+            .required("Company Name is required"),
+        }),
 
       house_number: Yup.string().trim().required("House Number is required"),
       street_address: Yup.string()
@@ -87,15 +87,19 @@ const ProviderForm = ({
       landmark: Yup.string().trim().nullable(),
     }),
     // Step 2: Reference Details
-    Yup.object({
-      reference_name: Yup.string().trim().required("Name is required"),
-      relation: Yup.string().trim().required("Relation is required"),
-      designation: Yup.string().trim().nullable(),
-      referenceEmail: Yup.string()
-        .email("Invalid email")
-        .required("Email is required"),
-      phone_number: Yup.string().trim().required("Phone number is required"),
-    }),
+    isCorporate
+      ? Yup.object({})
+      : Yup.object({
+        reference_name: Yup.string().trim().required("Name is required"),
+        relation: Yup.string().trim().required("Relation is required"),
+        designation: Yup.string().trim().nullable(),
+        referenceEmail: Yup.string()
+          .email("Invalid email")
+          .required("Email is required"),
+        phone_number: Yup.string()
+          .trim()
+          .required("Phone number is required"),
+      }),
     Yup.object({}),
     // Step 4: Service Details
     Yup.object({
@@ -494,7 +498,7 @@ const ProviderForm = ({
               <Col lg={6}>
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formIdentifyYourself">
-                    <Form.Label>Identify yourself*</Form.Label>
+                    <Form.Label>{isCorporate?'Business Category*':'Identify yourself*'}</Form.Label>
                     <Field
                       name="identify_yourself"
                       as="select"
@@ -519,15 +523,33 @@ const ProviderForm = ({
                 <Col lg={6}>
                   <div className="form-set">
                     <Form.Group className="mb-3" controlId="formShopName">
-                      <Form.Label>Shop Name*</Form.Label>
-                      <Field
-                        name="shop_name"
+                      <Form.Label>Company Address*</Form.Label>
+                      <AddressAutocomplete
+                      apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
+                      placeholder="Company Address"
+                      onPlaceSelected={(place) =>setFieldValue('address',place.formatted_address)}
+                      defaultValue={values.address}
+                      options={{
+                        types: ["address"],
+                      }}
+                      onChange={(e) => {
+                        setFieldValue("address", e.target.value);
+                        setFieldTouched("address", true);
+                        if (e.target.value.trim() === "") {
+                          setFieldValue("address", "");
+                          setFieldTouched("address", false);
+                        }
+                      }}
+                    />
+
+                      {/* <Field
+                        name="address"
                         as={Form.Control}
                         type="text"
-                        placeholder="Shop Name"
-                      />
+                        placeholder="Company Address"
+                      /> */}
                       <ErrorMessage
-                        name="shop_name"
+                        name="address"
                         component="div"
                         className="text-danger"
                       />
@@ -679,7 +701,7 @@ const ProviderForm = ({
             </Row>
           </div>
         );
-      case 2:
+      case !isCorporate && 2:
         return (
           <div className="provider-form-field">
             <Row>
@@ -792,7 +814,7 @@ const ProviderForm = ({
             </Row>
           </div>
         );
-      case 3:
+      case isCorporate ? 2 : 3:
         return (
           <div className="provider-form-field">
             <Row>
@@ -893,10 +915,10 @@ const ProviderForm = ({
                             field === "govtIssueId"
                               ? govtIssueIdInputRef
                               : field === "businessLicence"
-                              ? businessLicenceInputRef
-                              : field === "permit"
-                              ? permitInputRef
-                              : certificationsInputRef
+                                ? businessLicenceInputRef
+                                : field === "permit"
+                                  ? permitInputRef
+                                  : certificationsInputRef
                           }
                           className="d-none"
                           accept="image/*,application/pdf"
@@ -913,7 +935,7 @@ const ProviderForm = ({
             </Row>
           </div>
         );
-      case 4:
+      case isCorporate ? 3 : 4:
         return (
           <div className="provider-form-field">
             <Row>
@@ -1128,13 +1150,12 @@ const ProviderForm = ({
                             <button
                               key={day}
                               type="button"
-                              className={`btn ${
-                                values.dayAvailability.day.some(
-                                  (d) => d.toLowerCase() === day.toLowerCase()
-                                )
+                              className={`btn ${values.dayAvailability.day.some(
+                                (d) => d.toLowerCase() === day.toLowerCase()
+                              )
                                   ? "btn-success"
                                   : "btn-outline-secondary"
-                              } m-1`}
+                                } m-1`}
                               onClick={() => {
                                 const days = Array.isArray(
                                   values.dayAvailability.day
@@ -1145,9 +1166,9 @@ const ProviderForm = ({
                                   (d) => d.toLowerCase() === day.toLowerCase()
                                 )
                                   ? days.filter(
-                                      (d) =>
-                                        d.toLowerCase() !== day.toLowerCase()
-                                    )
+                                    (d) =>
+                                      d.toLowerCase() !== day.toLowerCase()
+                                  )
                                   : [...days, day.toLowerCase()];
                                 setFieldValue(
                                   "dayAvailability.day",
@@ -1179,17 +1200,16 @@ const ProviderForm = ({
                             <button
                               key={time}
                               type="button"
-                              className={`btn ${
-                                values.dayAvailability.timeArr.includes(time)
+                              className={`btn ${values.dayAvailability.timeArr.includes(time)
                                   ? "btn-success"
                                   : "btn-outline-secondary"
-                              } m-1`}
+                                } m-1`}
                               onClick={() => {
                                 const updatedTimes =
                                   values.dayAvailability.timeArr.includes(time)
                                     ? values.dayAvailability.timeArr.filter(
-                                        (t) => t !== time
-                                      )
+                                      (t) => t !== time
+                                    )
                                     : [...values.dayAvailability.timeArr, time];
                                 setFieldValue(
                                   "dayAvailability.timeArr",
@@ -1235,7 +1255,7 @@ const ProviderForm = ({
           return;
         }
 
-        if (currentStep === 3) {
+        if (currentStep === 3 || (currentStep === 2 && isCorporate)) {
           if (
             !values.govtIssueId &&
             !values.businessLicence &&
@@ -1254,9 +1274,21 @@ const ProviderForm = ({
           setSubmitting(false);
           return;
         }
-
         if (currentStep < 3) {
-          setCurrentStep(currentStep + 1);
+          if (currentStep === 2 && isCorporate) {
+            setSubmitting(true);
+            try {
+              const filteredValues = filterApiPayload(values);
+              await handleSubmit(filteredValues);
+              setShowModal(true);
+            } catch (error) {
+              toast.error("An error occurred during submission.");
+            } finally {
+              setSubmitting(false);
+            }
+          } else {
+            setCurrentStep(currentStep + 1);
+          }
         } else if (currentStep === 3) {
           setSubmitting(true);
           try {
@@ -1264,11 +1296,11 @@ const ProviderForm = ({
             await handleSubmit(filteredValues);
             // setShowModal(true);
             // setCurrentStep(currentStep + 1);
-            if(isCorporate){
+            if (isCorporate) {
               setShowModal(true);
-            }else{
-                setCurrentStep(currentStep + 1);
-            }    
+            } else {
+              setCurrentStep(currentStep + 1);
+            }
           } catch (error) {
             console.error("Step 3 submission failed:", error);
             toast.error("An error occurred during submission.");
@@ -1346,14 +1378,14 @@ const ProviderForm = ({
               }
               setShowModal(false);
             }}
-            // onNext={() => {
-            //   setShowModal(false);
-            //   let tokenval = localStorage.getItem("temptoken");
-            //   localStorage.setItem("token", tokenval);
-            //   localStorage.setItem("role", 2);
-            //   localStorage.removeItem("temptoken");
-            //   navigate("/requests", { replace: true });
-            // }}
+          // onNext={() => {
+          //   setShowModal(false);
+          //   let tokenval = localStorage.getItem("temptoken");
+          //   localStorage.setItem("token", tokenval);
+          //   localStorage.setItem("role", 2);
+          //   localStorage.removeItem("temptoken");
+          //   navigate("/requests", { replace: true });
+          // }}
           />
         </FormikForm>
       )}

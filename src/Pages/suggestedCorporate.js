@@ -181,8 +181,8 @@ export default function SuggestedCorporatePage() {
 
                                         <div className="col-md-5">
                                           <p className="mb-1">
-                                            <strong>Shop Name:</strong>{" "}
-                                            {data.corporateUser.shop_name ||
+                                            <strong>Company Address:</strong>{" "}
+                                            {data.corporateUser.address ||
                                               "N/A"}
                                           </p>
                                           <p className="mb-1">

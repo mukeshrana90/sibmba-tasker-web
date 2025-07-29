@@ -22,8 +22,8 @@ export default function ProviderProfile() {
 
   const steps = [
     "Some basic info",
-    isCorporate ? "Shop details" : "Company details",
-    "Reference details",
+    isCorporate ? "Business Information" : "Company details",
+    ...(!isCorporate ? ["Reference details"] : []),
     "Document Verification",
     ...(!isCorporate ? ["Your service"] : [])
   ];
@@ -45,7 +45,6 @@ export default function ProviderProfile() {
         formData.append('is_completeProfile', 1);
       }
       const response = await dispatch(ServiceActions.createProfile(formData));
-      console.log("Step 3 response:", response);
       if (response?.payload?.status_code === 200) {
         // toast.success(response?.payload?.message);
       } else {
