@@ -5290,20 +5290,20 @@ section.page-mt {
   font-weight: 600;
 }
 .view-more-btn {
-  border-radius: 8px;
-  padding: 5px 14px;
-  cursor: pointer;
-  border: 1px solid #d1d0cb;
-  color: #545454;
-  background-color: #fff;
+  border-radius: 8px!important;
+  padding: 8px 14px !important;
+  cursor: pointer !important;
+  border: 1px solid #d1d0cb!important;
+  color: #545454 !important;
+  background-color: #fff!important;
 }
 .primaryBtn{
-  border-radius: 8px;
-  padding: 5px 14px;
-  cursor: pointer;
-  border: 1px solid #d1d0cb;
-  color: #038654;
-  background-color: #fff;
+  border-radius: 8px !important;
+  padding: 8px 14px !important;
+  cursor: pointer!important;
+  border: 1px solid #d1d0cb !important;
+  color: #fff !important;
+  background-color: #038654 !important;
 }
 .deleteConfirmModal {
   .modal-footer {
