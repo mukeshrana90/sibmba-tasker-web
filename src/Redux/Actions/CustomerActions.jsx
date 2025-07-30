@@ -128,6 +128,11 @@ const CustomerActions = {
     return response.data;
   }),
 
+  getProfileWithSuscription: createAsyncThunk("/service/getProfile", async (reqBody) => {
+    const response = await Api.get(`/service/getProfile`);
+    return response.data;
+  }),
+
   // MARK: - GET CUSTOMER By Id
   getCustomerbyId: createAsyncThunk("/user/getProfile", async (reqBody) => {
     const queryString = constructQueryString(reqBody);
