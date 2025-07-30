@@ -491,10 +491,11 @@ const [refetchToggle, setRefetchToggle] = useState(false);
                         {bookingState.serviceSubCategory
                           ?.serviceSubCategoryName || "N/A"}
                       </h3>
-                      <p>
+                      <p className="mb-1">
                         {bookingState.serviceCategory?.service_category_name ||
                           "N/A"}
                       </p>
+                    <p className="text-muted  mt-0">{bookingState?.serviceSubCategory.desc}</p>
 
                       {/* Payment Buttons */}
                       {!["paid"].includes(bookingState.payment?.status) &&
@@ -679,8 +680,9 @@ const [refetchToggle, setRefetchToggle] = useState(false);
                             corporateSuggestions.length > 0 ? (
                               corporateSuggestions.map((corp, idx) => (
                                 <div
-                                  key={corp._id || idx}
-                                  className="d-flex justify-content-between align-items-center gap-3 mb-3"
+                                  key={corp._id || idx} 
+                                  onClick={() =>navigate(`/get-corporate/${corp?.corporateIds?._id}`)}
+                                  className="d-flex justify-content-between align-items-center gap-3 mb-3 cursor-pointer"
                                 >
                                   {/* Left: Corporate info */}
                                   <div className="d-flex align-items-center gap-3">
@@ -709,7 +711,6 @@ const [refetchToggle, setRefetchToggle] = useState(false);
                                     </div>
                                   </div>
 
-                                  {/* Right: Action Buttons (Only if status is pending) */}
                                   {bookingState.status !== 3 &&
                                     corp.userStatus === 0 && (
                                       <div className="book-service-action-btn d-flex gap-2 mt-2">
