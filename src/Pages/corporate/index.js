@@ -55,18 +55,21 @@ const CorporateDashboard = () => {
     }
   }, [navigate]);
 
-  const handleAccept = (id, status) => {
-    dispatch(
-      CorporateActions.acceptRejectCorporateSuggestion({
-        taskId: id._id,
-        status: status,
-      })
-    )
+   const handleAccept = (data, status) => {
+    const payload = {
+      status: status,
+    };
+
+    if (data?.type === "task") {
+      payload.taskId = data?.taskId?._id;
+    } else {
+      payload.bookingId = data?.bookingId?._id;
+    }
+
+    dispatch(CorporateActions.acceptRejectCorporateSuggestion(payload))
       .then((res) => {
         if (res?.payload) {
-          status === 1
-            ? toast.success("Accepted successfully.")
-            : toast.error("Rejected successfully.");
+          toast.success(status === 1 ? "Accepted successfully." : "Rejected successfully.");
           dispatch(CorporateActions.getCorporateLeads({ page, limit }));
         }
       })
@@ -279,10 +282,10 @@ const CorporateDashboard = () => {
                                     status === "rejected" ? (
                                       <div className="book-service-action-btn leads-btn d-flex gap-2">
                                         <button
-                                          className="btn btn-success btn-sm text-white"
+                                          className="primaryBtn btn-sm text-white"
                                           onClick={() =>
                                             navigate(
-                                              `/corporate/lead-details/${item?._id}`
+                                             `/corporate/lead-details/${res?.bookingId?._id || res?.taskId?._id}`
                                             )
                                           }
                                         >

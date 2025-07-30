@@ -91,7 +91,7 @@ export default function MyTasks() {
                                           className="my-task"
                                           src={
                                             post?.images?.length
-                                              ? `${process.env.REACT_APP_API_URL}/${post?.images[0]}`
+                                              ? `${process.env.REACT_APP_API_URLL}/${post?.images[0]}`
                                               : ""
                                           }
                                           alt={post.need_done}
