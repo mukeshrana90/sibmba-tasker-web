@@ -5491,4 +5491,23 @@ section.page-mt {
   background-color: #3c3c3c; 
 }
 }
+.task-details-wrapper{
+.desc-inner {
+  width: 100%;
+  padding: 0 10px;
 
+  p {
+    display: flex;
+    flex-wrap: wrap;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    color: #6c757d; 
+  max-width: 600px;
+  }
+
+  h5 {
+    margin-top: 1rem;
+  }
+}
+
+}

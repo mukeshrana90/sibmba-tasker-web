@@ -12,7 +12,6 @@ const PaymentModal = ({
 }) => {
   const dispatch = useDispatch();
   const [show, setShow] = useState(false);
-  
   const handlePay = async () => {
     const payload = { bookingId: boookingId };
     const res = await dispatch(CustomerActions?.payBooking(payload));
@@ -22,9 +21,7 @@ const PaymentModal = ({
     }
   };
   const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
 
-  console.log("checkthedata", data);
   return (
     <div>
       <Modal show={paymentshow} onHide={handlePaymentClose} centered>

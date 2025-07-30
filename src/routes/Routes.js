@@ -137,7 +137,7 @@ const RoutesPage = () => {
               element={<CustomerCategoryDetail />}
             />
              <Route
-              path="/product-detail/:id"
+              path="/product-details/:id"
               element={<ProductDetail/>}
             />
             <Route path="/service-details/:id" element={<ServiceDetails />} />

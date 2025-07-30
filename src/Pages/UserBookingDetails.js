@@ -15,6 +15,7 @@ import PaymentModal from "../CommanComponents/Modals/PaymentModal";
 import { Form } from "react-bootstrap";
 import { toast } from "react-toastify";
 import CorporateActions from "../Redux/Actions/corporateActions";
+import ChatIcon from "../Assets/Images/chatIcon2.svg";
 
 const getStatusColor = (status) => {
   const statusMap = {
@@ -281,195 +282,237 @@ export default function UserBookingDetails() {
           <Row>
             <Col lg={12}>
               <div className="bookings-details-title">
-                <h2>Bookings Details</h2>
+                <h2>{task ? "Task Details" : "Bookings Details"}</h2>
               </div>
               {task ? (
-                <section className="booking_details p-3 rounded shadow-sm bg-white mt-3">
-                  {/* Header Image */}
-                  <img
-                    src={
-                      task?.images?.[0]
-                        ? `${process.env.REACT_APP_API_URLL}/${task?.images?.[0]}`
-                        : "../Assets/Images/default-task-image.jpg"
-                    }
-                    alt="Task"
-                    className="w-100 rounded"
-                    style={{ height: 300, objectFit: "cover" }}
-                  />
+                <section className="task-details-wrapper p-3 rounded shadow-sm bg-white mt-3">
+                  <div className="pt-3">
+                    <div className="d-flex gap-5">
+                      <Col lg={6}>
+                        {" "}
+                        <img
+                          src={
+                            task?.images?.[0]
+                              ? `${process.env.REACT_APP_API_URLL}/${task?.images?.[0]}`
+                              : "../Assets/Images/default-task-image.jpg"
+                          }
+                          alt="Task"
+                          className="w-100 rounded"
+                          style={{ height: 300, objectFit: "cover" }}
+                        />
+                      </Col>
+                      <Col lg={6}>
+                        <div className="desc-inner">
+                          <h5 className="mt-3">
+                            {task?.category_id?.service_category_name}
+                          </h5>
 
-                  {/* Task Title */}
-                  <h5 className="mt-3">
-                    {task?.category_id?.service_category_name}
-                  </h5>
-
-                  {/* Task Description */}
-                  <p className="text-muted">{task?.need_done}</p>
-                  <p className="text-muted">{task?.details}</p>
-                  {/* About Service Provider */}
-                  <div className="mt-4">
-                    {selectedQuotation && (
-                      <div className="mt-4">
-                        <h6>About Service Provider</h6>
-                        <div className="d-flex align-items-center gap-3">
-                          <img
-                            src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}`}
-                            className="rounded-circle"
-                            style={{
-                              width: 50,
-                              height: 50,
-                              objectFit: "cover",
-                            }}
-                            alt="Provider"
-                          />
-                          <div>
-                            <strong>
-                              {selectedQuotation?.service_provider?.full_name}
-                            </strong>
-                            <p className="mb-0 text-muted">
-                              {
-                                selectedQuotation?.service_provider
-                                  ?.company_name
-                              }
-                            </p>
-                          </div>
-                          <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
+                          {/* Task Description */}
+                          <p>{task?.need_done}</p>
+                          <p>{task?.address}</p>
+                          <p>{task?.details}</p>
+                          {task?.status !== 1 && task?.status !== 2 && (
+                            <>
+                              {/* Pay Now (Conditional) */}
+                              {task?.payment?.status === "pending" && (
+                                <div className="mt-3 text-center">
+                                  <button
+                                    className="btn btn-outline-success w-100"
+                                    onClick={() => {
+                                      handlePaymentOpen(task?._id);
+                                      setSelectedBoooking(task);
+                                    }}
+                                  >
+                                    Pay Now
+                                  </button>
+                                </div>
+                              )}
+                              {/* Footer Buttons */}
+                              <div className="d-flex justify-content-between mt-3">
+                                <button
+                                  className="btn btn-light border w-50 me-2"
+                                  onClick={handleFeedbackOpen}
+                                >
+                                  Give Feedback
+                                </button>
+                                <button
+                                  className="btn btn-outline-success w-50 me-2"
+                                  onClick={() => navigate("/post-task")}
+                                >
+                                  Post another task
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* About Service Corporate */}
-                  {selectedQuotation?.corporateSuggestion?.length > 0 && (
-                    <div className="mt-4">
-                      <h6>About Service Corporate</h6>
-
-                      {selectedQuotation.corporateSuggestion.map(
-                        (corp, idx) => (
-                          <div
-                            key={corp._id || idx}
-                            className="d-flex align-items-center gap-3 mb-3"
-                          >
-                            <img
-                              src={
-                                corp?.corporateIds?.profile_image
-                                  ? `${process.env.REACT_APP_API_URL}${corp.corporateIds.profile_image}`
-                                  : "../Assets/Images/default-user.png"
-                              }
-                              className="rounded-circle"
-                              style={{
-                                width: 50,
-                                height: 50,
-                                objectFit: "cover",
-                              }}
-                              alt="Corporate"
-                            />
-                            <div>
-                              <strong>{corp.corporateIds?.full_name}</strong>
-                              <p className="mb-0 text-muted">
-                                {corp.corporateIds?.shop_name}
-                              </p>
+                        <div>
+                          {task?.status === 1 && (
+                            <div className="book-service-action-btn mt-2">
+                              <button
+                                type="button"
+                                className="outline "
+                                onClick={handleShow}
+                              >
+                                Cancel Booking
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleEditOpen(
+                                    bookingState?.serviceSubCategory?._id
+                                  );
+                                  setSelectedBoooking(bookingState);
+                                }}
+                              >
+                                Edit
+                              </button>
                             </div>
-
-                            <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
-                          </div>
-                        )
-                      )}
-                    </div>
-                  )}
-
-                  {/* Booking Status */}
-                  <div className="mt-4">
-                    <span className="fw-semibold mb-0">Status</span>
-                    {task?.status === 1 && (
-                      <>
-                        <p className="text-warning fw-semibold mb-0">Pending</p>
-                        <span>
-                          Service provider has not accepted your booking.
-                        </span>
-                      </>
-                    )}
-
-                    {task?.status === 2 && (
-                      <>
-                        <p className="text-danger fw-semibold mb-0">
-                          Cancelled
-                        </p>
-                        <span>
-                          Service provider has cancelled your booking.
-                        </span>
-                      </>
-                    )}
-
-                    {task?.status === 3 && (
-                      <>
-                        <p className="text-success fw-semibold mb-0">
-                          Booking Completed
-                        </p>
-                        <span>Service provider has completed your task.</span>
-                      </>
-                    )}
-
-                    <p className="mb-1 text-muted">
-                      Task scheduled for: <strong>{task?.task_time}</strong>,{" "}
-                      {moment(task?.when_done, "MM-DD-YYYY").format(
-                        "DD MMMM YYYY"
-                      )}
-                    </p>
-                  </div>
-
-                  {task?.status !== 1 && task?.status !== 2 && (
-                    <>
-                      {/* Pay Now (Conditional) */}
-                      {task?.payment?.status === "pending" && (
-                        <div className="mt-3 text-center">
-                          <button
-                            className="btn btn-outline-success w-100"
-                            onClick={() => {
-                              handlePaymentOpen(task?._id);
-                              setSelectedBoooking(task);
-                            }}
-                          >
-                            Pay Now
-                          </button>
+                          )}{" "}
                         </div>
-                      )}
-                      {/* Footer Buttons */}
-                      <div className="d-flex justify-content-between mt-3">
-                        <button
-                          className="btn btn-light border w-50 me-2"
-                          onClick={handleFeedbackOpen}
-                        >
-                          Give Feedback
-                        </button>
-                        <button
-                          className="btn btn-outline-success w-50 me-2"
-                          onClick={() => navigate("/post-task")}
-                        >
-                          Post another task
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  {task?.status === 1 && (
-                    <div className="book-service-action-btn mt-2">
-                      <button
-                        type="button"
-                        className="outline "
-                        onClick={handleShow}
-                      >
-                        Cancel Booking
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleEditOpen(bookingState?.serviceSubCategory?._id);
-                          setSelectedBoooking(bookingState);
-                        }}
-                      >
-                        Edit
-                      </button>
+                      </Col>
                     </div>
-                  )}
+                    <div>
+                      <div className="mt-4">
+                        {selectedQuotation && (
+                          <div className="mt-4">
+                            <h5>About Service Provider</h5>
+                            <div className="d-flex align-items-center gap-3">
+                              <img
+                                src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}`}
+                                className="rounded-circle"
+                                style={{
+                                  width: 50,
+                                  height: 50,
+                                  objectFit: "cover",
+                                }}
+                                alt="Provider"
+                              />
+                              <div>
+                                <strong>
+                                  {
+                                    selectedQuotation?.service_provider
+                                      ?.full_name
+                                  }
+                                </strong>
+                                <p className="mb-0 text-muted">
+                                  {
+                                    selectedQuotation?.service_provider
+                                      ?.company_name
+                                  }
+                                </p>
+                              </div>
+                              <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="quotation-wrapper mt-3">
+                          {selectedQuotation?.corporateSuggestion?.length >
+                            0 && (
+                            <div className="suggested-caproate">
+                              <h5>Suggested Corporate</h5>
+                              <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                                {selectedQuotation.corporateSuggestion.map(
+                                  (item, index) => {
+                                    const corp = item?.corporateIds;
+                                    if (!corp) return null;
+
+                                    return (
+                                      <div
+                                        key={item._id || index}
+                                        className="corporate-item d-flex align-items-center py-2"
+                                        style={{ gap: "10px" }}
+                                      >
+                                        <img
+                                          src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                                          alt={corp.full_name}
+                                          className="rounded-circle"
+                                          width={40}
+                                          height={40}
+                                        />
+                                        <div className="flex-grow-1">
+                                          <div className="fw-bold">
+                                            {corp.full_name}
+                                          </div>
+                                          <div className="text-muted small">
+                                            {corp.shop_name}
+                                          </div>
+                                          <div className="text-muted small">
+                                            {corp.email}
+                                          </div>
+                                        </div>
+                                        <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                          <div
+                                            className="action-button-wrap"
+                                            onClick={() =>
+                                              navigate(`/messages?userID=${corp?._id}`)
+                                            }
+                                          >
+                                            <div className="icon-circle green">
+                                              <img src={ChatIcon} alt="Chat" />
+                                            </div>
+                                            <span>Direct Chat</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                )}
+                  
+                              </div>
+                              
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Booking Status */}
+                    <div className="mt-4 border-top pt-3">
+                      <div className="d-flex mb-2">
+                        <span className="fw-semibold me-2">Status:</span>
+                        {task?.status === 1 && (
+                          <span className="text-warning fw-semibold">
+                            Pending
+                          </span>
+                        )}
+                        {task?.status === 2 && (
+                          <span className="text-danger fw-semibold">
+                            Cancelled
+                          </span>
+                        )}
+                        {task?.status === 3 && (
+                          <span className="text-success fw-semibold">Bo d</span>
+                        )}
+                      </div>
+
+                      {task?.status === 1 && (
+                        <p className="text-muted mb-2">
+                          Service provider has not accepted your booking.
+                        </p>
+                      )}
+                      {task?.status === 2 && (
+                        <p className="text-muted mb-2">
+                          Service provider has cancelled your booking.
+                        </p>
+                      )}
+                      {task?.status === 3 && (
+                        <p className="text-muted mb-2">
+                          Service provider has completed your task.
+                        </p>
+                      )}
+
+                      <div className="d-flex">
+                        <span className="fw-semibold me-2">Scheduled for:</span>
+                        <span className="text-muted">
+                          {task?.task_time || "N/A"},{" "}
+                          {moment(task?.when_done, "MM-DD-YYYY").format(
+                            "DD MMMM YYYY"
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </section>
               ) : bookingState ? (
                 <section className="feedback_section p-3 mt-3 border rounded bg-light">

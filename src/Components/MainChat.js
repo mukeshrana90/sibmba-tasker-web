@@ -36,7 +36,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
         sender_id,
         receiver_id,
         message: JSON.stringify(parsed),
-        message_type: "10",
+        message_type: "7",
       });
 
       localStorage.removeItem("preloadTaskMessage");
@@ -57,12 +57,6 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
         sender: sender_id,
         reciver: receiver_id,
       });
-      console.log(
-        "MainChat: Joined room for sender:",
-        sender_id,
-        "receiver:",
-        receiver_id
-      );
     }
   }, [receiver_id, sender_id, socket]);
 
@@ -324,7 +318,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                           <div>
                             <strong>🔗 Link:</strong>{" "}
                             <Link
-                              to={`/product-detail/${parsed.id}`}
+                              to={`/product-details/${parsed.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{

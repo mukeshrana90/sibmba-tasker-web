@@ -105,12 +105,12 @@ export default function CorporateProductDetailPage() {
                   <span>Direct Chat</span>
                 </div>
 
-                <div className="action-button-wrap" onClick={handleCopyURL}>
+                {/* <div className="action-button-wrap" onClick={handleCopyURL}>
                   <div className="icon-circle dark">
                     <img src={copyLink} alt="Copy URL" />
                   </div>
                   <span>Copy URL</span>
-                </div>
+                </div> */}
               </div>
             </Col>
           </Row>
