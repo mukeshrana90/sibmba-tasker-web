@@ -37,6 +37,7 @@ import ProductDetailsPage from "../Pages/corporate/products/details";
 import MyLeadDetails from "../Pages/corporate/LeadDetails";
 import SuggestedCorporatePage from "../Pages/suggestedCorporate";
 import CorporateProductDetailPage from "../Pages/corporateProductDetail";
+import ProductDetail from "../Pages/ProductDetail";
 
 
 const Login = lazy(() => import("../Pages/Login"));
@@ -134,6 +135,10 @@ const RoutesPage = () => {
             <Route
               path="/customer-category-detail"
               element={<CustomerCategoryDetail />}
+            />
+             <Route
+              path="/product-detail/:id"
+              element={<ProductDetail/>}
             />
             <Route path="/service-details/:id" element={<ServiceDetails />} />
 

@@ -1,14 +1,16 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
-import { ChatContext } from '../context/ChatProvider';
-import { Container } from 'react-bootstrap';
-import moment from 'moment';
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
+import { ChatContext } from "../context/ChatProvider";
+import { Container } from "react-bootstrap";
+import moment from "moment";
+import { Link } from "react-router-dom";
 
 const MainChat = ({ sender_id, reciverID, socket }) => {
   const BASE_URL = process.env.REACT_APP_API_URLL;
-  const token = localStorage.getItem('token');
-  const { selectedUser, setSelectedUser, chatList, newchat, setNewchat } = useContext(ChatContext);
-  const [message, setMessage] = useState('');
+  const token = localStorage.getItem("token");
+  const { selectedUser, setSelectedUser, chatList, newchat, setNewchat } =
+    useContext(ChatContext);
+  const [message, setMessage] = useState("");
   const [messageHistory, setMessageHistory] = useState([]);
   const [receiverDetail, setReceiverDetail] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -18,28 +20,49 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
 
   const socketRef = useRef(null);
 
-
   useEffect(() => {
     if (!selectedUser && reciverID) {
       setSelectedUser(reciverID);
     }
   }, [reciverID, selectedUser, setSelectedUser]);
 
-  // Scroll to the latest message
+  useEffect(() => {
+    const preload = localStorage.getItem("preloadTaskMessage");
+
+    if (preload && socket && receiver_id && sender_id) {
+      const parsed = JSON.parse(preload);
+
+      socket.emit("send_message_new", {
+        sender_id,
+        receiver_id,
+        message: JSON.stringify(parsed),
+        message_type: "10",
+      });
+
+      localStorage.removeItem("preloadTaskMessage");
+    }
+  }, [receiver_id, socket]);
+
   useEffect(() => {
     if (messageContainerRef.current) {
-      messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
-      console.log('MainChat: Scrolled to bottom of message-main-chat');
+      messageContainerRef.current.scrollTop =
+        messageContainerRef.current.scrollHeight;
+      console.log("MainChat: Scrolled to bottom of message-main-chat");
     }
   }, [messageHistory]);
 
   useEffect(() => {
     if (receiver_id) {
-      socket.emit('joinedRoomUser', {
+      socket.emit("joinedRoomUser", {
         sender: sender_id,
         reciver: receiver_id,
       });
-      console.log('MainChat: Joined room for sender:', sender_id, 'receiver:', receiver_id);
+      console.log(
+        "MainChat: Joined room for sender:",
+        sender_id,
+        "receiver:",
+        receiver_id
+      );
     }
   }, [receiver_id, sender_id, socket]);
 
@@ -50,20 +73,20 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
     if (sender_id && token && receiver_id) {
       // Start loading
       setLoading(true);
-      console.log('MainChat: Started loading for receiver_id:', receiver_id);
+      console.log("MainChat: Started loading for receiver_id:", receiver_id);
 
       const socket = io(BASE_URL);
       socketRef.current = socket;
 
-      socket.on('connect', () => {
-        console.log('MainChat: Connected to socket:', socket.id);
+      socket.on("connect", () => {
+        console.log("MainChat: Connected to socket:", socket.id);
 
-        socket.emit('new_user_connect', { userid: sender_id });
-        socket.emit('get_message', {
+        socket.emit("new_user_connect", { userid: sender_id });
+        socket.emit("get_message", {
           userId: sender_id,
           receiverId: receiver_id,
         });
-        socket.emit('get_detailuser', {
+        socket.emit("get_detailuser", {
           user_id: receiver_id,
         });
 
@@ -71,7 +94,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
         timeoutId = setTimeout(() => {
           if (isMounted) {
             setLoading(false);
-            console.log('MainChat: Loading timeout reached, stopped loading');
+            console.log("MainChat: Loading timeout reached, stopped loading");
           }
         }, 5000);
       });
@@ -83,36 +106,47 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
         if (messageFetched && detailFetched) {
           setLoading(false);
           clearTimeout(timeoutId);
-          console.log('MainChat: Finished loading message history and receiver details');
+          console.log(
+            "MainChat: Finished loading message history and receiver details"
+          );
         }
       };
 
-      socket.on('Get_message', (data) => {
+      socket.on("Get_message", (data) => {
         if (isMounted) {
-          console.log('MainChat: Received message history for receiver_id:', receiver_id, data);
+          console.log(
+            "MainChat: Received message history for receiver_id:",
+            receiver_id,
+            data
+          );
           setMessageHistory(data?.data?.reverse() || []);
           messageFetched = true;
           checkLoadingComplete();
         }
       });
 
-      socket.on('Get_detailuser', (data) => {
+      socket.on("Get_detailuser", (data) => {
         if (isMounted) {
-          console.log('MainChat: Received receiver details:', data);
           setReceiverDetail(data?.data || null);
           detailFetched = true;
           checkLoadingComplete();
         }
       });
 
-      socket.on('receive_message_new', (data) => {
+      socket.on("receive_message_new", (data) => {
         if (isMounted && data?.data) {
-          const { sender_id: messageSender, receiver_id: messageReceiver } = data.data;
+          const { sender_id: messageSender, receiver_id: messageReceiver } =
+            data.data;
           const isMessageForCurrentChat =
             (messageSender === receiver_id && messageReceiver === sender_id) ||
             (messageSender === sender_id && messageReceiver === receiver_id);
 
-          console.log('MainChat: Received new message:', data.data, 'isForCurrentChat:', isMessageForCurrentChat);
+          console.log(
+            "MainChat: Received new message:",
+            data.data,
+            "isForCurrentChat:",
+            isMessageForCurrentChat
+          );
 
           if (isMessageForCurrentChat) {
             setNewchat(!newchat);
@@ -121,8 +155,8 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
         }
       });
 
-      socket.on('connect_error', (err) => {
-        console.error('MainChat: Socket connection error:', err);
+      socket.on("connect_error", (err) => {
+        console.error("MainChat: Socket connection error:", err);
         setLoading(false);
         clearTimeout(timeoutId);
       });
@@ -131,9 +165,9 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
         isMounted = false;
         clearTimeout(timeoutId);
         if (socketRef.current) {
-          socketRef.current.off('Get_message');
-          socketRef.current.off('Get_detailuser');
-          socketRef.current.off('receive_message_new');
+          socketRef.current.off("Get_message");
+          socketRef.current.off("Get_detailuser");
+          socketRef.current.off("receive_message_new");
           socketRef.current.disconnect();
         }
       };
@@ -142,7 +176,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
       setLoading(false);
       setMessageHistory([]);
       setReceiverDetail(null);
-      console.log('MainChat: No receiver_id, stopped loading');
+      console.log("MainChat: No receiver_id, stopped loading");
     }
   }, [sender_id, receiver_id, token, newchat]);
 
@@ -151,54 +185,83 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
       setMessageHistory([]);
       setReceiverDetail(null);
       setLoading(true);
-      console.log('MainChat: Cleared messageHistory and started loading for new receiver_id:', receiver_id);
+      console.log(
+        "MainChat: Cleared messageHistory and started loading for new receiver_id:",
+        receiver_id
+      );
     }
   }, [receiver_id]);
 
   const sendMessage = () => {
-    if (message.trim() !== '' && socketRef.current && receiver_id) {
+    if (message.trim() !== "" && socketRef.current && receiver_id) {
       const payload = {
         sender_id,
         receiver_id,
         message,
         message_type: 0,
       };
-      socketRef.current.emit('send_message_new', payload);
-      console.log('MainChat: Sent message:', payload);
-      setMessage('');
+      socketRef.current.emit("send_message_new", payload);
+      console.log("MainChat: Sent message:", payload);
+      setMessage("");
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === "Enter") sendMessage();
   };
 
   return (
     <div className="message-chat-box">
       <div className="message-chat-name message-box-header">
         <div>
-          <h4>{receiverDetail?.full_name || (loading ? 'Loading...' : 'No User Selected')}</h4>
-          <p>{receiverDetail?.email || ''}</p>
+          <h4>
+            {receiverDetail?.full_name ||
+              (loading ? "Loading..." : "No User Selected")}
+          </h4>
+          <p>{receiverDetail?.email || ""}</p>
         </div>
-        <div className='d-flex gap-2'>
-
+        <div className="d-flex gap-2">
           <a href={`tel:${receiverDetail?.phone_number}`} className="">
-            <svg width="30" height="31" viewBox="0 0 30 31" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M23.7891 2.31641H16.7578C13.3658 2.31641 10.6055 5.0767 10.6055 8.46875C10.6055 11.563 12.9015 14.131 15.8789 14.5585V17.2578C15.8788 17.4316 15.9303 17.6016 16.0268 17.7462C16.1234 17.8907 16.2607 18.0033 16.4214 18.0697C16.7456 18.205 17.1258 18.1325 17.3793 17.8792L20.6374 14.6211H23.7891C27.1811 14.6211 30 11.8608 30 8.46875C30 5.0767 27.1811 2.31641 23.7891 2.31641ZM16.7578 9.34754C16.2723 9.34754 15.8789 8.95402 15.8789 8.46863C15.8789 7.98324 16.2723 7.58973 16.7578 7.58973C17.2432 7.58973 17.6367 7.98324 17.6367 8.46863C17.6367 8.95402 17.2432 9.34754 16.7578 9.34754ZM20.2734 9.34754C19.7879 9.34754 19.3945 8.95402 19.3945 8.46863C19.3945 7.98324 19.7879 7.58973 20.2734 7.58973C20.7588 7.58973 21.1523 7.98324 21.1523 8.46863C21.1523 8.95402 20.7588 9.34754 20.2734 9.34754ZM23.7891 9.34754C23.3036 9.34754 22.9102 8.95402 22.9102 8.46863C22.9102 7.98324 23.3036 7.58973 23.7891 7.58973C24.2745 7.58973 24.668 7.98324 24.668 8.46863C24.668 8.95402 24.2745 9.34754 23.7891 9.34754Z" fill="#038654" />
-              <path d="M19.7461 28.6836C21.2 28.6836 22.3828 27.5008 22.3828 26.0469V22.5312C22.3828 22.1527 22.1408 21.8171 21.782 21.6978L16.5209 19.94C16.2634 19.8533 15.9819 19.8928 15.7553 20.0421L13.5186 21.533C11.1496 20.4035 8.33871 17.5925 7.20914 15.2236L8.7 12.9868C8.77414 12.8754 8.82188 12.7485 8.83958 12.6158C8.85728 12.4831 8.84447 12.3482 8.80213 12.2212L7.04432 6.96014C6.98611 6.78516 6.87428 6.63295 6.72469 6.52512C6.5751 6.41728 6.39534 6.35929 6.21094 6.35938H2.63672C1.18277 6.35938 0 7.52979 0 8.98373C0 19.11 9.6198 28.6836 19.7461 28.6836Z" fill="#038654" />
+            <svg
+              width="30"
+              height="31"
+              viewBox="0 0 30 31"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M23.7891 2.31641H16.7578C13.3658 2.31641 10.6055 5.0767 10.6055 8.46875C10.6055 11.563 12.9015 14.131 15.8789 14.5585V17.2578C15.8788 17.4316 15.9303 17.6016 16.0268 17.7462C16.1234 17.8907 16.2607 18.0033 16.4214 18.0697C16.7456 18.205 17.1258 18.1325 17.3793 17.8792L20.6374 14.6211H23.7891C27.1811 14.6211 30 11.8608 30 8.46875C30 5.0767 27.1811 2.31641 23.7891 2.31641ZM16.7578 9.34754C16.2723 9.34754 15.8789 8.95402 15.8789 8.46863C15.8789 7.98324 16.2723 7.58973 16.7578 7.58973C17.2432 7.58973 17.6367 7.98324 17.6367 8.46863C17.6367 8.95402 17.2432 9.34754 16.7578 9.34754ZM20.2734 9.34754C19.7879 9.34754 19.3945 8.95402 19.3945 8.46863C19.3945 7.98324 19.7879 7.58973 20.2734 7.58973C20.7588 7.58973 21.1523 7.98324 21.1523 8.46863C21.1523 8.95402 20.7588 9.34754 20.2734 9.34754ZM23.7891 9.34754C23.3036 9.34754 22.9102 8.95402 22.9102 8.46863C22.9102 7.98324 23.3036 7.58973 23.7891 7.58973C24.2745 7.58973 24.668 7.98324 24.668 8.46863C24.668 8.95402 24.2745 9.34754 23.7891 9.34754Z"
+                fill="#038654"
+              />
+              <path
+                d="M19.7461 28.6836C21.2 28.6836 22.3828 27.5008 22.3828 26.0469V22.5312C22.3828 22.1527 22.1408 21.8171 21.782 21.6978L16.5209 19.94C16.2634 19.8533 15.9819 19.8928 15.7553 20.0421L13.5186 21.533C11.1496 20.4035 8.33871 17.5925 7.20914 15.2236L8.7 12.9868C8.77414 12.8754 8.82188 12.7485 8.83958 12.6158C8.85728 12.4831 8.84447 12.3482 8.80213 12.2212L7.04432 6.96014C6.98611 6.78516 6.87428 6.63295 6.72469 6.52512C6.5751 6.41728 6.39534 6.35929 6.21094 6.35938H2.63672C1.18277 6.35938 0 7.52979 0 8.98373C0 19.11 9.6198 28.6836 19.7461 28.6836Z"
+                fill="#038654"
+              />
             </svg>
           </a>
 
-          <a href={`https://wa.me/${receiverDetail?.phone_number}`} target='_blank'>
-            <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12.003 0.5H11.997C5.3805 0.5 0 5.882 0 12.5C0 15.125 0.846 17.558 2.2845 19.5335L0.789 23.9915L5.4015 22.517C7.299 23.774 9.5625 24.5 12.003 24.5C18.6195 24.5 24 19.1165 24 12.5C24 5.8835 18.6195 0.5 12.003 0.5Z" fill="#038654" />
-              <path d="M18.9858 17.4455C18.6963 18.263 17.5473 18.941 16.6308 19.139C16.0038 19.2725 15.1848 19.379 12.4278 18.236C8.90132 16.775 6.63032 13.1915 6.45332 12.959C6.28382 12.7265 5.02832 11.0615 5.02832 9.33953C5.02832 7.61753 5.90282 6.77903 6.25532 6.41903C6.54482 6.12353 7.02332 5.98853 7.48232 5.98853C7.63082 5.98853 7.76432 5.99603 7.88432 6.00203C8.23682 6.01703 8.41382 6.03803 8.64632 6.59453C8.93582 7.29203 9.64082 9.01403 9.72482 9.19103C9.81032 9.36803 9.89582 9.60803 9.77582 9.84053C9.66332 10.0805 9.56432 10.187 9.38732 10.391C9.21032 10.595 9.04232 10.751 8.86532 10.97C8.70332 11.1605 8.52032 11.3645 8.72432 11.717C8.92832 12.062 9.63332 13.2125 10.6713 14.1365C12.0108 15.329 13.0968 15.71 13.4853 15.872C13.7748 15.992 14.1198 15.9635 14.3313 15.7385C14.5998 15.449 14.9313 14.969 15.2688 14.4965C15.5088 14.1575 15.8118 14.1155 16.1298 14.2355C16.4538 14.348 18.1683 15.1955 18.5208 15.371C18.8733 15.548 19.1058 15.632 19.1913 15.7805C19.2753 15.929 19.2753 16.6265 18.9858 17.4455Z" fill="#FAFAFA" />
+          <a
+            href={`https://wa.me/${receiverDetail?.phone_number}`}
+            target="_blank"
+          >
+            <svg
+              width="24"
+              height="25"
+              viewBox="0 0 24 25"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12.003 0.5H11.997C5.3805 0.5 0 5.882 0 12.5C0 15.125 0.846 17.558 2.2845 19.5335L0.789 23.9915L5.4015 22.517C7.299 23.774 9.5625 24.5 12.003 24.5C18.6195 24.5 24 19.1165 24 12.5C24 5.8835 18.6195 0.5 12.003 0.5Z"
+                fill="#038654"
+              />
+              <path
+                d="M18.9858 17.4455C18.6963 18.263 17.5473 18.941 16.6308 19.139C16.0038 19.2725 15.1848 19.379 12.4278 18.236C8.90132 16.775 6.63032 13.1915 6.45332 12.959C6.28382 12.7265 5.02832 11.0615 5.02832 9.33953C5.02832 7.61753 5.90282 6.77903 6.25532 6.41903C6.54482 6.12353 7.02332 5.98853 7.48232 5.98853C7.63082 5.98853 7.76432 5.99603 7.88432 6.00203C8.23682 6.01703 8.41382 6.03803 8.64632 6.59453C8.93582 7.29203 9.64082 9.01403 9.72482 9.19103C9.81032 9.36803 9.89582 9.60803 9.77582 9.84053C9.66332 10.0805 9.56432 10.187 9.38732 10.391C9.21032 10.595 9.04232 10.751 8.86532 10.97C8.70332 11.1605 8.52032 11.3645 8.72432 11.717C8.92832 12.062 9.63332 13.2125 10.6713 14.1365C12.0108 15.329 13.0968 15.71 13.4853 15.872C13.7748 15.992 14.1198 15.9635 14.3313 15.7385C14.5998 15.449 14.9313 14.969 15.2688 14.4965C15.5088 14.1575 15.8118 14.1155 16.1298 14.2355C16.4538 14.348 18.1683 15.1955 18.5208 15.371C18.8733 15.548 19.1058 15.632 19.1913 15.7805C19.2753 15.929 19.2753 16.6265 18.9858 17.4455Z"
+                fill="#FAFAFA"
+              />
             </svg>
-
           </a>
         </div>
-
-
       </div>
       <div className="message-main-container">
         {loading ? (
@@ -208,17 +271,87 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
           </div>
         ) : Array.isArray(messageHistory) && messageHistory.length > 0 ? (
           <div className="message-main-chat" ref={messageContainerRef}>
-            {messageHistory.map((ele, index) => (
-              <div
-                key={index}
-                className={ele?.receiver_id === receiver_id ? 'flow-right-chat' : ''}
-              >
-                <div className={ele?.receiver_id === receiver_id ? 'right-side-chat' : 'left-side-chat'}>
-                  <p>{ele?.message}</p>
-                  <span>{moment(ele?.updatedAt).format('h:mm A')}</span>
+            {messageHistory.map((ele, index) => {
+              let parsed;
+              try {
+                parsed = JSON.parse(ele?.message);
+              } catch (e) {
+                parsed = null;
+              }
+
+              const isTaskCard =
+                parsed && parsed.image && parsed.title && parsed.budget;
+
+              return (
+                <div
+                  key={index}
+                  className={
+                    ele?.receiver_id === receiver_id ? "flow-right-chat" : ""
+                  }
+                >
+                  <div
+                    className={
+                      ele?.receiver_id === receiver_id
+                        ? "right-side-chat"
+                        : "left-side-chat"
+                    }
+                  >
+                    {isTaskCard ? (
+                      <div className="task-card-ui">
+                        <div className="task-card-header">
+                          <img
+                            src={`${process.env.REACT_APP_API_URLL}/${parsed.image}`}
+                            alt="Task"
+                          />
+                          <div className="task-header-text">
+                            <span className="task-label">Task</span>
+                            <h5 className="task-title">{parsed.title}</h5>
+                          </div>
+                        </div>
+
+                        <p className="task-desc">{parsed.description}</p>
+
+                        <div className="task-details">
+                          <div>
+                            <strong>💲 Budget:</strong> {parsed.budget}
+                          </div>
+                          <div>
+                            <strong>📅 Date:</strong> {parsed.date}
+                          </div>
+                          <div>
+                            <strong>⏰ Time:</strong> {parsed.time}
+                          </div>
+                          <div>
+                            <strong>🔗 Link:</strong>{" "}
+                            <Link
+                              to={`/product-detail/${parsed.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "#007bff",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              View Task
+                            </Link>
+                          </div>
+                        </div>
+
+                        <span className="task-time">
+                          {moment(ele?.updatedAt).format("h:mm A")}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <p>{ele?.message}</p>
+                        <span>{moment(ele?.updatedAt).format("h:mm A")}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+
             <div ref={messagesEndRef} />
           </div>
         ) : (
@@ -226,26 +359,29 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
             fluid
             className="d-flex flex-column justify-content-center align-items-center"
             style={{
-              height: '60vh',
-              backgroundColor: '#ffff',
-              color: 'white',
-              textAlign: 'center',
-              padding: '2rem',
+              height: "60vh",
+              backgroundColor: "#ffff",
+              color: "white",
+              textAlign: "center",
+              padding: "2rem",
             }}
           >
             <img
-              src={require('../Assets/Images/dark-logo.png')}
+              src={require("../Assets/Images/dark-logo.png")}
               alt="Placeholder"
               style={{
-                width: '300px',
-                maxWidth: '80%',
-                marginBottom: '1.5rem',
+                width: "300px",
+                maxWidth: "80%",
+                marginBottom: "1.5rem",
               }}
             />
-            <p style={{ opacity: 0.6, marginTop: '0.5rem' }} className="text-black">
+            <p
+              style={{ opacity: 0.6, marginTop: "0.5rem" }}
+              className="text-black"
+            >
               {Array.isArray(chatList) && chatList.length > 0
-                ? 'No messages yet. Start chatting!'
-                : 'No chats available. Select a user to start messaging.'}
+                ? "No messages yet. Start chatting!"
+                : "No chats available. Select a user to start messaging."}
             </p>
           </Container>
         )}

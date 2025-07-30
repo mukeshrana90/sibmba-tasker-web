@@ -16,7 +16,6 @@ const getStatusColor = (status) => {
 };
 
 const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
-  console.log(data,'ssssssssss')
   const navigate = useNavigate();
 
   return (
@@ -40,10 +39,7 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                   {data?.serviceSubCategory?.serviceSubCategoryName || "N/A"}
                 </h3>
                 <p>
-
-                  {`${data?.slotTime}, ${moment(data?.date).format(
-                    "DD MMM"
-                  )}`}
+                  {`${data?.slotTime}, ${moment(data?.date).format("DD MMM")}`}
                 </p>
               </div>
               {/* Pending */}
@@ -52,9 +48,9 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                   <button
                     type="button"
                     onClick={(e) => {
-                      e.stopPropagation()
-                      handleOpen(data?.serviceSubCategory?._id)
-                      setSelectedBoooking(data)
+                      e.stopPropagation();
+                      handleOpen(data?.serviceSubCategory?._id);
+                      setSelectedBoooking(data);
                     }}
                   >
                     Edit
@@ -90,7 +86,7 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
               {(data?.status === 2 || data?.status === 4) && (
                 <div className="chat-btn-card">
                   <button className="">
-                    <svg 
+                    <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="40"
                       height="40"
@@ -113,8 +109,6 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
           </div>
         </div>
       </li>
-
-
     </>
   );
 };

@@ -111,7 +111,7 @@ export default function CorporateLeadsPage() {
                                 {upcomingTasks?.length > 0 ? (
                                   upcomingTasks.map((res, idx) => (
                                     <li key={idx} className="mb-3">
-                                      <div className="booking-card">
+                                      <div className="booking-card" >
                                         <div className="d-flex justify-content-between">
                                           <h5 className="mb-2">
                                             {res?.taskId?.need_done}

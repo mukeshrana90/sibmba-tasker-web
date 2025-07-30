@@ -260,19 +260,25 @@ export default function LeadDetails() {
                           (s, index) => s.status !== "rejected"
                         ) && (
                           <>
-                            <button
-                              onClick={() => {
-                                navigate(
-                                  `/messages?userID=${quotation.service_provider?._id}`
-                                );
-                                localStorage.setItem(
-                                  "reciverID",
-                                  quotation.service_provider?._id
-                                );
-                              }}
-                            >
-                              <img src={ChatIcon} alt="" /> Chat
-                            </button>
+                           <button
+                            onClick={() => {
+                              const taskCard = {
+                                image: task?.images?.[0] || "/Assets/Images/default-task.png",
+                                title: task?.need_done || "Task",
+                                description: task?.details || "No description available.",
+                                budget: `$${task?.budget || "0"}`,
+                                date: task?.when_done,
+                                time: task?.task_time || "Flexible",
+                                id: task?._id || "Flexible",
+                              };
+
+                              localStorage.setItem("preloadTaskMessage", JSON.stringify(taskCard));
+                              localStorage.setItem("reciverID", task?.user_id);
+                              navigate("/messages");
+                            }}
+                          >
+                            <img src={ChatIcon} alt="" /> Chat
+                          </button>
                             <button onClick={() => setShowMapModal(true)}>
                               <img src={mapIcon} alt="" /> Map
                             </button>

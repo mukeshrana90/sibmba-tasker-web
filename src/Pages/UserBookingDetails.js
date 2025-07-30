@@ -49,7 +49,7 @@ export default function UserBookingDetails() {
   const [message, setMessage] = useState("");
   const [corporateSuggestions, setCorporateSuggestions] = useState([]);
   let { task, quotations } = taskbooking || {};
-const [refetchToggle, setRefetchToggle] = useState(false);
+  const [refetchToggle, setRefetchToggle] = useState(false);
 
   const handleEditOpen = (id) => {
     seteditShow(true);
@@ -81,7 +81,7 @@ const [refetchToggle, setRefetchToggle] = useState(false);
       }
       setCorporateSuggestions(res?.payload?.data?.corporateSuggestions);
     });
-  }, [id, type, editshow, show,refetchToggle]);
+  }, [id, type, editshow, show, refetchToggle]);
 
   const handleFeedbackOpen = () => setShowFeedback(true);
   const handleFeedbackClose = () => {
@@ -127,7 +127,7 @@ const [refetchToggle, setRefetchToggle] = useState(false);
             ? toast.success("Accepted successfully.")
             : toast.error("Rejected successfully.");
         }
-       setRefetchToggle((prev) => !prev);
+        setRefetchToggle((prev) => !prev);
       })
       .catch(() => {
         toast.error("An error occurred. Please try again.");
@@ -495,7 +495,9 @@ const [refetchToggle, setRefetchToggle] = useState(false);
                         {bookingState.serviceCategory?.service_category_name ||
                           "N/A"}
                       </p>
-                    <p className="text-muted  mt-0">{bookingState?.serviceSubCategory.desc}</p>
+                      <p className="text-muted  mt-0">
+                        {bookingState?.serviceSubCategory.desc}
+                      </p>
 
                       {/* Payment Buttons */}
                       {!["paid"].includes(bookingState.payment?.status) &&
@@ -533,7 +535,8 @@ const [refetchToggle, setRefetchToggle] = useState(false);
                             )}
 
                             {[4].includes(bookingState.status) && (
-                              <button className="text-white"
+                              <button
+                                className="text-white"
                                 type="button"
                                 onClick={() => {
                                   handlePaymentOpen(bookingState._id);
@@ -680,8 +683,12 @@ const [refetchToggle, setRefetchToggle] = useState(false);
                             corporateSuggestions.length > 0 ? (
                               corporateSuggestions.map((corp, idx) => (
                                 <div
-                                  key={corp._id || idx} 
-                                  onClick={() =>navigate(`/get-corporate/${corp?.corporateIds?._id}`)}
+                                  key={corp._id || idx}
+                                  onClick={() =>
+                                    navigate(
+                                      `/get-corporate/${corp?.corporateIds?._id}`
+                                    )
+                                  }
                                   className="d-flex justify-content-between align-items-center gap-3 mb-3 cursor-pointer"
                                 >
                                   {/* Left: Corporate info */}
@@ -706,7 +713,7 @@ const [refetchToggle, setRefetchToggle] = useState(false);
                                       </strong>
                                       <p className="mb-0 text-muted">
                                         {corp.corporateIds?.shop_name ||
-                                        corp.corporateIds?.email}
+                                          corp.corporateIds?.email}
                                       </p>
                                     </div>
                                   </div>

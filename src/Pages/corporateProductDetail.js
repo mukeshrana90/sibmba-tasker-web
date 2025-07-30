@@ -9,6 +9,7 @@ import Slider from "react-slick";
 import Layout from "../Components/Layout/Layout";
 import ChatIcon from "../Assets/Images/chatIcon2.svg";
 import copyLink from "../Assets/Images/copyLink.svg";
+import { toast } from "react-toastify";
 export default function CorporateProductDetailPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -48,7 +49,7 @@ export default function CorporateProductDetailPage() {
   const handleCopyURL = () => {
     const fullURL = `${window.location.origin}/product-detail/${id}`;
     navigator.clipboard.writeText(fullURL).then(() => {
-      alert("Product URL copied to clipboard!");
+      toast.success("Product URL copied to clipboard!");
     });
   };
 
