@@ -5369,10 +5369,9 @@ section.page-mt {
 }
 .task-card-ui {
   border-radius: 14px;
-  padding: 16px;
+  padding: 15px 5px;
   max-width: 320px;
-  margin: 10px 0;
-  font-family: 'Segoe UI', sans-serif;
+  margin: 5px 0;
   position: relative;
   animation: fadeInUp 0.3s ease;
   background-color: transparent; 
@@ -5385,13 +5384,12 @@ section.page-mt {
     border-radius: 8px;
 
     img {
-      height: 50px;
-      width: 50px;
-      border-radius: 50%;
+      height: 80px;
+      width: 80px;
+      border-radius: 8px;
       object-fit: cover;
       margin-right: 12px;
-      border: 2px solid #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      border: 1px solid #fff;
     }
   }
 
@@ -5407,58 +5405,53 @@ section.page-mt {
   .task-header-text {
     display: flex;
     flex-direction: column;
+    gap: 6px;
 
     .task-label {
       font-size: 12px;
-      text-transform: uppercase;
+      text-transform: capitalize;
       font-weight: 500;
     }
 
     .task-title {
-      font-size: 16px;
-      margin: 2px 0;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 500;
+      word-break: break-word;
+      flex: 1;
+      min-width: 0;
     }
-  }
 
-  .task-desc {
-    font-size: 13px;
-    margin: 8px 0;
-  }
+    .link {
+      text-decoration: underline;
+      color: #fff;
+      font-weight: 500;
+      padding: 0;
 
-  .task-details {
-    font-size: 13px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 10px;
-    margin-bottom: 20px;
-  }
+      &:hover {
+        font-weight: 700;
+      }
+    }
+    }
+
+
 
   .task-time {
     position: absolute;
-    bottom: 10px;
+    bottom: -10px;
     right: 14px;
     font-size: 11px;
   }
 }
 
-@keyframes fadeInUp {
-  from {
-    transform: translateY(8px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
 
 .left-side-chat{
-  
   .task-details,p,.task-time,.task-desc, .task-label,  .task-title  {
     color: black;
   }
+  .link{
+      color: #000 !important;
+
+    }
 }
 .action-button-wrap {
   display: flex;
@@ -5502,7 +5495,7 @@ section.page-mt {
     overflow: hidden;
     margin-bottom: 0.5rem;
     color: #6c757d; 
-  max-width: 600px;
+    max-width: 500px;
   }
 
   h5 {

@@ -298,33 +298,51 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                             alt="Task"
                           />
                           <div className="task-header-text">
-                            <span className="task-label">Task</span>
-                            <h5 className="task-title">{parsed.title}</h5>
+                            <span className="task-label">Task Name</span>
+                            <span className="task-title">{parsed.title}</span>
                           </div>
                         </div>
 
-                        <p className="task-desc">{parsed.description}</p>
+                        <div className="task-header-text">
+                          <div>
+                            <strong className="task-label">
+                              Description:{" "}
+                            </strong>
+                            <span className="task-title">
+                              {parsed.description}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="task-header-text">
+                          <div>
+                            <strong className="task-label">Category: </strong>{" "}
+                            <span className="task-title">
+                              {parsed.category}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="task-header-text">
+                          <div>
+                            <strong className="task-label">💲 Budget: </strong>{" "}
+                            <span className="task-title">{parsed.budget}</span>
+                          </div>
 
-                        <div className="task-details">
                           <div>
-                            <strong>💲 Budget:</strong> {parsed.budget}
+                            <strong className="task-label">📅 Date: </strong>{" "}
+                            <span className="task-title">{parsed.date} </span>
+                            <strong className="task-label">
+                              ⏰ Time:
+                            </strong>{" "}
+                            <span className="task-title">{parsed.time}</span>
                           </div>
+
                           <div>
-                            <strong>📅 Date:</strong> {parsed.date}
-                          </div>
-                          <div>
-                            <strong>⏰ Time:</strong> {parsed.time}
-                          </div>
-                          <div>
-                            <strong>🔗 Link:</strong>{" "}
+                            <strong className="task-label">🔗 Link: </strong>{" "}
                             <Link
+                              className="task-title link"
                               to={`/product-details/${parsed.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              style={{
-                                color: "#007bff",
-                                textDecoration: "underline",
-                              }}
                             >
                               View Task
                             </Link>

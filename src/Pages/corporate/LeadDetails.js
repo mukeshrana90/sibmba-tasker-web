@@ -270,6 +270,7 @@ export default function LeadDetails() {
                                 date: task?.when_done,
                                 time: task?.task_time || "Flexible",
                                 id: task?._id || "Flexible",
+                                category:task.category_id?.service_category_name
                               };
 
                               localStorage.setItem("preloadTaskMessage", JSON.stringify(taskCard));

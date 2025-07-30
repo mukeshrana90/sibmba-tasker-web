@@ -399,6 +399,24 @@ const CorporateEditProduct = () => {
                         </Col>
                         <Col lg={12}>
                           <div className="form-set mt-3">
+                               <Form.Group
+                              className="mb-3"
+                              controlId="formServiceSubCategoryName"
+                            >
+                              <Form.Label>Name</Form.Label>
+                              <Field
+                                name="name"
+                                as={Form.Control}
+                                type="text"
+                                placeholder="Name"
+                              />
+                              <ErrorMessage
+                                name="name"
+                                component="div"
+                                className="text-danger"
+                              />
+                            </Form.Group>
+                            
                             <Form.Group
                               className="mb-3"
                               controlId="formServiceCategoryId"
@@ -426,23 +444,7 @@ const CorporateEditProduct = () => {
                                 className="text-danger"
                               />
                             </Form.Group>
-                            <Form.Group
-                              className="mb-3"
-                              controlId="formServiceSubCategoryName"
-                            >
-                              <Form.Label>Service Subcategory Name</Form.Label>
-                              <Field
-                                name="name"
-                                as={Form.Control}
-                                type="text"
-                                placeholder="Name"
-                              />
-                              <ErrorMessage
-                                name="name"
-                                component="div"
-                                className="text-danger"
-                              />
-                            </Form.Group>
+                         
                             <Form.Group className="mb-3" controlId="formPrice">
                               <Form.Label>Price*</Form.Label>
                               <Field
