@@ -62,7 +62,15 @@ const ChatList = () => {
         <ul>
           {filteredChatList.length > 0 ? (
             filteredChatList.map((ele, index) => {
-              const receiverId = role === '2' ? ele?.sender_id : ele?.receiver_id;
+              let receiverId = role;
+              if(role === '2'){
+                receiverId =ele?.sender_id;
+              }else if(role === '1'){
+                receiverId =ele?.sender_id;
+              }else{
+                 receiverId =  ele?.receiver_id;
+              }
+              // const receiverId = role === '2' ? ele?.sender_id : ele?.receiver_id;
               return (
                 <li
                   key={index}

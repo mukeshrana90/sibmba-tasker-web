@@ -260,7 +260,7 @@ export default function CorporateLeadsPage() {
                                             status === "rejected" ? (
                                               <div className="book-service-action-btn leads-btn d-flex gap-2">
                                                 <button
-                                                  className="primaryBtn btn-sm text-white"
+                                                  className="primaryBtn"
                                                   onClick={() =>
                                                     navigate(
                                                       `/corporate/lead-details/${res?.bookingId?._id || res?.taskId?._id}`
@@ -274,7 +274,7 @@ export default function CorporateLeadsPage() {
                                               status !== "rejected" ? (
                                               <div className="book-service-action-btn d-flex gap-2">
                                                 <button
-                                                  className="btn btn-outline-danger btn-sm"
+                                                  className="view-more-btn"
                                                   onClick={() =>
                                                     handleAccept(res, 0)
                                                   }
@@ -282,7 +282,7 @@ export default function CorporateLeadsPage() {
                                                   Reject
                                                 </button>
                                                 <button
-                                                  className="btn btn-success btn-sm"
+                                                  className="primaryBtn"
                                                   onClick={() =>
                                                     handleAccept(res, 1)
                                                   }

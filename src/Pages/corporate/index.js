@@ -280,9 +280,9 @@ const CorporateDashboard = () => {
                                     {(res.userStatus === 1 &&
                                       res.corporateStatus === 1) ||
                                     status === "rejected" ? (
-                                      <div className="book-service-action-btn leads-btn d-flex gap-2">
+                                      <div className="book-service-action-btn d-flex gap-2">
                                         <button
-                                          className="primaryBtn btn-sm text-white"
+                                          className="primaryBtn"
                                           onClick={() =>
                                             navigate(
                                              `/corporate/lead-details/${res?.bookingId?._id || res?.taskId?._id}`
@@ -296,14 +296,14 @@ const CorporateDashboard = () => {
                                       status !== "rejected" ? (
                                       <div className="book-service-action-btn d-flex gap-2">
                                         <button
-                                          className="btn btn-outline-danger btn-sm"
-                                          onClick={() => handleAccept(item, 0)}
+                                          className="view-more-btn"
+                                          onClick={() => handleAccept(res, 0)}
                                         >
                                           Reject
                                         </button>
                                         <button
-                                          className="btn btn-success btn-sm"
-                                          onClick={() => handleAccept(item, 1)}
+                                          className="primaryBtn"
+                                          onClick={() => handleAccept(res, 1)}
                                         >
                                           Accept
                                         </button>
