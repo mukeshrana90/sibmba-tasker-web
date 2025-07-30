@@ -60,7 +60,7 @@ const CorporateDashboard = () => {
       status: status,
     };
 
-    if (data?.type === "task") {
+    if (data?.type == "task") {
       payload.taskId = data?.taskId?._id;
     } else {
       payload.bookingId = data?.bookingId?._id;

@@ -60,12 +60,11 @@ export default function CorporateLeadsPage() {
       status: status,
     };
 
-    if (data?.type === "task") {
+    if (data?.type == "task") {
       payload.taskId = data?.taskId?._id;
     } else {
       payload.bookingId = data?.bookingId?._id;
     }
-
     dispatch(CorporateActions.acceptRejectCorporateSuggestion(payload))
       .then((res) => {
         if (res?.payload) {
