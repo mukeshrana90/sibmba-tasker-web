@@ -282,7 +282,7 @@ export default function CorporateLeadsPage() {
                                                   Reject
                                                 </button>
                                                 <button
-                                                  className="btn btn-success btn-sm"
+                                                  className="primaryBtn btn-sm text-white"
                                                   onClick={() =>
                                                     handleAccept(res, 1)
                                                   }

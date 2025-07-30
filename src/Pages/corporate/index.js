@@ -297,13 +297,13 @@ const CorporateDashboard = () => {
                                       <div className="book-service-action-btn d-flex gap-2">
                                         <button
                                           className="btn btn-outline-danger btn-sm"
-                                          onClick={() => handleAccept(item, 0)}
+                                          onClick={() => handleAccept(res, 0)}
                                         >
                                           Reject
                                         </button>
                                         <button
-                                          className="btn btn-success btn-sm"
-                                          onClick={() => handleAccept(item, 1)}
+                                          className="primaryBtn btn-sm text-white"
+                                          onClick={() => handleAccept(res, 1)}
                                         >
                                           Accept
                                         </button>
