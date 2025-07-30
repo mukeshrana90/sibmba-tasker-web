@@ -5367,3 +5367,128 @@ section.page-mt {
   justify-content: center;
   margin-bottom: 30px;
 }
+.task-card-ui {
+  border-radius: 14px;
+  padding: 16px;
+  max-width: 320px;
+  margin: 10px 0;
+  font-family: 'Segoe UI', sans-serif;
+  position: relative;
+  animation: fadeInUp 0.3s ease;
+  background-color: transparent; 
+  color: white;
+
+  .task-card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    border-radius: 8px;
+
+    img {
+      height: 50px;
+      width: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 12px;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  .task-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 12px;
+    border: 2px solid #fff;
+  }
+
+  .task-header-text {
+    display: flex;
+    flex-direction: column;
+
+    .task-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .task-title {
+      font-size: 16px;
+      margin: 2px 0;
+      font-weight: 600;
+    }
+  }
+
+  .task-desc {
+    font-size: 13px;
+    margin: 8px 0;
+  }
+
+  .task-details {
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+  }
+
+  .task-time {
+    position: absolute;
+    bottom: 10px;
+    right: 14px;
+    font-size: 11px;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.left-side-chat{
+  
+  .task-details,p,.task-time,.task-desc, .task-label,  .task-title  {
+    color: black;
+  }
+}
+.action-button-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  text-align: center;
+  font-size: 14px;
+  
+.icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.icon-circle img {
+  width: 22px;
+  height: 22px;
+}
+
+.icon-circle.green {
+  background-color: #0f7e50;
+}
+
+.icon-circle.dark {
+  background-color: #3c3c3c; 
+}
+}
+

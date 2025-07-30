@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -7,14 +7,12 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import Slider from "react-slick";
 import Layout from "../Components/Layout/Layout";
-import StarRating from "../CommanComponents/StarRating";
-import ChatIcon from "../Assets/Images/chat.svg";
-import mapIcon from "../Assets/Images/map.svg";
+import ChatIcon from "../Assets/Images/chatIcon2.svg";
+import copyLink from "../Assets/Images/copyLink.svg";
 export default function CorporateProductDetailPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id } = useParams();
-  const [show, setShow] = useState(false);
   const productDetails = useSelector(
     (state) => state.service.getCorporateList?.data
   );
@@ -28,35 +26,31 @@ export default function CorporateProductDetailPage() {
     responsive: [
       {
         breakpoint: 1024,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          infinite: true,
-          arrows: false,
-        },
+        settings: { slidesToShow: 1, slidesToScroll: 1, infinite: true },
       },
       {
         breakpoint: 768,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          arrows: false,
-        },
+        settings: { slidesToShow: 1, slidesToScroll: 1 },
       },
       {
         breakpoint: 480,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          arrows: false,
-        },
+        settings: { slidesToShow: 1, slidesToScroll: 1 },
       },
     ],
   };
 
   useEffect(() => {
-    dispatch(CustomerActions.corpoInfoProductListUser({ productId: id }));
-  }, [dispatch, { productId: id }]);
+    if (id) {
+      dispatch(CustomerActions.corpoInfoProductListUser({ productId: id }));
+    }
+  }, [dispatch, id]);
+
+  const handleCopyURL = () => {
+    const fullURL = `${window.location.origin}/product-detail/${id}`;
+    navigator.clipboard.writeText(fullURL).then(() => {
+      alert("Product URL copied to clipboard!");
+    });
+  };
 
   return (
     <Layout>
@@ -66,7 +60,7 @@ export default function CorporateProductDetailPage() {
             <h2>Product Details</h2>
           </div>
           <Row className="quotation-requests-wrap mt-3">
-            <Col lg={12} className="">
+            <Col lg={12}>
               <div className="service-detail-card pt-3">
                 {productDetails?.images?.length > 0 ? (
                   <Slider {...sliderSettings}>
@@ -99,13 +93,23 @@ export default function CorporateProductDetailPage() {
               </div>
             </Col>
             <Col>
-              <div className="quotation-inner d-flex justify-content-center gap-3 mt-3 mb-0">
-                <button onClick={() => navigate(`/messages`)}>
-                  <img className="icons" src={ChatIcon} alt="" /> Chat
-                </button>
-                <button>
-                  <img src={mapIcon} alt="" /> Map
-                </button>
+              <div className="quotation-inner d-flex justify-content-center gap-4 mt-3 mb-0">
+                <div
+                  className="action-button-wrap"
+                  onClick={() => navigate(`/messages`)}
+                >
+                  <div className="icon-circle green">
+                    <img src={ChatIcon} alt="Chat" />
+                  </div>
+                  <span>Direct Chat</span>
+                </div>
+
+                <div className="action-button-wrap" onClick={handleCopyURL}>
+                  <div className="icon-circle dark">
+                    <img src={copyLink} alt="Copy URL" />
+                  </div>
+                  <span>Copy URL</span>
+                </div>
               </div>
             </Col>
           </Row>
