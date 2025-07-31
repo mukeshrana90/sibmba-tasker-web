@@ -2,24 +2,24 @@ import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import Slider from "react-slick";
 import moment from "moment";
-import PaymentModal from "../CommanComponents/Modals/PaymentModal";
 import { Modal } from "react-bootstrap";
 import { Form } from "react-bootstrap";
 import { toast } from "react-toastify";
+import ProductPaymentModal from "../CommanComponents/Modals/ByProductModel";
+import ProductActions from "../Redux/Actions/ProductActions";
 
 export default function ProductDetail() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id } = useParams();
-  const postTaskDetails = useSelector(
-    (state) => state.UserSlice.postTaskDetail
-  );
+  const productDetail = useSelector((state) => state.products?.productDetail);
+  console.log(productDetail);
   const [paymentshow, setPaymentShow] = useState(false);
   const [boookingId, setBookingId] = useState(null);
   const [selectedBoooking, setSelectedBoooking] = useState(null);
@@ -32,7 +32,7 @@ export default function ProductDetail() {
   const sliderSettings = {
     dots: true,
     arrows: false,
-    infinite: postTaskDetails?.data?.task?.images?.length > 1,
+    infinite: productDetail?.images?.length > 1,
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
@@ -66,10 +66,11 @@ export default function ProductDetail() {
   };
 
   useEffect(() => {
-    dispatch(CustomerActions.getPostTaskDetail(id));
-  }, [dispatch, id]);
+    if (id) {
+      dispatch(ProductActions.getProductById({ id }));
+    }
+  }, [id, dispatch]);
 
-  const task = postTaskDetails?.data?.task;
   const handlePaymentOpen = (id) => {
     setPaymentShow(true);
     setBookingId(id);
@@ -96,13 +97,13 @@ export default function ProductDetail() {
       return;
     }
     const feedbackData = {
-      TaskId: task?.id,
+      ProductId: productDetail?.id,
       type: 1,
       message: message,
       rating: rating,
-      service_id: bookingState?.serviceSubCategory?._id,
-      serviceProviderId: bookingState?.serviceProvider?._id,
-      category_id: bookingState?.serviceCategory?._id,
+      // service_id: bookingState?.serviceSubCategory?._id,
+      serviceProviderId: productDetail?._id,
+      category_id: productDetail?.categoryId?._id,
     };
     dispatch(CustomerActions.feedbackActions(feedbackData));
     handleFeedbackClose();
@@ -115,15 +116,13 @@ export default function ProductDetail() {
           <div className="feedback-profile">
             <img
               src={
-                bookingState?.serviceSubCategory?.images?.length > 0
-                  ? `${process.env.REACT_APP_API_URL}/user/${bookingState?.serviceSubCategory?.images[0]}`
+                productDetail?.categoryId?.images?.length > 0
+                  ? `${process.env.REACT_APP_API_URL}/user/${productDetail?.categoryId?.images}`
                   : ""
               }
             />
             <div className="">
-              <h4>
-                {bookingState?.serviceSubCategory?.serviceSubCategoryName || ""}
-              </h4>
+              <h4>{productDetail?.categoryId?.name || ""}</h4>
               <p>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +165,7 @@ export default function ProductDetail() {
                     fill="#545454"
                   />
                 </svg>
-                {bookingState?.address}
+                {bookingState?.address || "-"}
               </p>
             </div>
           </div>
@@ -250,32 +249,17 @@ export default function ProductDetail() {
           <Row>
             <Col lg={12}>
               <div className="bookings-details-title lead-details-wrapper d-flex align-items-center gap-2">
-                <Link onClick={() => navigate(-1)} className="d-flex">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="40"
-                    height="42"
-                    viewBox="0 0 40 42"
-                    fill="none"
-                  >
-                    <path
-                      d="M10 21L8.91379 22.0345L7.92857 21L8.91379 19.9655L10 21ZM30 19.5C30.8284 19.5 31.5 20.1716 31.5 21C31.5 21.8284 30.8284 22.5 30 22.5V19.5ZM15.5805 29.0345L8.91379 22.0345L11.0862 19.9655L17.7529 26.9655L15.5805 29.0345ZM8.91379 19.9655L15.5805 12.9655L17.7529 15.0345L11.0862 22.0345L8.91379 19.9655ZM10 19.5H30V22.5L10 22.5L10 19.5Z"
-                      fill="#40413A"
-                    />
-                  </svg>
-                </Link>
-                <h2 className="mt-0">Task Details</h2>
+                <h2 className="mt-0">Product Details</h2>
               </div>
 
               <div className="service-detail-card pt-3">
-                {task?.images?.length > 0 ? (
+                {productDetail?.images?.length > 0 ? (
                   <Slider {...sliderSettings}>
-                    {task.images.map((image, index) => (
-                      <div key={index} className="card-box task-details">
+                    {productDetail?.images?.map((image, index) => (
+                      <div key={index} className="card-box">
                         <img
-                          src={`${process.env.REACT_APP_API_URLL}/${image}`}
-                          alt={task.need_done}
-                          style={{ maxWidth: "200px", margin: "0 auto" }}
+                          src={`${process.env.REACT_APP_API_URL}/products/${image}`}
+                          alt={`Product Image ${index + 1}`}
                         />
                       </div>
                     ))}
@@ -287,41 +271,38 @@ export default function ProductDetail() {
                   />
                 )}
                 <div>
-                  <h3>{task?.need_done || "Task"}</h3>
-                  <p>{task?.address || "-"}</p>
-                  <h5>
-                    {task?.task_time},{" "}
-                    {task?.when_done
-                      ? moment(task.when_done).format("DD MMM yy")
-                      : "N/A"}
-                  </h5>
-                  <p>{task?.details || "No description provided."}</p>
-                  <p>Budget:${task?.budget || "-"}</p>
-                <div className="d-flex justify-content-center align-item-center book-service-action-btn">
-                  {task?.payment?.status === "pending" && (
+                  <h3 className="text-capitalize">
+                    {productDetail?.name || ""}
+                  </h3>
+
+                  <h4>{productDetail?.categoryId?.service_category_name}</h4>
+                  <p>{productDetail?.description}</p>
+                  <p>Price:${productDetail?.price || "-"}</p>
+                  <div className="d-flex justify-content-center align-item-center book-service-action-btn">
+                    {productDetail?.payment?.status === "pending" && (
                       <button
                         className="primaryBtn"
                         onClick={() => {
-                          handlePaymentOpen(task?.id);
-                          setSelectedBoooking(task);
+                          handlePaymentOpen(productDetail?.id);
+                          setSelectedBoooking(productDetail);
                         }}
                       >
                         Pay Now
                       </button>
-                  )}
+                    )}
                     <button
                       className="view-more-btn"
                       onClick={handleFeedbackOpen}
                     >
                       Give Feedback
                     </button>
-                </div>
+                  </div>
                 </div>
 
-                <PaymentModal
+                <ProductPaymentModal
                   paymentshow={paymentshow}
                   handlePaymentClose={handlePaymentClose}
-                  taskId={task?.id}
+                  taskId={productDetail?.id}
                   data={selectedBoooking}
                 />
                 <Modal

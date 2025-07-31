@@ -8,6 +8,10 @@ const ChatList = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleChatSelect = (receiverId, chatIndex) => {
+    // let receiverId = user.sender_id;
+    // if(selectedUser === user.sender_id){
+    //   receiverId = user.receiver_id
+    // }
     if (selectedUser !== receiverId) {
       setSelectedUser(receiverId);
       localStorage.setItem('reciverID', receiverId);
@@ -62,20 +66,23 @@ const ChatList = () => {
         <ul>
           {filteredChatList.length > 0 ? (
             filteredChatList.map((ele, index) => {
-              let receiverId = role;
-              if(role === '2'){
-                receiverId =ele?.sender_id;
-              }else if(role === '1'){
-                receiverId =ele?.sender_id;
-              }else{
-                 receiverId =  ele?.receiver_id;
+              let receiverId = ele?.receiver_id;
+              if(selectedUser === ele?.receiver_id){
+                receiverId = ele?.sender_id;
               }
+              // if(role === '2'){
+              //   receiverId =ele?.sender_id;
+              // }else if(role === '1'){
+              //   receiverId =ele?.sender_id;
+              // }else{
+              //    receiverId =  ele?.receiver_id;
+              // }
               // const receiverId = role === '2' ? ele?.sender_id : ele?.receiver_id;
               return (
                 <li
                   key={index}
                   onClick={() => handleChatSelect(receiverId, chatList.indexOf(ele))}
-                  className={selectedUser === receiverId ? 'active' : ''}
+                  className={selectedUser === ele?.receiver_id ? 'active mt-0' : 'mt-0'}
                 >
                   <div className="d-flex">
                     <div className="chat-list-pro">

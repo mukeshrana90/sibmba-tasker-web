@@ -503,6 +503,13 @@ const CustomerActions = {
       }
     }
   ),
+   // Buy Product
+  buyProducts: createAsyncThunk("/customer/buy-products ",
+    async (customerData) => {
+      const response = await Api.post("/customer/buy-products", customerData);
+      return response.data;
+    }
+  ),
 };
 
 export default CustomerActions;

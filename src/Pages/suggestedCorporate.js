@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { useParams } from "react-router-dom";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
-import ChatIcon from "../Assets/Images/chatIcon2.svg";
 
 export default function SuggestedCorporatePage() {
   const navigate = useNavigate();
@@ -204,21 +203,6 @@ export default function SuggestedCorporatePage() {
                                               : "Inactive"}
                                           </p>
                                         </div>
-                                        <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
-                                          <div
-                                            className="action-button-wrap"
-                                            onClick={() =>
-                                              navigate(
-                                                `/messages?userID=${data.corporateUser?._id}`
-                                              )
-                                            }
-                                          >
-                                            <div className="icon-circle green">
-                                              <img src={ChatIcon} alt="Chat" />
-                                            </div>
-                                            <span>Direct Chat</span>
-                                          </div>
-                                        </div>
                                       </div>
                                     </div>
                                   </li>
@@ -266,7 +250,7 @@ export default function SuggestedCorporatePage() {
                                             src={`${
                                               process.env.REACT_APP_API_URL
                                             }/products/${
-                                              product.images[index] || ""
+                                              product.images[0] || ""
                                             }`}
                                             alt={product?.name}
                                             className="img-fluid product-img"

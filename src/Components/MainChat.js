@@ -274,7 +274,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
               }
 
               const isTaskCard =
-                parsed && parsed.image && parsed.title && parsed.budget;
+                parsed && parsed.image && parsed.name && parsed.price;
 
               return (
                 <div
@@ -294,12 +294,12 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                       <div className="task-card-ui">
                         <div className="task-card-header">
                           <img
-                            src={`${process.env.REACT_APP_API_URLL}/${parsed.image}`}
+                            src={`${parsed.image}`}
                             alt="Task"
                           />
                           <div className="task-header-text">
-                            <span className="task-label">Task Name</span>
-                            <span className="task-title">{parsed.title}</span>
+                            <span className="task-label">Product Name</span>
+                            <span className="task-title">{parsed.name}</span>
                           </div>
                         </div>
 
@@ -315,25 +315,8 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                         </div>
                         <div className="task-header-text">
                           <div>
-                            <strong className="task-label">Category: </strong>{" "}
-                            <span className="task-title">
-                              {parsed.category}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="task-header-text">
-                          <div>
-                            <strong className="task-label">💲 Budget: </strong>{" "}
-                            <span className="task-title">{parsed.budget}</span>
-                          </div>
-
-                          <div>
-                            <strong className="task-label">📅 Date: </strong>{" "}
-                            <span className="task-title">{parsed.date} </span>
-                            <strong className="task-label">
-                              ⏰ Time:
-                            </strong>{" "}
-                            <span className="task-title">{parsed.time}</span>
+                            <strong className="task-label">Price: </strong>{" "}
+                            <span className="task-title">{parsed.price}</span>
                           </div>
 
                           <div>
@@ -344,7 +327,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              View Task
+                              View Product
                             </Link>
                           </div>
                         </div>

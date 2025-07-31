@@ -376,7 +376,7 @@ export default function UserBookingDetails() {
                         {selectedQuotation && (
                           <div className="mt-4">
                             <h5>About Service Provider</h5>
-                            <div className="d-flex align-items-center gap-3">
+                            <div className="d-flex align-items-center gap-3 px-4">
                               <img
                                 src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}`}
                                 className="rounded-circle"
@@ -394,6 +394,13 @@ export default function UserBookingDetails() {
                                       ?.full_name
                                   }
                                 </strong>
+                                 <p className="mb-0 text-muted">
+                                  {
+                                    selectedQuotation?.service_provider
+                                      ?.email
+                                  }
+                                </p>
+
                                 <p className="mb-0 text-muted">
                                   {
                                     selectedQuotation?.service_provider
@@ -402,8 +409,27 @@ export default function UserBookingDetails() {
                                 </p>
                               </div>
                               <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
+                               <div >
+                                           {(
+                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                          <div
+                                            className="action-button-wrap"
+                                            onClick={() =>
+                                              navigate(`/messages?userID=${selectedQuotation?.service_provider._id}`)
+                                            }
+                                          >
+                                            <div className="icon-circle green">
+                                              <img src={ChatIcon} alt="Chat" />
+                                            </div>
+                                            <span>Direct Chat</span>
+                                          </div>
+                                        </div>
+                                       )}
+                                  </div>
                             </div>
+                                
                           </div>
+                          
                         )}
                       </div>
                       <div>
@@ -442,11 +468,13 @@ export default function UserBookingDetails() {
                                             {corp.email}
                                           </div>
                                         </div>
-                                        <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                 <div>
+                                           {item.status ==='in-progress' && (
+                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
                                           <div
                                             className="action-button-wrap"
                                             onClick={() =>
-                                              navigate(`/messages?userID=${corp?._id}`)
+                                              navigate(`/messages?userID=${corp._id}`)
                                             }
                                           >
                                             <div className="icon-circle green">
@@ -455,6 +483,8 @@ export default function UserBookingDetails() {
                                             <span>Direct Chat</span>
                                           </div>
                                         </div>
+                                       )}
+                                  </div>
                                       </div>
                                     );
                                   }
@@ -688,7 +718,7 @@ export default function UserBookingDetails() {
 
                       <div className="category-services-lists mt-4">
                         <div className="list-title">
-                          <h2>About Service Provider</h2>
+                          <h3>About Service Provider</h3>
                         </div>
                         <div className="provider-view-pro d-flex gap-3 align-items-center mb-3">
                           <img
@@ -713,6 +743,7 @@ export default function UserBookingDetails() {
                                 "N/A"}
                             </p>
                           </div>
+                           
                         </div>
 
                         {/* About Service Corporate */}
@@ -727,15 +758,14 @@ export default function UserBookingDetails() {
                               corporateSuggestions.map((corp, idx) => (
                                 <div
                                   key={corp._id || idx}
-                                  onClick={() =>
-                                    navigate(
-                                      `/get-corporate/${corp?.corporateIds?._id}`
-                                    )
-                                  }
                                   className="d-flex justify-content-between align-items-center gap-3 mb-3 cursor-pointer"
                                 >
                                   {/* Left: Corporate info */}
-                                  <div className="d-flex align-items-center gap-3">
+                                  <div className="d-flex align-items-center gap-3" onClick={() =>
+                                    navigate(
+                                      `/get-corporate/${corp?.corporateIds?._id}`
+                                    )
+                                  }>
                                     <img
                                       src={
                                         corp?.corporateIds?.profile_image
@@ -759,6 +789,24 @@ export default function UserBookingDetails() {
                                           corp.corporateIds?.email}
                                       </p>
                                     </div>
+                                      
+                                  </div>
+                                  <div>
+                                           {corp.status ==='in-progress' && (
+                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                          <div
+                                            className="action-button-wrap"
+                                            onClick={() =>
+                                              navigate(`/messages?userID=${corp?.corporateIds._id}`)
+                                            }
+                                          >
+                                            <div className="icon-circle green">
+                                              <img src={ChatIcon} alt="Chat" />
+                                            </div>
+                                            <span>Direct Chat</span>
+                                          </div>
+                                        </div>
+                                       )}
                                   </div>
 
                                   {bookingState.status !== 3 &&

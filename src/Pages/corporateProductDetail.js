@@ -7,8 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import Slider from "react-slick";
 import Layout from "../Components/Layout/Layout";
-import ChatIcon from "../Assets/Images/chatIcon2.svg";
-import copyLink from "../Assets/Images/copyLink.svg";
+import ChatIcon from "../Assets/Images/chat.svg";
 import { toast } from "react-toastify";
 export default function CorporateProductDetailPage() {
   const navigate = useNavigate();
@@ -90,29 +89,40 @@ export default function CorporateProductDetailPage() {
                   <div className="book-service-action-btn">
                     <h4>Price: ${productDetails?.price || "N/A"}</h4>
                   </div>
-                </div>
+                <div className ="book-now-product d-flex">
+              </div>
+              </div>
               </div>
             </Col>
             <Col>
-              <div className="quotation-inner d-flex justify-content-center gap-4 mt-3 mb-0">
-                <div
-                  className="action-button-wrap"
-                  onClick={() => navigate(`/messages`)}
-                >
-                  <div className="icon-circle green">
-                    <img src={ChatIcon} alt="Chat" />
-                  </div>
-                  <span>Direct Chat</span>
-                </div>
+            <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3">
+              <button
+                className="view-more-btn"
+                onClick={() => {
+                  const product = {
+                    image:
+                      productDetails?.images?.[0]
+                        ? `${process.env.REACT_APP_API_URL}/products/${productDetails.images[0]}`
+                        : "/Assets/Images/default-task.png",
+                    name: productDetails?.name || "-",
+                    description:
+                      productDetails?.description || "No description available.",
+                    price: `$${productDetails?.price || "0"}`,
+                    id: productDetails?._id || "Flexible",
+                  };
 
-                {/* <div className="action-button-wrap" onClick={handleCopyURL}>
-                  <div className="icon-circle dark">
-                    <img src={copyLink} alt="Copy URL" />
-                  </div>
-                  <span>Copy URL</span>
-                </div> */}
-              </div>
-            </Col>
+                  localStorage.setItem("preloadTaskMessage", JSON.stringify(product));
+                  localStorage.setItem("reciverID", productDetails?.user_id); 
+                  navigate("/messages");
+                }}
+              >
+                <img src={ChatIcon} alt="Chat"/> Direct Chat
+              </button>
+
+              <button className="primaryBtn">Buy Now</button>
+            </div>
+          </Col>
+
           </Row>
         </Container>
       </section>

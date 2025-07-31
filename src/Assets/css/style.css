@@ -5296,6 +5296,11 @@ section.page-mt {
   border: 1px solid #d1d0cb!important;
   color: #545454 !important;
   background-color: #fff!important;
+   img{
+    height: 20px;
+    width: 20px;
+    margin-right: 5px;
+  }
 }
 .primaryBtn{
   border-radius: 8px !important;
@@ -5304,6 +5309,10 @@ section.page-mt {
   border: 1px solid #d1d0cb !important;
   color: #fff !important;
   background-color: #038654 !important;
+  img{
+    height: 20px;
+    width: 20px;
+  }
 }
 .deleteConfirmModal {
   .modal-footer {

@@ -262,20 +262,13 @@ export default function LeadDetails() {
                           <>
                            <button
                             onClick={() => {
-                              const taskCard = {
-                                image: task?.images?.[0] || "/Assets/Images/default-task.png",
-                                title: task?.need_done || "Task",
-                                description: task?.details || "No description available.",
-                                budget: `$${task?.budget || "0"}`,
-                                date: task?.when_done,
-                                time: task?.task_time || "Flexible",
-                                id: task?._id || "Flexible",
-                                category:task.category_id?.service_category_name
-                              };
-
-                              localStorage.setItem("preloadTaskMessage", JSON.stringify(taskCard));
-                              localStorage.setItem("reciverID", task?.user_id);
-                              navigate("/messages");
+                                navigate(
+                                  `/messages?userID=${task?.user_id}`
+                                );
+                                localStorage.setItem(
+                                  "reciverID",
+                                  task?.user_id
+                                );
                             }}
                           >
                             <img src={ChatIcon} alt="" /> Chat
