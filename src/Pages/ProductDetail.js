@@ -101,7 +101,7 @@ export default function ProductDetail() {
       type: 1,
       message: message,
       rating: rating,
-      // service_id: bookingState?.serviceSubCategory?._id,
+      corporateId: bookingState?.serviceSubCategory?._id,
       serviceProviderId: productDetail?._id,
       category_id: productDetail?.categoryId?._id,
     };
@@ -279,7 +279,7 @@ export default function ProductDetail() {
                   <p>{productDetail?.description}</p>
                   <p>Price:${productDetail?.price || "-"}</p>
                   <div className="d-flex justify-content-center align-item-center book-service-action-btn">
-                    {productDetail?.payment?.status === "pending" && (
+                    {(
                       <button
                         className="primaryBtn"
                         onClick={() => {
@@ -299,11 +299,12 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                <ProductPaymentModal
+                  <ProductPaymentModal
                   paymentshow={paymentshow}
                   handlePaymentClose={handlePaymentClose}
-                  taskId={productDetail?.id}
+                  productId={productDetail?._id}
                   data={selectedBoooking}
+                  copId={productDetail?.categoryId?._id}
                 />
                 <Modal
                   show={showFeedback || showThankYou}

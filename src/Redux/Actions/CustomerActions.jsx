@@ -504,9 +504,9 @@ const CustomerActions = {
     }
   ),
    // Buy Product
-  buyProducts: createAsyncThunk("/customer/buy-products ",
+  buyProducts: createAsyncThunk("/customer/initiate_payment_for_product ",
     async (customerData) => {
-      const response = await Api.post("/customer/buy-products", customerData);
+      const response = await Api.post("/customer/initiate_payment_for_product", customerData);
       return response.data;
     }
   ),

@@ -309,12 +309,14 @@ export default function ServiceRequest() {
               </div>
             </Col>
             <Col lg={12}>
-              <div className="d-block">
+             {bookingReqDetail?.corporateSuggestions.length > 0 || servicetype !== "approved" && servicetype !== "reject" && (
+               <div className="d-block">
                 <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
                   Suggest Corporate
                 </div>
               </div>
-                {bookingReqDetail?.corporateSuggestions.length>0 && (
+             )}
+                {bookingReqDetail?.corporateSuggestions.length > 0 && (
                 <div className="selected-corporate p-3 border rounded d-flex justify-content-between align-items-center mb-5">
                   <div className="d-flex align-items-center">
                     <img

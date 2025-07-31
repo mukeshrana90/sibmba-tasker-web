@@ -9,15 +9,15 @@ const ProductPaymentModal = ({
   handlePaymentClose,
   productId,
   data,
+  copId
 }) => {
   const dispatch = useDispatch();
   const [show, setShow] = useState(false);
   const handlePay = async () => {
     const payload = {
-         productId: productId ,
-         quantity:1,
-         status:"completed",
-        };
+      productId: productId,
+      corporateId:copId
+    };
     const res = await dispatch(CustomerActions?.buyProducts(payload));
     if (res?.payload?.success) {
       handlePaymentClose();
@@ -49,7 +49,7 @@ const ProductPaymentModal = ({
               You service has been completed. Please pay to
               <br /> proceed further.
             </p>
-            <h5>$ {data?.serviceSubCategory?.price || data?.budget}</h5>
+            <h5>$ {data?.price || data?.budget}</h5>
             <div className="comman-pop-action">
               <button className="btn-fill" onClick={handlePay}>
                 Pay Now

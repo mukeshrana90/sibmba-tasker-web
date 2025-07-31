@@ -87,7 +87,7 @@ export default function CorporateProductDetailPage() {
                     {productDetails?.description || "No description provided."}
                   </p>
                   <div className="book-service-action-btn">
-                    <h4>Price: ${productDetails?.price || "N/A"}</h4>
+                  <p>Price:${productDetails?.price || "-"}</p>
                   </div>
                 <div className ="book-now-product d-flex">
               </div>
@@ -118,8 +118,6 @@ export default function CorporateProductDetailPage() {
               >
                 <img src={ChatIcon} alt="Chat"/> Direct Chat
               </button>
-
-              <button className="primaryBtn">Buy Now</button>
             </div>
           </Col>
 

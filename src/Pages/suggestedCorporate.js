@@ -248,8 +248,7 @@ export default function SuggestedCorporatePage() {
                                         >
                                           <img
                                             src={`${
-                                              process.env.REACT_APP_API_URL
-                                            }/products/${
+                                              process.env.REACT_APP_API_URL}/products/${
                                               product.images[0] || ""
                                             }`}
                                             alt={product?.name}

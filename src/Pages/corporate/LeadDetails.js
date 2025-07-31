@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import Layout from "../../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
@@ -18,10 +23,38 @@ export default function LeadDetails() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const type = searchParams.get("type");
+
   const [showMapModal, setShowMapModal] = useState(false);
   const postTaskDetails = useSelector(
     (state) => state.UserSlice.postTaskDetail
   );
+  const [bookingState, setBookingState] = useState();
+
+  const getStatusLabel = (status) => {
+    const statusMap = {
+      1: "Pending",
+      2: "Confirmed",
+      3: "Canceled",
+      4: "Completed",
+      5: "Rejected",
+    };
+
+    return statusMap[status] || "N/A";
+  };
+
+  const getStatusColor = (status) => {
+    const statusMap = {
+      1: "pending",
+      2: "cancelled",
+      3: "completed",
+      4: "in-progress",
+      5: "cancelled",
+    };
+
+    return statusMap[status] || "N/A";
+  };
   const sliderSettings = {
     dots: true,
     arrows: false,
@@ -59,12 +92,18 @@ export default function LeadDetails() {
   };
 
   useEffect(() => {
-    dispatch(CustomerActions.getPostTaskDetail(id));
+    if (type === "service") {
+      dispatch(CustomerActions.getBookingById({ id })).then((res) => {
+        if (res?.payload?.success) {
+          setBookingState(res?.payload?.data);
+        }
+      });
+    } else {
+      dispatch(CustomerActions.getPostTaskDetail(id));
+    }
   }, [dispatch, id]);
-
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
-
   return (
     <Layout>
       <section className="service-detail-sec">
@@ -86,231 +125,410 @@ export default function LeadDetails() {
                     />
                   </svg>
                 </Link>
-                <h2 className="mt-0">Task Details</h2>
+                <h2 className="mt-0">
+                  {" "}
+                  {bookingState ? "Booking Details" : "Task Detsils"}
+                </h2>
               </div>
+              {bookingState ? (
+                <>
+                  <div className="service-detail-card pt-3">
+                    {bookingState?.images?.length > 0 ? (
+                      <Slider {...sliderSettings}>
+                        {bookingState.images.map((image, index) => (
+                          <div key={index} className="card-box task-details">
+                            <img
+                              src={`${process.env.REACT_APP_API_URLL}/${image}`}
+                              alt={bookingState.need_done}
+                              style={{ maxWidth: "200px", margin: "0 auto" }}
+                            />
+                          </div>
+                        ))}
+                      </Slider>
+                    ) : (
+                      <img
+                        src={require("../../Assets/Images/living-room-cleaning.png")}
+                        alt="Default"
+                      />
+                    )}
+                    <div>
+                      <h3>{bookingState?.message || "-"}</h3>
+                      <h5>{bookingState?.date}</h5>
+                      <p>Slots:{bookingState?.slotTime || "-"}</p>
+                      <p>
+                        {bookingState?.address || "No description provided."}
+                      </p>
+                    </div>
+                  </div>
+                  <section className="category-services-sec pt-0 mt-5">
+                    <Container>
+                      <div className="category-services-lists">
+                        <h5>About Service Provider</h5>
+                        <div className="quotation-requests-wrap">
+                          {bookingState?.serviceProvider ? (
+                            <>
+                              <div className="quotation-txt-show">
+                                <div className="profile-side cursor-pointer">
+                                  <img
+                                    className="point-cursor"
+                                    src={`${process.env.REACT_APP_API_URL}${bookingState?.serviceProvider?.profile_image}`}
+                                    alt="categories-img"
+                                  />
+                                  <div>
+                                    <h5>
+                                      {bookingState?.serviceProvider?.full_name}
+                                    </h5>
+                                    <p>
+                                      {bookingState?.serviceProvider?.email}
+                                    </p>
+                                    <p>
+                                      {bookingState?.serviceProvider?.address}
+                                    </p>
+                                    <p className="text-muted mt-1">
+                                      Company Name:{" "}
+                                      {
+                                        bookingState?.serviceProvider
+                                          ?.company_name
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
 
-              <div className="service-detail-card pt-3">
-                {task?.images?.length > 0 ? (
-                  <Slider {...sliderSettings}>
-                    {task.images.map((image, index) => (
-                      <div key={index} className="card-box task-details">
-                        <img
-                          src={`${process.env.REACT_APP_API_URLL}/${image}`}
-                          alt={task.need_done}
-                          style={{ maxWidth: "200px", margin: "0 auto" }}
-                        />
-                      </div>
-                    ))}
-                  </Slider>
-                ) : (
-                  <img
-                    src={require("../../Assets/Images/living-room-cleaning.png")}
-                    alt="Default"
-                  />
-                )}
-                <div>
-                  <h3>{task?.need_done || "Task"}</h3>
-                  <h5>
-                    {task?.task_time},{" "}
-                    {task?.when_done
-                      ? moment(task.when_done).format("DD MMM")
-                      : "N/A"}
-                  </h5>
-                  <p>{task?.details || "No description provided."}</p>
-                  <p>Budget:${task?.budget || "-"}</p>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
-      <section className="category-services-sec pt-0 mt-5">
-        <Container>
-          <div className="category-services-lists">
-            <div className="list-title">
-              <h2 className="mb-0">Quotations</h2>
-            </div>
-            <p className="mt-0">About Service Provider</p>
+                              <p>{bookingState.serviceProvider?.description}</p>
 
-            {quotations?.length === 0 ? (
-              <div className="no-upcoming-bookings">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="80"
-                  height="80"
-                  viewBox="0 0 80 80"
-                  fill="none"
-                >
-                  {/* SVG paths omitted for brevity */}
-                </svg>
-                <h3>No Quotations Yet</h3>
-                <p>Currently you don’t have any offers</p>
-              </div>
-            ) : (
-              <div>
-                {quotations?.map((quotation, index) => {
-                  const status =
-                    quotation?.corporateSuggestion[index]?.corporateStatus;
-                  const statusMap = {
-                    0: { label: "Pending Booking", className: "pending" },
-                    1: { label: "Accepted", className: "completed" },
-                    2: { label: "Rejected", className: "rejected" },
-                  };
-                  const currentStatus = statusMap[status] || {
-                    label: "Unknown",
-                    className: "unknown",
-                  };
-                  return (
-                    <div className="quotation-requests-wrap" key={index}>
-                      <div className="quotation-requests quotation-requests-inner">
-                        <div>
-                          <div className="quotation-txt-show">
-                            <div
-                              className="profile-side cursor-pointer"
-                              onClick={() =>
-                                navigate(`/quotations-detail/${quotation?._id}`)
-                              }
-                            >
-                              <img
-                                className="point-cursor"
-                                src={`${process.env.REACT_APP_API_URL}/${quotation?.service_provider?.profile_image}`}
-                                alt="categories-img"
-                              />
-                              <div>
-                                <h5>
-                                  {quotation?.service_provider?.full_name}
-                                </h5>
-                                <p>{quotation?.service_provider?.email}</p>
-                                <p>{quotation?.service_provider?.address}</p>
-                                <div className="rating-stars">
-                                  <ul>
-                                    <StarRating
-                                      averageRating={quotation.averageRating}
-                                    />
-                                  </ul>
+                              <div className="flex mt-3">
+                                Status:{" "}
+                                <h3
+                                  className={`corporate_inner ${getStatusColor(
+                                    bookingState.serviceProvider.status
+                                  )}`}
+                                >
+                                  Booking{" "}
+                                  {getStatusLabel(
+                                    bookingState.serviceProvider.status
+                                  )}
+                                </h3>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-muted mt-3">
+                              No service provider details available.
+                            </p>
+                          )}
+
+                          {bookingState.corporateSuggestions?.length > 0 && (
+                            <div className="quotation-wrapper">
+                              <div className="suggested-caproate">
+                                <h5>Suggested Corporate</h5>
+                                <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                                  {bookingState.corporateSuggestions.map(
+                                    (item, idx) => (
+                                      <div
+                                        key={item._id || idx}
+                                        className="corporate-item d-flex align-items-center py-2"
+                                        style={{ gap: "10px" }}
+                                      >
+                                        <img
+                                          src={`${process.env.REACT_APP_API_URL}/${item.corporateIds?.profile_image}`}
+                                          alt={item.corporateIds?.full_name}
+                                          className="rounded-circle"
+                                          width={40}
+                                          height={40}
+                                        />
+                                        <div className="flex-grow-1">
+                                          <div className="fw-bold">
+                                            {item.corporateIds?.full_name}
+                                          </div>
+                                          <div className="text-muted small">
+                                            {item.corporateIds?.shop_name}
+                                          </div>
+                                          <div className="text-muted small">
+                                            {item.corporateIds?.email}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )
+                                  )}
                                 </div>
                               </div>
                             </div>
-                          </div>
-                          <p>{quotation?.description}</p>
-                          <div className="d-flex gap-2 mt-2">
-                            {" "}
-                            Status:
-                            <span
-                              className={`corporate_inner ${currentStatus.className}`}
-                            >
-                              {currentStatus?.label}
-                            </span>
-                          </div>
-                          <p>
-                            {task?.task_time},{" "}
-                            {task?.when_done
-                              ? moment(task.when_done).format("DD MMM YY")
-                              : "N/A"}
-                          </p>
-                        </div>
-                        <div className="quotation-requests-task-btns">
-                          <div>
-                            <h5>${quotation?.offer_price}</h5>
-                            <p>Offer Price</p>
-                          </div>
+                          )}
                         </div>
                       </div>
+                    </Container>
+                  </section>
+                </>
+              ) : (
+                <>
+                  {/* task */}
+                  <div className="service-detail-card pt-3">
+                    {task?.images?.length > 0 ? (
+                      <Slider {...sliderSettings}>
+                        {task.images.map((image, index) => (
+                          <div key={index} className="card-box task-details">
+                            <img
+                              src={`${process.env.REACT_APP_API_URLL}/${image}`}
+                              alt={task.need_done}
+                              style={{ maxWidth: "200px", margin: "0 auto" }}
+                            />
+                          </div>
+                        ))}
+                      </Slider>
+                    ) : (
+                      <img
+                        src={require("../../Assets/Images/living-room-cleaning.png")}
+                        alt="Default"
+                      />
+                    )}
+                    <div>
+                      <h3>{task?.need_done || "Task"}</h3>
+                      <h5>
+                        {task?.task_time},{" "}
+                        {task?.when_done
+                          ? moment(task.when_done).format("DD MMM")
+                          : "N/A"}
+                      </h5>
+                      <p>{task?.details || "No description provided."}</p>
+                      <p>Budget:${task?.budget || "-"}</p>
+                    </div>
+                  </div>
+                  <section className="category-services-sec pt-0 mt-5">
+                    <Container>
+                      <div className="category-services-lists">
+                        <div className="list-title">
+                          <h2 className="mb-0">Quotations</h2>
+                        </div>
+                        <p className="mt-0">About Service Provider</p>
 
-                      {quotation?.corporateSuggestion?.length > 0 && (
-                        <div className="quotation-wrapper">
-                          <div className="suggested-caproate">
-                            <h5>Suggested Corporate</h5>
-                            <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
-                              {quotation.corporateSuggestion.map(
-                                (item, idx) => (
-                                  <div
-                                    key={item._id || idx}
-                                    className="corporate-item d-flex align-items-center py-2"
-                                    style={{ gap: "10px" }}
-                                  >
-                                    <img
-                                      src={`${process.env.REACT_APP_API_URL}/${item?.corporateIds?.profile_image}`}
-                                      alt={item.corporateIds?.full_name}
-                                      className="rounded-circle"
-                                      width={40}
-                                      height={40}
-                                    />
-                                    <div className="flex-grow-1">
-                                      <div className="fw-bold">
-                                        {item.corporateIds?.full_name}
+                        {quotations?.length === 0 ? (
+                          <div className="no-upcoming-bookings">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="80"
+                              height="80"
+                              viewBox="0 0 80 80"
+                              fill="none"
+                            >
+                              {/* SVG paths omitted for brevity */}
+                            </svg>
+                            <h3>No Quotations Yet</h3>
+                            <p>Currently you don’t have any offers</p>
+                          </div>
+                        ) : (
+                          <div>
+                            {quotations?.map((quotation, index) => {
+                              const status =
+                                quotation?.corporateSuggestion[index]
+                                  ?.corporateStatus;
+                              const statusMap = {
+                                0: {
+                                  label: "Pending Booking",
+                                  className: "pending",
+                                },
+                                1: {
+                                  label: "Accepted",
+                                  className: "completed",
+                                },
+                                2: { label: "Rejected", className: "rejected" },
+                              };
+                              const currentStatus = statusMap[status] || {
+                                label: "Unknown",
+                                className: "unknown",
+                              };
+                              return (
+                                <div
+                                  className="quotation-requests-wrap"
+                                  key={index}
+                                >
+                                  <div className="quotation-requests quotation-requests-inner">
+                                    <div>
+                                      <div className="quotation-txt-show">
+                                        <div
+                                          className="profile-side cursor-pointer"
+                                          onClick={() =>
+                                            navigate(
+                                              `/quotations-detail/${quotation?._id}`
+                                            )
+                                          }
+                                        >
+                                          <img
+                                            className="point-cursor"
+                                            src={`${process.env.REACT_APP_API_URL}/${quotation?.service_provider?.profile_image}`}
+                                            alt="categories-img"
+                                          />
+                                          <div>
+                                            <h5>
+                                              {
+                                                quotation?.service_provider
+                                                  ?.full_name
+                                              }
+                                            </h5>
+                                            <p>
+                                              {
+                                                quotation?.service_provider
+                                                  ?.email
+                                              }
+                                            </p>
+                                            <p>
+                                              {
+                                                quotation?.service_provider
+                                                  ?.address
+                                              }
+                                            </p>
+                                            <div className="rating-stars">
+                                              <ul>
+                                                <StarRating
+                                                  averageRating={
+                                                    quotation.averageRating
+                                                  }
+                                                />
+                                              </ul>
+                                            </div>
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="text-muted small">
-                                        {item.corporateIds?.shop_name}
+                                      <p>{quotation?.description}</p>
+                                      <div className="d-flex gap-2 mt-2">
+                                        {" "}
+                                        Status:
+                                        <span
+                                          className={`corporate_inner ${currentStatus.className}`}
+                                        >
+                                          {currentStatus?.label}
+                                        </span>
                                       </div>
-                                      <div className="text-muted small">
-                                        {item.corporateIds?.email}
+                                      <p>
+                                        {task?.task_time},{" "}
+                                        {task?.when_done
+                                          ? moment(task.when_done).format(
+                                              "DD MMM YY"
+                                            )
+                                          : "N/A"}
+                                      </p>
+                                    </div>
+                                    <div className="quotation-requests-task-btns">
+                                      <div>
+                                        <h5>${quotation?.offer_price}</h5>
+                                        <p>Offer Price</p>
                                       </div>
                                     </div>
                                   </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
 
-                      <div className="quotation-inner d-flex justify-content-center gap-4 mt-3">
-                        {quotation?.corporateSuggestion?.some(
-                          (s, index) => s.status !== "rejected"
-                        ) && (
-                          <>
-                           <button
-                            onClick={() => {
-                                navigate(
-                                  `/messages?userID=${task?.user_id}`
-                                );
-                                localStorage.setItem(
-                                  "reciverID",
-                                  task?.user_id
-                                );
-                            }}
-                          >
-                            <img src={ChatIcon} alt="" /> Chat
-                          </button>
-                            <button onClick={() => setShowMapModal(true)}>
-                              <img src={mapIcon} alt="" /> Map
-                            </button>
-                          </>
+                                  {quotation?.corporateSuggestion?.length >
+                                    0 && (
+                                    <div className="quotation-wrapper">
+                                      <div className="suggested-caproate">
+                                        <h5>Suggested Corporate</h5>
+                                        <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                                          {quotation.corporateSuggestion.map(
+                                            (item, idx) => (
+                                              <div
+                                                key={item._id || idx}
+                                                className="corporate-item d-flex align-items-center py-2"
+                                                style={{ gap: "10px" }}
+                                              >
+                                                <img
+                                                  src={`${process.env.REACT_APP_API_URL}/${item?.corporateIds?.profile_image}`}
+                                                  alt={
+                                                    item.corporateIds?.full_name
+                                                  }
+                                                  className="rounded-circle"
+                                                  width={40}
+                                                  height={40}
+                                                />
+                                                <div className="flex-grow-1">
+                                                  <div className="fw-bold">
+                                                    {
+                                                      item.corporateIds
+                                                        ?.full_name
+                                                    }
+                                                  </div>
+                                                  <div className="text-muted small">
+                                                    {
+                                                      item.corporateIds
+                                                        ?.shop_name
+                                                    }
+                                                  </div>
+                                                  <div className="text-muted small">
+                                                    {item.corporateIds?.email}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="quotation-inner d-flex justify-content-center gap-4 mt-3">
+                                    {quotation?.corporateSuggestion?.some(
+                                      (s, index) => s.status !== "rejected"
+                                    ) && (
+                                      <>
+                                        <button
+                                          onClick={() => {
+                                            navigate(
+                                              `/messages?userID=${task?.user_id}`
+                                            );
+                                            localStorage.setItem(
+                                              "reciverID",
+                                              task?.user_id
+                                            );
+                                          }}
+                                        >
+                                          <img src={ChatIcon} alt="" /> Chat
+                                        </button>
+                                        <button
+                                          onClick={() => setShowMapModal(true)}
+                                        >
+                                          <img src={mapIcon} alt="" /> Map
+                                        </button>
+                                      </>
+                                    )}
+                                    <Modal
+                                      show={showMapModal}
+                                      onHide={() => setShowMapModal(false)}
+                                      centered
+                                      size="lg"
+                                    >
+                                      <Modal.Header
+                                        closeButton
+                                        className="border-none pb-0"
+                                      >
+                                        <Modal.Title>
+                                          Service Location
+                                        </Modal.Title>
+                                      </Modal.Header>
+                                      <Modal.Body>
+                                        <div className="comman-small-pop text-center">
+                                          <MapComponent
+                                            coordinates={
+                                              quotation?.service_provider
+                                                .location?.coordinates
+                                            }
+                                            address={
+                                              quotation?.service_provider
+                                                ?.street_address
+                                            }
+                                          />
+                                        </div>
+                                      </Modal.Body>
+                                    </Modal>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
-                        <Modal
-                          show={showMapModal}
-                          onHide={() => setShowMapModal(false)}
-                          centered
-                          size="lg"
-                        >
-                          <Modal.Header
-                            closeButton
-                            className="border-none pb-0"
-                          >
-                            <Modal.Title>Service Location</Modal.Title>
-                          </Modal.Header>
-                          <Modal.Body>
-                            <div className="comman-small-pop text-center">
-                              <MapComponent
-                                coordinates={
-                                  quotation?.service_provider.location
-                                    ?.coordinates
-                                }
-                                address={
-                                  quotation?.service_provider?.street_address
-                                }
-                              />
-                            </div>
-                          </Modal.Body>
-                        </Modal>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    </Container>
+                  </section>
+                </>
+              )}
+            </Col>
+          </Row>
         </Container>
       </section>
     </Layout>
