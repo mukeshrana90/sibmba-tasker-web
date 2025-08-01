@@ -323,7 +323,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                             <strong className="task-label">🔗 Link: </strong>{" "}
                             <Link
                               className="task-title link"
-                              to={`/product-details/${parsed.id}`}
+                              to={`/product-detail/${parsed.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >

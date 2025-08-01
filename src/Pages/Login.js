@@ -22,6 +22,7 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    webPage:false
   });
   const [showPassword, setShowPassword] = useState(false);
   useEffect(() => {

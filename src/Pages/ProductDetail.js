@@ -244,22 +244,22 @@ export default function ProductDetail() {
   };
   return (
     <Layout>
-      <section className="service-detail-sec">
+      <section className="service-detail-sec mb-5">
         <Container>
-          <Row>
+          <div className="bookings-details-title mt-5">
+            <h2>Product Details</h2>
+          </div>
+          <Row className="quotation-requests-wrap mt-3">
             <Col lg={12}>
-              <div className="bookings-details-title lead-details-wrapper d-flex align-items-center gap-2">
-                <h2 className="mt-0">Product Details</h2>
-              </div>
-
               <div className="service-detail-card pt-3">
                 {productDetail?.images?.length > 0 ? (
                   <Slider {...sliderSettings}>
-                    {productDetail?.images?.map((image, index) => (
-                      <div key={index} className="card-box">
+                    {productDetail.images.map((image, index) => (
+                      <div key={index} className="card-box task-details">
                         <img
                           src={`${process.env.REACT_APP_API_URL}/products/${image}`}
-                          alt={`Product Image ${index + 1}`}
+                          alt={productDetail.name}
+                          style={{ maxWidth: "200px", margin: "0 auto" }}
                         />
                       </div>
                     ))}
@@ -271,35 +271,35 @@ export default function ProductDetail() {
                   />
                 )}
                 <div>
-                  <h3 className="text-capitalize">
-                    {productDetail?.name || ""}
-                  </h3>
-
-                  <h4>{productDetail?.categoryId?.service_category_name}</h4>
-                  <p>{productDetail?.description}</p>
-                  <p>Price:${productDetail?.price || "-"}</p>
-                  <div className="d-flex justify-content-center align-item-center book-service-action-btn">
-                    {(
-                      <button
-                        className="primaryBtn"
-                        onClick={() => {
-                          handlePaymentOpen(productDetail?.id);
-                          setSelectedBoooking(productDetail);
-                        }}
-                      >
-                        Pay Now
-                      </button>
-                    )}
-                    <button
-                      className="view-more-btn"
-                      onClick={handleFeedbackOpen}
-                    >
-                      Give Feedback
-                    </button>
+                  <h3>{productDetail?.name}</h3>
+                  <p>
+                    Description:{" "}
+                    {productDetail?.description || "No description provided."}
+                  </p>
+                  <div className="book-service-action-btn">
+                    <p>Price:${productDetail?.price || "-"}</p>
                   </div>
+                  <div className="book-now-product d-flex"></div>
                 </div>
-
-                  <ProductPaymentModal
+              </div>
+            </Col>
+            <Col>
+              <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3">
+                {
+                  <button
+                    className="primaryBtn"
+                    onClick={() => {
+                      handlePaymentOpen(productDetail?.id);
+                      setSelectedBoooking(productDetail);
+                    }}
+                  >
+                    Pay Now
+                  </button>
+                }
+                <button className="view-more-btn" onClick={handleFeedbackOpen}>
+                  Give Feedback
+                </button>
+                <ProductPaymentModal
                   paymentshow={paymentshow}
                   handlePaymentClose={handlePaymentClose}
                   productId={productDetail?._id}

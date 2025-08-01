@@ -298,7 +298,7 @@ export default function CorporateLeadsPage() {
                                             </div>
 
                                             {(res.userStatus === 1 &&
-                                              res.corporateStatus === 1) ||
+                                              res.corporateStatus === 1 || res.corporateStatus === 3) ||
                                             status === "rejected" ? (
                                               <div className="book-service-action-btn leads-btn d-flex gap-2">
                                                 <button
