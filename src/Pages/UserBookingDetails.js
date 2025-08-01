@@ -828,15 +828,16 @@ export default function UserBookingDetails() {
                                       </button>
                                     </div>
                                   ) : (
-                                    <div className="book-service-action-btn d-flex gap-2 mt-2">
-                                      <button
-                                        type="button"
-                                        className="text-white"
-                                        onClick={() => handleAccept(corp, 3)}
-                                      >
-                                        Job Done
-                                      </button>
-                                    </div>
+                                    <></>
+                                    // <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                    //   <button
+                                    //     type="button"
+                                    //     className="text-white"
+                                    //     onClick={() => handleAccept(corp, 3)}
+                                    //   >
+                                    //     Job Done
+                                    //   </button>
+                                    // </div>
                                   )}
                                 </div>
                               ))

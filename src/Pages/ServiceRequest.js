@@ -394,7 +394,7 @@ export default function ServiceRequest() {
                 {servicetype !== "reject" ? (
                   servicetype === "approved" ? (
                     <>
-                      <div className="book-service-action w-50">
+                      <div className="book-service-action">
                         <button onClick={handleJobDone}>Job Done</button>
                       </div>
                     </>
