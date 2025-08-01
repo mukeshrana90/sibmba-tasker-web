@@ -18,6 +18,8 @@ import ChatIcon from "../../Assets/Images/chat.svg";
 import mapIcon from "../../Assets/Images/map.svg";
 import { Modal } from "react-bootstrap";
 import MapComponent from "../../CommanComponents/MapComponent";
+import CorporateActions from "../../Redux/Actions/corporateActions";
+import { toast } from "react-toastify";
 
 export default function LeadDetails() {
   const navigate = useNavigate();
@@ -27,6 +29,8 @@ export default function LeadDetails() {
   const type = searchParams.get("type");
 
   const [showMapModal, setShowMapModal] = useState(false);
+  const [jobStatus, setJobStatus] = useState("");
+
   const postTaskDetails = useSelector(
     (state) => state.UserSlice.postTaskDetail
   );
@@ -104,6 +108,63 @@ export default function LeadDetails() {
   }, [dispatch, id]);
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
+
+  const handleAccept = (data, status) => {
+    const payload = {
+      status: status,
+    };
+
+    let matchedItem = null;
+
+    if (type === "task") {
+      // For task: iterate over quotations and extract corporateSuggestion
+      const allSuggestions = quotations.flatMap((q) =>
+        q.corporateSuggestion.map((s) => ({
+          corporateStatus: s.corporateStatus,
+          userStatus: s.userStatus,
+          taskId: s.taskId,
+        }))
+      );
+
+      matchedItem = allSuggestions.find(
+        (item) => item.corporateStatus === 1 && item.userStatus === 1
+      );
+
+      if (matchedItem) {
+        payload.taskId = matchedItem.taskId;
+      }
+    } else {
+      // For service: data.corporateSuggestions is directly accessible
+      const result = data.corporateSuggestions.map((i) => ({
+        corporateStatus: i.corporateStatus,
+        userStatus: i.userStatus,
+        bookingId: i.bookingId,
+      }));
+
+      matchedItem = result.find(
+        (item) => item.corporateStatus === 1 && item.userStatus === 1
+      );
+
+      if (matchedItem) {
+        setJobStatus(matchedItem);
+        payload.bookingId = matchedItem.bookingId;
+      }
+    }
+    // Dispatch action
+    dispatch(CorporateActions.acceptRejectCorporateSuggestion(payload))
+      .then((res) => {
+        if (res?.payload) {
+          toast.success(
+            status === 3 ? "Accepted successfully." : "Rejected successfully."
+          );
+          navigate("/corporate/leads?page=leads");
+        }
+      })
+      .catch(() => {
+        toast.error("An error occurred. Please try again.");
+      });
+  };
+
   return (
     <Layout>
       <section className="service-detail-sec">
@@ -158,6 +219,18 @@ export default function LeadDetails() {
                       <p>
                         {bookingState?.address || "No description provided."}
                       </p>
+                      <div className="book-now-product mb-0">
+                        {!bookingState?.corporateSuggestions?.some(
+                          (cs) => cs.corporateStatus === 3
+                        ) && (
+                          <button
+                            className="primaryBtn"
+                            onClick={() => handleAccept(bookingState, 3)}
+                          >
+                            Done Job
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <section className="category-services-sec pt-0 mt-5">
@@ -252,6 +325,66 @@ export default function LeadDetails() {
                                   )}
                                 </div>
                               </div>
+                              <div>
+                                {bookingState?.corporateSuggestions
+                                  ?.filter((item) => item.status !== "rejected")
+                                  .map((item, index) => (
+                                    <div
+                                      key={item._id || index}
+                                      className="quotation-inner d-flex justify-content-center gap-4 mt-3"
+                                    >
+                                      <button
+                                        onClick={() => {
+                                          navigate(
+                                            `/messages?userID=${bookingState?.bookBy?._id}`
+                                          );
+                                          localStorage.setItem(
+                                            "reciverID",
+                                            bookingState?.bookBy?._id
+                                          );
+                                        }}
+                                      >
+                                        <img src={ChatIcon} alt="" /> Chat
+                                      </button>
+
+                                      <button
+                                        onClick={() => setShowMapModal(item)}
+                                      >
+                                        <img src={mapIcon} alt="" /> Map
+                                      </button>
+
+                                      <Modal
+                                        show={showMapModal === item}
+                                        onHide={() => setShowMapModal(false)}
+                                        centered
+                                        size="lg"
+                                      >
+                                        <Modal.Header
+                                          closeButton
+                                          className="border-none pb-0"
+                                        >
+                                          <Modal.Title>
+                                            Service Location
+                                          </Modal.Title>
+                                        </Modal.Header>
+                                        <Modal.Body>
+                                          <div className="comman-small-pop text-center">
+                                            <MapComponent
+                                              coordinates={
+                                                bookingState?.bookBy?.location
+                                                  ?.coordinates
+                                              }
+                                              address={
+                                                bookingState?.bookBy
+                                                  ?.street_address
+                                              }
+                                            />
+                                          </div>
+                                        </Modal.Body>
+                                      </Modal>
+                                    </div>
+                                  ))}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -270,7 +403,7 @@ export default function LeadDetails() {
                             <img
                               src={`${process.env.REACT_APP_API_URLL}/${image}`}
                               alt={task.need_done}
-                              style={{ maxWidth: "200px", margin: "0 auto" }}
+                              style={{ maxWidth: "200px", margin: "2px  auto" }}
                             />
                           </div>
                         ))}
@@ -291,6 +424,23 @@ export default function LeadDetails() {
                       </h5>
                       <p>{task?.details || "No description provided."}</p>
                       <p>Budget:${task?.budget || "-"}</p>
+                      <div className="book-now-product mb-0">
+                        {quotations?.length > 0 &&
+                          !quotations.some(
+                            (q) =>
+                              Array.isArray(q.corporateSuggestion) &&
+                              q.corporateSuggestion.some(
+                                (cs) => cs.corporateStatus === 3
+                              )
+                          ) && (
+                            <button
+                              className="primaryBtn"
+                              onClick={() => handleAccept(bookingState, 3)}
+                            >
+                              Done Job
+                            </button>
+                          )}
+                      </div>
                     </div>
                   </div>
                   <section className="category-services-sec pt-0 mt-5">
@@ -318,24 +468,41 @@ export default function LeadDetails() {
                         ) : (
                           <div>
                             {quotations?.map((quotation, index) => {
-                              const status =
-                                quotation?.corporateSuggestion[index]
-                                  ?.corporateStatus;
-                              const statusMap = {
-                                0: {
-                                  label: "Pending Booking",
-                                  className: "pending",
-                                },
-                                1: {
-                                  label: "Accepted",
-                                  className: "completed",
-                                },
-                                2: { label: "Rejected", className: "rejected" },
-                              };
-                              const currentStatus = statusMap[status] || {
-                                label: "Unknown",
-                                className: "unknown",
-                              };
+                              const suggestion =
+                                quotation?.corporateSuggestion?.[index];
+                              const status = suggestion?.corporateStatus;
+                              const userStatus = suggestion?.userStatus;
+                              let currentStatus;
+
+                              if (status === 3 && userStatus === 1) {
+                                currentStatus = {
+                                  label: "In Progress",
+                                  className: "in-progress",
+                                };
+                              } else {
+                                const statusMap = {
+                                  0: {
+                                    label: "Pending Booking",
+                                    className: "pending",
+                                  },
+                                  1: {
+                                    label: "Accepted",
+                                    className: "completed",
+                                  },
+                                  2: {
+                                    label: "Rejected",
+                                    className: "rejected",
+                                  },
+                                  3: {
+                                    label: "Completed",
+                                    className: "completed",
+                                  },
+                                };
+                                currentStatus = statusMap[status] || {
+                                  label: "Unknown",
+                                  className: "unknown",
+                                };
+                              }
                               return (
                                 <div
                                   className="quotation-requests-wrap"

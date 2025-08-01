@@ -3,3 +3,15 @@ export const Roles = {
     SERVICE_PROVIDER: 2,
     CORPORATE: 3,
 };
+export const corpoTaskStatus = {
+    PENDING: 0,// task not accept or reject by corpo
+    ACCEPT: 1, // task accepted by corpo
+    REJECT: 2, // task reject by corop
+    COMPLETED: 3,
+}
+export const corpoTaskStatusStr = {
+    PENDING: 'pending',// task not accept or reject by corpo
+    INPROGESS: 'in-progress', // task accepted by corpo
+    REJECT: 'rejected',
+    COMPLETED: 'completed' // task reject by corop
+}

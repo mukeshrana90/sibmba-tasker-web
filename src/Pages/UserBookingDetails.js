@@ -792,40 +792,52 @@ export default function UserBookingDetails() {
                                       
                                   </div>
                                   <div>
-                                           {corp.status ==='in-progress' && (
-                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
-                                          <div
-                                            className="action-button-wrap"
-                                            onClick={() =>
-                                              navigate(`/messages?userID=${corp?.corporateIds._id}`)
-                                            }
-                                          >
-                                            <div className="icon-circle green">
-                                              <img src={ChatIcon} alt="Chat" />
-                                            </div>
-                                            <span>Direct Chat</span>
+                                    {corp.status === "in-progress" && (
+                                      <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                        <div
+                                          className="action-button-wrap"
+                                          onClick={() =>
+                                            navigate(
+                                              `/messages?userID=${corp?.corporateIds._id}`
+                                            )
+                                          }
+                                        >
+                                          <div className="icon-circle green">
+                                            <img src={ChatIcon} alt="Chat" />
                                           </div>
+                                          <span>Direct Chat</span>
                                         </div>
-                                       )}
+                                      </div>
+                                    )}
                                   </div>
 
                                   {bookingState.status !== 3 &&
-                                    corp.userStatus === 0 && (
-                                      <div className="book-service-action-btn d-flex gap-2 mt-2">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleAccept(corp, 2)} // Reject
-                                        >
-                                          Reject
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleAccept(corp, 1)} // Accept
-                                        >
-                                          Accept
-                                        </button>
-                                      </div>
-                                    )}
+                                  corp.userStatus === 0 ? (
+                                    <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAccept(corp, 2)} // Reject
+                                      >
+                                        Reject
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAccept(corp, 1)} // Accept
+                                      >
+                                        Accept
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                      <button
+                                        type="button"
+                                        className="text-white"
+                                        onClick={() => handleAccept(corp, 3)}
+                                      >
+                                        Job Done
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               ))
                             ) : (

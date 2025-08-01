@@ -1646,6 +1646,12 @@ input[type="checkbox"]:checked::before {
   padding-top: 60px;
   align-items: center;
   gap: 20px;
+  position: relative;
+  .book-now-product{
+    position: absolute;
+    bottom: 0;
+    margin-bottom: 10px;
+  }
 }
 
 .service-detail-card img {

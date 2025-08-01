@@ -12,6 +12,7 @@ import Slider from "react-slick";
 import moment from "moment";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
+import { corpoTaskStatus } from "../utils/Roles";
 
 export default function TaskDetail() {
   const navigate = useNavigate();
@@ -240,18 +241,32 @@ export default function TaskDetail() {
                           <h5>${quotation?.offer_price}</h5>
                           <p>Offer Price</p>
                         </div>
-                        <div className="btn-price">
-                          <button
-                            onClick={() => handleAccept(quotation, "accept")}
-                          >
-                            Accept
-                          </button>
-                          <button
-                            onClick={() => handleAccept(quotation, "reject")}
-                          >
-                            Reject
-                          </button>
-                        </div>
+                        {quotation[index]?.corporateSuggestion?.[index]
+                          ?.corporateStatus !== corpoTaskStatus.COMPLETED &&
+                        quotation[index]?.corporateSuggestion?.[index]
+                          ?.userStatus === corpoTaskStatus.ACCEPT ? (
+                          <div className="btn-price">
+                            <button
+                              onClick={() => handleAccept(quotation, "accept")}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleAccept(quotation, "reject")}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="btn-price">
+                            <button
+                              className="primaryBtn"
+                              onClick={() => handleAccept(quotation, 3)}
+                            >
+                              Job Done
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="quotation-wrapper">
@@ -266,8 +281,11 @@ export default function TaskDetail() {
 
                                 return (
                                   <div
-                                    key={item._id || index} onClick={() =>
-                                      navigate(`/get-corporate/${item?.corporateIds?._id}`)
+                                    key={item._id || index}
+                                    onClick={() =>
+                                      navigate(
+                                        `/get-corporate/${item?.corporateIds?._id}`
+                                      )
                                     }
                                     className="corporate-item d-flex align-items-center py-2"
                                     style={{ gap: "10px" }}
