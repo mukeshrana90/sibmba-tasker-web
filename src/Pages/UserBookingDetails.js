@@ -124,7 +124,36 @@ export default function UserBookingDetails() {
     )
       .then((res) => {
         if (res?.payload) {
-          status === 1
+          res?.payload.status === 1
+            ? toast.success("Accepted successfully.")
+            : toast.error("Rejected successfully.");
+        }
+        setRefetchToggle((prev) => !prev);
+      })
+      .catch(() => {
+        toast.error("An error occurred. Please try again.");
+      });
+  };
+
+  const handleAcceptCrop = (task, status) => {
+
+console.log("task", task);
+    return
+    //  if (id?.type == "task") {
+    //   payload.taskId = data?.taskId?._id;
+    // } else {
+    //   payload.bookingId = data?.bookingId?._id;
+    // }
+
+    dispatch(
+      CorporateActions.acceptRejectCorporateSuggestionFromUser({
+        taskId: id,
+        status: status,
+      })
+    )
+      .then((res) => {
+        if (res?.payload) {
+          res?.payload.corporateStatus === 3 && res?.payload?.userStatus === 3
             ? toast.success("Accepted successfully.")
             : toast.error("Rejected successfully.");
         }
@@ -394,11 +423,8 @@ export default function UserBookingDetails() {
                                       ?.full_name
                                   }
                                 </strong>
-                                 <p className="mb-0 text-muted">
-                                  {
-                                    selectedQuotation?.service_provider
-                                      ?.email
-                                  }
+                                <p className="mb-0 text-muted">
+                                  {selectedQuotation?.service_provider?.email}
                                 </p>
 
                                 <p className="mb-0 text-muted">
@@ -409,27 +435,27 @@ export default function UserBookingDetails() {
                                 </p>
                               </div>
                               <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
-                               <div >
-                                           {(
-                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
-                                          <div
-                                            className="action-button-wrap"
-                                            onClick={() =>
-                                              navigate(`/messages?userID=${selectedQuotation?.service_provider._id}`)
-                                            }
-                                          >
-                                            <div className="icon-circle green">
-                                              <img src={ChatIcon} alt="Chat" />
-                                            </div>
-                                            <span>Direct Chat</span>
-                                          </div>
-                                        </div>
-                                       )}
+                              <div>
+                                {
+                                  <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                    <div
+                                      className="action-button-wrap"
+                                      onClick={() =>
+                                        navigate(
+                                          `/messages?userID=${selectedQuotation?.service_provider._id}`
+                                        )
+                                      }
+                                    >
+                                      <div className="icon-circle green">
+                                        <img src={ChatIcon} alt="Chat" />
+                                      </div>
+                                      <span>Direct Chat</span>
+                                    </div>
                                   </div>
+                                }
+                              </div>
                             </div>
-                                
                           </div>
-                          
                         )}
                       </div>
                       <div>
@@ -468,30 +494,52 @@ export default function UserBookingDetails() {
                                             {corp.email}
                                           </div>
                                         </div>
-                                 <div>
-                                           {item.status ==='in-progress' && (
-                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
-                                          <div
-                                            className="action-button-wrap"
-                                            onClick={() =>
-                                              navigate(`/messages?userID=${corp._id}`)
-                                            }
-                                          >
-                                            <div className="icon-circle green">
-                                              <img src={ChatIcon} alt="Chat" />
+                                        <div>
+                                          {item.status === "in-progress" && (
+                                            <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                              <div
+                                                className="action-button-wrap"
+                                                onClick={() =>
+                                                  navigate(
+                                                    `/messages?userID=${corp._id}`
+                                                  )
+                                                }
+                                              >
+                                                <div className="icon-circle green">
+                                                  <img
+                                                    src={ChatIcon}
+                                                    alt="Chat"
+                                                  />
+                                                </div>
+                                                <span>Direct Chat</span>
+                                              </div>
+                                              
+                                              {item.status === "in-progress" &&
+                                                item.userStatus === 1 &&
+                                                item.corporateStatus === 3 && (
+                                                  <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                                    <button
+                                                      type="button"
+                                                      className="text-black"
+                                                      onClick={() =>
+                                                        handleAcceptCrop(
+                                                          task,
+                                                          3
+                                                        )
+                                                      }
+                                                    >
+                                                      Job Done
+                                                    </button>
+                                                  </div>
+                                                )}
                                             </div>
-                                            <span>Direct Chat</span>
-                                          </div>
+                                          )}
                                         </div>
-                                       )}
-                                  </div>
                                       </div>
                                     );
                                   }
                                 )}
-                  
                               </div>
-                              
                             </div>
                           )}
                         </div>
@@ -743,7 +791,6 @@ export default function UserBookingDetails() {
                                 "N/A"}
                             </p>
                           </div>
-                           
                         </div>
 
                         {/* About Service Corporate */}
@@ -761,11 +808,14 @@ export default function UserBookingDetails() {
                                   className="d-flex justify-content-between align-items-center gap-3 mb-3 cursor-pointer"
                                 >
                                   {/* Left: Corporate info */}
-                                  <div className="d-flex align-items-center gap-3" onClick={() =>
-                                    navigate(
-                                      `/get-corporate/${corp?.corporateIds?._id}`
-                                    )
-                                  }>
+                                  <div
+                                    className="d-flex align-items-center gap-3"
+                                    onClick={() =>
+                                      navigate(
+                                        `/get-corporate/${corp?.corporateIds?._id}`
+                                      )
+                                    }
+                                  >
                                     <img
                                       src={
                                         corp?.corporateIds?.profile_image
@@ -789,7 +839,6 @@ export default function UserBookingDetails() {
                                           corp.corporateIds?.email}
                                       </p>
                                     </div>
-                                      
                                   </div>
                                   <div>
                                     {corp.status === "in-progress" && (
@@ -807,6 +856,23 @@ export default function UserBookingDetails() {
                                           </div>
                                           <span>Direct Chat</span>
                                         </div>
+                                      
+                                        
+                                        {corp.status === "in-progress" &&
+                                          corp.userStatus === 1 &&
+                                          corp.corporateStatus === 3 && (
+                                            <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                              <button
+                                                type="button"
+                                                className="text-black"
+                                                onClick={() =>
+                                                  handleAcceptCrop(task, 3)
+                                                }
+                                              >
+                                                Job Done
+                                              </button>
+                                            </div>
+                                          )}
                                       </div>
                                     )}
                                   </div>
