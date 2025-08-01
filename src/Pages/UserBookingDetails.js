@@ -105,7 +105,7 @@ export default function UserBookingDetails() {
       return;
     }
     const feedbackData = {
-      Booking_id: bookingState?._id || task?.id,
+      ...(!corporateProfile && { Booking_id: bookingState?._id || task?.id }),
       type: 1,
       message: message,
       rating: rating,
@@ -115,6 +115,7 @@ export default function UserBookingDetails() {
       ...(corporateProfile && {
         task_id: corporateProfile?.taskId || corporateProfile?.bookingId,
         corporateId: corporateProfile?.corporateIds?._id,
+        BookingId: bookingState?._id || task?.id,
       }),
     };
     dispatch(CustomerActions.feedbackActions(feedbackData));
@@ -151,6 +152,7 @@ export default function UserBookingDetails() {
     )
       .then((res) => {
         if (res?.payload) {
+          console.log(res?.payload, "res?.payload");
           res?.payload.corporateStatus === 3 && res?.payload?.userStatus === 3
             ? toast.success("Accepted successfully.")
             : toast.error("Rejected successfully.");
@@ -320,7 +322,7 @@ export default function UserBookingDetails() {
               {task ? (
                 <section className="task-details-wrapper p-3 rounded shadow-sm bg-white mt-3">
                   <div className="pt-3">
-                    <div className="d-flex gap-5">
+                    <div className="d-flex gap-2">
                       <Col lg={6}>
                         {" "}
                         <img
@@ -467,7 +469,7 @@ export default function UserBookingDetails() {
                           {selectedQuotation?.corporateSuggestion?.length >
                             0 && (
                             <div className="suggested-caproate">
-                              <h5>Suggested Corporate</h5>
+                              <h5>Suggested Corporateeee</h5>
                               <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
                                 {selectedQuotation.corporateSuggestion.map(
                                   (item, index) => {
@@ -518,34 +520,35 @@ export default function UserBookingDetails() {
                                                 <span>Direct Chat</span>
                                               </div>
                                               {item.status === "in-progress" &&
-                                              item.userStatus === 1 &&
-                                              item.corporateStatus === 3 ? (
-                                                <div className="book-service-action-btn d-flex gap-2 mt-2">
-                                                  <button
-                                                    type="button"
-                                                    className="text-black"
-                                                    onClick={() =>
-                                                      handleAcceptCrop(
-                                                        task?._id,
-                                                        3
-                                                      )
-                                                    }
-                                                  >
-                                                    Job Done
-                                                  </button>
-                                                </div>
-                                              ) : (
-                                                <button
-                                                  className="feedback-btn"
-                                                  onClick={() => {
-                                                    handleFeedbackOpen();
-                                                    setCorporateProfile(corp);
-                                                  }}
-                                                >
-                                                  Give Feedback
-                                                </button>
-                                              )}
+                                                item.userStatus === 1 &&
+                                                item.corporateStatus === 3 && (
+                                                  <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                                    <button
+                                                      type="button"
+                                                      className="text-black"
+                                                      onClick={() =>
+                                                        handleAcceptCrop(
+                                                          task?._id,
+                                                          3
+                                                        )
+                                                      }
+                                                    >
+                                                      Job Done
+                                                    </button>
+                                                  </div>
+                                                )}
                                             </div>
+                                          )}
+                                          {item.status === "completed" && (
+                                            <button
+                                              className="feedback-btn"
+                                              onClick={() => {
+                                                handleFeedbackOpen();
+                                                setCorporateProfile(corp);
+                                              }}
+                                            >
+                                              Give Feedback
+                                            </button>
                                           )}
                                         </div>
                                       </div>
@@ -573,7 +576,9 @@ export default function UserBookingDetails() {
                           </span>
                         )}
                         {task?.status === 3 && (
-                          <span className="text-success fw-semibold">Bo d</span>
+                          <span className="text-success fw-semibold">
+                            Completed
+                          </span>
                         )}
                       </div>
 
@@ -871,34 +876,35 @@ export default function UserBookingDetails() {
                                         </div>
 
                                         {corp.status === "in-progress" &&
-                                        corp.userStatus === 1 &&
-                                        corp.corporateStatus === 3 ? (
-                                          <div className="book-service-action-btn d-flex gap-2 mt-2">
-                                            <button
-                                              type="button"
-                                              className="text-black"
-                                              onClick={() =>
-                                                handleAcceptCrop(
-                                                  bookingState?._id,
-                                                  3
-                                                )
-                                              }
-                                            >
-                                              Job Done
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          <button
-                                            className="feedback-btn"
-                                            onClick={() => {
-                                              handleFeedbackOpen();
-                                              setCorporateProfile(corp);
-                                            }}
-                                          >
-                                            Give Feedback
-                                          </button>
-                                        )}
+                                          corp.userStatus === 1 &&
+                                          corp.corporateStatus === 3 && (
+                                            <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                              <button
+                                                type="button"
+                                                className="text-black"
+                                                onClick={() =>
+                                                  handleAcceptCrop(
+                                                    bookingState?._id,
+                                                    3
+                                                  )
+                                                }
+                                              >
+                                                Job Done
+                                              </button>
+                                            </div>
+                                          )}
                                       </div>
+                                    )}
+                                    {corp.status === "completed" && (
+                                      <button
+                                        className="feedback-btn"
+                                        onClick={() => {
+                                          handleFeedbackOpen();
+                                          setCorporateProfile(corp);
+                                        }}
+                                      >
+                                        Give Feedback
+                                      </button>
                                     )}
                                   </div>
 
