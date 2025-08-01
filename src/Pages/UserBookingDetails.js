@@ -287,7 +287,7 @@ export default function UserBookingDetails() {
               {task ? (
                 <section className="task-details-wrapper p-3 rounded shadow-sm bg-white mt-3">
                   <div className="pt-3">
-                    <div className="d-flex gap-5">
+                    <div className="d-flex gap-2">
                       <Col lg={6}>
                         {" "}
                         <img
@@ -512,7 +512,7 @@ export default function UserBookingDetails() {
                           </span>
                         )}
                         {task?.status === 3 && (
-                          <span className="text-success fw-semibold">Bo d</span>
+                          <span className="text-success fw-semibold">Completed</span>
                         )}
                       </div>
 
@@ -711,14 +711,14 @@ export default function UserBookingDetails() {
                     <Container>
                       <div className="category-services-lists">
                         <div className="list-title mb-0">
-                          <h3>Message</h3>
+                          <h4>Message</h4>
                         </div>
                         <p>{bookingState.message || "No message provided."}</p>
                       </div>
 
                       <div className="category-services-lists mt-4">
                         <div className="list-title">
-                          <h3>About Service Provider</h3>
+                          <h4>About Service Provider</h4>
                         </div>
                         <div className="provider-view-pro d-flex gap-3 align-items-center mb-3">
                           <img

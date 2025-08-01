@@ -335,11 +335,10 @@ export default function EditProfileCompany() {
                       <Col lg={6}>
                         <Form.Group className="mb-3">
                           <Form.Label>Email Address*</Form.Label>
-                          <Form.Control
+                          <Form.Control readOnly className="text-muted"
                             type="email"
                             name="email"
                             value={formik.values.email}
-                            onChange={formik.handleChange}
                           />
                         </Form.Group>
                       </Col>

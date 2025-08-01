@@ -16,6 +16,7 @@ import StarRating from "../CommanComponents/StarRating";
 import { formatDate } from "fullcalendar/index.js";
 import MapComponent from "../CommanComponents/MapComponent";
 import Slider from "react-slick";
+import defaultImage from "../Assets/Images/placeholder.jpg"
 
 // Import Swiper styles
 import "swiper/css";
@@ -342,7 +343,7 @@ export default function CustomerServiceDetail() {
               }
             >
               <img
-                src={`${process.env.REACT_APP_API_URL}/${serviceDetail?.serviceProviderId?.profile_image}`}
+                src={serviceDetail?.serviceProviderId?.profile_image ? `${process.env.REACT_APP_API_URL}/${serviceDetail?.serviceProviderId?.profile_image}` : defaultImage}
                 alt={serviceDetail?.serviceProviderId?.company_name}
               />
               <div>

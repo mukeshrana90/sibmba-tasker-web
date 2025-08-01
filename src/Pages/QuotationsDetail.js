@@ -114,7 +114,7 @@ export default function QuotationsDetail() {
                       <div>
                         <h5>{quotationDetailById?.service_provider?.full_name || ""}</h5>
                         <p>{quotationDetailById?.service_provider?.company_name || ""}</p>
-                        <p>{quotationDetailById?.service_provider?.address || ""}</p>
+                        <p>{quotationDetailById?.service_provider?.address  !== 'undefined' ? quotationDetailById?.service_provider?.address : "-"}</p>
                         <div className="rating-stars">
                           <ul>
                             <li>

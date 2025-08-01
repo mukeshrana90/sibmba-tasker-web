@@ -175,7 +175,7 @@ export default function Bookings() {
                               />
                               <div>
                                 <h5>{data?.serviceProvider?.full_name}</h5>
-                                <p>{data?.serviceProvider?.suburbs}</p>
+                                <p>{data?.serviceProvider?.suburbs !== 'undefined' ? data?.serviceProvider?.suburbs : '-'}</p>
                               </div>
                             </div>
                           )}

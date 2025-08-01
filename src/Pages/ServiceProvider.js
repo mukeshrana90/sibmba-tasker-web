@@ -11,6 +11,7 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import StarRating from "../CommanComponents/StarRating";
 import { formatDate } from "fullcalendar/index.js";
 import { chunk } from "lodash";
+import defaultImage from "../Assets/Images/placeholder.jpg"
 
 export default function ServiceProvider() {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ export default function ServiceProvider() {
                           src={
                             serviceSubCatDetail?.serviceProviderId?.profile_image
                               ? `${process.env.REACT_APP_API_URL}${serviceSubCatDetail?.serviceProviderId?.profile_image}`
-                              : ""
+                              : defaultImage
                           }
                           alt={""}
                           style={{
@@ -99,7 +100,8 @@ export default function ServiceProvider() {
                           </div>
                         </div>
                       </div>
-                      <button
+                     {serviceSubCatDetail?.serviceProviderId !==null && serviceSubCatDetail?.serviceProviderId?._id && (
+                       <button
                         onClick={() => {
                           navigate(
                             `/messages?userID=${serviceSubCatDetail?.serviceProviderId?._id}`
@@ -129,6 +131,7 @@ export default function ServiceProvider() {
                           />
                         </svg>
                       </button>
+                     )}
                     </div>
                   </div>
                 </Container>
