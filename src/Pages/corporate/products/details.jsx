@@ -15,7 +15,7 @@ export default function ProductDetailsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const productDetail = useSelector((state) => state.products.productDetail);
+  const productDetail = useSelector((state) => state.products.productDetail)?.product;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 

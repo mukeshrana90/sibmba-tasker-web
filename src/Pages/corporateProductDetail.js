@@ -19,7 +19,7 @@ export default function CorporateProductDetailPage() {
   const { id } = useParams();
   const productDetails = useSelector(
     (state) => state.service.getCorporateList?.data
-  );
+  )?.product;
   const [paymentshow, setPaymentShow] = useState(false);
   const [boookingId, setBookingId] = useState(null);
   const [selectedBoooking, setSelectedBoooking] = useState(null);
