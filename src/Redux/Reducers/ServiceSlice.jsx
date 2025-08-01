@@ -23,7 +23,8 @@ const serviceSlice = createSlice({
     error: null,
     corporateSuggestions:null,
     getLeads:null,
-    getCorporateList:null
+    getCorporateList:null,
+    corporateCategory:null
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -314,7 +315,24 @@ const serviceSlice = createSlice({
         state.error = action.payload;
       }
     )
-
+// 
+  builder.addCase(ServiceActions.getCorporateCategoryList.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(
+      ServiceActions.getCorporateCategoryList.fulfilled,
+      (state, action) => {
+        state.loading = false;
+        state.corporateCategory = action.payload;
+      }
+    );
+    builder.addCase(
+      ServiceActions.getCorporateCategoryList.rejected,
+      (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      }
+    );
   },
 });
 

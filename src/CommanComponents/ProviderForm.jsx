@@ -13,7 +13,7 @@ import { toast } from "react-toastify";
 import { timeSchedule, weekDays } from "../utils/rawjson";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const ProviderForm = ({
   currentStep,
@@ -54,6 +54,7 @@ const ProviderForm = ({
     price: "",
     desc: "",
     address: "",
+    corporateCategoryId:""
   };
 
   const validationSchemas = [
@@ -69,6 +70,7 @@ const ProviderForm = ({
       identify_yourself: Yup.string().required("Identify yourself is required"),
       ...(isCorporate
         ? {
+          corporateCategoryId: Yup.string().required("Business category is required"),
           address: Yup.string().trim().required("Company address is required"),
         }
         : {
@@ -126,7 +128,7 @@ const ProviderForm = ({
   const navigate = useNavigate();
   const categoryList = useSelector((e) => e.service.category);
   const identificationLists = useSelector((e) => e.service.identificationList);
-
+  const corporateCategory= useSelector((e) => e.service.corporateCategory);
   const [previews, setPreviews] = useState({
     profile_image: "",
     govtIssueId: "",
@@ -155,6 +157,7 @@ const ProviderForm = ({
   useEffect(() => {
     dispatch(ServiceActions.getCategoryList());
     dispatch(ServiceActions.getIdentificationList());
+    dispatch(ServiceActions.getCorporateCategoryList());
   }, [dispatch]);
 
   useEffect(() => {
@@ -498,25 +501,43 @@ const ProviderForm = ({
               <Col lg={6}>
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formIdentifyYourself">
-                    <Form.Label>{isCorporate?'Business Category*':'Identify yourself*'}</Form.Label>
-                    <Field
-                      name="identify_yourself"
-                      as="select"
-                      className="form-select"
-                    >
-                      <option value="">Select</option>
-                      {identificationLists?.data?.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </Field>
-                    <ErrorMessage
-                      name="identify_yourself"
-                      component="div"
-                      className="text-danger"
-                    />
-                  </Form.Group>
+  <Form.Label>{isCorporate ? 'Business Category*' : 'Identify yourself*'}</Form.Label>
+
+  {isCorporate ? (
+    <Field name="corporateCategoryId">
+      {({ field }) => (
+        <select {...field} className="form-select">
+          <option value="">Select</option>
+          {corporateCategory?.data?.map((item) => (
+            <option key={item._id} value={item._id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      )}
+    </Field>
+  ) : (
+    <Field
+      name="identify_yourself"
+      as="select"
+      className="form-select"
+    >
+      <option value="">Select</option>
+      {identificationLists?.data?.map((item) => (
+        <option key={item} value={item}>
+          {item}
+        </option>
+      ))}
+    </Field>
+  )}
+
+  <ErrorMessage
+    name={isCorporate ? 'corporateCategoryId' : 'identify_yourself'}
+    component="div"
+    className="text-danger"
+  />
+</Form.Group>
+
                 </div>
               </Col>
               {isCorporate ? (

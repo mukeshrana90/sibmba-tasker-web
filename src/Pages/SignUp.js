@@ -30,11 +30,15 @@ export default function SignUp() {
       password: "",
       confirmPassword: "",
       terms: false,
-      country_code: "+91",
+      country_code: "+1",
     },
     validationSchema: Yup.object({
       email: Yup.string().email("Invalid email address").required("Email is Required"),
-      phone: Yup.string().required("Phone Number is Required"),
+      phone: Yup.string()
+      .required("Phone number is required")
+      .matches(/^\d{9,15}$/, "Phone must be between 9 and 15 digits"),
+
+
       password: Yup.string()
         .min(6, "Password must be at least 6 characters")
         .required("Password is Required"),
@@ -47,7 +51,7 @@ export default function SignUp() {
       localStorage.setItem("signupFormData", JSON.stringify(values));
       let payload = {
         email: values?.email,
-        country_code: values?.country_code || "+91",
+        country_code: values?.country_code ,
         phone_number: values?.phone,
         password: values?.password,
         role: Number(role) || 1,
@@ -69,12 +73,6 @@ export default function SignUp() {
     formik.setFieldValue("country_code", `+${country.dialCode}`);
     formik.setFieldValue("phone", value.slice(country.dialCode.length));
 
-    // setFormData((prevState) => ({
-    //   ...prevState,
-    //   phoneNumber: value.slice(country.dialCode.length),
-    //   countryCode: `+${country.dialCode}`,
-    //   country: country.name,
-    // }));
   };
 
   useEffect(() => {
@@ -124,12 +122,9 @@ export default function SignUp() {
                       </Form.Group>
                       <Form.Group className="mb-3" controlId="formBasicEmail">
                         <Form.Label>Phone Number</Form.Label>
-                        <PhoneInput
-                          country={"in"}
+                        <PhoneInput 
+                          country={'us'}
                           value={`${formik.values.country_code}${formik.values.phone}`}
-                          // onChange={(phone) =>
-                          //   formik.setFieldValue("phone", phone)
-                          // }
                           onChange={handlePhoneChange}
                           inputProps={{
                             name: "phone",
@@ -138,7 +133,6 @@ export default function SignUp() {
                           }}
                           containerClass="phone-input-container"
                           buttonClass="country-dropdown"
-                        // onBlur={() => formik.setFieldTouched("phone", true)}
                         />
                         {formik.touched.phone && formik.errors.phone && (
                           <div className="text-danger mt-1">

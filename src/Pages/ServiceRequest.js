@@ -384,7 +384,6 @@ export default function ServiceRequest() {
                 onSave={(corp) => {
                   setSelectedCorporate(corp);
                   setShowSuggestModal(false);
-                  toast.success(`You selected ${corp.full_name}`);
                 }}
                 customerData={bookingReqDetail}
               />

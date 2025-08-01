@@ -23,6 +23,17 @@ const ServiceActions = {
   }
   ),
 
+getCorporateCategoryList: createAsyncThunk(
+  "service/corporate-category",
+  async ({ page = 1, limit = 1000 } = {}) => { 
+    const response = await Api.get("service/corporate-category", {
+      params: { page, limit },
+    });
+    return response.data;
+  }
+)
+,
+
 
   getIdentificationList: createAsyncThunk("service/getIdentifyYourSelf", async (customerData) => {
     const response = await Api.get("service/getIdentifyYourSelf", customerData);

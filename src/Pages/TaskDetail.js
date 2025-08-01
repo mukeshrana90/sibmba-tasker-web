@@ -81,7 +81,6 @@ export default function TaskDetail() {
       status: statusValue,
     };
 
-    // Helper function to dispatch and handle toast
     const handleDispatch = (action, successMessage, errorMessage) => {
       return dispatch(action).then((res) => {
         if (res?.payload?.success) {
