@@ -26,9 +26,9 @@ const PaymentStatus = () => {
         }
     }
     return (
-      <Container className=" payment-model">
+      <Container className="payment-model">
             <div className="payment-model-inner">
-                <h2 className="text-xl font-bold mb-4 text-center">Payment Status</h2>
+                <h2 className="text-xl font-bold mb-4 text-center" style={{color:"red"}}>Payment Status</h2>
                 <div className="text-center">
                     <h5 className="text-md font-semibold text-gray-700 mb-2">Message :</h5>
                     <div className="flex justify-center">
