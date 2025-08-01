@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import ProductActions from '../Redux/Actions/ProductActions';
-import { Container } from 'react-bootstrap';
 
 const PaymentStatus = () => {
     const { purchaseproductid } = useParams();
@@ -26,7 +25,7 @@ const PaymentStatus = () => {
         }
     }
     return (
-      <Container className="payment-model">
+      <div className="payment-model">
             <div className="payment-model-inner">
                 <h2 className="text-xl font-bold mb-4 text-center" style={{color:"red"}}>Payment Status</h2>
                 <div className="text-center">
@@ -36,7 +35,7 @@ const PaymentStatus = () => {
                     </div>
                 </div>
             </div>
-        </Container>
+        </div>
     )
 }
 
