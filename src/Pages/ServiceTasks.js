@@ -14,7 +14,7 @@ import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirma
 import CancelModal from "../CommanComponents/Modals/CancelModal";
 import FilterModal from "../CommanComponents/Modals/FilterModal";
 import moment from "moment";
-
+import defaultImage from "../Assets/Images/placeholder.jpg"
 export default function ServiceTasks() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -239,9 +239,9 @@ export default function ServiceTasks() {
             <img
               className="point-cursor"
               src={
-                task?.user_details?.profile_image
+                task?.user_details?.profile_image  
                   ? `${process.env.REACT_APP_API_URL}${task?.user_details?.profile_image}`
-                  : ""
+                  : defaultImage
               }
               alt="Service Provider"
             />

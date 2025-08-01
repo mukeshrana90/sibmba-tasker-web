@@ -13,7 +13,7 @@ import { toast } from "react-toastify";
 import { timeSchedule, weekDays } from "../utils/rawjson";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const ProviderForm = ({
   currentStep,
@@ -54,6 +54,7 @@ const ProviderForm = ({
     price: "",
     desc: "",
     address: "",
+    corporateCategoryId: "",
   };
 
   const validationSchemas = [
@@ -69,13 +70,18 @@ const ProviderForm = ({
       identify_yourself: Yup.string().required("Identify yourself is required"),
       ...(isCorporate
         ? {
-          address: Yup.string().trim().required("Company address is required"),
-        }
+            corporateCategoryId: Yup.string().required(
+              "Business category is required"
+            ),
+            address: Yup.string()
+              .trim()
+              .required("Company address is required"),
+          }
         : {
-          company_name: Yup.string()
-            .trim()
-            .required("Company Name is required"),
-        }),
+            company_name: Yup.string()
+              .trim()
+              .required("Company Name is required"),
+          }),
 
       house_number: Yup.string().trim().required("House Number is required"),
       street_address: Yup.string()
@@ -90,16 +96,16 @@ const ProviderForm = ({
     isCorporate
       ? Yup.object({})
       : Yup.object({
-        reference_name: Yup.string().trim().required("Name is required"),
-        relation: Yup.string().trim().required("Relation is required"),
-        designation: Yup.string().trim().nullable(),
-        referenceEmail: Yup.string()
-          .email("Invalid email")
-          .required("Email is required"),
-        phone_number: Yup.string()
-          .trim()
-          .required("Phone number is required"),
-      }),
+          reference_name: Yup.string().trim().required("Name is required"),
+          relation: Yup.string().trim().required("Relation is required"),
+          designation: Yup.string().trim().nullable(),
+          referenceEmail: Yup.string()
+            .email("Invalid email")
+            .required("Email is required"),
+          phone_number: Yup.string()
+            .trim()
+            .required("Phone number is required"),
+        }),
     Yup.object({}),
     // Step 4: Service Details
     Yup.object({
@@ -126,7 +132,7 @@ const ProviderForm = ({
   const navigate = useNavigate();
   const categoryList = useSelector((e) => e.service.category);
   const identificationLists = useSelector((e) => e.service.identificationList);
-
+  const corporateCategory = useSelector((e) => e.service.corporateCategory);
   const [previews, setPreviews] = useState({
     profile_image: "",
     govtIssueId: "",
@@ -155,6 +161,7 @@ const ProviderForm = ({
   useEffect(() => {
     dispatch(ServiceActions.getCategoryList());
     dispatch(ServiceActions.getIdentificationList());
+    dispatch(ServiceActions.getCorporateCategoryList());
   }, [dispatch]);
 
   useEffect(() => {
@@ -496,23 +503,48 @@ const ProviderForm = ({
           <div className="provider-form-field">
             <Row>
               <Col lg={6}>
-                <div className="form-set">
+                <div className="form-set" >
                   <Form.Group className="mb-3" controlId="formIdentifyYourself">
-                    <Form.Label>{isCorporate?'Business Category*':'Identify yourself*'}</Form.Label>
-                    <Field
-                      name="identify_yourself"
-                      as="select"
-                      className="form-select"
-                    >
-                      <option value="">Select</option>
-                      {identificationLists?.data?.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </Field>
+                    <Form.Label>
+                      {isCorporate
+                        ? "Business Category*"
+                        : "Identify yourself*"}
+                    </Form.Label>
+
+                    {isCorporate ? (
+                      <Field name="corporateCategoryId">
+                        {({ field }) => (
+                          <select {...field} className="form-select">
+                            <option value="">Select</option>
+                            {corporateCategory?.data?.map((item) => (
+                              <option key={item._id} value={item._id}>
+                                {item.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </Field>
+                    ) : (
+                      <Field 
+                        name="identify_yourself"
+                        as="select"
+                        className="form-select"
+                      >
+                        <option value="">Select</option>
+                        {identificationLists?.data?.map((item) => (
+                          <option key={item} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </Field>
+                    )}
+
                     <ErrorMessage
-                      name="identify_yourself"
+                      name={
+                        isCorporate
+                          ? "corporateCategoryId"
+                          : "identify_yourself"
+                      }
                       component="div"
                       className="text-danger"
                     />
@@ -525,22 +557,24 @@ const ProviderForm = ({
                     <Form.Group className="mb-3" controlId="formShopName">
                       <Form.Label>Company Address*</Form.Label>
                       <AddressAutocomplete
-                      apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
-                      placeholder="Company Address"
-                      onPlaceSelected={(place) =>setFieldValue('address',place.formatted_address)}
-                      defaultValue={values.address}
-                      options={{
-                        types: ["address"],
-                      }}
-                      onChange={(e) => {
-                        setFieldValue("address", e.target.value);
-                        setFieldTouched("address", true);
-                        if (e.target.value.trim() === "") {
-                          setFieldValue("address", "");
-                          setFieldTouched("address", false);
+                        apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
+                        placeholder="Company Address"
+                        onPlaceSelected={(place) =>
+                          setFieldValue("address", place.formatted_address)
                         }
-                      }}
-                    />
+                        defaultValue={values.address}
+                        options={{
+                          types: ["address"],
+                        }}
+                        onChange={(e) => {
+                          setFieldValue("address", e.target.value);
+                          setFieldTouched("address", true);
+                          if (e.target.value.trim() === "") {
+                            setFieldValue("address", "");
+                            setFieldTouched("address", false);
+                          }
+                        }}
+                      />
 
                       {/* <Field
                         name="address"
@@ -915,10 +949,10 @@ const ProviderForm = ({
                             field === "govtIssueId"
                               ? govtIssueIdInputRef
                               : field === "businessLicence"
-                                ? businessLicenceInputRef
-                                : field === "permit"
-                                  ? permitInputRef
-                                  : certificationsInputRef
+                              ? businessLicenceInputRef
+                              : field === "permit"
+                              ? permitInputRef
+                              : certificationsInputRef
                           }
                           className="d-none"
                           accept="image/*,application/pdf"
@@ -1150,12 +1184,13 @@ const ProviderForm = ({
                             <button
                               key={day}
                               type="button"
-                              className={`btn ${values.dayAvailability.day.some(
-                                (d) => d.toLowerCase() === day.toLowerCase()
-                              )
+                              className={`btn ${
+                                values.dayAvailability.day.some(
+                                  (d) => d.toLowerCase() === day.toLowerCase()
+                                )
                                   ? "btn-success"
                                   : "btn-outline-secondary"
-                                } m-1`}
+                              } m-1`}
                               onClick={() => {
                                 const days = Array.isArray(
                                   values.dayAvailability.day
@@ -1166,9 +1201,9 @@ const ProviderForm = ({
                                   (d) => d.toLowerCase() === day.toLowerCase()
                                 )
                                   ? days.filter(
-                                    (d) =>
-                                      d.toLowerCase() !== day.toLowerCase()
-                                  )
+                                      (d) =>
+                                        d.toLowerCase() !== day.toLowerCase()
+                                    )
                                   : [...days, day.toLowerCase()];
                                 setFieldValue(
                                   "dayAvailability.day",
@@ -1200,16 +1235,17 @@ const ProviderForm = ({
                             <button
                               key={time}
                               type="button"
-                              className={`btn ${values.dayAvailability.timeArr.includes(time)
+                              className={`btn ${
+                                values.dayAvailability.timeArr.includes(time)
                                   ? "btn-success"
                                   : "btn-outline-secondary"
-                                } m-1`}
+                              } m-1`}
                               onClick={() => {
                                 const updatedTimes =
                                   values.dayAvailability.timeArr.includes(time)
                                     ? values.dayAvailability.timeArr.filter(
-                                      (t) => t !== time
-                                    )
+                                        (t) => t !== time
+                                      )
                                     : [...values.dayAvailability.timeArr, time];
                                 setFieldValue(
                                   "dayAvailability.timeArr",
@@ -1378,14 +1414,14 @@ const ProviderForm = ({
               }
               setShowModal(false);
             }}
-          // onNext={() => {
-          //   setShowModal(false);
-          //   let tokenval = localStorage.getItem("temptoken");
-          //   localStorage.setItem("token", tokenval);
-          //   localStorage.setItem("role", 2);
-          //   localStorage.removeItem("temptoken");
-          //   navigate("/requests", { replace: true });
-          // }}
+            // onNext={() => {
+            //   setShowModal(false);
+            //   let tokenval = localStorage.getItem("temptoken");
+            //   localStorage.setItem("token", tokenval);
+            //   localStorage.setItem("role", 2);
+            //   localStorage.removeItem("temptoken");
+            //   navigate("/requests", { replace: true });
+            // }}
           />
         </FormikForm>
       )}

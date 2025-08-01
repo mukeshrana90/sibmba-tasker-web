@@ -180,6 +180,7 @@ export default function EditProfileUser() {
     if (customerDetails) {
       setInitialValues({
         full_name: customerDetails.full_name || "",
+        email: customerDetails.email || "",
         house_number: customerDetails.house_number || "",
         address: customerDetails.address || "",
         suburbs: customerDetails.suburbs || "",
@@ -421,6 +422,21 @@ export default function EditProfileUser() {
                           {formik.errors.full_name}
                         </Form.Control.Feedback>
                       </Form.Group>
+                          <Form.Group className="mb-3" controlId="formBasicEmail">
+                        <Form.Label>Email*</Form.Label>
+                        <Form.Control readOnly className="text-muted"
+                          type="text"
+                          name="full_name"
+                          placeholder="Enter your full name"
+                          value={formik.values.email}
+                          isInvalid={
+                            !!formik.errors.email &&
+                            formik.touched.email
+                          }
+                        />
+                       
+                      </Form.Group>
+
                     </div>
                     <div>
                       <h6>Address</h6>

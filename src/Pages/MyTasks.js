@@ -11,6 +11,7 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import moment from "moment";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
+import defaultImage from "../Assets/Images/placeholder.jpg"
 
 export default function MyTasks() {
   const navigate = useNavigate();
@@ -92,7 +93,7 @@ export default function MyTasks() {
                                           src={
                                             post?.images?.length
                                               ? `${process.env.REACT_APP_API_URLL}/${post?.images[0]}`
-                                              : ""
+                                              : defaultImage
                                           }
                                           alt={post.need_done}
                                           onClick={() =>
@@ -191,7 +192,7 @@ export default function MyTasks() {
                                         <div className="profile-side">
                                           <img
                                             className="point-cursor"
-                                            src={`${process.env.REACT_APP_API_URL}/${quotation?.service_provider?.profile_image}`}
+                                            src={quotation?.service_provider?.profile_image ?`${process.env.REACT_APP_API_URL}/${quotation?.service_provider?.profile_image} ` :defaultImage}
                                             alt="categories-img"
                                           />
                                           <div>
@@ -203,8 +204,7 @@ export default function MyTasks() {
                                             </h5>
                                             <p>
                                               {
-                                                quotation?.service_provider
-                                                  ?.address
+                                                quotation?.service_provider?.address !=='undefined' ? quotation?.service_provider?.address : '-'
                                               }
                                             </p>
                                             <div className="rating-stars">

@@ -457,7 +457,6 @@ export default function ServiceTaskDetails() {
                         <div className="quotation-txt-show d-flex justify-space-between">
                           <div
                             className="profile-side cursor-pointer"
-                          // onClick={() => navigate("/quotations-detail")}
                           >
                             <img
                               className="point-cursor"
@@ -466,7 +465,7 @@ export default function ServiceTaskDetails() {
                             />
                             <div>
                               <h5>{quotation?.service_provider?.full_name}</h5>
-                              <p>{quotation?.service_provider?.address}</p>
+                              <p>{quotation?.service_provider?.address === 'undefined' ? '-' : quotation?.service_provider?.address}</p>
                               <div className="rating-stars">
                                 <ul> <StarRating averageRating={quotation?.averageRating} /></ul>
                               </div>

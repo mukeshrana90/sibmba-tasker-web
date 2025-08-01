@@ -309,7 +309,7 @@ export default function ServiceRequest() {
               </div>
             </Col>
             <Col lg={12}>
-             {bookingReqDetail?.corporateSuggestions.length > 0 || servicetype !== "approved" && servicetype !== "reject" && (
+             {bookingReqDetail?.corporateSuggestions.length > 0 && servicetype !== "approved" || servicetype !== "reject" && (
                <div className="d-block">
                 <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
                   Suggest Corporate
@@ -384,7 +384,6 @@ export default function ServiceRequest() {
                 onSave={(corp) => {
                   setSelectedCorporate(corp);
                   setShowSuggestModal(false);
-                  toast.success(`You selected ${corp.full_name}`);
                 }}
                 customerData={bookingReqDetail}
               />

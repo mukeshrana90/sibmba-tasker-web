@@ -5,12 +5,12 @@ import CustomerBookServiceModal from "./Modals/CustomerBookServiceModal";
 
 const getStatusColor = (status) => {
   const statusMap = {
-    1: "yellow",
-    2: "green",
-    3: "red",
-    4: "green",
-    5: "red",
-  };
+      1: "pending",
+      2: "completed",
+      3: "cancelled",
+      4: "completed",
+      5: "rejected",
+    };
 
   return statusMap[status] || "N/A";
 };
@@ -69,18 +69,17 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                     alt="categories-img"
                   />
                   <div>
-                    <h5>{data?.serviceProvider?.company_name}</h5>
-                    <p>{data?.serviceProvider?.street_address}</p>
+                    <h5>{data?.serviceProvider?.full_name}</h5>
+                    <p>{data?.serviceProvider?.street_address !== 'undefined' ? data?.serviceProvider?.street_address : '-'}</p>
                   </div>
                 </div>
               )}
             </div>
             <div>
               <div className="status-booking">
-                Status:
-                <span className={getStatusColor(data?.status)}>
+               <span className={`corporate_inner ${getStatusColor(data?.status)}`}>
                   {getStatusLabel(data?.status)}
-                </span>
+                 </span>
               </div>
 
               {(data?.status === 2 || data?.status === 4) && (

@@ -13,6 +13,7 @@ import moment from "moment";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import { corpoTaskStatus } from "../utils/Roles";
+import defaultImage from "../Assets/Images/placeholder.jpg"
 
 export default function TaskDetail() {
   const navigate = useNavigate();
@@ -81,7 +82,6 @@ export default function TaskDetail() {
       status: statusValue,
     };
 
-    // Helper function to dispatch and handle toast
     const handleDispatch = (action, successMessage, errorMessage) => {
       return dispatch(action).then((res) => {
         if (res?.payload?.success) {
@@ -217,7 +217,7 @@ export default function TaskDetail() {
                           >
                             <img
                               className="point-cursor"
-                              src={`${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`}
+                              src={quotation?.service_provider?.profile_image ? `${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`  : defaultImage}
                               alt="categories-img"
                             />
                             <div>

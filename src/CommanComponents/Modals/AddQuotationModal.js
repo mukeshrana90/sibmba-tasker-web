@@ -80,7 +80,6 @@ const AddQuotationModal = ({
         .unwrap()
         .then(() => {
           onSubmit(payload);
-          toast.success("Corporate suggested successfully.");
           resetForm();
           handleClose();
         })
@@ -192,7 +191,6 @@ const AddQuotationModal = ({
                   onSave={(corp) => {
                     setSelectedCorporate(corp);
                     setShowSuggestModal(false);
-                    toast.success(`You selected ${corp.full_name}`);
                   }}
                   customerData={task}
                 />
