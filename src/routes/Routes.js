@@ -38,6 +38,7 @@ import MyLeadDetails from "../Pages/corporate/LeadDetails";
 import SuggestedCorporatePage from "../Pages/suggestedCorporate";
 import CorporateProductDetailPage from "../Pages/corporateProductDetail";
 import ProductDetail from "../Pages/ProductDetail";
+import PaymentStatus from "../Pages/PaymentStatus";
 
 
 const Login = lazy(() => import("../Pages/Login"));
@@ -78,6 +79,7 @@ const RoutesPage = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/terms-and-conditions" element={<TermsConditions />} />
+          <Route path="/payment-status/:purchaseproductid" element={<PaymentStatus />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/login" element={<Login />} />
           <Route path="/sign-up" element={<SignUp />} />

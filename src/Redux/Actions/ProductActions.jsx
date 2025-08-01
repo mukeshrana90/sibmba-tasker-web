@@ -73,6 +73,19 @@ export const getProductById = createAsyncThunk(
     }
   );
 
+  export const PaymentStatusCheck = createAsyncThunk(
+  "customer/check_payment_status_for_product",
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await Api.post("/customer/check_payment_status_for_product", data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error?.response?.data?.message || "Add failed");
+    }
+  }
+);
+
+
 
 export default {
   fetchProducts,
@@ -80,5 +93,6 @@ export default {
   updateProduct,
   deleteProduct,
   getProductById,
-  removeProduct
+  removeProduct,
+  PaymentStatusCheck
 };
