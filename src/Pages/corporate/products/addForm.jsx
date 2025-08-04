@@ -24,7 +24,7 @@ const validationSchema = Yup.object({
         !value || value.every((file) => file && file.size <= 10 * 1024 * 1024)
     ),
   categoryId: Yup.string().required("Business category is required"),
-  name: Yup.string().trim().required("Service Name is required"),
+  name: Yup.string().trim().required("Product Name is required"),
   price: Yup.number()
     .required("Price is required")
     .positive("Price must be positive"),
@@ -164,7 +164,7 @@ const CorporateAddProduct = () => {
       errors.categoryId = "Business category is required";
     }
     if (!values.name) {
-      errors.name = "Service name is required";
+      errors.name = "Product name is required";
     }
     if (!values.price || values.price <= 0) {
       errors.price = "Price is required and must be positive";
