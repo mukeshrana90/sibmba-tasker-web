@@ -251,7 +251,7 @@ export default function MyTasks() {
                                                 <div
                                                   key={item._id || index}
                                                   className="corporate-item d-flex align-items-center py-2 cursor-pointer"
-                                                  style={{ gap: "10px" }} onClick={() => navigate(`/get-corporate/${corp?._id}` ) }
+                                                  style={{ gap: "10px" }} onClick={() => navigate(`/get-corporate/${corp?._id}` )}
                                                 >
                                                   <img
                                                     src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}

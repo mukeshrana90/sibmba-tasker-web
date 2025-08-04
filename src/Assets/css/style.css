@@ -2865,7 +2865,7 @@ input[type="checkbox"]:checked::before {
   padding: 15px;
   height: 40vh;
   overflow-y: scroll;
-  scrollbar-width: none;
+  /* scrollbar-width: none; */
 }
 
 .notify-data-viwe h3 {

@@ -438,7 +438,7 @@ export default function Requests() {
                                             fill="#545454"
                                           />
                                         </svg>
-                                        {request.address}
+                                        {request.address || '-'}
                                       </p>
                                     </div>
                                   </div>

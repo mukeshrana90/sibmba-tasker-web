@@ -554,17 +554,28 @@ export default function ServiceTaskDetails() {
 
                             return (
                               <div
-                                key={item._id || index}
+                                key={item._id || index} 
                                 className="corporate-item d-flex align-items-center py-2"
                                 style={{ gap: "10px" }}
                               >
-                                <img
-                                  src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
-                                  alt={corp.full_name}
-                                  className="rounded-circle"
-                                  width={40}
-                                  height={40}
-                                />
+                                {
+                                  corp.profile_image ? (
+                                    <img
+                                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                                      alt={corp.full_name}
+                                      className="rounded-circle"
+                                      width={40}
+                                      height={40}
+                                    />
+                                  ) : (
+                                    <div
+                                      className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                                      style={{ width: 40, height: 40, fontWeight: 'bold', fontSize: 18 }}
+                                    >
+                                      {corp.full_name?.[0]?.toUpperCase() || "?"}
+                                    </div>
+                                  )
+                                }
                                 <div className="flex-grow-1">
                                   <div className="fw-bold">{corp.full_name}</div>
                                   <div className="text-muted small">{corp.shop_name}</div>

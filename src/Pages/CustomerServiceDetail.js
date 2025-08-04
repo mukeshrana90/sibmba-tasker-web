@@ -1,16 +1,12 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import { useLocation, useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation } from "swiper/modules";
-import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import { Button } from "react-bootstrap";
 import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
 import StarRating from "../CommanComponents/StarRating";
 import { formatDate } from "fullcalendar/index.js";
@@ -18,11 +14,10 @@ import MapComponent from "../CommanComponents/MapComponent";
 import Slider from "react-slick";
 import defaultImage from "../Assets/Images/placeholder.jpg"
 
-// Import Swiper styles
 import "swiper/css";
 import "swiper/css/navigation";
+import Loader from "../CommanComponents/Loader";
 
-// Utility to chunk array into groups of 3
 const chunkArray = (array, size) => {
   const result = [];
   for (let i = 0; i < array.length; i += size) {
@@ -43,7 +38,6 @@ export default function CustomerServiceDetail() {
 
   const serviceDetail = useSelector((e) => e.UserSlice.serviceDetail);
 
-  const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
   useEffect(() => {
@@ -52,34 +46,14 @@ export default function CustomerServiceDetail() {
 
   const feedbackCount = serviceDetail?.feedbacks?.length || 0;
 
-  // Swiper settings for feedback (not used since we're using react-slick for reviews)
-  const feedbackSwiperSettings = {
-    modules: [Navigation],
-    slidesPerView: 1,
-    spaceBetween: 10,
-    navigation: feedbackCount > 3 ? true : false,
-    loop: feedbackCount > 3,
-    breakpoints: {
-      1024: {
-        slidesPerView: 1,
-        spaceBetween: 20,
-      },
-      768: {
-        slidesPerView: 1,
-        spaceBetween: 15,
-      },
-    },
-  };
-
-  // react-slick settings for images
   const sliderSettings = {
     dots: true,
     infinite: serviceDetail?.images?.length > 1,
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
-    centerMode: true, // Enable center mode for the image slider
-    centerPadding: "0px", // Adjust padding to ensure centering
+    centerMode: true, 
+    centerPadding: "0px", 
     responsive: [
       {
         breakpoint: 1024,
@@ -87,7 +61,7 @@ export default function CustomerServiceDetail() {
           slidesToShow: 2,
           slidesToScroll: 1,
           infinite: true,
-          centerMode: false, // Disable centerMode on larger screens if not desired
+          centerMode: false,
         },
       },
       {
@@ -110,7 +84,6 @@ export default function CustomerServiceDetail() {
     ],
   };
 
-  // react-slick settings for feedback
   const settings = {
     dots: true,
     infinite: feedbackCount > 3,
@@ -118,8 +91,8 @@ export default function CustomerServiceDetail() {
     slidesToShow: 1,
     slidesToScroll: 1,
     arrows: true,
-    centerMode: true, // Enable center mode to center the slides
-    centerPadding: "0px", // No padding to ensure the slide content is fully centered
+    centerMode: true,
+    centerPadding: "0px",
     responsive: [
       {
         breakpoint: 1024,
@@ -143,7 +116,6 @@ export default function CustomerServiceDetail() {
     ],
   };
 
-  // Group feedbacks into sets of 3 if more than 3, otherwise keep as is
   const groupedFeedbacks =
     feedbackCount > 3
       ? chunkArray(serviceDetail?.feedbacks || [], 3)
@@ -172,6 +144,11 @@ export default function CustomerServiceDetail() {
                     </div>
                   )}
                 </Slider>
+              {!serviceDetail ? (
+             <div className="align-item-center d-flex">
+                <Loader></Loader>
+                </div>
+              ): (
                 <div>
                   <div className="rating-stars">
                     <StarRating averageRating={serviceDetail?.averageRating} />
@@ -271,6 +248,9 @@ export default function CustomerServiceDetail() {
                     </div>
                   </div>
                 </div>
+              ) 
+                
+              }
               </div>
             </Col>
           </Row>
@@ -292,7 +272,7 @@ export default function CustomerServiceDetail() {
                           <div
                             key={i}
                             className="review-slide-card"
-                            style={{ flex: "0 1 380px" }} // Fixed width for centering
+                            style={{ flex: "0 1 380px" }} 
                           >
                             <div className="d-flex align-items-center">
                               <div className="review-img">
@@ -349,6 +329,7 @@ export default function CustomerServiceDetail() {
               <div>
                 <h5>{serviceDetail?.serviceProviderId?.company_name}</h5>
                 <p>{serviceDetail?.serviceProviderId?.street_address !== "undefined" ? serviceDetail?.serviceProviderId?.street_address : "-"}</p>
+                 <p>{serviceDetail?.serviceProviderId?.suburbs !== "undefined" ? serviceDetail?.serviceProviderId?.suburbs : "-"}</p>
               </div>
             </div>
           </div>

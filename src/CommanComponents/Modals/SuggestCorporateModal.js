@@ -29,7 +29,13 @@ useEffect(() => {
       .includes(search.toLowerCase())
   );
   return (
- <Modal show={show} onHide={onClose} centered size="lg" className="suggest_Corporate_model">
+    <Modal
+      show={show}
+      onHide={onClose}
+      centered
+      size="lg"
+      className="suggest_Corporate_model"
+    >
       <Modal.Body className="p-0 d-flex flex-column">
         <div className="suggest_Corporate_search">
           <div className="modal-header-fixed">
@@ -66,13 +72,22 @@ useEffect(() => {
               onClick={() => setSelectedId(corp._id)}
               style={{ cursor: "pointer" }}
             >
-             <img
-                src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
-                alt={corp.full_name}
-                className="rounded-circle me-3"
-                width={40}
-                height={40}
-            />
+              {corp.profile_image ? (
+                <img
+                  src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                  alt={corp.full_name}
+                  className="rounded-circle me-3"
+                  width={40}
+                  height={40}
+                />
+              ) : (
+                <div
+                  className="rounded-circle me-3 bg-secondary text-white d-flex align-items-center justify-content-center"
+                  style={{ width: 40, height: 40, fontWeight: "bold" }}
+                >
+                  {corp.full_name?.[0]?.toUpperCase() || "?"}
+                </div>
+              )}
 
               <div>
                 <div className="fw-bold">{corp?.full_name}</div>
@@ -87,7 +102,9 @@ useEffect(() => {
             className="btn btn-success mt-2"
             disabled={!selectedId}
             onClick={() => {
-              const selected = corporateSuggestions.find((c) => c._id === selectedId);
+              const selected = corporateSuggestions.find(
+                (c) => c._id === selectedId
+              );
               onSave(selected);
               onClose();
             }}
@@ -97,7 +114,6 @@ useEffect(() => {
         </div>
       </Modal.Body>
     </Modal>
-
   );
 };
 

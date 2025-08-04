@@ -90,15 +90,23 @@ export default function SuggestedCorporatePage() {
                     </Link>
 
                     <div className="d-flex align-items-center gap-3">
-                      <div className="">
+                    <div className="">
+                      {corpoProfile?.profile_image ? (
                         <img
                           className="point-cursor avatar-circle"
                           style={{ width: 50, height: 50 }}
-                          src={`${process.env.REACT_APP_API_URL}${corpoProfile?.profile_image}`}
-                          alt="categories-img"
+                          src={`${process.env.REACT_APP_API_URL}${corpoProfile.profile_image}`}
+                          alt="profile-img"
                         />
-                      </div>
-
+                      ) : (
+                        <div
+                          className="point-cursor avatar-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                          style={{ width: 50, height: 50, fontWeight: 'bold', fontSize: 20 }}
+                        >
+                          {corpoProfile?.full_name?.[0]?.toUpperCase() || "?"}
+                        </div>
+                      )}
+                    </div>
                       <div>
                         <div className="fw-bold">{corpoProfile?.full_name}</div>
                         <div className="text-muted small">

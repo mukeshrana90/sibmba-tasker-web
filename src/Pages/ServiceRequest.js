@@ -16,6 +16,7 @@ import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirma
 import BookingCancelled from "../CommanComponents/Modals/BookingCancelled";
 import SuggestCorporateModal from "../CommanComponents/Modals/SuggestCorporateModal";
 import CustomerActions from "../Redux/Actions/CustomerActions";
+import defaultImage from "../Assets/Images/placeholder.jpg"
 
 export default function ServiceRequest() {
   const getStatusColor = (status) => {
@@ -320,7 +321,7 @@ export default function ServiceRequest() {
                 <div className="selected-corporate p-3 border rounded d-flex justify-content-between align-items-center mb-5">
                   <div className="d-flex align-items-center">
                     <img
-                      src={`${process.env.REACT_APP_API_URL}/${bookingReqDetail?.corporateSuggestions[0].corporateIds.profile_image}`}
+                      src={`${process.env.REACT_APP_API_URL}/${bookingReqDetail?.corporateSuggestions[0].corporateIds.profile_image}`|| defaultImage}
                       alt={bookingReqDetail?.corporateSuggestions[0].corporateIds?.full_name}
                       width={40}
                       height={40}
@@ -342,7 +343,7 @@ export default function ServiceRequest() {
                 <div className="selected-corporate p-3 border rounded d-flex justify-content-between align-items-center mb-5">
                   <div className="d-flex align-items-center">
                     <img
-                      src={`${process.env.REACT_APP_API_URL}/${selectedCorporate.profile_image}`}
+                      src={`${process.env.REACT_APP_API_URL}/${selectedCorporate.profile_image}` || defaultImage}
                       alt={selectedCorporate.full_name}
                       width={40}
                       height={40}
