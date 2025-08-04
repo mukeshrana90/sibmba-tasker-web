@@ -37,7 +37,9 @@ const CorporateAddProduct = () => {
   const getQueryURL = useQuery();
   const searchValFromUrl = getQueryURL.get("service_id");
 
-  const categoryList = useSelector((e) => e.service.category);
+  // const categoryList = useSelector((e) => e.service.corporateCategorycorporateCategory);
+  const categoryList = useSelector((e) => e.service.corporateCategory);
+  
   const serviceDetail = useSelector((e) => e.service.serviceDetail);
 
   const [previews, setPreviews] = useState([]);
@@ -52,7 +54,8 @@ const CorporateAddProduct = () => {
   ]);
 
   useEffect(() => {
-    dispatch(ServiceActions.getCategoryList());
+    // dispatch(ServiceActions.getCategoryList());
+    dispatch(ServiceActions.getCorporateCategoryList());
   }, [dispatch]);
 
   useEffect(() => {
@@ -190,6 +193,8 @@ const CorporateAddProduct = () => {
 
     return errors;
   };
+
+  console.log(categoryList,'categoryList categoryList')
   return (
     <Layout>
       <section className="search-results-sec service-details-sec">
@@ -197,7 +202,7 @@ const CorporateAddProduct = () => {
           <Row>
             <Col lg={12}>
               <h5 className="mb-4 mt-1">
-                {searchValFromUrl ? "Edit" : "Add"} Service
+                {searchValFromUrl ? "Edit" : "Add"} Product
               </h5>
               <Formik
                 initialValues={initialValues}
@@ -426,7 +431,7 @@ const CorporateAddProduct = () => {
                               className="mb-3"
                               controlId="formServiceCategoryId"
                             >
-                              <Form.Label>Service Category*</Form.Label>
+                              <Form.Label>Business Category*</Form.Label>
                               <Field
                                 name="categoryId"
                                 as="select"
@@ -439,7 +444,7 @@ const CorporateAddProduct = () => {
                                 <option value="">Select</option>
                                 {categoryList?.data?.map((item) => (
                                   <option key={item._id} value={item._id}>
-                                    {item.service_category_name}
+                                    {item.name}
                                   </option>
                                 ))}
                               </Field>
