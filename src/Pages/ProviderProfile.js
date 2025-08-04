@@ -96,11 +96,9 @@ export default function ProviderProfile() {
       `handleStepChange called with index: ${index}, currentStep: ${currentStep}`
     );
     if (index === currentStep) {
-      console.log("Clicked current step, no action taken.");
       return;
     }
     if (index < currentStep) {
-      console.log(`Navigating to previous step: ${index}`);
       setCurrentStep(index);
       return;
     }

@@ -38,7 +38,7 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                 <h3>
                   {data?.serviceSubCategory?.serviceSubCategoryName || "N/A"}
                 </h3>
-                <p>
+                <p className="text-muted">
                   {`${data?.slotTime}, ${moment(data?.date).format("DD MMM")}`}
                 </p>
               </div>
@@ -70,6 +70,7 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                   />
                   <div>
                     <h5>{data?.serviceProvider?.full_name}</h5>
+                    <p className="text-muted mb-1">{data?.serviceProvider?.email || '-'}</p>
                     <p>{data?.serviceProvider?.street_address !== 'undefined' ? data?.serviceProvider?.street_address : '-'}</p>
                   </div>
                 </div>

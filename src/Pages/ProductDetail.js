@@ -19,7 +19,6 @@ export default function ProductDetail() {
   const dispatch = useDispatch();
   const { id } = useParams();
   const productDetail = useSelector((state) => state.products?.productDetail);
-  console.log(productDetail);
   const [paymentshow, setPaymentShow] = useState(false);
   const [boookingId, setBookingId] = useState(null);
   const [selectedBoooking, setSelectedBoooking] = useState(null);

@@ -104,21 +104,34 @@ export default function UserBookingDetails() {
       toast.error("Please give rating and message.");
       return;
     }
-    const feedbackData = {
-      ...(!corporateProfile && { Booking_id: bookingState?._id || task?.id }),
-      type: 1,
-      message: message,
-      rating: rating,
+const copIds = selectedQuotation?.corporateSuggestion?.map(item => item?.corporateIds?._id);
+const corporateId = copIds?.[0];
+
+const isCorporate = !!corporateProfile;
+
+const corporateFields = isCorporate
+  ? {
+      ...(corporateProfile?.taskId && { task_id: corporateProfile.taskId }),
+      ...(!corporateProfile?.taskId && corporateProfile?.bookingId && { bookingId: corporateProfile.bookingId }),
+      ...(corporateId && { corporateId }),
+    }
+  : {
       service_id: bookingState?.serviceSubCategory?._id,
       serviceProviderId: bookingState?.serviceProvider?._id,
       category_id: bookingState?.serviceCategory?._id,
-      ...(corporateProfile && {
-        task_id: corporateProfile?.taskId || corporateProfile?.bookingId,
-        corporateId: corporateProfile?.corporateIds?._id,
-        BookingId: bookingState?._id || task?.id,
-      }),
     };
-    dispatch(CustomerActions.feedbackActions(feedbackData));
+
+const feedbackData = {
+  Booking_id: bookingState?._id,
+  ...(task?.id && { task_id: task.id }),
+  message,
+  rating,
+  type: 1,
+  ...corporateFields,
+};
+
+dispatch(CustomerActions.feedbackActions(feedbackData));
+
     handleFeedbackClose();
     setShowThankYou(true);
   };
@@ -152,8 +165,7 @@ export default function UserBookingDetails() {
     )
       .then((res) => {
         if (res?.payload) {
-          console.log(res?.payload, "res?.payload");
-          res?.payload.corporateStatus === 3 && res?.payload?.userStatus === 3
+          res?.payload.data.corporateStatus === 3 && res?.payload?.data?.userStatus === 3
             ? toast.success("Accepted successfully.")
             : toast.error("Rejected successfully.");
         }
@@ -469,7 +481,7 @@ export default function UserBookingDetails() {
                           {selectedQuotation?.corporateSuggestion?.length >
                             0 && (
                             <div className="suggested-caproate">
-                              <h5>Suggested Corporateeee</h5>
+                              <h5>Suggested Corporate</h5>
                               <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
                                 {selectedQuotation.corporateSuggestion.map(
                                   (item, index) => {

@@ -136,8 +136,6 @@ export default function EditTask() {
     fetchCategoryAndServices();
   }, [dispatch]);
 
-  console.log(postTaskDetails, "postTaskDetails")
-
   return (
     <Layout>
       <section className="breadcrumb-nav">

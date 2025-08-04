@@ -220,17 +220,20 @@ export default function LeadDetails() {
                         {bookingState?.address || "No description provided."}
                       </p>
                       <div className="book-now-product mb-0">
-                        {!bookingState?.corporateSuggestions?.some(
-                          (cs) => cs.corporateStatus === 3
-                        ) && (
-                          <button
-                            className="primaryBtn"
-                            onClick={() => handleAccept(bookingState, 3)}
-                          >
-                            Done Job
-                          </button>
-                        )}
-                      </div>
+                            {bookingState?.corporateSuggestions?.some(
+                              (cs) => cs.corporateStatus === 3
+                            ) ? (
+                              <h5 className="text-success">Job Done By You!</h5>
+                            ) : (
+                              <button
+                                className="primaryBtn"
+                                onClick={() => handleAccept(bookingState, 3)}
+                              >
+                                Job Done
+                              </button>
+                            )}
+                          </div>
+
                     </div>
                   </div>
                   <section className="category-services-sec pt-0 mt-5">
@@ -425,21 +428,24 @@ export default function LeadDetails() {
                       <p>{task?.details || "No description provided."}</p>
                       <p>Budget:${task?.budget || "-"}</p>
                       <div className="book-now-product mb-0">
-                        {quotations?.length > 0 &&
-                          !quotations.some(
+                        {quotations?.length > 0 ? (
+                          quotations.some(
                             (q) =>
                               Array.isArray(q.corporateSuggestion) &&
                               q.corporateSuggestion.some(
                                 (cs) => cs.corporateStatus === 3
                               )
-                          ) && (
+                          ) ? (
+                            <h5 className="text-success">Job Done By You!</h5>
+                          ) : (
                             <button
                               className="primaryBtn"
                               onClick={() => handleAccept(bookingState, 3)}
                             >
-                              Done Job
+                              Job Done
                             </button>
-                          )}
+                          )
+                        ) : null}
                       </div>
                     </div>
                   </div>
