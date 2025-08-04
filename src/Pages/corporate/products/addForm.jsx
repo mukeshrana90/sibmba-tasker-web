@@ -418,7 +418,7 @@ const CorporateAddProduct = () => {
                                 name="name"
                                 as={Form.Control}
                                 type="text"
-                                placeholder="Name"
+                                placeholder="Enter Name"
                               />
                               <ErrorMessage
                                 name="name"
@@ -474,7 +474,7 @@ const CorporateAddProduct = () => {
                                 as="textarea"
                                 className="form-control"
                                 rows={4}
-                                placeholder="Type here"
+                                placeholder="Enter Description"
                               />
                               <ErrorMessage
                                 name="description"
