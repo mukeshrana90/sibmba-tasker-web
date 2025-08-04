@@ -30,10 +30,12 @@ export default function ProductDetailsPage() {
       setIsDeleting(true);
       dispatch(ProductActions.deleteProduct(productDetail._id))
         .then((res) => {
-          if (res?.status_code === 200) {
+          if (res) {
             toast.success("Product deleted successfully!");
             navigate("/corporate/products");
-          } 
+          } else if(res.status_code== 404){
+             toast.error("Product not found!");
+          }
         })
         .finally(() => {
           setIsDeleting(false);

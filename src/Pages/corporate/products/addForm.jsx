@@ -194,7 +194,6 @@ const CorporateAddProduct = () => {
     return errors;
   };
 
-  console.log(categoryList,'categoryList categoryList')
   return (
     <Layout>
       <section className="search-results-sec service-details-sec">
