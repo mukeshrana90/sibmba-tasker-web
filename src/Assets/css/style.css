@@ -5537,3 +5537,12 @@ section.page-mt {
   width: 100%;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
+.product-slider{
+  .slick-prev {
+    left: 6px !important;
+   z-index: 1;
+}
+.slick-next {
+    right: 11px !important;
+}
+}

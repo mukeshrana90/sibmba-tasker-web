@@ -156,16 +156,23 @@ console.log(myProducts)
                                             <h3 className="text-capitalize">
                                               {item?.name || "N/A"}
                                             </h3>
-                                            <p>
-                                              {" "}
-                                              {item?.category
-                                                ?.service_category_name ||
-                                                "N/A"}{" "}
-                                            </p>
+                                            
                                             <span>
                                               {item?.description ||
                                                 "No description available."}
                                             </span>
+                                            {item?.category && (
+                                              <>
+                                              <h6 className="mb-1 mt-3">Category Details</h6>
+                                                <span>
+                                                  Name: {item.category.name || "N/A"}
+                                                </span>
+                                                <span>
+                                                  Description:
+                                                  {item.category.description || "No description available."}
+                                                </span>
+                                              </>
+                                            )}
                                           </div>
                                           <div
                                             className="chat-btn-card"

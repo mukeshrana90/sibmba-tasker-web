@@ -4,7 +4,7 @@ import { ChatContext } from "../context/ChatProvider";
 import { Container } from "react-bootstrap";
 import moment from "moment";
 import { Link } from "react-router-dom";
-
+import defaultImage from "../Assets/Images/placeholder.jpg"
 const MainChat = ({ sender_id, reciverID, socket }) => {
   const BASE_URL = process.env.REACT_APP_API_URLL;
   const token = localStorage.getItem("token");
@@ -294,7 +294,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                       <div className="task-card-ui">
                         <div className="task-card-header">
                           <img
-                            src={`${parsed.image}`}
+                            src={`${parsed.image || defaultImage}`}
                             alt="Task"
                           />
                           <div className="task-header-text">

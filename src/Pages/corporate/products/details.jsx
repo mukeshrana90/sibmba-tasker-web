@@ -76,7 +76,7 @@ export default function ProductDetailsPage() {
         <Container>
           <Row>
             <Col lg={12}>
-              <div className="service-detail-card3">
+              <div className="service-detail-card3 product-slider">
                 <Slider {...sliderSettings}>
                   {productDetail?.images?.map((image, index) => (
                     <div key={index} className="card-box">
@@ -91,7 +91,20 @@ export default function ProductDetailsPage() {
                   <h3 className="text-capitalize">{productDetail?.name || ""}</h3>
                   <h4>{productDetail?.categoryId?.service_category_name}</h4>
                   <p>{productDetail?.description}</p>
-                  <div className="book-service-action-btn">
+
+                     {productDetail?.categoryId && (
+                      <>
+                      <h6 className="mb-1 mt-3">Category Details</h6>
+                        <span>
+                          Name: {productDetail.categoryId.name || "N/A"}
+                        </span>
+                        <span>
+                          Description:
+                          {productDetail.categoryId.description || "No description available."}
+                        </span>
+                      </>
+                    )}
+                  <div className="book-service-action-btn mt-3">
                     <button onClick={() => setShowDeleteModal(true)}>Delete</button>
                     <button
                       onClick={() =>
