@@ -34,7 +34,6 @@ export default function CorporateProducts() {
       [id]: !prev[id],
     }));
   };
-console.log(myProducts)
   useEffect(() => {
     const handleClickOutside = (event) => {
       let shouldCloseAll = true;

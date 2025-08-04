@@ -172,7 +172,6 @@ export default function Header() {
       console.error("Subscription check failed:", error);
     }
   };
-
   return (
     <>
       <div className="header-commn">
@@ -187,9 +186,9 @@ export default function Header() {
               </Navbar.Brand>
               <Navbar.Toggle aria-controls="navbarScroll" />
 
-              {!hideNavbarCollapse && (
+              {!hideNavbarCollapse &&   (
                 <Navbar.Collapse id="navbarScroll">
-                  {token && !hideSearchbarCollapse && !role == Roles.CORPORATE && (
+                  {token && !hideSearchbarCollapse  && !(role == Roles.CORPORATE) && (
                     <div className="nav-serch-bar ms-0 mt-2 mt-md-0 ms-md-5">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
