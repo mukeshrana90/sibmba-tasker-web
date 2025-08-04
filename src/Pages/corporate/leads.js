@@ -169,10 +169,10 @@ export default function CorporateLeadsPage() {
 
                           <Tab.Pane eventKey="leads">
                             <div className="bookings-cards">
-                              <div className="d-flex flex-column flex-md-row justify-content-end align-items-start align-items-md-center mb-3">
-                                {/* <div className="nav-serch-bar leads-search-wrapper d-flex align-items-center mr-0 gap-2">
+                              <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
+                                <div className="nav-serch-bar leads-search-wrapper d-flex align-items-center mr-0 gap-2">
                                   <img
-                                    className="search-icn leads-search mt-0"
+                                    className="search-icn leads-search mt-1"
                                     src={
                                       require("../../Assets/Images/search-icon.svg")
                                         .default
@@ -188,10 +188,10 @@ export default function CorporateLeadsPage() {
                                       setSearchText(e.target.value)
                                     }
                                   />
-                                </div> */}
+                                </div>
 
                                 {/* Filter */}
-                                <div className="mt-3 mt-md-0">
+                                <div className="mb-0">
                                   <CustomSelect
                                     selected={leadFilter}
                                     setSelected={setLeadFilter}

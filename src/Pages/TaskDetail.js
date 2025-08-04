@@ -85,7 +85,6 @@ export default function TaskDetail() {
     const handleDispatch = (action, successMessage, errorMessage) => {
       return dispatch(action).then((res) => {
         if (res?.payload?.success) {
-          toast.success(successMessage);
           navigate("/my-task");
         }
       });
