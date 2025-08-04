@@ -161,10 +161,10 @@ const CorporateAddProduct = () => {
   const validate = (values) => {
     const errors = {};
     if (!values.categoryId) {
-      errors.categoryId = "Service category is required";
+      errors.categoryId = "Business category is required";
     }
     if (!values.name) {
-      errors.name = "Service Name is required";
+      errors.name = "Service name is required";
     }
     if (!values.price || values.price <= 0) {
       errors.price = "Price is required and must be positive";
@@ -440,7 +440,7 @@ const CorporateAddProduct = () => {
                                   setFieldTouched("categoryId", true);
                                 }}
                               >
-                                <option value="">Select</option>
+                                <option value="">Select Category</option>
                                 {categoryList?.data?.map((item) => (
                                   <option key={item._id} value={item._id}>
                                     {item.name}
