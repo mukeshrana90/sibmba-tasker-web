@@ -23,7 +23,7 @@ const validationSchema = Yup.object({
       (value) =>
         !value || value.every((file) => file && file.size <= 10 * 1024 * 1024)
     ),
-  categoryId: Yup.string().required("Service category is required"),
+  categoryId: Yup.string().required("Business category is required"),
   name: Yup.string().trim().required("Service Name is required"),
   price: Yup.number()
     .required("Price is required")
@@ -414,7 +414,7 @@ const CorporateAddProduct = () => {
                               className="mb-3"
                               controlId="formServiceSubCategoryName"
                             >
-                              <Form.Label>Name</Form.Label>
+                              <Form.Label>Name*</Form.Label>
                               <Field
                                 name="name"
                                 as={Form.Control}
@@ -431,7 +431,7 @@ const CorporateAddProduct = () => {
                               className="mb-3"
                               controlId="formServiceCategoryId"
                             >
-                              <Form.Label>Business Category*</Form.Label>
+                              <Form.Label>Select Business Category*</Form.Label>
                               <Field
                                 name="categoryId"
                                 as="select"
