@@ -33,9 +33,7 @@ export default function ProductDetailsPage() {
           if (res?.status_code === 200) {
             toast.success("Product deleted successfully!");
             navigate("/corporate/products");
-          } else {
-            toast.error("Failed to delete product.");
-          }
+          } 
         })
         .finally(() => {
           setIsDeleting(false);
