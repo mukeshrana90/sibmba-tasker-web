@@ -34,10 +34,10 @@ export default function SignUp() {
     },
     validationSchema: Yup.object({
       email: Yup.string().email("Invalid email address").required("Email is Required"),
-      phone: Yup.string()
-      .required("Phone number is required")
-      .matches(/^\d{9,15}$/, "Phone must be between 9 and 15 digits"),
-
+     phone: Yup.string()
+      .transform((value) => value.replace(/\D/g, "")) // remove all non-digits
+      .matches(/^\d{9,10}$/, "Phone number must be between 9 and 10 digits")
+      .required("Phone number is required"),
 
       password: Yup.string()
         .min(6, "Password must be at least 6 characters")

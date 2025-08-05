@@ -67,7 +67,7 @@ const ProviderForm = ({
     }),
     // Step 1: Company Details
     Yup.object({
-      identify_yourself: Yup.string().required("Identify yourself is required"),
+
       ...(isCorporate
         ? {
             corporateCategoryId: Yup.string().required(
@@ -81,6 +81,7 @@ const ProviderForm = ({
             company_name: Yup.string()
               .trim()
               .required("Company Name is required"),
+            identify_yourself: Yup.string().required("Identify yourself is required"),
           }),
 
       house_number: Yup.string().trim().required("House Number is required"),
