@@ -153,7 +153,7 @@ export default function CorporateProducts() {
                                         <div className="bookings-card-data my-task-ad-card">
                                           <div>
                                             <h3 className="text-capitalize">
-                                              {item?.name || "N/A"}
+                                              {item?.name || "-"}
                                             </h3>
                                             
                                             <span>
@@ -164,7 +164,7 @@ export default function CorporateProducts() {
                                               <>
                                               <h6 className="mb-1 mt-3">Category Details</h6>
                                                 <span>
-                                                  Name: {item.category.name || "N/A"}
+                                                  Name: {item.category.name || "-"}
                                                 </span>
                                                 <span>
                                                   Description:
