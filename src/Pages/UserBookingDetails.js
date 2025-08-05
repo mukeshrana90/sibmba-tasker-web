@@ -144,8 +144,8 @@ dispatch(CustomerActions.feedbackActions(feedbackData));
       })
     )
       .then((res) => {
-        if (res?.payload) {
-          res?.payload.status === 1
+        if (res?.data) {
+          res?.data.status === 1
             ? toast.success("Accepted successfully.")
             : toast.error("Rejected successfully.");
         }
