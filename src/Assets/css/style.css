@@ -2759,7 +2759,7 @@ input[type="checkbox"]:checked::before {
 
 .message-chat-input button {
   border-radius: 6px;
-  background: #252525;
+  background-color: #038654 !important;
   padding: 10px 15px;
   display: flex;
   justify-content: center;
@@ -5544,5 +5544,15 @@ section.page-mt {
 }
 .slick-next {
     right: 11px !important;
+}
+}
+.react-datepicker__day--selected{
+    background-color: #038654 !important;
+}
+.availability-slots{
+.btn-check:checked+.btn, .btn.active, .btn.show, .btn:first-child:active, :not(.btn-check)+.btn:active {
+  color: var(--bs-btn-active-color) !important;
+  background-color: var(--bs-btn-active-bg) !important;
+  border-color: var(--bs-btn-active-border-color) !important;
 }
 }

@@ -475,7 +475,7 @@ const AddService = () => {
                                                             <Row>
                                                                 <div className="">
                                                                     <Form.Label>Select Day</Form.Label>
-                                                                    <Col>
+                                                                    <Col className="availability-slots">
                                                                         {/* {["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map(
                                                                             (day) => (
                                                                                 <Button
@@ -527,7 +527,7 @@ const AddService = () => {
                                                                 </div>
                                                                 <Col>
                                                                     <Form.Label>Select Time</Form.Label>
-                                                                    <div>
+                                                                    <div className="availability-slots">
                                                                         {timeSchedule?.map((time) => {
                                                                             const normalizeTime = (t) => t.replace(/\s+/g, "").replace(/[-–—]/g, "-").toLowerCase();
                                                                             const selectedTimes = Array.isArray(values?.dayAvailability?.[0]?.timeArr)
