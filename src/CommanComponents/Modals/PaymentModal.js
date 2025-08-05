@@ -7,17 +7,28 @@ import PaymentSuccessModal from "./PaymentSuccessModal";
 const PaymentModal = ({
   paymentshow,
   handlePaymentClose,
-  boookingId,
+  id,
   data,
+  type
 }) => {
   const dispatch = useDispatch();
   const [show, setShow] = useState(false);
   const handlePay = async () => {
-    const payload = { bookingId: boookingId };
-    const res = await dispatch(CustomerActions?.payBooking(payload));
-    if (res?.payload?.success) {
-      handlePaymentClose();
-      window.location.href = `${res?.payload?.paymentUrl}`;
+   const payload = {
+    [type === "task" ? "task_id" : "bookingId"]: id,
+  };
+    if(type ==='booking'){
+      const res = await dispatch(CustomerActions?.payBooking(payload));
+      if (res?.payload?.success) {
+        handlePaymentClose();
+        window.location.href = `${res?.payload?.paymentUrl}`;
+      }
+    }else{
+      const resTask = await dispatch(CustomerActions?.payTask(payload));
+      if (resTask?.payload?.success) {
+        handlePaymentClose();
+        window.location.href = `${resTask?.payload?.paymentUrl}`;
+      }
     }
   };
   const handleClose = () => setShow(false);

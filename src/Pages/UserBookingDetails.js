@@ -31,7 +31,6 @@ const getStatusColor = (status) => {
 
 export default function UserBookingDetails() {
   const dispatch = useDispatch();
-  const [isActive, setIsActive] = useState(false);
   const navigate = useNavigate();
   const id = useParams();
   const location = useLocation();
@@ -57,11 +56,6 @@ export default function UserBookingDetails() {
     seteditShow(true);
     setBookingId(id);
   };
-  const handleEditClose = (id) => {
-    seteditShow(false);
-    setBookingId("");
-  };
-
   const handlePaymentOpen = (id) => {
     setPaymentShow(true);
     setBookingId(id);
@@ -111,8 +105,8 @@ const isCorporate = !!corporateProfile;
 
 const corporateFields = isCorporate
   ? {
-      ...(corporateProfile?.taskId && { task_id: corporateProfile.taskId }),
-      ...(!corporateProfile?.taskId && corporateProfile?.bookingId && { bookingId: corporateProfile.bookingId }),
+      ...(corporateProfile?.taskId && { task_id: corporateProfile?.taskId }),
+      ...(!corporateProfile?.taskId && corporateProfile?.bookingId && { bookingId: corporateProfile?.bookingId }),
       ...(corporateId && { corporateId }),
     }
   : {
@@ -1222,7 +1216,8 @@ dispatch(CustomerActions.feedbackActions(feedbackData));
       <PaymentModal
         paymentshow={paymentshow}
         handlePaymentClose={handlePaymentClose}
-        boookingId={boookingId}
+        id={boookingId}
+        type={task ? "task" : "booking"}
         data={selectedBoooking}
       />
     </Layout>

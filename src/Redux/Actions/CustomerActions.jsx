@@ -297,6 +297,13 @@ const CustomerActions = {
       return response.data;
     }
   ),
+    payTask: createAsyncThunk(
+    "/customer/initiate_payment_task ",
+    async (payload) => {
+      const response = await Api.post("/customer/initiate_payment_task", payload);
+      return response.data;
+    }
+  ),
 
   // get post list user side
   getPostList: createAsyncThunk("/customer/post_task_listing", async () => {
