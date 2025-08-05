@@ -574,6 +574,7 @@ export default function ServiceRequest() {
         isRequestModal={isRequestModal}
         setIsRequestModal={setIsRequestModal}
         type={"accept"}
+        request={bookingReqDetail}
       />
 
       <ServiceRescheduleModal

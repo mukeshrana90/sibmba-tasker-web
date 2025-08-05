@@ -714,7 +714,7 @@ dispatch(CustomerActions.feedbackActions(feedbackData));
                             Give Feedback
                           </button>
                           <button
-                            className="book-btn"
+                            className="primaryBtn"
                             onClick={() => navigate("/services")}
                           >
                             Book Again
