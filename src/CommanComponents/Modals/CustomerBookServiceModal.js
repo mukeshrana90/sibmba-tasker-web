@@ -37,11 +37,9 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
     ][date.getDay()].toLowerCase(); // Convert to lowercase
     return serviceDetail?.availability?.[0]?.day.includes(dayName);
   };
-
-  const isDateAvailable = (date, availability) => {
-    if (!availability) return true;
+  const isDateAvailable = (date) => {
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-    return availability.some((slot) => slot.day.includes(dayName));
+    return data?.serviceSubCategory.availability?.some((slot) => slot.day.includes(dayName));
   };
 
   const handleBooking = async () => {
@@ -125,12 +123,17 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
           <div className="book-service-view">
             <img
               src={
-                Array.isArray(serviceDetail?.images) && serviceDetail?.images[0]
-                  ? `${process.env.REACT_APP_API_URL}/user/${serviceDetail?.images[0]}`
+                data?.serviceSubCategory.images[0]
+                  ? `${process.env.REACT_APP_API_URL}/user/${data?.serviceSubCategory.images[0]}`
                   : require("../../Assets/Images/living-room-cleaning.png")
               }
             />
-            <p>{serviceDetail?.serviceSubCategoryName || "N/A"}</p>
+            <div>
+              <p>{data?.serviceSubCategory?.serviceSubCategoryName || "N/A"}</p>
+              <p className="text-muted mt-2" style={{ fontSize: "14px" }}>
+                {data?.serviceSubCategory?.desc || "-"}
+              </p>
+            </div>
           </div>
 
           <Row>
@@ -141,10 +144,7 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
                   selected={selectedDate}
                   onChange={(date) => setSelectedDate(date)}
                   minDate={new Date()}
-                  {...(serviceDetail?.availability && {
-                    filterDate: (date) =>
-                      isDateAvailable(date, serviceDetail.availability),
-                  })}
+                  filterDate={isDateAvailable}
                   inline
                 />
               </div>
@@ -153,19 +153,26 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
               <div className="book-service-select">
                 <h3>Select Time</h3>
                 <ul>
-                  {Array.isArray(serviceDetail?.availability) &&
-                    serviceDetail?.availability[0].timeArr.map((res, index) => {
-                      return (
-                        <li
-                          key={index}
-                          className={timeState == res ? `active-list-book` : ``}
-                        >
-                          <p className="mb-0" onClick={() => setTimeState(res)}>
-                            {res}
-                          </p>
-                        </li>
-                      );
-                    })}
+                  {Array.isArray(data?.serviceSubCategory?.availability) &&
+                    data?.serviceSubCategory?.availability[0].timeArr.map(
+                      (res, index) => {
+                        return (
+                          <li
+                            key={index}
+                            className={
+                              timeState == res ? `active-list-book` : ``
+                            }
+                          >
+                            <p
+                              className="mb-0"
+                              onClick={() => setTimeState(res)}
+                            >
+                              {res}
+                            </p>
+                          </li>
+                        );
+                      }
+                    )}
                 </ul>
               </div>
 
