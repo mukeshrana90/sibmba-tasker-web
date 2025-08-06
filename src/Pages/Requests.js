@@ -381,7 +381,7 @@ export default function Requests() {
                             {filteredRequests("third")?.length > 0 ? (
                               filteredRequests("third")?.map((request) => (
                                 <div
-                                  className="+"
+                                  className="quotation-requests"
                                   key={request._id}
                                 >
                                   <div>
