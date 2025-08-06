@@ -267,7 +267,7 @@ export default function CustomerServiceDetail() {
                 <Slider {...settings} className="review-slider">
                   {groupedFeedbacks?.map((group, index) => (
                     <div key={index} className="review-slide-group">
-                      <div className="d-flex gap-4 justify-content-center">
+                      <div className="d-flex gap-4">
                         {group.map((feedback, i) => (
                           <div
                             key={i}
@@ -275,7 +275,7 @@ export default function CustomerServiceDetail() {
                             style={{ flex: "0 1 380px" }} 
                           >
                             <div className="d-flex align-items-center">
-                              <div className="review-img">
+                              <div className="review-img service-img-data">
                                 <img
                                   src={`${process.env.REACT_APP_API_URL}/${feedback?.user_id?.profile_image}`}
                                   alt={feedback?.user_id?.full_name}

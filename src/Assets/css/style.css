@@ -4971,6 +4971,12 @@ img.my-task {
 
 .review-img {
   width: 50% !important;
+  &.service-img-data{
+    img{
+      width: 55px !important;
+      height: 55px !important;
+    }
+  }
 }
 
 .search-filtration label {
