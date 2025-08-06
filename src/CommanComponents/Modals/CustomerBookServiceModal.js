@@ -39,7 +39,15 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
   };
   const isDateAvailable = (date) => {
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-    return data?.serviceSubCategory.availability?.some((slot) => slot.day.includes(dayName));
+    if (serviceDetail?.availability) {
+      return serviceDetail?.availability?.some((slot) =>
+        slot.day.includes(dayName)
+      );
+    } else {
+      return data?.serviceSubCategory.availability?.some((slot) =>
+        slot.day.includes(dayName)
+      );
+    }
   };
 
   const handleBooking = async () => {
@@ -123,17 +131,21 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
           <div className="book-service-view">
             <img
               src={
-                data?.serviceSubCategory.images[0]
-                  ? `${process.env.REACT_APP_API_URL}/user/${data?.serviceSubCategory.images[0]}`
+                Array.isArray(serviceDetail?.images) &&
+                serviceDetail.images.length > 0
+                  ? `${process.env.REACT_APP_API_URL}/user/${serviceDetail.images[0]}`
+                  : Array.isArray(data?.serviceSubCategory?.images) &&
+                    data.serviceSubCategory.images.length > 0
+                  ? `${process.env.REACT_APP_API_URL}/user/${data.serviceSubCategory.images[0]}`
                   : require("../../Assets/Images/living-room-cleaning.png")
               }
             />
-            <div>
-              <p>{data?.serviceSubCategory?.serviceSubCategoryName || "N/A"}</p>
-              <p className="text-muted mt-2" style={{ fontSize: "14px" }}>
-                {data?.serviceSubCategory?.desc || "-"}
-              </p>
-            </div>
+
+            <p>
+              {serviceDetail?.serviceSubCategoryName ||
+                data?.serviceSubCategory?.serviceSubCategoryName ||
+                "N/A"}
+            </p>
           </div>
 
           <Row>
@@ -153,25 +165,38 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
               <div className="book-service-select">
                 <h3>Select Time</h3>
                 <ul>
+                  {Array.isArray(serviceDetail?.availability) &&
+                    serviceDetail.availability.length > 0 &&
+                    Array.isArray(serviceDetail.availability[0]?.timeArr) &&
+                    serviceDetail.availability[0].timeArr.map((res, index) => (
+                      <li
+                        key={index}
+                        className={timeState === res ? `active-list-book` : ``}
+                      >
+                        <p className="mb-0" onClick={() => setTimeState(res)}>
+                          {res}
+                        </p>
+                      </li>
+                    ))}
+
                   {Array.isArray(data?.serviceSubCategory?.availability) &&
-                    data?.serviceSubCategory?.availability[0].timeArr.map(
-                      (res, index) => {
-                        return (
-                          <li
-                            key={index}
-                            className={
-                              timeState == res ? `active-list-book` : ``
-                            }
-                          >
-                            <p
-                              className="mb-0"
-                              onClick={() => setTimeState(res)}
-                            >
-                              {res}
-                            </p>
-                          </li>
-                        );
-                      }
+                    data.serviceSubCategory.availability.length > 0 &&
+                    Array.isArray(
+                      data.serviceSubCategory.availability[0]?.timeArr
+                    ) &&
+                    data.serviceSubCategory.availability[0].timeArr.map(
+                      (res, index) => (
+                        <li
+                          key={index}
+                          className={
+                            timeState === res ? `active-list-book` : ``
+                          }
+                        >
+                          <p className="mb-0" onClick={() => setTimeState(res)}>
+                            {res}
+                          </p>
+                        </li>
+                      )
                     )}
                 </ul>
               </div>
