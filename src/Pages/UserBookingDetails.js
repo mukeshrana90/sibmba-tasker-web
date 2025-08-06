@@ -811,8 +811,8 @@ dispatch(CustomerActions.feedbackActions(feedbackData));
                                 "N/A"}
                             </h5>
                             <p>
-                              {bookingState.serviceProvider?.street_address ||
-                                "N/A"}
+                              {bookingState.serviceProvider?.street_address || bookingState.serviceProvider?.address ||
+                               bookingState.serviceProvider?.full_name }
                             </p>
                           </div>
                         </div>
