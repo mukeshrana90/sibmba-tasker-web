@@ -71,7 +71,7 @@ export default function Header() {
             profileData?.isService_add === 1 && profileData?.isSubscribed === 0;
           if (isServiceLimitReached) {
             if (location.pathname !== "/payment") {
-              // setShowProductPlanModal(true);
+              setShowProductPlanModal(true);
             }
           }
         }
