@@ -61,20 +61,7 @@ export default function Header() {
     } else {
       let apiRes = await dispatch(CustomerActions.getProfile());
       if (apiRes?.payload?.success) {
-        const profileData = apiRes?.payload?.data;
-
-        if (
-          profileData?.isService_add === 1 &&
-          profileData?.isSubscribed === 0
-        ) {
-          const isServiceLimitReached =
-            profileData?.isService_add === 1 && profileData?.isSubscribed === 0;
-          if (isServiceLimitReached) {
-            if (location.pathname !== "/payment") {
-              setShowProductPlanModal(true);
-            }
-          }
-        }
+        localStorage.setItem('ServiceLimit',  JSON.stringify(apiRes?.payload?.data))
         dispatch(setCustomer(apiRes?.payload?.data));
       }
     }
@@ -1067,41 +1054,6 @@ export default function Header() {
       </Modal>
 
       {/* Log Out end  */}
-
-      {/* plan */}
-
-      <Modal
-        show={showProductPlanModal}
-        onHide={() => setShowProductPlanModal(false)}
-        centered
-        backdrop="static"
-        keyboard={false}
-        y
-      >
-        <Modal.Body>
-          <div className="comman-small-pop">
-            <h2 className="mb-2">Limit Reached</h2>
-            <div className="download-app-section">
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <div className="app-store-buttons mb-0">
-                  Please upgrade your plan to add more services
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <div className="comman-pop-action-double mt-4 d-flex">
-                <button
-                  className="btn-fill"
-                  onClick={() => Navigate("/payment")}
-                >
-                  Upgrade Plan
-                </button>
-              </div>
-            </div>
-          </div>
-        </Modal.Body>
-      </Modal>
     </>
   );
 }

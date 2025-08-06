@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Container, Row, Col, Tab, Nav } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { Container, Row, Col, Tab, Nav, Modal } from "react-bootstrap";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../Components/Layout/Layout";
 import ServiceActions from "../Redux/Actions/ServiceActions";
@@ -9,10 +9,11 @@ export default function MyServices() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const dropdownRefs = useRef({});
-
+    const location = useLocation();
     const [dropdownStates, setDropdownStates] = useState({});
     const { myservices, loading, error } = useSelector((state) => state.service);
-
+    const [showProductPlanModal, setShowProductPlanModal] = useState(false);
+  
     useEffect(() => {
         dispatch(ServiceActions.getMyServicesList());
     }, [dispatch]);
@@ -21,9 +22,28 @@ export default function MyServices() {
         navigate(`/service-details/${serviceId}`);
     };
 
-    const handleAddService = () => {
-        navigate("/service/add");
-    };
+   const handleAddService = () => {
+  const ServiceLimit = JSON.parse(localStorage.getItem('ServiceLimit')); 
+  console.log(ServiceLimit);
+
+  if (
+    ServiceLimit?.isService_add === 1 &&
+    ServiceLimit?.isSubscribed === 0
+  ) {
+    const isServiceLimitReached =
+      ServiceLimit?.isService_add === 1 && ServiceLimit?.isSubscribed === 0;
+
+    if (isServiceLimitReached) {
+      if (location.pathname !== "/payment") {
+        setShowProductPlanModal(true);
+      }
+      return; // prevent navigation
+    }
+  } else {
+    navigate("/service/add");
+  }
+};
+
 
     const handleButtonClick = (id) => {
       setDropdownStates((prev) => ({
@@ -206,6 +226,40 @@ export default function MyServices() {
                                   </ul>
                                 </div>
                               )}
+                              {/* plan */}
+
+                              <Modal
+                                show={showProductPlanModal}
+                                onHide={() => setShowProductPlanModal(false)}
+                                centered
+                                backdrop="static"
+                                keyboard={false}
+                                y
+                              >
+                                <Modal.Body>
+                                  <div className="comman-small-pop">
+                                    <h2 className="mb-2">Limit Reached</h2>
+                                    <div className="download-app-section">
+                                      <div style={{ display: "flex", justifyContent: "center" }}>
+                                        <div className="app-store-buttons mb-0">
+                                          Please upgrade your plan to add more services
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: "flex", justifyContent: "center" }}>
+                                      <div className="comman-pop-action-double mt-4 d-flex">
+                                        <button
+                                          className="btn-fill"
+                                          onClick={() => navigate("/payment")}
+                                        >
+                                          Upgrade Plan
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Modal.Body>
+                              </Modal>
                             </Tab.Pane>
                           </Tab.Content>
                         </Col>
