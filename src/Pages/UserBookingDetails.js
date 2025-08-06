@@ -98,33 +98,40 @@ export default function UserBookingDetails() {
       toast.error("Please give rating and message.");
       return;
     }
-const copIds = selectedQuotation?.corporateSuggestion?.map(item => item?.corporateIds?._id);
-const corporateId = copIds?.[0];
+    const copIds = selectedQuotation?.corporateSuggestion?.map(
+      (item) => item?.corporateIds?._id
+    );
+    const corporateId = copIds?.[0];
 
-const isCorporate = !!corporateProfile;
+    const isCorporate = !!corporateProfile;
 
-const corporateFields = isCorporate
-  ? {
-      ...(corporateProfile?.taskId && { task_id: corporateProfile?.taskId }),
-      ...(!corporateProfile?.taskId && corporateProfile?.bookingId && { bookingId: corporateProfile?.bookingId }),
-      ...(corporateId && { corporateId }),
-    }
-  : {
-      service_id: bookingState?.serviceSubCategory?._id,
-      serviceProviderId: bookingState?.serviceProvider?._id,
-      category_id: bookingState?.serviceCategory?._id,
+    const corporateFields = isCorporate
+      ? {
+          ...(corporateProfile?.taskId && {
+            task_id: corporateProfile?.taskId,
+          }),
+          ...(!corporateProfile?.taskId &&
+            corporateProfile?.bookingId && {
+              bookingId: corporateProfile?.bookingId,
+            }),
+          ...(corporateId && { corporateId }),
+        }
+      : {
+          service_id: bookingState?.serviceSubCategory?._id,
+          serviceProviderId: bookingState?.serviceProvider?._id,
+          category_id: bookingState?.serviceCategory?._id,
+        };
+
+    const feedbackData = {
+      Booking_id: bookingState?._id,
+      ...(task?.id && { task_id: task.id }),
+      message,
+      rating,
+      type: 1,
+      ...corporateFields,
     };
 
-const feedbackData = {
-  Booking_id: bookingState?._id,
-  ...(task?.id && { task_id: task.id }),
-  message,
-  rating,
-  type: 1,
-  ...corporateFields,
-};
-
-dispatch(CustomerActions.feedbackActions(feedbackData));
+    dispatch(CustomerActions.feedbackActions(feedbackData));
 
     handleFeedbackClose();
     setShowThankYou(true);
@@ -138,10 +145,10 @@ dispatch(CustomerActions.feedbackActions(feedbackData));
       })
     )
       .then((res) => {
-        if (res?.data) {
-          res?.data.status === 1
-            ? toast.success("Accepted successfully.")
-            : toast.error("Rejected successfully.");
+        if (res?.payload?.data) {
+          res?.payload?.data.status === "rejected"
+            ? toast.error("Rejected successfully.")
+            : toast.success("Accepted successfully.");
         }
         setRefetchToggle((prev) => !prev);
       })
@@ -159,7 +166,8 @@ dispatch(CustomerActions.feedbackActions(feedbackData));
     )
       .then((res) => {
         if (res?.payload) {
-          res?.payload.data.corporateStatus === 3 && res?.payload?.data?.userStatus === 3
+          res?.payload.data.corporateStatus === 3 &&
+          res?.payload?.data?.userStatus === 3
             ? toast.success("Accepted successfully.")
             : toast.error("Rejected successfully.");
         }
@@ -811,8 +819,9 @@ dispatch(CustomerActions.feedbackActions(feedbackData));
                                 "N/A"}
                             </h5>
                             <p>
-                              {bookingState.serviceProvider?.street_address || bookingState.serviceProvider?.address ||
-                               bookingState.serviceProvider?.full_name }
+                              {bookingState.serviceProvider?.street_address ||
+                                bookingState.serviceProvider?.address ||
+                                bookingState.serviceProvider?.full_name}
                             </p>
                           </div>
                         </div>
@@ -913,7 +922,6 @@ dispatch(CustomerActions.feedbackActions(feedbackData));
                                       </button>
                                     )}
                                   </div>
-
                                   {bookingState.status !== 3 &&
                                   corp.userStatus === 0 ? (
                                     <div className="book-service-action-btn d-flex gap-2 mt-2">

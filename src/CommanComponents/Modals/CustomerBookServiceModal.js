@@ -25,24 +25,24 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
   //   return serviceDetail?.availability?.[0]?.day.includes(dayName);
   // };
 
-const isDateAvailable1 = (date) => {
-  const dayName = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ][date.getDay()].toLowerCase(); // Convert to lowercase
-  return serviceDetail?.availability?.[0]?.day.includes(dayName);
-};
-const isDateAvailable = (date) => {
-  const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-  return serviceDetail?.availability?.some((slot) =>
-    slot.day.includes(dayName)
-  );
-};
+  const isDateAvailable1 = (date) => {
+    const dayName = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ][date.getDay()].toLowerCase(); // Convert to lowercase
+    return serviceDetail?.availability?.[0]?.day.includes(dayName);
+  };
+
+  const isDateAvailable = (date, availability) => {
+    if (!availability) return true;
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    return availability.some((slot) => slot.day.includes(dayName));
+  };
 
   const handleBooking = async () => {
     if (!selectedDate) {
@@ -57,7 +57,9 @@ const isDateAvailable = (date) => {
       toast.error("Please enter a message.");
       return;
     }
-    const finalDate = selectedDate ? convertDateToStringNew(selectedDate) : convertDateToStringNew(new Date());
+    const finalDate = selectedDate
+      ? convertDateToStringNew(selectedDate)
+      : convertDateToStringNew(new Date());
 
     let payload;
     let apiRes;
@@ -139,7 +141,10 @@ const isDateAvailable = (date) => {
                   selected={selectedDate}
                   onChange={(date) => setSelectedDate(date)}
                   minDate={new Date()}
-                  filterDate={isDateAvailable}
+                  {...(serviceDetail?.availability && {
+                    filterDate: (date) =>
+                      isDateAvailable(date, serviceDetail.availability),
+                  })}
                   inline
                 />
               </div>
