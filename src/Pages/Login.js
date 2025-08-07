@@ -301,10 +301,16 @@ useEffect(() => {
                     </div>
 
                     <div className="alreadyac-txt-line">
+                      <p className="mt-0">
+                       Are you a business? {""}
+                        <Link to="/sign-up?role=3" className="login-link-txt">
+                          Register as a Corporate
+                        </Link>
+                      </p>
                       <p>
-                        Want to join as a service provider?{" "} 
+                        Want to offer your services?  {""}
                         <Link to="/sign-up?role=2" className="login-link-txt">
-                           Register here{" "}
+                          Become a provider
                         </Link>
                       </p>
                     </div>
