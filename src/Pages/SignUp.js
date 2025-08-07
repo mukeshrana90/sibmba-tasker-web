@@ -98,7 +98,8 @@ export default function SignUp() {
                     {" "}
                     <img src={require("../Assets/Images/dark-logo.png")} />
                   </div>
-                  <h2>{role == 2 ? "Sign up as a Service Provider" : "Sign up"}</h2>
+                  <h2> {role == 2 ? "Sign up as a Service Provider"
+                  : role == 3  ? "Sign up as a Corporate" : "Sign up as a User"}</h2>
                   <p className="mb-0">
                   Provide Trusted Services to Our Users
                   </p>
