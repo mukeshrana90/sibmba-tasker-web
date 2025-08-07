@@ -49,7 +49,7 @@ export default function OtpVarification() {
   useEffect(() => {
     if (isTokenValid()) {
       const storedRole = localStorage.getItem("role");
-      navigate(storedRole === "1" ? "/home" : "/requests", { replace: true });
+      // navigate(storedRole === "1" ? "/home" : "/requests", { replace: true });
     }
   }, [navigate]);
 

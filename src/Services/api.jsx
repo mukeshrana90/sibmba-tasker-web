@@ -42,6 +42,9 @@ Api.interceptors.response.use(
       }, 3000);
     }
     else {
+     if(error?.response?.data?.message == 'No Quatations found for this user.'){
+      return
+    }
     toast.error(error?.response?.data?.message);
     }
     return error.response;

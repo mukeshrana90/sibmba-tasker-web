@@ -44,8 +44,6 @@ export default function Header() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showPlanModalMessage, setShowPlanModalMessage] = useState("");
-  const [showProductPlanModal, setShowProductPlanModal] = useState(false);
-
   const currentPath = location.pathname;
 
   const notificationDetail = useSelector((e) => e.UserSlice.notificationData);
@@ -53,7 +51,7 @@ export default function Header() {
 
   const hideNavbarCollapse = location.pathname === "/provider";
   const hideSearchbarCollapse =
-    location.pathname === "/requests" || role === Roles.SERVICE_PROVIDER;
+  location.pathname === "/requests" || role === Roles.SERVICE_PROVIDER;
 
   const getProfileApiCall = async () => {
     if (role === "3") {
@@ -61,6 +59,12 @@ export default function Header() {
     } else {
       let apiRes = await dispatch(CustomerActions.getProfile());
       if (apiRes?.payload?.success) {
+      if(apiRes.payload?.data.email_verified==0){
+        Navigate(`/otp-varification?userId=${apiRes.payload?.data?._id}`, { replace: true });
+      }else if(apiRes.payload?.data?.is_completeProfile == 0){
+        Navigate("/complete-profile", { replace: true });
+        toast.success("Please Complete Your Profile.");
+      }
         localStorage.setItem('ServiceLimit',  JSON.stringify(apiRes?.payload?.data))
         dispatch(setCustomer(apiRes?.payload?.data));
       }
@@ -128,6 +132,13 @@ export default function Header() {
       }
       const user = apiRes?.payload?.data;
       const totalLeadResponse = user?.totalLeadResponse || 0;
+      if(user.user?.email_verified==0){
+        Navigate(`/otp-varification?userId=${user.user?._id}`, { replace: true });
+      }
+      else if(user.user?.is_completeProfile == 0){
+        Navigate("/complete-profile", { replace: true });
+        toast.success("Please Complete Your Profile.");
+      }
       const currentDate = new Date();
 
       const plans = [
