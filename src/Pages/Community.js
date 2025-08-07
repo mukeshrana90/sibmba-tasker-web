@@ -260,13 +260,23 @@ export default function Community() {
                           </h4>
                           <h5>{formatDate(eventData.eventDate)}</h5>
                           <div className="book-service-action">
-                            <button
+                            {/* <button
                               onClick={() =>
                                 window.open(eventData.bookingLink, "_blank")
                               }
                             >
                               Book Ticket
-                            </button>
+                            </button> */}
+                            <button
+                            onClick={() => {
+                              const link = eventData.bookingLink.startsWith("http")
+                                ? eventData.bookingLink
+                                : `https://${eventData.bookingLink}`;
+                              window.open(link, "_blank");
+                            }}
+                          >
+                            Book Ticket
+                          </button>
                           </div>
                         </div>
                       </div>
