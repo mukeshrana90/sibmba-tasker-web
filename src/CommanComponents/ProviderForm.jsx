@@ -254,8 +254,8 @@ const ProviderForm = ({
   };
 
   const handlePlaceSelect = (place, setFieldValue, setFieldTouched, values) => {
-    const addressComponents = place.address_components;
-    const geometry = place.geometry.location;
+    const addressComponents = place?.address_components;
+    const geometry = place.geometry?.location;
     let streetNumber = "";
     let route = "";
     let suburb = "";
