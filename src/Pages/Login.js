@@ -126,7 +126,7 @@ export default function Login() {
       if (response?.payload?.data?.email_verified == 0) {
         navigate(`/otp-verification?userId=${userId}`, { replace: true });
         toast.success(response?.payload?.message);
-      } else if (response?.payload?.data?.is_completeProfile == 1 && role == Roles.CUSTOMER) {
+      } else if (response?.payload?.data?.is_completeProfile == 0 && role == Roles.CUSTOMER) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         navigate("/complete-profile", { replace: true });
@@ -141,6 +141,7 @@ export default function Login() {
       }  else {
         localStorage.removeItem("temptoken");
         if (role == Roles.CUSTOMER) {
+          console.log(role,'ssssss')
           emit("new_user_connect", { userid: userId });
           navigate("/");
         } else if (role ==  Roles.SERVICE_PROVIDER) {
