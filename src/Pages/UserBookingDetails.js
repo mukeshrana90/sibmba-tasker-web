@@ -8,7 +8,6 @@ import Modal from "react-bootstrap/Modal";
 import { useDispatch } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { ImagePathCustomer } from "../utils/ImagePath";
-import { getStatusLabel } from "../utils/CommonFunction";
 import moment from "moment";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import PaymentModal from "../CommanComponents/Modals/PaymentModal";
@@ -28,6 +27,17 @@ const getStatusColor = (status) => {
 
   return statusMap[status] || "N/A";
 };
+  const getStatusLabel = (status) => {
+    const statusMap = {
+      1: "Pending",
+      2: "Cancelled",
+      3: "Completed",
+      4: "Completed",
+      5: "Rejected",
+    };
+
+    return statusMap[status] || "N/A";
+  };
 
 export default function UserBookingDetails() {
   const dispatch = useDispatch();
