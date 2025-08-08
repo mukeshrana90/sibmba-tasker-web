@@ -196,6 +196,25 @@ getNearbyCorporateUser: createAsyncThunk(
   }
 ),
 
+getNearbyCorporateUserList : createAsyncThunk(
+  "service/getNearbyCorporateUser",
+  async (data, { rejectWithValue }) => {
+    try {
+      const params = {
+        lat: data.lat,
+        lng: data.lng,
+      };
+      if (data.page) params.page = data.page;
+      if (data.limit) params.limit = data.limit;
+      const response = await Api.get("/service/getNearbyCorporate", { params });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+)
+
+
 };
 
 export default ServiceActions;

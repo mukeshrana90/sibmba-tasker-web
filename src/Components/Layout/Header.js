@@ -31,6 +31,7 @@ const corporateRoutes = [
 const clientRoutes = [
   { label: "Home", path: "/" },
   { label: "Service", path: "/services" },
+  { label: "Corporate", path: "/corporate-list" },
   { label: "Bookings", path: "/bookings" },
   { label: "My Tasks", path: "/my-task" },
 ];

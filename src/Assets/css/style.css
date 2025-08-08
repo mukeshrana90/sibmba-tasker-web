@@ -4810,6 +4810,9 @@ img.my-task {
   gap: 10px;
   align-items: center;
   margin-bottom: 5px;
+  .rating-score{
+    font-weight: 500;
+  }
 }
 
 .rate-stars ul {

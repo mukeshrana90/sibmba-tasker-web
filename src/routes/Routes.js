@@ -39,6 +39,7 @@ import SuggestedCorporatePage from "../Pages/suggestedCorporate";
 import CorporateProductDetailPage from "../Pages/corporateProductDetail";
 import ProductDetail from "../Pages/ProductDetail";
 import PaymentStatus from "../Pages/PaymentStatus";
+import CorporateListSection from "../Pages/corporateListForUser";
 
 
 const Login = lazy(() => import("../Pages/Login"));
@@ -161,6 +162,7 @@ const RoutesPage = () => {
               element={<QuotationsDetail />}
             />
             <Route path="/get-corporate/:id" element={<SuggestedCorporatePage/>} />
+            <Route path="/corporate-list" element={<CorporateListSection/>} />
             <Route path="/product-detail/:id" element={<CorporateProductDetailPage/>} />
             
             <Route path="/messages" element={<Messages />} />

@@ -296,7 +296,6 @@ export default function CorporateProductDetailPage() {
                 >
                   <img src={ChatIcon} alt="Chat" /> Direct Chat
                 </button>
-
                 <div className="d-flex justify-content-center align-item-center book-service-action-btn">
                   { (
                     <button
