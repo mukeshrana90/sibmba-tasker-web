@@ -40,6 +40,8 @@ import CorporateProductDetailPage from "../Pages/corporateProductDetail";
 import ProductDetail from "../Pages/ProductDetail";
 import PaymentStatus from "../Pages/PaymentStatus";
 import CorporateListSection from "../Pages/corporateListForUser";
+import CorporateCategoryDetail from "../Pages/corporateCategoryDetail";
+import BrowseCorporateCategory from "../Pages/BrowseCorporatecategory";
 
 
 const Login = lazy(() => import("../Pages/Login"));
@@ -95,6 +97,7 @@ const RoutesPage = () => {
           <Route path="/near-by-services" element={<NearByServices />} />
           <Route path="/services" element={<Services />} />
           <Route path="/browse-category" element={<BrowseCategory />} />
+          <Route path="/browse-corporate-category" element={<BrowseCorporateCategory />} />
 
           <Route element={<ProtectHome />}>
             <Route path="/" element={<Home />} />
@@ -138,6 +141,10 @@ const RoutesPage = () => {
             <Route
               path="/customer-category-detail"
               element={<CustomerCategoryDetail />}
+            />
+            <Route
+              path="/corporate-category-detail/:categoryId"
+              element={<CorporateCategoryDetail />}
             />
              <Route
               path="/product-details/:id"

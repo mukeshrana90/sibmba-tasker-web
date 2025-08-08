@@ -24,7 +24,8 @@ const serviceSlice = createSlice({
     corporateSuggestions:null,
     getLeads:null,
     getCorporateList:null,
-    corporateCategory:null
+    corporateCategory:null,
+    nearbyCorporateCategory:null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -333,7 +334,21 @@ const serviceSlice = createSlice({
         state.error = action.payload;
       }
     );
+    // start  get Near by Corporate With Category
+    builder.addCase(ServiceActions.getNearbyCorporateWithCategory.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(ServiceActions.getNearbyCorporateWithCategory.fulfilled, (state, action) => {
+      state.loading = false;
+      state.nearbyCorporateCategory = action.payload.data; 
+    });
+    builder.addCase(ServiceActions.getNearbyCorporateWithCategory.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error;
+    });
+    // end  get Near by Corporate With Category
   },
+  
 });
 
 export default serviceSlice.reducer;

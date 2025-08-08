@@ -9,29 +9,25 @@ import Slider from "react-slick";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { useDispatch, useSelector } from "react-redux";
 import ReadMore from "../CommanComponents/ReadMore";
-import banner5 from "../Assets/Images/image.png"
-import banner4 from "../Assets/Images/ban2.png"
-import banner3 from "../Assets/Images/ban3.png"
-import banner1 from "../Assets/Images/banner1.png"
-import banner2 from "../Assets/Images/banner2.png"
+import banner5 from "../Assets/Images/image.png";
+import banner4 from "../Assets/Images/ban2.png";
+import banner3 from "../Assets/Images/ban3.png";
+import banner1 from "../Assets/Images/banner1.png";
+import banner2 from "../Assets/Images/banner2.png";
+import ServiceActions from "../Redux/Actions/ServiceActions";
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function Home() {
   const Navigate = useNavigate();
   const token = localStorage.getItem("token");
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
-  const categories = useSelector((e) => e.UserSlice.categories)
-  const bestservices = useSelector((e) => e.UserSlice.bestservices)
-  const nearByServices = useSelector((e) => e.UserSlice.nearByServices)
-
+  const categories = useSelector((e) => e.UserSlice.categories);
+  const bestservices = useSelector((e) => e.UserSlice.bestservices);
+  const nearByServices = useSelector((e) => e.UserSlice.nearByServices);
+  const corporateSuggestions = useSelector((e) => e.service.corporateCategory);
   const lat = localStorage.getItem("latitude");
   const long = localStorage.getItem("longitude");
-
-  const [show, setShow] = useState(false);
-  const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
-
-
   var settings = {
     dots: false,
     infinite: true,
@@ -65,52 +61,53 @@ export default function Home() {
     ],
   };
 
-
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
       setLoading(true);
       try {
-        const [categoryResponse, servicesResponse, NearByServicesResponse] = await Promise.all([
-          dispatch(CustomerActions.getCategories()),
-          dispatch(CustomerActions.getBestServices()),
-          dispatch(CustomerActions.getNearByServices({ lat, long })),
-
-        ]);
-
-        // setCategories(categoryResponse?.payload?.data || []);
-        // setBestsetServices(servicesResponse?.payload?.data || []);
-        // setNearByServices(NearByServicesResponse?.payload?.data || [])
+        const [categoryResponse, servicesResponse, NearByServicesResponse] =
+          await Promise.all([
+            dispatch(CustomerActions.getCategories()),
+            dispatch(CustomerActions.getBestServices()),
+            dispatch(CustomerActions.getNearByServices({ lat, long })),
+          ]);
       } catch (error) {
         console.error("Error fetching category and services:", error);
       } finally {
         setLoading(false);
       }
     };
-
+    dispatch(ServiceActions.getCorporateCategoryList());
     fetchCategoryAndServices();
   }, [dispatch, lat, long]);
-
 
   const handleProfiles = (type, id) => {
     if (token) {
       if (type == "services") {
-        Navigate(`/customer-service-detail?service_id=${id}`)
+        Navigate(`/customer-service-detail?service_id=${id}`);
       } else {
-        Navigate(`/customer-category-detail?categoryId=${id}`)
+        Navigate(`/customer-category-detail?categoryId=${id}`);
       }
     } else {
-      Navigate("/login")
+      Navigate("/login");
     }
-  }
+  };
+  const handleCorporateProfiles = (id) => {
+    if (token) {
+      Navigate(`/corporate-category-detail/${id}`);
+    } else {
+      Navigate("/login");
+    }
+  };
 
-  const faqsList = useSelector((e) => e.UserSlice.getFaqListing)
+  const faqsList = useSelector((e) => e.UserSlice.getFaqListing);
 
   useEffect(() => {
-    dispatch(CustomerActions.faqsListingAction())
-  }, [dispatch])
+    dispatch(CustomerActions.faqsListingAction());
+  }, [dispatch]);
 
   const uniqueFaqs = faqsList?.reduce((acc, current) => {
-    const x = acc.find(item => item.question === current.question);
+    const x = acc.find((item) => item.question === current.question);
     if (!x) {
       return acc.concat([current]);
     } else {
@@ -119,22 +116,15 @@ export default function Home() {
   }, []);
 
   const handleNavigate = () => {
-
     if (token) {
-      Navigate("/post-task")
+      Navigate("/post-task");
     } else {
-      Navigate("/login")
+      Navigate("/login");
     }
-  }
+  };
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const banners = [
-    banner5,
-    banner1,
-    banner2,
-    banner3,
-    banner4,
-  ];
+  const banners = [banner5, banner1, banner2, banner3, banner4];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -143,10 +133,8 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [banners.length]);
 
-
   return (
     <Layout>
-
       {/* <section className="home-banner-sec">
         <Container>
           <Row>
@@ -171,8 +159,6 @@ export default function Home() {
         </Container>
       </section> */}
 
-
-
       <section className="home-banner-sec">
         <div className="banner-slider">
           {banners.map((banner, index) => (
@@ -180,7 +166,9 @@ export default function Home() {
               key={index}
               src={banner}
               alt={`Banner ${index + 1}`}
-              className={`banner-image ${index === activeIndex ? 'active' : ''}`}
+              className={`banner-image ${
+                index === activeIndex ? "active" : ""
+              }`}
               loading="lazy"
             />
           ))}
@@ -191,9 +179,7 @@ export default function Home() {
               <div className="banner-left-text">
                 <p className="mb-2">Need a Pro? Simba Tasker’s got you.</p>
                 <h1>From major builds to quick fixes — fast, trusted help.</h1>
-                <p>
-                  Tap in. Get it done.
-                </p>
+                <p>Tap in. Get it done.</p>
               </div>
             </Col>
             <Col lg={6}></Col>
@@ -295,7 +281,7 @@ export default function Home() {
           <Container>
             <div className="category-services-lists">
               <div className="list-title">
-                <h2>Browse by Category</h2>
+                <h2>Browse Category</h2>
                 <Link to="/browse-category">
                   Explore More
                   <svg
@@ -326,7 +312,11 @@ export default function Home() {
                           <img
                             onClick={() => handleProfiles("category", ele._id)}
                             className="point-cursor"
-                            src={`${process.env.REACT_APP_API_URL}/${ele?.image}`}
+                            src={
+                              ele?.image
+                                ? `${process.env.REACT_APP_API_URL}${ele.image}`
+                                : defaultImage
+                            }
                             alt="categories-img"
                           />
                         </>
@@ -394,6 +384,64 @@ export default function Home() {
           </section>
         )}
 
+      {/* NearBy Corporate category Start */}
+      {/* {Array.isArray(corporateSuggestions?.data) &&
+        corporateSuggestions?.data?.length > 0 && (
+          <section className="category-services-sec pt-0">
+            <Container>
+              <div className="category-services-lists">
+                <div className="list-title">
+                  <h2>Browse Corporate By Category</h2>
+                  <Link to="/browse-corporate-category">
+                    Explore More
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="21"
+                      viewBox="0 0 20 21"
+                      fill="none"
+                    >
+                      <path
+                        d="M7.5 15.5L12.5 10.5L7.5 5.5"
+                        stroke="#545454"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </Link>
+                </div>
+
+                <div className="category-list">
+                  {Array.isArray(corporateSuggestions?.data) &&
+                    corporateSuggestions?.data.length > 0 &&
+                    corporateSuggestions?.data.slice(0, 6)?.map((ele) => {
+                      return (
+                        <div key={ele._id}>
+                          <>
+                            <img
+                              onClick={() => handleCorporateProfiles(ele._id)}
+                              className="point-cursor"
+                              src={
+                                ele?.image
+                                  ? `${process.env.REACT_APP_API_URL}/corporate-category/${ele.image}`
+                                  : defaultImage
+                              }
+                              alt="categories-img"
+                            />
+                          </>
+                          <p>{ele?.name}</p>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </Container>
+          </section>
+        )} */}
+
+      {/* {end Near by corporate } */}
+
       <section className="get-started-sec">
         <Container>
           <div className="get-started-contain">
@@ -403,9 +451,7 @@ export default function Home() {
                 Have a job that needs attention? Simply post your task, and let
                 verified service providers come to you with their best quotes
               </p>
-              <button onClick={() => handleNavigate()}>
-                Post a Task
-              </button>
+              <button onClick={() => handleNavigate()}>Post a Task</button>
             </div>
             <div className="right-side">
               <img src={require("../Assets/Images/get-started-img.png")} />
@@ -459,7 +505,7 @@ export default function Home() {
                           )}
                         <h3>{ele?.serviceSubCategoryName}</h3>
                         <p>
-                           <ReadMore desc={ele?.desc} />
+                          <ReadMore desc={ele?.desc} />
                         </p>
                       </div>
                     ))}
