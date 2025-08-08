@@ -8,6 +8,8 @@ import { useDispatch } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import Loader from "../CommanComponents/Loader";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
+import defaultImage from "../Assets/Images/placeholder.jpg";
+
 export default function CorporateCategoryDetail() {
   const dispatch = useDispatch();
   const Navigate = useNavigate();
@@ -68,6 +70,18 @@ export default function CorporateCategoryDetail() {
                   {corporateDetail?.[0]?.corporateCategoryId?.name ||
                     "Corporate Category"}
                 </h2>
+                  <p>
+                  <span
+                    style={{
+                      color: "#038654",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => Navigate("/")}
+                  >
+                    Home
+                  </span>{" "}
+                  / Corporate Category
+                </p>
               </div>
             </Col>
           </Row>
@@ -90,7 +104,7 @@ export default function CorporateCategoryDetail() {
                         src={
                           ele?.profile_image
                             ? `${process.env.REACT_APP_API_URL}${ele.profile_image}`
-                            : "/default-profile.png"
+                            : defaultImage
                         }
                         alt="corporate-img"
                       />
