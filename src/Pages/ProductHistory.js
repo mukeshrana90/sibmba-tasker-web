@@ -4,6 +4,7 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import Layout from "../Components/Layout/Layout";
 import { Col, Container, Row, Table } from "react-bootstrap";
 import Loader from "../CommanComponents/Loader";
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function ProductHistorypservice() {
   const dispatch = useDispatch();
@@ -40,92 +41,100 @@ export default function ProductHistorypservice() {
         <Container>
           <Row>
             <Col lg={12}>
-              
               <div className="search-results-contain mt-3">
                 <div className="bookings-details-title px-1 mb-3">
-                <h2>Product History</h2>
-              </div>
+                  <h2>Product History</h2>
+                </div>
                 {loading ? (
                   <div className="text-center my-5">
                     <Loader />
-                    <p className="mt-2">Loading...</p>
                   </div>
                 ) : purchaseProducts && purchaseProducts.length > 0 ? (
-                    <Table responsive className="custom-transaction-table">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Transaction Id</th>
-                          <th>Product Price</th>
-                          <th>Product Quantity</th>
-                          <th>Type</th>
-                          <th>Status</th>
-                          <th>Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {purchaseProducts.map((post, idx) => {
-                          const date = new Date(
-                            post.createdAt
-                          ).toLocaleDateString("en-GB");
-                          const type = post.type || "Top Up";
-                          const status = post.status || "Pending";
-                          const amount = Number(post.totalPrice).toFixed(2);
-                          const isNegative = Number(post.totalPrice) < 0;
+                  <Table responsive className="custom-transaction-table">
+                    <thead>
+                      <tr>
+                        <th>Product Image</th>
+                        <th>Product Name</th>
+                        <th>Product Price</th>
+                        <th>Product Quantity</th>
+                        <th>Transaction Id</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {purchaseProducts.map((post, idx) => {
+                        const firstProduct = post?.products?.[0];
+                        const productname = post?.products?.[0];
+                        const image = firstProduct?.productId?.images?.[0];
+                        const type = post.type || "Top Up";
+                        const status = post.status || "Pending";
+                        const amount = Number(post.totalPrice).toFixed(2);
+                        const isNegative = Number(post.totalPrice) < 0;
+                        const products = Array.isArray(post.products)
+                          ? post.products
+                          : [];
+                        const totalProductPrice = products
+                          .reduce((sum, p) => sum + (p.price || 0), 0)
+                          .toFixed(2);
+                        const totalProductQuantity = products.reduce(
+                          (sum, p) => sum + (p.quantity || 0),
+                          0
+                        );
 
-                          // Safely get total quantity and price from the products array
-                          const products = Array.isArray(post.products)
-                            ? post.products
-                            : [];
-                          const totalProductPrice = products
-                            .reduce((sum, p) => sum + (p.price || 0), 0)
-                            .toFixed(2);
-                          const totalProductQuantity = products.reduce(
-                            (sum, p) => sum + (p.quantity || 0),
-                            0
-                          );
-
-                          return (
-                            <tr key={idx}>
-                              <td>{date}</td>
-                              <td>{post.transactionId || "-"}</td>
-                              <td>£{totalProductPrice}</td>
-                              <td>{totalProductQuantity}</td>
-                              <td>
-                                <span
-                                  className={`pill-badge ${
-                                    type === "Campaign Charge"
-                                      ? "blue"
-                                      : "yellow"
-                                  }`}
-                                >
-                                  {type}
-                                </span>
-                              </td>
-                              <td>
-                                <span
-                                  className={`pill-badge status ${
-                                    status.toLowerCase() === "completed"
-                                      ? "green"
-                                      : status.toLowerCase() === "failed"
-                                      ? "red"
-                                      : "yellow"
-                                  }`}
-                                >
-                                  <span className="dot" />
-                                  {status}
-                                </span>
-                              </td>
-                              <td className={isNegative ? "text-danger" : ""}>
-                                £{amount}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </Table>
+                        return (
+                          <tr key={idx}>
+                            <td>
+                              <img
+                                src={
+                                  image
+                                    ? `${process.env.REACT_APP_API_URL}/products/${image}`
+                                    : defaultImage
+                                }
+                                width={40}
+                                height={40}
+                                alt="Product"
+                                style={{ objectFit: "cover", borderRadius: 6 }}
+                              />
+                            </td>
+                            <td>{productname?.productId?.name || "-"}</td>
+                            <td>£{totalProductPrice}</td>
+                            <td>{totalProductQuantity}</td>
+                            <td>{post.transactionId || "-"}</td>
+                            <td>
+                              <span
+                                className={`pill-badge ${
+                                  type === "Campaign Charge" ? "blue" : "yellow"
+                                }`}
+                              >
+                                {type}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={`pill-badge status ${
+                                  status.toLowerCase() === "completed"
+                                    ? "green"
+                                    : status.toLowerCase() === "failed"
+                                    ? "red"
+                                    : "yellow"
+                                }`}
+                              >
+                                <span className="dot" />
+                                {status}
+                              </span>
+                            </td>
+                            <td className={isNegative ? "text-danger" : ""}>
+                              £{amount}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
                 ) : (
-                   <div className="no-upcoming-bookings text-center py-5">
+                  <div className="no-upcoming-bookings text-center py-5">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="80"

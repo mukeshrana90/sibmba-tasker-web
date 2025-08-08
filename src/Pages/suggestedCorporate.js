@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import { Tab, Nav, Container, Row, Col } from "react-bootstrap";
+import { Tab, Nav, Container, Row, Col, Modal } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { useParams } from "react-router-dom";
@@ -10,11 +10,13 @@ import StarRating from "../CommanComponents/StarRating";
 import ChatIcon from "../Assets/Images/chat.svg";
 import { formatDate } from "fullcalendar/index.js";
 import Loader from "../CommanComponents/Loader";
+import mapIcon from "../Assets/Images/map.svg";
+import MapComponent from "../CommanComponents/MapComponent";
 
 export default function SuggestedCorporatePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
+  const [showMapModal, setShowMapModal] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [leadFilter, setLeadFilter] = useState("all");
@@ -116,7 +118,8 @@ export default function SuggestedCorporatePage() {
                       <div>
                         <div className="fw-bold">{corpoProfile?.full_name}</div>
                         <div className="text-muted small">
-                          {data?.corporateUser?.corporateCategoryId?.name|| "-"}
+                          {data?.corporateUser?.corporateCategoryId?.name ||
+                            "-"}
                         </div>
                       </div>
                     </div>
@@ -203,7 +206,8 @@ export default function SuggestedCorporatePage() {
                                           </p>
                                           <p className="mb-1">
                                             <strong>Profession Type:</strong>{" "}
-                                             {data?.corporateUser?.corporateCategoryId?.name ||
+                                            {data?.corporateUser
+                                              ?.corporateCategoryId?.name ||
                                               "N/A"}
                                           </p>
                                           <p className="mb-1">
@@ -236,13 +240,58 @@ export default function SuggestedCorporatePage() {
                                         <div className="d-flex justify-content-center align-item-center book-service-action-btn">
                                           <a
                                             href={`tel:${data?.corporateUser.phone_number}`}
-                                            style={{ textDecoration: "none" }}
+                                            style={{ textDecoration: "none", fontSize:"15px", fontWeight:"400" }}
                                             className="primaryBtn"
                                           >
                                             Call Now
                                           </a>
                                         </div>
+                                        <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3">
+                                          <button
+                                            className="view-more-btn"
+                                            width={20}
+                                            height={20}
+                                            onClick={() =>
+                                              setShowMapModal(
+                                                data?.corporateUser
+                                              )
+                                            }
+                                          >
+                                            <img src={mapIcon} alt="" /> Map
+                                          </button>
+                                        </div>
                                       </div>
+                                      <Modal
+                                        show={
+                                          showMapModal === data?.corporateUser
+                                        }
+                                        onHide={() => setShowMapModal(false)}
+                                        centered
+                                        size="lg"
+                                      >
+                                        <Modal.Header
+                                          closeButton
+                                          className="border-none pb-0"
+                                        >
+                                          <Modal.Title>
+                                            Service Location
+                                          </Modal.Title>
+                                        </Modal.Header>
+                                        <Modal.Body>
+                                          <div className="comman-small-pop text-center">
+                                            <MapComponent
+                                              coordinates={
+                                                data?.corporateUser?.location
+                                                  ?.coordinates
+                                              }
+                                              address={
+                                                data?.corporateUser
+                                                  ?.street_address
+                                              }
+                                            />
+                                          </div>
+                                        </Modal.Body>
+                                      </Modal>
                                     </div>
                                   </li>
                                 </ul>
