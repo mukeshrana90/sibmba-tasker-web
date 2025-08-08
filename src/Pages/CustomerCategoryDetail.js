@@ -58,6 +58,18 @@ export default function CustomerCategoryDetail() {
             <Col lg={12}>
               <div className="breadcrumb-nav-contain">
                 <h2>{categoriesDetail?.category?.service_category_name}</h2>
+                 <p>
+                  <span
+                    style={{
+                      color: "#038654",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => Navigate("/")}
+                  >
+                    Home
+                  </span>{" "}
+                  / Customer Category
+                </p>
               </div>
             </Col>
           </Row>
