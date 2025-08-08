@@ -66,7 +66,6 @@ export default function SuggestedCorporatePage() {
       fetchCorporateInfo();
     }
   }, [dispatch, userId, page, limit, leadFilter, searchText]);
-
   return (
     <Layout>
       <section className="search-results-sec">
@@ -91,12 +90,8 @@ export default function SuggestedCorporatePage() {
                       </svg>
                     </Link>
 
-                   <div className="d-flex align-items-center gap-3">
-                  {loading ? (
-                    <Loader />
-                  ) : (
-                    <>
-                      <div>
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="">
                         {corpoProfile?.profile_image ? (
                           <img
                             className="point-cursor avatar-circle"
@@ -106,7 +101,7 @@ export default function SuggestedCorporatePage() {
                           />
                         ) : (
                           <div
-                            className="point-cursor avatar-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                            className="point-cursor avatar-circle bg-secondary text-white d-flex align-items-center justify-content-center  text-transform"
                             style={{
                               width: 50,
                               height: 50,
@@ -114,21 +109,17 @@ export default function SuggestedCorporatePage() {
                               fontSize: 20,
                             }}
                           >
-                            {corpoProfile?.full_name?.[0]?.toUpperCase() || "?"}
+                            {corpoProfile?.full_name?.[0]?.toUpperCase() || "-"}
                           </div>
                         )}
                       </div>
-
                       <div>
                         <div className="fw-bold">{corpoProfile?.full_name}</div>
                         <div className="text-muted small">
-                          {corpoProfile?.shop_name}
+                          {data?.corporateUser?.corporateCategoryId?.name|| "-"}
                         </div>
                       </div>
-                    </>
-                  )}
-                </div>
-
+                    </div>
                   </div>
                 </div>
                 <div className="bookings-tabs">
@@ -160,7 +151,9 @@ export default function SuggestedCorporatePage() {
                         <Tab.Content>
                           <Tab.Pane eventKey="business-details">
                             <div className="bookings-cards">
-                              {corpoProfile ? (
+                              {loading ? (
+                                <Loader />
+                              ) : corpoProfile && productList ? (
                                 <ul className="list-unstyled">
                                   <li
                                     key={data.corporateUser._id}
@@ -209,9 +202,9 @@ export default function SuggestedCorporatePage() {
                                               "N/A"}
                                           </p>
                                           <p className="mb-1">
-                                            <strong>Profession:</strong>{" "}
-                                            {data.corporateUser
-                                              .identify_yourself || "N/A"}
+                                            <strong>Profession Type:</strong>{" "}
+                                             {data?.corporateUser?.corporateCategoryId?.name ||
+                                              "N/A"}
                                           </p>
                                           <p className="mb-1">
                                             <strong>Verified:</strong>{" "}
@@ -241,16 +234,15 @@ export default function SuggestedCorporatePage() {
                                           Direct Chat
                                         </button>
                                         <div className="d-flex justify-content-center align-item-center book-service-action-btn">
-                                          {
-                                            <a href={`tel:${data?.corporateUser.phone_number}`}  style={{ textDecoration: 'none' }}
-                                              className="primaryBtn"
-                                            >
-                                              Call Now
-                                            </a>
-                                          }
+                                          <a
+                                            href={`tel:${data?.corporateUser.phone_number}`}
+                                            style={{ textDecoration: "none" }}
+                                            className="primaryBtn"
+                                          >
+                                            Call Now
+                                          </a>
                                         </div>
                                       </div>
-                                      
                                     </div>
                                   </li>
                                 </ul>

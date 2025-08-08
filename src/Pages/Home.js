@@ -113,12 +113,13 @@ export default function Home() {
   }, [dispatch]);
 
   useEffect(() => {
-    const payload = {
+    if(lat && long){
+      const payload = {
       lat: lat,
       lng: long,
     };
-
     dispatch(ServiceActions.getNearbyCorporateUser(payload));
+    }
   }, [dispatch]);
 
   const uniqueFaqs = faqsList?.reduce((acc, current) => {

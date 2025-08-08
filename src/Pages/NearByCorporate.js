@@ -27,28 +27,30 @@ export default function NearByCorporate() {
   const long = localStorage.getItem("longitude");
 
   useEffect(() => {
-    const fetchData = async () => {
-      const payload = {
-        lat: lat,
-        lng: long,
-        page: page,
-        limit: limit,
+    if (lat && long) {
+      const fetchData = async () => {
+        const payload = {
+          lat: lat,
+          lng: long,
+          page: page,
+          limit: limit,
+        };
+        try {
+          setLoading(true);
+          const response = await dispatch(
+            ServiceActions.getNearbyCorporateUser(payload)
+          ).unwrap();
+          setNearByCorporate(response.data || []);
+          if (response?.totalPages) setTotalPages(response.totalPages);
+        } catch (error) {
+          console.error("Failed to fetch purchase products:", error);
+        } finally {
+          setLoading(false);
+        }
       };
-      try {
-        setLoading(true);
-        const response = await dispatch(
-          ServiceActions.getNearbyCorporateUser(payload)
-        ).unwrap();
-        setNearByCorporate(response.data || []);
-        if (response?.totalPages) setTotalPages(response.totalPages);
-      } catch (error) {
-        console.error("Failed to fetch purchase products:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchData();
+      fetchData();
+    }
   }, [dispatch, page, lat, long, limit]);
 
   const filteredList = (nearByCorporate || []).filter((item) =>

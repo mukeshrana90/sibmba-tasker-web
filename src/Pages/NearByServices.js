@@ -22,7 +22,8 @@ export default function NearByServices() {
   const long = localStorage.getItem("longitude");
 
   useEffect(() => {
-    const fetchCategoryAndServices = async () => {
+   if(lat && long){
+     const fetchCategoryAndServices = async () => {
       setLoading(true);
       try {
         const [NearByServicesResponse] = await Promise.all([
@@ -36,8 +37,8 @@ export default function NearByServices() {
         setLoading(false);
       }
     };
-
     fetchCategoryAndServices();
+   }
   }, [dispatch, lat, long, page]);
 
   const handleProfiles = (type, id) => {
