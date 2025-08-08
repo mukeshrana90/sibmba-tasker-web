@@ -26,6 +26,9 @@ export default function Home() {
   const bestservices = useSelector((e) => e.UserSlice.bestservices);
   const nearByServices = useSelector((e) => e.UserSlice.nearByServices);
   const corporateSuggestions = useSelector((e) => e.service.corporateCategory);
+  const nearbyCorporateSuggestion = useSelector(
+    (state) => state.service.corporateSuggestions
+  );
   const lat = localStorage.getItem("latitude");
   const long = localStorage.getItem("longitude");
   var settings = {
@@ -85,7 +88,10 @@ export default function Home() {
     if (token) {
       if (type == "services") {
         Navigate(`/customer-service-detail?service_id=${id}`);
-      } else {
+      } else if(type == "corporate"){
+        Navigate(`get-corporate/${id}`)
+      }
+      else {
         Navigate(`/customer-category-detail?categoryId=${id}`);
       }
     } else {
@@ -104,6 +110,15 @@ export default function Home() {
 
   useEffect(() => {
     dispatch(CustomerActions.faqsListingAction());
+  }, [dispatch]);
+
+  useEffect(() => {
+    const payload = {
+      lat: lat,
+      lng: long,
+    };
+
+    dispatch(ServiceActions.getNearbyCorporateUser(payload));
   }, [dispatch]);
 
   const uniqueFaqs = faqsList?.reduce((acc, current) => {
@@ -385,7 +400,59 @@ export default function Home() {
         )}
 
       {/* NearBy Corporate category Start */}
-      {/* {Array.isArray(corporateSuggestions?.data) &&
+      {nearbyCorporateSuggestion?.length > 0 && (
+        <section className="category-services-sec pt-0">
+          <Container>
+            <div className="category-services-lists">
+              <div className="list-title">
+                <h2>Nearby Corporate</h2>
+                <Link to="/near-by-corporate">
+                  Explore More
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="21"
+                    viewBox="0 0 20 21"
+                    fill="none"
+                  >
+                    <path
+                      d="M7.5 15.5L12.5 10.5L7.5 5.5"
+                      stroke="#545454"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </Link>
+              </div>
+              <div className="services-list">
+                {nearbyCorporateSuggestion?.length > 0 &&
+                  nearbyCorporateSuggestion.slice(0, 5).map((ele, index) => {
+                    return (
+                      <div key={index}>
+                        <img
+                          src={
+                            ele.profile_image
+                              ? `${process.env.REACT_APP_API_URL}${ele.profile_image}`
+                              : defaultImage
+                          }
+                          onClick={() => handleProfiles('corporate', ele._id)}
+                          className="point-cursor"
+                          alt="categories-img"
+                        />
+                        <h3>{ele?.full_name}</h3>
+                        <p>{ele.corporateCategoryId?.name}</p>
+                        <ReadMore desc={ele?.desc} />
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {Array.isArray(corporateSuggestions?.data) &&
         corporateSuggestions?.data?.length > 0 && (
           <section className="category-services-sec pt-0">
             <Container>
@@ -438,7 +505,7 @@ export default function Home() {
               </div>
             </Container>
           </section>
-        )} */}
+        )}
 
       {/* {end Near by corporate } */}
 

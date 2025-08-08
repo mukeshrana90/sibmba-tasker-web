@@ -52,7 +52,7 @@ export default function Header() {
 
   const hideNavbarCollapse = location.pathname === "/provider";
   const hideSearchbarCollapse =
-  location.pathname === "/requests" || role === Roles.SERVICE_PROVIDER;
+    location.pathname === "/requests" || role === Roles.SERVICE_PROVIDER;
 
   // const getProfileApiCall = async () => {
   //   if (role === "3") {
@@ -133,10 +133,11 @@ export default function Header() {
       }
       const user = apiRes?.payload?.data;
       const totalLeadResponse = user?.totalLeadResponse || 0;
-      if(user.user?.email_verified==0){
-        Navigate(`/otp-varification?userId=${user.user?._id}`, { replace: true });
-      }
-      else if(user.user?.is_completeProfile == 0){
+      if (user.user?.email_verified == 0) {
+        Navigate(`/otp-varification?userId=${user.user?._id}`, {
+          replace: true,
+        });
+      } else if (user.user?.is_completeProfile == 0) {
         Navigate("/complete-profile", { replace: true });
         toast.success("Please Complete Your Profile.");
       }
@@ -634,6 +635,21 @@ export default function Header() {
                                   </>
                                 )}
                                 {/* =============================================== */}
+                                {role == Roles.CUSTOMER && (
+                                  <>
+                                    <Link
+                                      className={
+                                        currentPath === "/change-password"
+                                          ? "nav-link active"
+                                          : "nav-link"
+                                      }
+                                      to="/product-history"
+                                    >
+                                      Product History
+                                    </Link>
+                                    <Dropdown.Divider />
+                                  </>
+                                )}
 
                                 <Link
                                   className={

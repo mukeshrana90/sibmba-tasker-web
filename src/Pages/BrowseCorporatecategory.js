@@ -54,7 +54,18 @@ export default function BrowseCorporateCategory() {
             <Col lg={12}>
               <div className="breadcrumb-nav-contain">
                 <h2>Browse Corporate By Category</h2>
-                <p>Home / Corporate Category</p>
+                <p>
+                  <span
+                    style={{
+                      color: "#038654",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => Navigate("/")}
+                  >
+                    Home
+                  </span>{" "}
+                  / Corporate Category
+                </p>
               </div>
             </Col>
           </Row>

@@ -517,6 +517,13 @@ const CustomerActions = {
       return response.data;
     }
   ),
+  getPurchaseProducts: createAsyncThunk(
+    "/customer/list-purchase-products",
+    async (customerData) => {
+      const response = await Api.get("/customer/list-purchase-products", customerData);
+      return response.data;
+    }
+  ),
 };
 
 export default CustomerActions;

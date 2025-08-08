@@ -66,7 +66,18 @@ export default function BrowseCategory() {
             <Col lg={12}>
               <div className="breadcrumb-nav-contain">
                 <h2>Browse by Category</h2>
-                <p>Home / Category</p>
+                <p>
+                  <span
+                    style={{
+                      color: "#038654",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => Navigate("/")}
+                  >
+                    Home
+                  </span>{" "}
+                  / Category
+                </p>
               </div>
             </Col>
           </Row>
@@ -87,7 +98,9 @@ export default function BrowseCategory() {
                         <div key={index}>
                           <>
                             <img
-                              onClick={() => handleProfiles("category", ele?._id)}
+                              onClick={() =>
+                                handleProfiles("category", ele?._id)
+                              }
                               className="point-cursor"
                               src={`${process.env.REACT_APP_API_URL}${ele?.image}`}
                               alt="categories-img"

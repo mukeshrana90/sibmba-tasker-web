@@ -60,7 +60,18 @@ export default function NearByServices() {
             <Col lg={12}>
               <div className="breadcrumb-nav-contain">
                 <h2>Nearby Services</h2>
-                <p>Home / Services</p>
+                <p>
+                  <span
+                    style={{
+                      color: "#038654",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => Navigate("/")}
+                  >
+                    Home
+                  </span>{" "}
+                  / Services
+                </p>
               </div>
             </Col>
           </Row>

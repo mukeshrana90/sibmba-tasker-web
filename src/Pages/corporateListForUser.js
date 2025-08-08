@@ -73,7 +73,18 @@ export default function CorporateListForUser() {
             <Col lg={12}>
               <div className="breadcrumb-nav-contain">
                 <h2>All Corporates</h2>
-                <p>Home / Corporates</p>
+                <p>
+                  <span
+                    style={{
+                      color: "#038654",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => navigate("/")}
+                  >
+                    Home
+                  </span>{" "}
+                  / Corporates
+                </p>
               </div>
             </Col>
           </Row>
