@@ -177,7 +177,7 @@ export default function OtpVarification() {
         localStorage.setItem("userId", userId);
         localStorage.setItem("role", userRole);
         localStorage.setItem("expiresAt", expiresAt);
-        navigate("/home", { replace: true });
+        navigate("/", { replace: true });
       }
       localStorage.removeItem("signupFormData");
     } else {
