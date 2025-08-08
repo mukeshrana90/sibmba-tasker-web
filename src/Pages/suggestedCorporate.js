@@ -9,6 +9,7 @@ import PaginationComponent from "../CommanComponents/PaginationComponent";
 import StarRating from "../CommanComponents/StarRating";
 import ChatIcon from "../Assets/Images/chat.svg";
 import { formatDate } from "fullcalendar/index.js";
+import Loader from "../CommanComponents/Loader";
 
 export default function SuggestedCorporatePage() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function SuggestedCorporatePage() {
       setLoading(true);
       const customerId = localStorage.getItem("userId");
       try {
-        const result = await dispatch(
+        const response = await dispatch(
           CustomerActions.corpoInfoProductListUser({
             userId,
             page,
@@ -48,11 +49,11 @@ export default function SuggestedCorporatePage() {
           })
         );
 
-        if (result?.payload) {
-          setCorpoProfile(result.payload?.data?.corporateUser);
-          setProductList(result.payload?.data?.data || []);
-          setReview(result.payload?.data?.feedback || []);
-          setTotalPages(result?.payload.data);
+        if (response?.payload) {
+          setCorpoProfile(response.payload?.data?.corporateUser);
+          setProductList(response.payload?.data?.data || []);
+          setReview(response.payload?.data?.feedback || []);
+          setTotalPages(response?.payload.data);
         }
       } catch (err) {
         console.error("Fetch error:", err);
@@ -90,8 +91,12 @@ export default function SuggestedCorporatePage() {
                       </svg>
                     </Link>
 
-                    <div className="d-flex align-items-center gap-3">
-                      <div className="">
+                   <div className="d-flex align-items-center gap-3">
+                  {loading ? (
+                    <Loader />
+                  ) : (
+                    <>
+                      <div>
                         {corpoProfile?.profile_image ? (
                           <img
                             className="point-cursor avatar-circle"
@@ -113,13 +118,17 @@ export default function SuggestedCorporatePage() {
                           </div>
                         )}
                       </div>
+
                       <div>
                         <div className="fw-bold">{corpoProfile?.full_name}</div>
                         <div className="text-muted small">
                           {corpoProfile?.shop_name}
                         </div>
                       </div>
-                    </div>
+                    </>
+                  )}
+                </div>
+
                   </div>
                 </div>
                 <div className="bookings-tabs">
