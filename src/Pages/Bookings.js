@@ -8,6 +8,7 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import BookingListCard from "../CommanComponents/BookingListCard";
 import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
 import moment from "moment";
+import imageDefault from "../Assets/Images/placeholder.jpg";
 
 export default function Bookings() {
   const navigate = useNavigate();
@@ -170,7 +171,7 @@ export default function Bookings() {
                               // onClick={() => navigate("/service-provider")}
                             >
                               <img
-                                src={`${process.env.REACT_APP_API_URL}${data?.serviceProvider?.profile_image}`}
+                                src={data?.serviceProvider?.profile_image ? `${process.env.REACT_APP_API_URL}/${data?.serviceProvider?.profile_image}` : imageDefault}
                                 alt="categories-img"
                               />
                               <div>

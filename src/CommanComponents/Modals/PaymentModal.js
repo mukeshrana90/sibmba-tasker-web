@@ -32,7 +32,9 @@ const PaymentModal = ({
     }
   };
   const handleClose = () => setShow(false);
-  const payment =data?.task ? data?.quotations.map((m)=>m?.offer_price) : data?.task?.budget
+  const payment = Array.isArray(data?.quotations) && data.quotations.length > 0  ? data.quotations.map(m => m?.offer_price) 
+  : data?.task?.budget ? [data.task.budget]  : [];
+
   return (
     <div>
       <Modal show={paymentshow} onHide={handlePaymentClose} centered>
@@ -56,7 +58,7 @@ const PaymentModal = ({
               You service has been completed. Please pay to
               <br /> proceed further.
             </p>
-            <h5>$ {data?.serviceSubCategory?.price || payment ? payment :data?.budget }</h5>
+            <h5>$ {data?.serviceSubCategory?.price || (payment ? payment : data?.budget) }</h5>{data?.budget}
             {/* <h5>$ {data?.serviceSubCategory?.price || data?.budget}</h5> */}
             <div className="comman-pop-action">
               <button className="btn-fill" onClick={handlePay}>
