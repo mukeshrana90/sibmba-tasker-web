@@ -204,6 +204,27 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
     if (e.key === "Enter") sendMessage();
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+
+    let utcDateString = dateString;
+    
+    if (!dateString.includes("T")) {
+      utcDateString = dateString.replace(" ", "T") + "Z";
+    }
+
+    const date = new Date(utcDateString);
+    if (isNaN(date.getTime())) return "-";
+
+    const formatted = date.toLocaleString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    return formatted.replace(/am|pm/, (match) => match.toUpperCase());
+  };
+
   return (
     <div className="message-chat-box">
       <div className="message-chat-name message-box-header">
@@ -258,12 +279,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
         </div>
       </div>
       <div className="message-main-container">
-        {loading ? (
-          <div className="chat-loader">
-            <div className="spinner"></div>
-            <p>Loading chat...</p>
-          </div>
-        ) : Array.isArray(messageHistory) && messageHistory.length > 0 ? (
+        {Array.isArray(messageHistory) && messageHistory.length > 0 ? (
           <div className="message-main-chat" ref={messageContainerRef}>
             {messageHistory.map((ele, index) => {
               let parsed;
@@ -333,7 +349,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                         </div>
 
                         <span className="task-time">
-                          {moment(ele?.updatedAt).format("h:mm A")}
+                          {formatDate(ele?.createdAt)}
                         </span>
                       </div>
                     ) : isImageMessage ? (
@@ -350,7 +366,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                     ) : (
                       <>
                         <p>{ele?.message}</p>
-                        <span>{moment(ele?.updatedAt).format("h:mm A")}</span>
+                        <span className="text-transform">{formatDate(ele?.createdAt)}</span>
                       </>
                     )}
                   </div>

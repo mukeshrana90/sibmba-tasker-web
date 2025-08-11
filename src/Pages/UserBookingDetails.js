@@ -15,6 +15,7 @@ import { Form } from "react-bootstrap";
 import { toast } from "react-toastify";
 import CorporateActions from "../Redux/Actions/corporateActions";
 import ChatIcon from "../Assets/Images/chatIcon2.svg";
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 const getStatusColor = (status) => {
   const statusMap = {
@@ -353,7 +354,7 @@ export default function UserBookingDetails() {
                           src={
                             task?.images?.[0]
                               ? `${process.env.REACT_APP_API_URLL}/${task?.images?.[0]}`
-                              : "../Assets/Images/default-task-image.jpg"
+                              : defaultImage
                           }
                           alt="Task"
                           className="w-100 rounded"
@@ -437,7 +438,7 @@ export default function UserBookingDetails() {
                             <h5>About Service Provider</h5>
                             <div className="d-flex align-items-center gap-3 px-4">
                               <img
-                                src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}`}
+                                src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}` || defaultImage}
                                 className="rounded-circle"
                                 style={{
                                   width: 50,
@@ -450,7 +451,7 @@ export default function UserBookingDetails() {
                                 <strong>
                                   {
                                     selectedQuotation?.service_provider
-                                      ?.full_name
+                                      ?.full_name || '-'
                                   }
                                 </strong>
                                 <p className="mb-0 text-muted">
@@ -817,7 +818,7 @@ export default function UserBookingDetails() {
                                 ? ImagePathCustomer(
                                     bookingState.serviceProvider.profile_image
                                   )
-                                : require("../Assets/Images/user.png")
+                                : defaultImage
                             }
                             alt="Provider"
                             className="rounded-circle"
@@ -825,13 +826,13 @@ export default function UserBookingDetails() {
                           />
                           <div>
                             <h5>
-                              {bookingState.serviceProvider?.company_name ||
+                              {bookingState.serviceProvider?.company_name == 'undefined' ? '-' : bookingState.serviceProvider?.company_name ||
                                 "N/A"}
                             </h5>
                             <p>
                               {bookingState.serviceProvider?.street_address ||
                                 bookingState.serviceProvider?.address ||
-                                bookingState.serviceProvider?.full_name}
+                                bookingState.serviceProvider?.full_name || '-'}
                             </p>
                           </div>
                         </div>

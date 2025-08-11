@@ -12,6 +12,7 @@ import { formatDate } from "fullcalendar/index.js";
 import Loader from "../CommanComponents/Loader";
 import mapIcon from "../Assets/Images/map.svg";
 import MapComponent from "../CommanComponents/MapComponent";
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function SuggestedCorporatePage() {
   const navigate = useNavigate();
@@ -98,7 +99,7 @@ export default function SuggestedCorporatePage() {
                           <img
                             className="point-cursor avatar-circle"
                             style={{ width: 50, height: 50 }}
-                            src={`${process.env.REACT_APP_API_URL}${corpoProfile.profile_image}`}
+                            src={`${process.env.REACT_APP_API_URL}${corpoProfile.profile_image}` || defaultImage}
                             alt="profile-img"
                           />
                         ) : (
