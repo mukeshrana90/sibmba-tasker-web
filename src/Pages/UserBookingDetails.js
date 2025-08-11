@@ -353,7 +353,7 @@ export default function UserBookingDetails() {
                         <img
                           src={
                             task?.images?.[0]
-                              ? `${process.env.REACT_APP_API_URLL}/${task?.images?.[0]}`
+                              ? `${process.env.REACT_APP_API_URLL}${task?.images?.[0]}`
                               : defaultImage
                           }
                           alt="Task"
@@ -380,7 +380,7 @@ export default function UserBookingDetails() {
                                     className="btn btn-outline-success w-100"
                                     onClick={() => {
                                       handlePaymentOpen(task?._id);
-                                      setSelectedBoooking(task);
+                                      setSelectedBoooking(taskbooking);
                                     }}
                                   >
                                     Pay Now
