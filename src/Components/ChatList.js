@@ -78,6 +78,7 @@ const ChatList = () => {
               //    receiverId =  ele?.receiver_id;
               // }
               // const receiverId = role === '2' ? ele?.sender_id : ele?.receiver_id;
+              const isImageMessage = ele?.lastMessage?.message_type === 1;
               return (
                 <li
                   key={index}
@@ -97,9 +98,11 @@ const ChatList = () => {
                       <div>
                         <h5>{ele?.receiver?.name}</h5>
                         <p>
-                          {ele?.lastMessage?.message?.length > 25
-                            ? `${ele?.lastMessage?.message?.substring(0, 25)}...`
-                            : ele?.lastMessage?.message || 'No messages yet'}
+                          {isImageMessage ? (
+                            <p>Image</p>
+                          ) : ele?.lastMessage?.message?.length > 25 ? (
+                            `${ele?.lastMessage?.message?.substring(0, 25)}...`
+                          ) : ( ele?.lastMessage?.message || "No messages yet")}
                         </p>
                       </div>
                     </div>

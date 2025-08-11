@@ -275,7 +275,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
 
               const isTaskCard =
                 parsed && parsed.image && parsed.name && parsed.price;
-
+              const isImageMessage = ele?.message_type === 1;
               return (
                 <div
                   key={index}
@@ -336,6 +336,17 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                           {moment(ele?.updatedAt).format("h:mm A")}
                         </span>
                       </div>
+                    ) : isImageMessage ? (
+                        <img
+                          src={`${process.env.REACT_APP_API_URLL}${ele?.message}`}
+                          alt="Chat attachment"
+                          style={{
+                            maxWidth: "250px",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            height:"200px"
+                          }}
+                        />
                     ) : (
                       <>
                         <p>{ele?.message}</p>
