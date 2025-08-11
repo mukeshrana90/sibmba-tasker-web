@@ -37,7 +37,7 @@ export default function Wallet() {
                 <div>
                   <p>My balance</p>
                   <h2>
-                    £{walletLists?.totalBalance?.toLocaleString() || "0"}
+                    ${walletLists?.totalBalance?.toLocaleString() || "0"}
                   </h2>
                 </div>
                 {/* <button>Withdraw</button> */}
