@@ -54,29 +54,24 @@ export default function Header() {
   const hideSearchbarCollapse =
     location.pathname === "/requests" || role === Roles.SERVICE_PROVIDER;
 
-  // const getProfileApiCall = async () => {
-  //   if (role === "3") {
-  //     expiredSubscriptionPopup();
-  //   } else {
-  //     let apiRes = await dispatch(CustomerActions.getProfile());
-  //     if (apiRes?.payload?.success) {
-  //     if(apiRes.payload?.data.email_verified==0){
-  //       Navigate(`/otp-varification?userId=${apiRes.payload?.data?._id}`, { replace: true });
-  //     }else if(apiRes.payload?.data?.is_completeProfile == 0){
-  //       Navigate("/complete-profile", { replace: true });
-  //       toast.success("Please Complete Your Profile.");
-  //     }
-  //       localStorage.setItem('ServiceLimit',  JSON.stringify(apiRes?.payload?.data))
-  //       dispatch(setCustomer(apiRes?.payload?.data));
-  //     }
-  //   }
-  // };
+  const getProfileApiCall = async () => {
+    if (role === "3") {
+      expiredSubscriptionPopup();
+    } else {
+      let apiRes = await dispatch(CustomerActions.getProfile());
+      if (apiRes?.payload && apiRes?.payload?.success) {
+         const profileData = apiRes?.payload?.data;
+        localStorage.setItem('ServiceLimit',  JSON.stringify(profileData))
+        dispatch(setCustomer(apiRes?.payload?.data));
+      }
+    }
+  };
 
-  // useEffect(() => {
-  //   if (token) {
-  //     getProfileApiCall();
-  //   }
-  // }, [token]);
+  useEffect(() => {
+    if (token) {
+      getProfileApiCall();
+    }
+  }, [token]);
 
   useEffect(() => {
     dispatch(CustomerActions.notificationListing());
@@ -133,14 +128,7 @@ export default function Header() {
       }
       const user = apiRes?.payload?.data;
       const totalLeadResponse = user?.totalLeadResponse || 0;
-      if (user.user?.email_verified == 0) {
-        Navigate(`/otp-varification?userId=${user.user?._id}`, {
-          replace: true,
-        });
-      } else if (user.user?.is_completeProfile == 0) {
-        Navigate("/complete-profile", { replace: true });
-        toast.success("Please Complete Your Profile.");
-      }
+
       const currentDate = new Date();
 
       const plans = [

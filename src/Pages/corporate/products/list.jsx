@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Container, Row, Col, Tab, Nav } from "react-bootstrap";
+import { Container, Row, Col, Tab, Nav, Modal } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../../../Components/Layout/Layout";
@@ -16,16 +16,23 @@ export default function CorporateProducts() {
   const [dropdownStates, setDropdownStates] = useState({});
   const { items: myProducts,  loading, error} = useSelector((state) => state?.products);
   const [deleteProductId, setDeleteProductId] = useState(null);
+  const ServiceLimit = localStorage.getItem("ServiceLimit");
+  const [showProductPlanModal, setShowProductPlanModal] = useState("");
 
   useEffect(() => {
     dispatch(ProductActions.fetchProducts());
   }, [dispatch]);
-  const handleProviderClick = (prodId) => {
-    navigate(`/corporate/products/details/${prodId}`);
-  };
+    const handleProviderClick = (prodId) => {
+      navigate(`/corporate/products/details/${prodId}`);
+    };
 
   const handleAddService = () => {
-    navigate("/corporate/products/add");
+    const isServiceLimitReached = ServiceLimit?.isService_add === 1 && ServiceLimit?.isSubscribed === 0;
+    if (isServiceLimitReached) {
+      setShowProductPlanModal(true);
+    } else {
+      navigate("/corporate/products/add");
+    }
   };
 
   const handleButtonClick = (id) => {
@@ -324,6 +331,38 @@ export default function CorporateProducts() {
           </div>
         </div>
       </div>
+      {/* Plan Limit Modal */}
+    <Modal
+      show={showProductPlanModal}
+      onHide={() => setShowProductPlanModal(false)}
+      centered
+      backdrop="static"
+      keyboard={false}
+    >
+      <Modal.Body>
+        <div className="comman-small-pop">
+          <h2 className="mb-2">Limit Reached</h2>
+          <div className="download-app-section">
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <div className="app-store-buttons mb-0">
+                Please upgrade your plan to add more services
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <div className="comman-pop-action-double mt-4 d-flex">
+              <button
+                className="btn-fill"
+                onClick={() => navigate("/payment")}
+              >
+                Upgrade Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal.Body>
+    </Modal>
     </Layout>
   );
 }
