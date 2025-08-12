@@ -16,29 +16,41 @@ import { toast } from "react-toastify";
 import CorporateActions from "../Redux/Actions/corporateActions";
 import ChatIcon from "../Assets/Images/chatIcon2.svg";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import { getStatusLabel } from "../utils/CommonFunction";
 
+// const getStatusColor = (status) => {
+//   const statusMap = {
+//     1: "pending",
+//     2: "cancelled",
+//     3: "completed",
+//     4: "in-progress",
+//     5: "cancelled",
+//   };
+
+//   return statusMap[status] || "N/A";
+// };
 const getStatusColor = (status) => {
   const statusMap = {
-    1: "pending",
-    2: "cancelled",
-    3: "completed",
-    4: "in-progress",
-    5: "cancelled",
-  };
+      1: "pending",
+      2: "completed",
+      3: "cancelled",
+      4: "completed",
+      5: "rejected",
+    };
 
   return statusMap[status] || "N/A";
 };
-  const getStatusLabel = (status) => {
-    const statusMap = {
-      1: "Pending",
-      2: "Cancelled",
-      3: "Completed",
-      4: "Completed",
-      5: "Rejected",
-    };
+  // const getStatusLabel = (status) => {
+  //   const statusMap = {
+  //     1: "Pending",
+  //     2: "Cancelled",
+  //     3: "Completed",
+  //     4: "Completed",
+  //     5: "Rejected",
+  //   };
 
-    return statusMap[status] || "N/A";
-  };
+  //   return statusMap[status] || "N/A";
+  // };
 
 export default function UserBookingDetails() {
   const dispatch = useDispatch();
@@ -777,6 +789,9 @@ export default function UserBookingDetails() {
                           <div className="reason-for-cancellation mt-3">
                             <h5>Reason for cancellation</h5>
                             <p>{bookingState.message}</p>
+                             {bookingState.reasonForCancel ? (
+                              <p>{bookingState.reasonForCancel}</p>
+                             ):''}
                           </div>
                         )}
 
