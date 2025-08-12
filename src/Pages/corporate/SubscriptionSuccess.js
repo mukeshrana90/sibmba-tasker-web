@@ -23,7 +23,7 @@ const SubscriptionSuccess = () => {
       );
       if (res && res.payload) {
         setPlanData(res.payload?.data);
-        setTimeout(() => Navigate("/"), 8000);
+        setTimeout(() => Navigate("/"), 6000);
       }
     } catch (error) {}
   };

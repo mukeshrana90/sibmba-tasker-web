@@ -4,11 +4,10 @@ import successLogo from "../../Assets/Images/dark-logo.png";
 import { useEffect } from "react";
 
 const SubscriptionCancel = () => {
-  const { transactionId } = useParams();
   const Navigate = useNavigate();
 
   useEffect(() => {
-    setTimeout(() => Navigate("/"), 8000);
+    setTimeout(() => Navigate("/"), 6000);
   }, []);
   return (
     <section className="payment-success-section py-5">
