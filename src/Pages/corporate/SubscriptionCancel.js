@@ -1,5 +1,5 @@
 import { Card, Col, Container, Row } from "react-bootstrap";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import successLogo from "../../Assets/Images/dark-logo.png";
 import { useEffect } from "react";
 
@@ -7,7 +7,7 @@ const SubscriptionCancel = () => {
   const Navigate = useNavigate();
 
   useEffect(() => {
-    setTimeout(() => Navigate("/"), 6000);
+    setTimeout(() => Navigate("/"), 3000);
   }, []);
   return (
     <section className="payment-success-section py-5">

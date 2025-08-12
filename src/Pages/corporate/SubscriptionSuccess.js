@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { Navigate, useParams } from "react-router-dom";
+import {  useNavigate, useParams } from "react-router-dom";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { Card, Col, Container, Row } from "react-bootstrap";
 import successLogo from "../../Assets/Images/dark-logo.png";
@@ -9,6 +9,7 @@ const SubscriptionSuccess = () => {
   const { transactionId } = useParams();
   const dispatch = useDispatch();
   const [planData, setPlanData] = useState({});
+  const Navigate = useNavigate();
 
   useEffect(() => {
     if (transactionId) {
@@ -23,7 +24,7 @@ const SubscriptionSuccess = () => {
       );
       if (res && res.payload) {
         setPlanData(res.payload?.data);
-        setTimeout(() => Navigate("/"), 6000);
+        setTimeout(() => Navigate("/"), 3000);
       }
     } catch (error) {}
   };
