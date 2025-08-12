@@ -1,14 +1,18 @@
-import React, { useState } from "react";
-import { Container, Row, Col } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { Container, Row, Col, Modal } from "react-bootstrap";
 import Layout from "../../Components/Layout/Layout";
 import checkIcon from "../../Assets/Images/status-check.svg";
 import darkCheckIcon from "../../Assets/Images/dark-status-check.svg";
 import { useDispatch } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
+import { setCustomer } from "../../Redux/Reducers/LoginSlice";
 
 function SubscriptionPlan() {
   const [activePlan, setActivePlan] = useState(null);
   const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const plans = [
     {
@@ -45,6 +49,23 @@ function SubscriptionPlan() {
     } catch (error) {}
   };
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (token) {
+        const apiRes = await dispatch(
+          CustomerActions.getProfileWithSuscription()
+        );
+        if (apiRes?.payload?.success) {
+          dispatch(setCustomer(apiRes?.payload?.data.user));
+          const profileData = apiRes?.payload?.data;
+          setActivePlan(profileData?.subscriptionDetail);
+        }
+      }
+    };
+
+    fetchProfile();
+  }, [token, dispatch]);
+
   return (
     <Layout>
       <section className="service-detail-sec mb-5">
@@ -54,49 +75,111 @@ function SubscriptionPlan() {
           </div>
 
           <Row className="g-4">
-            {plans.map((plan) => (
-              <Col md={4} key={plan.id}>
-                <div
-                  className={`plan-card ${
-                    activePlan === plan.id ? "highlight" : ""
-                  }`}
-                  onClick={() => setActivePlan(plan.id)}
-                >
-                  {plan.popular && <div className="popular-badge">Popular</div>}
-                  <h6 className="plan-name">{plan.name}</h6>
-                  <div className="plan-price">
-                    <span className="currency">$</span>
-                    <span className="amount">{plan.price}</span>
-                    <span className="duration">/month</span>
-                  </div>
-                  <ul className="plan-features">
-                    <div className="list-wrap">
-                      {plan.details.map((feature, idx) => (
-                        <li key={idx}>
-                          <img
-                            src={
-                              activePlan === plan.id ? darkCheckIcon : checkIcon
-                            }
-                            className="check-icon"
-                          ></img>
-                          <i className="bi bi-check-circle-fill"></i> {feature}
-                        </li>
-                      ))}
-                    </div>
-                  </ul>
-                  <button
-                    type="button" 
-                    onClick={() => handlePay(plan)}
-                    className={`cursor-pointer ${
-                      activePlan === plan.id ? "view-more-btn" : "primaryBtn"
+            {plans.map((plan) => {
+              const isActivePlan =
+                activePlan?.subscriptionPlan?.split(" ")[0]?.toLowerCase() ===
+                plan?.name?.split(" ")[0]?.toLowerCase();
+              return (
+                <Col md={4} key={plan.id}>
+                  <div
+                    className={`plan-card ${
+                      isActivePlan && activePlan?.status === "active"
+                        ? "highlight"
+                        : ""
                     }`}
                   >
-                    Select Plan
+                    {plan.popular && (
+                      <div className="popular-badge">Popular</div>
+                    )}
+                    <h6 className="plan-name">{plan.name}</h6>
+                    <div className="plan-price">
+                      <span className="currency">$</span>
+                      <span className="amount">{plan.price}</span>
+                      <span className="duration">/month</span>
+                    </div>
+                    <ul className="plan-features">
+                      <div className="list-wrap">
+                        {plan.details.map((feature, idx) => (
+                          <li key={idx}>
+                            <img
+                              src={
+                                isActivePlan && activePlan?.status === "active"
+                                  ? darkCheckIcon
+                                  : checkIcon
+                              }
+                              className="check-icon"
+                            />
+                            <i className="bi bi-check-circle-fill"></i>
+                            {feature}
+                          </li>
+                        ))}
+                      </div>
+                    </ul>
+
+                    {(!isActivePlan || activePlan?.status !== "active") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlan(plan);
+                          if (activePlan?.status !== "active") {
+                            handlePay(plan);
+                          } else {
+                            setShowPlanModal(true);
+                          }
+                        }}
+                        className="cursor-pointer primaryBtn"
+                      >
+                        Purchase
+                      </button>
+                    )}
+                  </div>
+                </Col>
+              );
+            })}
+          </Row>
+          <Modal
+            show={showPlanModal}
+            onHide={() => setShowPlanModal(false)}
+            centered
+          >
+            <Modal.Body>
+              <div className="comman-small-pop">
+                <h3 className="mb-3">Are you sure?</h3>
+
+                <p>
+                  You are about to purchase the{" "}
+                  <strong>{selectedPlan?.name}</strong> plan for $
+                  {selectedPlan?.price}/month.
+                </p>
+
+                {activePlan?.subscriptionPlan && (
+                  <p className="mt-2 text-warning">
+                    Your current plan is{" "}
+                    <strong>{activePlan.subscriptionPlan}</strong>. Purchasing a
+                    new plan will expire your current package.
+                  </p>
+                )}
+
+                <div className="comman-pop-action-double logout-action mt-3">
+                  <button
+                    className="primaryBtn"
+                    onClick={() => {
+                      if (selectedPlan) handlePay(selectedPlan);
+                      setShowPlanModal(false);
+                    }}
+                  >
+                    Yes, Purchase
+                  </button>
+                  <button
+                    className="view-more-btn"
+                    onClick={() => setShowPlanModal(false)}
+                  >
+                    Cancel
                   </button>
                 </div>
-              </Col>
-            ))}
-          </Row>
+              </div>
+            </Modal.Body>
+          </Modal>
         </Container>
       </section>
     </Layout>

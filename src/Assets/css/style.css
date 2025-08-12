@@ -5688,6 +5688,7 @@ section.page-mt {
   border: 1px solid rgb(3 134 84 / 8%);
   box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
   position: relative;
+  min-height: 300px;
   .popular-badge {
     position: absolute;
     top: 15px;
