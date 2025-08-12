@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Container, Row, Col } from "react-bootstrap";
-import Layout from "../Components/Layout/Layout";
-import checkIcon from "../Assets/Images/status-check.svg";
+import Layout from "../../Components/Layout/Layout";
+import checkIcon from "../../Assets/Images/status-check.svg";
 
 function SubscriptionPlan() {
   const [activePlan, setActivePlan] = useState(null);
@@ -60,7 +60,7 @@ function SubscriptionPlan() {
                   <div className="list-wrap">
                       {plan.details.map((feature, idx) => (
                       <li key={idx}>
-                        <img src={checkIcon}></img>
+                        <img src={checkIcon} className="check-icon"></img>
                         <i className="bi bi-check-circle-fill"></i> {feature}
                       </li>
                     ))}
