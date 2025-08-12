@@ -45,6 +45,8 @@ import BrowseCorporateCategory from "../Pages/BrowseCorporatecategory";
 import ProductHistory from "../Pages/ProductHistory";
 import NearByCorporate from "../Pages/NearByCorporate";
 import SubscriptionPlan from "../Pages/corporate/SubscriptionPlan";
+import SubscriptionCancel from "../Pages/corporate/SubscriptionCancel";
+import SubscriptionSuccess from "../Pages/corporate/SubscriptionSuccess";
 
 
 const Login = lazy(() => import("../Pages/Login"));
@@ -123,6 +125,8 @@ const RoutesPage = () => {
             <Route path="leads" element={<CorporateLeeds />} />
             <Route path="/corporate/lead-details/:id" element={<MyLeadDetails />} />
             <Route path="/corporate/subscription-plan" element={<SubscriptionPlan />} />
+            <Route path="/corporate/subscription-success/:transactionId" element={<SubscriptionSuccess />} />
+            <Route path="/corporate/subscription-cancel/:transactionId" element={<SubscriptionCancel />} />
           </Route>
 
           {/* Private Routes */}

@@ -151,6 +151,20 @@ const CustomerActions = {
       return response.data;
     }
   ),
+  createCheckoutSession: createAsyncThunk(
+    "/corporate/create_checkout_session",
+    async (payload) => {
+      const response = await Api.post("/corporate/create_checkout_session",payload);
+      return response.data;
+    }
+  ),
+  updateSubscriptionPaymentStatus: createAsyncThunk(
+    "/corporate/update-subscription-payment-status",
+    async (id) => {
+      const response = await Api.post(`/corporate/update-subscription-payment-status/${id}`,{});
+      return response.data;
+    }
+  ),
 
   // MARK: - RESET PASSWORD
   resetPassword: createAsyncThunk(

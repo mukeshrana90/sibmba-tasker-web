@@ -3,10 +3,12 @@ import { Container, Row, Col } from "react-bootstrap";
 import Layout from "../../Components/Layout/Layout";
 import checkIcon from "../../Assets/Images/status-check.svg";
 import darkCheckIcon from "../../Assets/Images/dark-status-check.svg";
-
+import { useDispatch } from "react-redux";
+import CustomerActions from "../../Redux/Actions/CustomerActions";
 
 function SubscriptionPlan() {
   const [activePlan, setActivePlan] = useState(null);
+  const dispatch = useDispatch();
 
   const plans = [
     {
@@ -29,6 +31,22 @@ function SubscriptionPlan() {
       details: ["Unlimited Leads Responses", "Unlimited online shop linking"],
     },
   ];
+
+    const handlePay =async(item)=>{
+    try{
+      const payload ={
+        title:item.name, 
+        amount:item.price
+      }
+      let res = await dispatch(CustomerActions.createCheckoutSession(payload));
+      if(res && res.payload){
+        window.open(res.payload.url, '_blank');
+      }
+    }catch(error){
+
+    }
+
+  }
 
   return (
     <Layout>
@@ -66,7 +84,7 @@ function SubscriptionPlan() {
                     ))}
                   </div>
                   </ul>
-                  <button className={`${activePlan === plan.id ? 'view-more-btn' : 'primaryBtn'}`}>Select Plan</button>
+                  <button type="button" onClick={()=>handlePay(plan)} className={`${activePlan === plan.id ? 'view-more-btn' : 'primaryBtn'}`}>Select Plan</button>
                 </div>
               </Col>
             ))}
