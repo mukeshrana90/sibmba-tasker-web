@@ -416,7 +416,7 @@ export default function ServiceRequest() {
             {servicetype === "reject" && (
               <Col lg={12}>
                 <div
-                  className="cancel-form"
+                  className="cancel-form mb-5"
                   style={{
                     marginTop: "20px",
                     padding: "20px",
