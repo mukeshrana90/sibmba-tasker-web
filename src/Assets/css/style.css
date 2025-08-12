@@ -5687,7 +5687,6 @@ section.page-mt {
   padding: 20px;
   border: 1px solid rgb(3 134 84 / 8%);
   box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
-  cursor: pointer;
   position: relative;
   .popular-badge {
     position: absolute;
@@ -5786,6 +5785,22 @@ section.page-mt {
         margin-right: 8px;
         margin-top: 5px;
       }
+    }
+  }
+}
+.payment-success-section ,.payment-cancel-section{
+  background-color: #f8f9fa;
+
+  .success-card {
+    border-radius: 15px;
+    .success-icon-wrap,.cancel-icon-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto;
+    }
+    .success-icon {
+      width: 200px;
     }
   }
 }

@@ -32,21 +32,18 @@ function SubscriptionPlan() {
     },
   ];
 
-    const handlePay =async(item)=>{
-    try{
-      const payload ={
-        title:item.name, 
-        amount:item.price
-      }
+  const handlePay = async (item) => {
+    try {
+      const payload = {
+        title: item.name,
+        amount: item.price,
+      };
       let res = await dispatch(CustomerActions.createCheckoutSession(payload));
-      if(res && res.payload){
-        window.open(res.payload.url, '_blank');
+      if (res && res.payload) {
+        window.open(res.payload.url, "_blank");
       }
-    }catch(error){
-
-    }
-
-  }
+    } catch (error) {}
+  };
 
   return (
     <Layout>
@@ -61,9 +58,7 @@ function SubscriptionPlan() {
               <Col md={4} key={plan.id}>
                 <div
                   className={`plan-card ${
-                    activePlan === plan.id
-                      ? "highlight"
-                      : ""
+                    activePlan === plan.id ? "highlight" : ""
                   }`}
                   onClick={() => setActivePlan(plan.id)}
                 >
@@ -75,53 +70,33 @@ function SubscriptionPlan() {
                     <span className="duration">/month</span>
                   </div>
                   <ul className="plan-features">
-                  <div className="list-wrap">
+                    <div className="list-wrap">
                       {plan.details.map((feature, idx) => (
-                      <li key={idx}>
-                        <img src={ activePlan === plan.id ? darkCheckIcon : checkIcon} className="check-icon"></img>
-                        <i className="bi bi-check-circle-fill"></i> {feature}
-                      </li>
-                    ))}
-                  </div>
+                        <li key={idx}>
+                          <img
+                            src={
+                              activePlan === plan.id ? darkCheckIcon : checkIcon
+                            }
+                            className="check-icon"
+                          ></img>
+                          <i className="bi bi-check-circle-fill"></i> {feature}
+                        </li>
+                      ))}
+                    </div>
                   </ul>
-                  <button type="button" onClick={()=>handlePay(plan)} className={`${activePlan === plan.id ? 'view-more-btn' : 'primaryBtn'}`}>Select Plan</button>
+                  <button
+                    type="button" 
+                    onClick={() => handlePay(plan)}
+                    className={`cursor-pointer ${
+                      activePlan === plan.id ? "view-more-btn" : "primaryBtn"
+                    }`}
+                  >
+                    Select Plan
+                  </button>
                 </div>
               </Col>
             ))}
           </Row>
-          {/* <div className="important-note card shadow-sm p-4 mt-5">
-            <h5 className="fw-bold text-dark">Important Note!</h5>
-            <p className="fw-semibold mb-2">Subscription Details</p>
-            <ul className="mb-3">
-              <li>
-                <img src={checkIcon} alt="check" className="check-icon" />
-                Once a Membership has been purchased, payment will be charged to
-                your iTunes or Google Play account.
-              </li>
-              <li>
-                <img src={checkIcon} alt="check" className="check-icon" />
-                Your subscription will automatically renew unless auto-renewal
-                is turned off at least 48 hours before the end of the current
-                subscription period.
-              </li>
-              <li>
-                <img src={checkIcon} alt="check" className="check-icon" />
-                Your account will be charged for renewal within 48 hours prior
-                to the end of the current subscription period.
-              </li>
-            </ul>
-            <p>
-              Please read our{" "}
-              <a href="/terms-and-conditions" className="text-success fw-bold">
-                Terms & Conditions
-              </a>{" "}
-              and{" "}
-              <a href="/privacy-policy" className="text-success fw-bold">
-                Privacy Policy
-              </a>{" "}
-              for more information.
-            </p>
-          </div> */}
         </Container>
       </section>
     </Layout>
