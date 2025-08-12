@@ -112,6 +112,12 @@ export default function Header() {
     window.location.reload();
   };
 
+ const handleStripe = () => {
+  setShowPlanModal(false);
+  if (location.pathname !== '/corporate/subscription-plan' && location.pathname !== 'corporate/subscription-plan') {
+    Navigate('/corporate/subscription-plan');
+  }
+};
   const getNavRoutes = () => {
     if (role == Roles.SERVICE_PROVIDER) return serviceProviderRoutes;
     if (role == Roles.CORPORATE) return corporateRoutes;
@@ -148,14 +154,12 @@ export default function Header() {
         const endDate = new Date(user.subscriptionDetail.endDate);
         const packageName = user.subscriptionDetail?.subscriptionPlan;
 
-        // 🔴 Check expiry
         if (currentDate > endDate) {
           setShowPlanModalMessage(
             "Your subscription has expired. Please renew to continue using the app."
           );
           setShowPlanModal(true);
         }
-        // ✅ Check lead usage
         const currentPlan = plans.find((plan) => plan.name === packageName);
         if (
           currentPlan?.lead !== "unlimited" &&
@@ -167,7 +171,6 @@ export default function Header() {
           setShowPlanModal(true);
         }
       } else {
-        // ✅ Free user - check 90-day trial
         const createdAt = new Date(user?.user?.createdAt);
         const diffInMs = currentDate - createdAt;
         const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
@@ -185,6 +188,9 @@ export default function Header() {
           );
           setShowPlanModal(true);
         }
+      }
+      if(location.pathname ==='/corporate/subscription-plan'){
+        setShowPlanModal(false);
       }
     } catch (error) {
       console.error("Subscription check failed:", error);
@@ -554,11 +560,11 @@ export default function Header() {
                                     <Dropdown.Divider />
                                     <Link
                                       className={
-                                        currentPath === "/payment"
+                                        currentPath === "/corporate/subscription-plan"
                                           ? "nav-link active"
                                           : "nav-link"
                                       }
-                                      to="/payment"
+                                      to="/corporate/subscription-plan"
                                     >
                                       Payment / Subscription
                                     </Link>
@@ -745,14 +751,13 @@ export default function Header() {
 
       {/* Log Out end  */}
 
-      {/* Log Out start  */}
-
+      {/* stripe */}
       <Modal
         show={showPlanModal}
         onHide={() => setShowPlanModal(false)}
         centered
-        backdrop="static" // prevent closing on outside click
-        keyboard={false} // optional: prevent closing on Esc key
+        backdrop="static"
+        keyboard={false}
       >
         <Modal.Body>
           <div className="comman-small-pop">
@@ -1058,10 +1063,10 @@ export default function Header() {
               <div className="comman-pop-action-double mt-4 w-25">
                 <button
                   className="btn-fill"
-                  onClick={handleLogout}
+                  onClick={handleStripe}
                   style={{ width: 100 }}
                 >
-                  Ok
+                  Stripe Pay
                 </button>
               </div>
             </div>

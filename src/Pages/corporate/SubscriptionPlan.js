@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import Layout from "../../Components/Layout/Layout";
 import checkIcon from "../../Assets/Images/status-check.svg";
+import darkCheckIcon from "../../Assets/Images/dark-status-check.svg";
+
 
 function SubscriptionPlan() {
   const [activePlan, setActivePlan] = useState(null);
@@ -42,8 +44,6 @@ function SubscriptionPlan() {
                 <div
                   className={`plan-card ${
                     activePlan === plan.id
-                      ? "active"
-                      : plan.id === "silver"
                       ? "highlight"
                       : ""
                   }`}
@@ -60,13 +60,13 @@ function SubscriptionPlan() {
                   <div className="list-wrap">
                       {plan.details.map((feature, idx) => (
                       <li key={idx}>
-                        <img src={checkIcon} className="check-icon"></img>
+                        <img src={ activePlan === plan.id ? darkCheckIcon : checkIcon} className="check-icon"></img>
                         <i className="bi bi-check-circle-fill"></i> {feature}
                       </li>
                     ))}
                   </div>
                   </ul>
-                  <button className="primaryBtn">Select Plan</button>
+                  <button className={`${activePlan === plan.id ? 'view-more-btn' : 'primaryBtn'}`}>Select Plan</button>
                 </div>
               </Col>
             ))}
