@@ -603,17 +603,17 @@ export default function UserBookingDetails() {
                       <div className="d-flex mb-2">
                         <span className="fw-semibold me-2">Status:</span>
                         {task?.status === 1 && (
-                          <span className="text-warning fw-semibold">
+                          <span className="corporate_inner pending">
                             Pending
                           </span>
                         )}
                         {task?.status === 2 && (
-                          <span className="text-danger fw-semibold">
+                          <span className="corporate_inner cancelled">
                             Cancelled
                           </span>
                         )}
                         {task?.status === 3 && (
-                          <span className="text-success fw-semibold">
+                          <span className="corporate_inner completed">
                             Completed
                           </span>
                         )}
