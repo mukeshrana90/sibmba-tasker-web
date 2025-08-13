@@ -51,7 +51,7 @@ export default function EditTask() {
   useEffect(() => {
     if (postTaskDetails?.data?.task?.images) {
       const imagePreviews = postTaskDetails.data.task.images.map(
-        (image) => `${process.env.REACT_APP_API_URLL}/${image}`
+        (image) => `${process.env.REACT_APP_API_URLL}${image}`
       );
       setPreviews(imagePreviews);
     }

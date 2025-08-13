@@ -129,7 +129,7 @@ export default function TaskDetail() {
                     {task.images.map((image, index) => (
                       <div key={index} className="card-box task-details">
                         <img
-                          src={`${process.env.REACT_APP_API_URLL}/${image}`}
+                          src={`${process.env.REACT_APP_API_URLL}${image}`}
                           alt={task.need_done}
                           style={{ maxWidth: "200px", margin: "0 auto" }}
                         />
