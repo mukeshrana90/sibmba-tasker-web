@@ -663,7 +663,7 @@ export default function UserBookingDetails() {
 
                     {/* Service Info */}
                     <div>
-                      <h3>
+                      <h3 className="text-transform">
                         {bookingState.serviceSubCategory
                           ?.serviceSubCategoryName || "N/A"}
                       </h3>

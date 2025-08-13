@@ -315,8 +315,8 @@ export default function CorporateLeadsPage() {
 
                                             <div className="d-flex align-items-center gap-2 mb-3">
                                               <img
-                                                src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
-                                                alt={corp.full_name}
+                                                src={`${process.env.REACT_APP_API_URL}/${res.serviceProviderId?.profile_image}`}
+                                                alt={res.serviceProviderId?.full_name[0]}
                                                 className="booking-avatar rounded-circle"
                                                 width={40}
                                                 height={40}
@@ -324,7 +324,7 @@ export default function CorporateLeadsPage() {
                                               <p className="mb-0 small">
                                                 Suggested by:{" "}
                                                 <strong>
-                                                  {corp.full_name}
+                                                  {res.serviceProviderId?.full_name}
                                                 </strong>
                                               </p>
                                             </div>

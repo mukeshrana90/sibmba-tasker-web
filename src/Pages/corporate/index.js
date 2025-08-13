@@ -12,6 +12,7 @@ import CorporateActions from "../../Redux/Actions/corporateActions";
 import PaginationComponent from "../../CommanComponents/PaginationComponent";
 import locationPin from "../../Assets/Images/corporate/locationPin.svg";
 import calenderIcon from "../../Assets/Images/corporate/calenderIcon.svg";
+import defalutImage from "../../Assets/Images/placeholder.jpg";
 
 const CorporateDashboard = () => {
   const navigate = useNavigate();
@@ -337,15 +338,15 @@ const CorporateDashboard = () => {
 
                                     <div className="d-flex align-items-center gap-2 mb-3">
                                       <img
-                                        src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
-                                        alt={corp.full_name}
+                                        src={`${process.env.REACT_APP_API_URL}/${res.serviceProviderId?.profile_image}` || defalutImage}
+                                        alt={res.serviceProviderId?.full_name}
                                         className="booking-avatar rounded-circle"
                                         width={40}
                                         height={40}
                                       />
                                       <p className="mb-0 small">
                                         Suggested by:{" "}
-                                        <strong>{corp.full_name}</strong>
+                                        <strong>{res.serviceProviderId?.full_name}</strong>
                                       </p>
                                     </div>
 

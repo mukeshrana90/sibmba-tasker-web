@@ -142,7 +142,7 @@ export default function Bookings() {
                       <div className="bookings-card-data">
                         <div>
                           <div className="">
-                            <h3>{data.need_done || "N/A"}</h3>
+                            <h3 className="text-transform">{data.need_done || "N/A"}</h3>
                             <p>
                               {`${data.task_time}, ${moment(data?.date).format(
                                 "DD MMM"

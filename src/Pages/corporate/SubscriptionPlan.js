@@ -18,20 +18,20 @@ function SubscriptionPlan() {
   const plans = [
     {
       id: "bronze",
-      name: "Bronze plan",
+      name: "Bronze Package",
       price: 50,
       details: ["300 Leads Responses", "No online shop linking"],
     },
     {
       id: "silver",
-      name: "Silver plan",
+      name: "Silver Package",
       price: 100,
       details: ["700 Leads Responses", "Unlimited online shopping link"],
       popular: true,
     },
     {
       id: "gold",
-      name: "Gold plan",
+      name: "Gold Package",
       price: 150,
       details: ["Unlimited Leads Responses", "Unlimited online shop linking"],
     },
