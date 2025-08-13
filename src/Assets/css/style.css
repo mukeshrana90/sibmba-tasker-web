@@ -4591,6 +4591,7 @@ button.read-more-btn {
   border-radius: 8px;
   min-width: 158px;
   cursor: pointer;
+  max-height: 130px;
 }
 
 img.search-icn {
