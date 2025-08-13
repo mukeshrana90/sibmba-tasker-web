@@ -39,13 +39,13 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
   };
   const isDateAvailable = (date) => {
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-    if (serviceDetail?.availability) {
+    if (serviceDetail?.availability?.length) {
       return serviceDetail?.availability?.some((slot) =>
-        slot.day.includes(dayName)
+        slot.day.includes(dayName.toLowerCase())
       );
     } else {
       return data?.serviceSubCategory.availability?.some((slot) =>
-        slot.day.includes(dayName)
+        slot.day.includes(dayName.toLowerCase())
       );
     }
   };
