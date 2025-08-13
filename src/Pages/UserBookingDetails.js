@@ -478,7 +478,7 @@ export default function UserBookingDetails() {
                                 </p>
                               </div>
                               <i className="bi bi-chat-right-dots-fill ms-auto text-success fs-5" />
-                              <div>
+                              {/* <div>
                                 {
                                   <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
                                     <div
@@ -496,7 +496,7 @@ export default function UserBookingDetails() {
                                     </div>
                                   </div>
                                 }
-                              </div>
+                              </div> */}
                             </div>
                           </div>
                         )}
