@@ -211,7 +211,7 @@ export default function ServiceTasks() {
           src={
             task?.images?.length > 0
               ? `${process.env.REACT_APP_API_URLL}/${task.images[0]}`
-              : ""
+              : defaultImage
           }
           alt="Task"
           className="task-image"
