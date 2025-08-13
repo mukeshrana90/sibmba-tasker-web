@@ -100,13 +100,11 @@ const CorporateDashboard = () => {
       router: "/corporate/products",
     },
     {
-      label: "Free Plan",
+      label: "Subscription",
       value:
-        corporateDashboard?.current_subscription?.subscriptionPlan?.split(
-          "."
-        )[1] || "Subscribe Now",
+        corporateDashboard?.current_subscription?.subscriptionPlan || "Subscribe Now",
       icon: TierIcon,
-      router: "/payment",
+      router: "/corporate/subscription-plan",
     },
   ];
 
