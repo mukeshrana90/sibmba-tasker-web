@@ -16,9 +16,10 @@ useEffect(() => {
     const payload = {
       lat: customerData?.location?.coordinates?.[1], 
       lng: customerData?.location?.coordinates?.[0],
-      category_id: customerData?.serviceCategory || customerData.category_id?._id
+      category_id: customerData?.serviceCategory || customerData.category_id?._id,
+      limit:1000,
+      page:1
     };
-
     dispatch(ServiceActions.getNearbyCorporateUser(payload));
   }
 }, [show, customerData, dispatch]);
