@@ -44,8 +44,8 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
         slot.day.includes(dayName.toLowerCase())
       );
     } else {
-      return data?.serviceSubCategory.availability?.some((slot) =>
-        slot.day.includes(dayName.toLowerCase())
+      return data?.serviceSubCategory?.availability?.some((slot) =>
+        slot?.day.includes(dayName.toLowerCase())
       );
     }
   };

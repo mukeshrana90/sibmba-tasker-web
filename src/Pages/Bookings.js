@@ -129,12 +129,12 @@ export default function Bookings() {
                         })
                       }
                     >
-                      {data.images?.length > 0 && (
+                      { (
                         <img
-                          src={`${imgBase}/${data.images[0].replace(
-                            /^public\//,
-                            ""
-                          )}`}
+                          src={data.images[0]
+                              ? `${process.env.REACT_APP_API_URLL}${data.images[0]}`
+                              : imageDefault
+                          }
                           alt="task-img-0"
                           className="task-thumb"
                         />
