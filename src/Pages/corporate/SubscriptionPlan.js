@@ -6,13 +6,14 @@ import darkCheckIcon from "../../Assets/Images/dark-status-check.svg";
 import { useDispatch } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { setCustomer } from "../../Redux/Reducers/LoginSlice";
-
+import Loader from "../../CommanComponents/Loader";
 function SubscriptionPlan() {
   const [activePlan, setActivePlan] = useState(null);
   const dispatch = useDispatch();
   const token = localStorage.getItem("token");
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [isLoader, setLoader] = useState(false);
 
   const plans = [
     {
@@ -37,6 +38,7 @@ function SubscriptionPlan() {
   ];
 
   const handlePay = async (item) => {
+    setLoader(true);
     try {
       const payload = {
         title: item.name,
@@ -46,7 +48,10 @@ function SubscriptionPlan() {
       if (res && res.payload) {
         window.open(res.payload.url, "_blank");
       }
-    } catch (error) {}
+      setLoader(false);
+    } catch (error) {
+      setLoader(false);
+    }
   };
 
   useEffect(() => {
@@ -73,7 +78,9 @@ function SubscriptionPlan() {
           <div className="bookings-details-title mb-4">
             <h2>Choose Your Plan</h2>
           </div>
-
+        {isLoader ? (
+          <Loader />
+        ) : (
           <Row className="g-4">
             {plans.map((plan) => {
               const isActivePlan =
@@ -103,7 +110,8 @@ function SubscriptionPlan() {
                           <li key={idx}>
                             <img
                               src={
-                                isActivePlan && activePlan?.status === "active"
+                                isActivePlan &&
+                                activePlan?.status === "active"
                                   ? darkCheckIcon
                                   : checkIcon
                               }
@@ -137,6 +145,7 @@ function SubscriptionPlan() {
               );
             })}
           </Row>
+        )}
           <Modal
             show={showPlanModal}
             onHide={() => setShowPlanModal(false)}
