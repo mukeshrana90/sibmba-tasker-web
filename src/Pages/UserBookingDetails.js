@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -200,7 +200,6 @@ export default function UserBookingDetails() {
         toast.error("An error occurred. Please try again.");
       });
   };
-
   const renderModalContent = () => {
     if (showFeedback) {
       return (
@@ -214,13 +213,12 @@ export default function UserBookingDetails() {
                 src={
                   bookingState?.serviceSubCategory?.images?.length > 0
                     ? `${process.env.REACT_APP_API_URL}/user/${bookingState?.serviceSubCategory?.images[0]}`
-                    : ""
+                    : `${process.env.REACT_APP_API_URLL}${task?.images[0]}` || defaultImage
                 }
               />
               <div className="">
                 <h4>
-                  {bookingState?.serviceSubCategory?.serviceSubCategoryName ||
-                    ""}
+                  {bookingState?.serviceSubCategory?.serviceSubCategoryName || task?.address ||  ""}
                 </h4>
                 <p>
                   <svg
@@ -247,8 +245,8 @@ export default function UserBookingDetails() {
                       fill="#545454"
                     />
                   </svg>
-                  {`${bookingState?.slotTime}, ${moment(
-                    bookingState?.date
+                  {`${bookingState?.slotTime || task?.task_time || '-'}, ${moment(
+                    bookingState?.date || task?.when_done || '-'
                   ).format("DD MMM")}`}
                 </p>
                 <p>
@@ -264,7 +262,7 @@ export default function UserBookingDetails() {
                       fill="#545454"
                     />
                   </svg>
-                  {bookingState?.address}
+                  {bookingState?.address || task?.address || '-'}
                 </p>
               </div>
             </div>
