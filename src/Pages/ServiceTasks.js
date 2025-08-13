@@ -182,7 +182,7 @@ export default function ServiceTasks() {
           onClick={() => navigate(`/servicetasksdetails/${task?._id}`)}
           src={
             task?.images?.length > 0
-              ? `${process.env.REACT_APP_API_URLL}/${task.images[0]}`
+              ? `${process.env.REACT_APP_API_URLL}${task.images[0]}`
               : require("../Assets/Images/placeholder.jpg")
           }
           alt="Task"
@@ -210,7 +210,7 @@ export default function ServiceTasks() {
           }
           src={
             task?.images?.length > 0
-              ? `${process.env.REACT_APP_API_URLL}/${task.images[0]}`
+              ? `${process.env.REACT_APP_API_URLL}${task.images[0]}`
               : defaultImage
           }
           alt="Task"
