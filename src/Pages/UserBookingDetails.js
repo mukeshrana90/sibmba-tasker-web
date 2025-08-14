@@ -1,4 +1,4 @@
-import  { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -31,26 +31,26 @@ import { getStatusLabel } from "../utils/CommonFunction";
 // };
 const getStatusColor = (status) => {
   const statusMap = {
-      1: "pending",
-      2: "completed",
-      3: "cancelled",
-      4: "completed",
-      5: "rejected",
-    };
+    1: "pending",
+    2: "completed",
+    3: "cancelled",
+    4: "completed",
+    5: "rejected",
+  };
 
   return statusMap[status] || "N/A";
 };
-  // const getStatusLabel = (status) => {
-  //   const statusMap = {
-  //     1: "Pending",
-  //     2: "Cancelled",
-  //     3: "Completed",
-  //     4: "Completed",
-  //     5: "Rejected",
-  //   };
+// const getStatusLabel = (status) => {
+//   const statusMap = {
+//     1: "Pending",
+//     2: "Cancelled",
+//     3: "Completed",
+//     4: "Completed",
+//     5: "Rejected",
+//   };
 
-  //   return statusMap[status] || "N/A";
-  // };
+//   return statusMap[status] || "N/A";
+// };
 
 export default function UserBookingDetails() {
   const dispatch = useDispatch();
@@ -74,6 +74,7 @@ export default function UserBookingDetails() {
   let { task, quotations } = taskbooking || {};
   const [refetchToggle, setRefetchToggle] = useState(false);
   const [corporateProfile, setCorporateProfile] = useState(null);
+  const [selectedCorporateIds, setSelectedCorporateIds] = useState(null);
 
   const handleEditOpen = (id) => {
     seteditShow(true);
@@ -160,11 +161,12 @@ export default function UserBookingDetails() {
     setShowThankYou(true);
   };
 
-  const handleAccept = (id, status) => {
+  const handleAccept = (status, corporateIds) => {
     dispatch(
       CorporateActions.acceptRejectCorporateSuggestionFromUser({
-        bookingId: id?.bookingId,
+        bookingId: corporateIds?.bookingId,
         status: status,
+        corporateId: corporateIds?.corporateIds?._id || undefined,
       })
     )
       .then((res) => {
@@ -180,11 +182,12 @@ export default function UserBookingDetails() {
       });
   };
 
-  const handleAcceptCrop = (id, status) => {
+  const handleAcceptCrop = (id, status,corpId) => {
     dispatch(
       CorporateActions.acceptRejectCorporateSuggestionFromUser({
         [task ? "taskId" : "bookingId"]: id,
         status: status,
+        corporateId: corpId._id || undefined,
       })
     )
       .then((res) => {
@@ -200,6 +203,10 @@ export default function UserBookingDetails() {
         toast.error("An error occurred. Please try again.");
       });
   };
+  const toggleSelect = (corp) => {
+    setSelectedCorporateIds((prev) => (prev?._id === corp._id ? null : corp));
+  };
+
   const renderModalContent = () => {
     if (showFeedback) {
       return (
@@ -213,12 +220,15 @@ export default function UserBookingDetails() {
                 src={
                   bookingState?.serviceSubCategory?.images?.length > 0
                     ? `${process.env.REACT_APP_API_URL}/user/${bookingState?.serviceSubCategory?.images[0]}`
-                    : `${process.env.REACT_APP_API_URLL}${task?.images[0]}` || defaultImage
+                    : `${process.env.REACT_APP_API_URLL}${task?.images[0]}` ||
+                      defaultImage
                 }
               />
               <div className="">
                 <h4>
-                  {bookingState?.serviceSubCategory?.serviceSubCategoryName || task?.address ||  ""}
+                  {bookingState?.serviceSubCategory?.serviceSubCategoryName ||
+                    task?.address ||
+                    ""}
                 </h4>
                 <p>
                   <svg
@@ -245,8 +255,10 @@ export default function UserBookingDetails() {
                       fill="#545454"
                     />
                   </svg>
-                  {`${bookingState?.slotTime || task?.task_time || '-'}, ${moment(
-                    bookingState?.date || task?.when_done || '-'
+                  {`${
+                    bookingState?.slotTime || task?.task_time || "-"
+                  }, ${moment(
+                    bookingState?.date || task?.when_done || "-"
                   ).format("DD MMM")}`}
                 </p>
                 <p>
@@ -262,7 +274,7 @@ export default function UserBookingDetails() {
                       fill="#545454"
                     />
                   </svg>
-                  {bookingState?.address || task?.address || '-'}
+                  {bookingState?.address || task?.address || "-"}
                 </p>
               </div>
             </div>
@@ -344,7 +356,6 @@ export default function UserBookingDetails() {
   const selectedQuotation = quotations?.find(
     (q) => q._id === task?.quatation_id
   );
-
   return (
     <Layout>
       <section className="service-detail-sec mb-5">
@@ -377,13 +388,11 @@ export default function UserBookingDetails() {
                             {task?.category_id?.service_category_name}
                           </h5>
 
-                          {/* Task Description */}
                           <p>{task?.need_done}</p>
                           <p>{task?.address}</p>
                           <p>{task?.details}</p>
                           {task?.status !== 1 && task?.status !== 2 && (
                             <>
-                              {/* Pay Now (Conditional) */}
                               {task?.payment?.status === "pending" && (
                                 <div className="mt-3 text-center">
                                   <button
@@ -397,7 +406,6 @@ export default function UserBookingDetails() {
                                   </button>
                                 </div>
                               )}
-                              {/* Footer Buttons */}
                               <div className="d-flex justify-content-between mt-3">
                                 <button
                                   className="btn btn-light border w-50 me-2"
@@ -448,7 +456,10 @@ export default function UserBookingDetails() {
                             <h5>About Service Provider</h5>
                             <div className="d-flex align-items-center gap-3 px-4">
                               <img
-                                src={`${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}` || defaultImage}
+                                src={
+                                  `${process.env.REACT_APP_API_URL}/${selectedQuotation?.service_provider?.profile_image}` ||
+                                  defaultImage
+                                }
                                 className="rounded-circle"
                                 style={{
                                   width: 50,
@@ -459,10 +470,8 @@ export default function UserBookingDetails() {
                               />
                               <div>
                                 <strong>
-                                  {
-                                    selectedQuotation?.service_provider
-                                      ?.full_name || '-'
-                                  }
+                                  {selectedQuotation?.service_provider
+                                    ?.full_name || "-"}
                                 </strong>
                                 <p className="mb-0 text-muted">
                                   {selectedQuotation?.service_provider?.email}
@@ -509,6 +518,7 @@ export default function UserBookingDetails() {
                                 {selectedQuotation.corporateSuggestion.map(
                                   (item, index) => {
                                     const corp = item?.corporateIds;
+
                                     if (!corp) return null;
 
                                     return (
@@ -526,7 +536,15 @@ export default function UserBookingDetails() {
                                         />
                                         <div className="flex-grow-1">
                                           <div className="fw-bold">
-                                            {corp.full_name}
+                                            <div className="fw-bold d-flex align-items-center gap-2">
+                                              {corp.full_name}
+                                              {Number(item?.userStatus) ===
+                                                1 && (
+                                                <span className="badge bg-success">
+                                                  Selected
+                                                </span>
+                                              )}
+                                            </div>
                                           </div>
                                           <div className="text-muted small">
                                             {corp.shop_name}
@@ -564,7 +582,8 @@ export default function UserBookingDetails() {
                                                       onClick={() =>
                                                         handleAcceptCrop(
                                                           task?._id,
-                                                          3
+                                                          3,
+                                                          corp
                                                         )
                                                       }
                                                     >
@@ -787,9 +806,11 @@ export default function UserBookingDetails() {
                           <div className="reason-for-cancellation mt-3">
                             <h5>Reason for cancellation</h5>
                             <p>{bookingState.message}</p>
-                             {bookingState.reasonForCancel ? (
+                            {bookingState.reasonForCancel ? (
                               <p>{bookingState.reasonForCancel}</p>
-                             ):''}
+                            ) : (
+                              ""
+                            )}
                           </div>
                         )}
 
@@ -839,18 +860,21 @@ export default function UserBookingDetails() {
                           />
                           <div>
                             <h5>
-                              {bookingState.serviceProvider?.company_name == 'undefined' ? '-' : bookingState.serviceProvider?.company_name ||
-                                "N/A"}
+                              {bookingState.serviceProvider?.company_name ==
+                              "undefined"
+                                ? "-"
+                                : bookingState.serviceProvider?.company_name ||
+                                  "N/A"}
                             </h5>
                             <p>
                               {bookingState.serviceProvider?.street_address ||
                                 bookingState.serviceProvider?.address ||
-                                bookingState.serviceProvider?.full_name || '-'}
+                                bookingState.serviceProvider?.full_name ||
+                                "-"}
                             </p>
                           </div>
                         </div>
 
-                        {/* About Service Corporate */}
                         <div className="suggested-caproate">
                           <div className="list-title">
                             <h5>Suggested Corporate</h5>
@@ -859,123 +883,91 @@ export default function UserBookingDetails() {
                           <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
                             {corporateSuggestions &&
                             corporateSuggestions.length > 0 ? (
-                              corporateSuggestions.map((corp, idx) => (
-                                <div
-                                  key={corp._id || idx}
-                                  className="d-flex justify-content-between align-items-center gap-3 mb-3 cursor-pointer"
-                                >
-                                  {/* Left: Corporate info */}
-                                  <div
-                                    className="d-flex align-items-center gap-3"
-                                    onClick={() =>
-                                      navigate(
-                                        `/get-corporate/${corp?.corporateIds?._id}`
-                                      )
-                                    }
-                                  >
-                                    <img
-                                      src={
-                                        corp?.corporateIds?.profile_image
-                                          ? `${process.env.REACT_APP_API_URL}/${corp.corporateIds.profile_image}`
-                                          : "/Assets/Images/default-user.png"
-                                      }
-                                      className="rounded-circle"
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        objectFit: "cover",
-                                      }}
-                                      alt="Corporate"
-                                    />
-                                    <div>
-                                      <strong>
-                                        {corp.corporateIds?.full_name || "N/A"}
-                                      </strong>
-                                      <p className="mb-0 text-muted">
-                                        {corp.corporateIds?.shop_name ||
-                                          corp.corporateIds?.email}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    {corp.status === "in-progress" && (
-                                      <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
-                                        <div
-                                          className="action-button-wrap"
-                                          onClick={() =>
-                                            navigate(
-                                              `/messages?userID=${corp?.corporateIds._id}`
-                                            )
-                                          }
-                                        >
-                                          <div className="icon-circle green">
-                                            <img src={ChatIcon} alt="Chat" />
-                                          </div>
-                                          <span>Direct Chat</span>
-                                        </div>
+                              <>
+                                {corporateSuggestions.map((corp, idx) => {
+                                  console.log(corp,'corpcorpcorpcorp')
+                                  const corpId = corp?.corporateIds?._id;
+                                  const isSelected =
+                                    selectedCorporateIds?.corporateIds?._id ===
+                                    corpId;
+                                  return (
+                                    <div
+                                      key={corp._id || idx}
+                                      className="d-flex align-items-center gap-3 mb-3"
+                                    >
+                                    {!corporateSuggestions.some((cs) => cs.userStatus === 1
+                                  ) && (
+                                        <Form.Check
+                                          type="checkbox"
+                                          className="me-2"
+                                          checked={isSelected}
+                                          onChange={() => toggleSelect(corp)}
+                                        />
+                                      )}
 
-                                        {corp.status === "in-progress" &&
-                                          corp.userStatus === 1 &&
-                                          corp.corporateStatus === 3 && (
-                                            <div className="book-service-action-btn d-flex gap-2 mt-2">
-                                              <button
-                                                type="button"
-                                                className="text-black"
-                                                onClick={() =>
-                                                  handleAcceptCrop(
-                                                    bookingState?._id,
-                                                    3
-                                                  )
-                                                }
-                                              >
-                                                Job Done
-                                              </button>
-                                            </div>
-                                          )}
+                                      <div
+                                        className="d-flex align-items-center gap-3 cursor-pointer"
+                                        onClick={() =>
+                                          navigate(`/get-corporate/${corpId}`)
+                                        }
+                                      >
+                                        <img
+                                          src={
+                                            corp?.corporateIds?.profile_image
+                                              ? `${process.env.REACT_APP_API_URL}/${corp.corporateIds?.profile_image}`
+                                              : "/Assets/Images/default-user.png"
+                                          }
+                                          className="rounded-circle"
+                                          style={{
+                                            width: 50,
+                                            height: 50,
+                                            objectFit: "cover",
+                                          }}
+                                          alt="Corporate"
+                                        />
+                                        <div>
+                                          <div className="fw-bold d-flex align-items-center gap-2">
+                                            <strong>
+                                              {corp.corporateIds?.full_name ||
+                                                "N/A"}
+                                            </strong>
+                                            {corp.userStatus === 1 && (
+                                              <span className="badge bg-success">
+                                                Selected
+                                              </span>
+                                            )}
+                                          </div>
+                                          <p className="mb-0 text-muted">
+                                            {corp.corporateIds?.shop_name ||
+                                              corp.corporateIds?.email}
+                                          </p>
+                                        </div>
                                       </div>
-                                    )}
-                                    {corp.status === "completed" && (
-                                      <button
-                                        className="feedback-btn"
-                                        onClick={() => {
-                                          handleFeedbackOpen();
-                                          setCorporateProfile(corp);
-                                        }}
-                                      >
-                                        Give Feedback
-                                      </button>
-                                    )}
-                                  </div>
-                                  {bookingState.status !== 3 &&
-                                  corp.userStatus === 0 ? (
-                                    <div className="book-service-action-btn d-flex gap-2 mt-2">
+                                    </div>
+                                  );
+                                })}
+                                  {!corporateSuggestions.some((cs) => cs.userStatus === 1
+                                  ) && (
+                                    <div className="book-service-action-btn d-flex gap-3 mt-3 justify-content-center">
                                       <button
                                         type="button"
-                                        onClick={() => handleAccept(corp, 2)} // Reject
+                                        onClick={() =>
+                                          handleAccept(2, selectedCorporateIds)
+                                        }
                                       >
-                                        Reject
+                                        Reject Corporate
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => handleAccept(corp, 1)} // Accept
+                                        onClick={() =>
+                                          handleAccept(1, selectedCorporateIds)
+                                        }
                                       >
-                                        Accept
+                                        Accept Corporate
                                       </button>
                                     </div>
-                                  ) : (
-                                    <></>
-                                    // <div className="book-service-action-btn d-flex gap-2 mt-2">
-                                    //   <button
-                                    //     type="button"
-                                    //     className="text-white"
-                                    //     onClick={() => handleAccept(corp, 3)}
-                                    //   >
-                                    //     Job Done
-                                    //   </button>
-                                    // </div>
                                   )}
-                                </div>
-                              ))
+                              </>
                             ) : (
                               <p className="text-muted">
                                 No corporate suggestions yet.

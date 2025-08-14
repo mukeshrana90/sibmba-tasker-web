@@ -13,7 +13,7 @@ import moment from "moment";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import { corpoTaskStatus } from "../utils/Roles";
-import defaultImage from "../Assets/Images/placeholder.jpg"
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function TaskDetail() {
   const navigate = useNavigate();
@@ -24,6 +24,7 @@ export default function TaskDetail() {
   const postTaskDetails = useSelector(
     (state) => state.UserSlice.postTaskDetail
   );
+  const [selectedCorporateIds, setSelectedCorporateIds] = useState("");
   const sliderSettings = {
     dots: true,
     arrows: false,
@@ -67,7 +68,7 @@ export default function TaskDetail() {
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
 
-  const handleAccept = (data, type) => {
+  const handleAccept = (data, type,corporateIds) => {
     const statusValue = type === "accept" ? 1 : 2;
 
     const taskStatusPayload = {
@@ -80,6 +81,7 @@ export default function TaskDetail() {
     const suggestionStatusPayload = {
       taskId: id,
       status: statusValue,
+      corporateId: corporateIds || undefined,
     };
 
     const handleDispatch = (action, successMessage, errorMessage) => {
@@ -112,6 +114,19 @@ export default function TaskDetail() {
         navigate("/my-task");
       }
     });
+  };
+  const toggleSelect = (id) => {
+    setSelectedCorporateIds((prev) => (prev === id ? null : id));
+  };
+
+  const handleCorporateAddSave = (taskId, selectedIds) => {
+    console.log(selectedIds, "selectedIds");
+    console.log(taskId, "taskId");
+  };
+
+  const handleCorporateReject = (taskId, selectedIds) => {
+    console.log(selectedIds, "selectedIds");
+    console.log(taskId, "taskId");
   };
 
   return (
@@ -241,16 +256,16 @@ export default function TaskDetail() {
                           <p>Offer Price</p>
                         </div>
                         {quotation[index]?.corporateSuggestion[index]?.corporateStatus !== corpoTaskStatus.COMPLETED ||
-                        quotation[index]?.corporateSuggestion?.[index]
+                        quotation[index]?.corporateSuggestion[index]
                           ?.userStatus === corpoTaskStatus.ACCEPT ? (
                           <div className="btn-price">
                             <button
-                              onClick={() => handleAccept(quotation, "accept")}
+                              onClick={() => handleAccept(quotation, "accept",selectedCorporateIds )}
                             >
                               Accept
                             </button>
                             <button
-                              onClick={() => handleAccept(quotation, "reject")}
+                              onClick={() => handleAccept(quotation, "reject",selectedCorporateIds) }
                             >
                               Reject
                             </button>
@@ -275,29 +290,45 @@ export default function TaskDetail() {
                             {quotation.corporateSuggestion.map(
                               (item, index) => {
                                 const corp = item?.corporateIds;
+                                const status = item?.userStatus === 1;
                                 if (!corp) return null;
+                                const isSelected =selectedCorporateIds === corp._id;
 
                                 return (
                                   <div
                                     key={item._id || index}
-                                    onClick={() =>
-                                      navigate(
-                                        `/get-corporate/${item?.corporateIds?._id}`
-                                      )
-                                    }
                                     className="corporate-item d-flex align-items-center py-2"
                                     style={{ gap: "10px" }}
                                   >
+                                   {!quotation.corporateSuggestion.some(
+                                    (cs) => cs.userStatus === 1
+                                  ) && (
+                                      <Form.Check
+                                        type="checkbox"
+                                        className="me-2"
+                                        checked={isSelected}
+                                        onChange={() => toggleSelect(corp._id)}
+                                      />
+                                    )}
+
                                     <img
                                       src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
                                       alt={corp.full_name}
                                       className="rounded-circle"
                                       width={40}
                                       height={40}
+                                      onClick={() =>
+                                        navigate(`/get-corporate/${corp._id}`)
+                                      }
                                     />
                                     <div className="flex-grow-1">
-                                      <div className="fw-bold">
+                                      <div className="fw-bold d-flex align-items-center justify-content-between">
                                         {corp.full_name}
+                                        {status && (
+                                          <span className="badge bg-success ms-2">
+                                            Selected
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="text-muted small">
                                         {corp.shop_name}
@@ -311,6 +342,35 @@ export default function TaskDetail() {
                               }
                             )}
                           </div>
+
+                          {!quotation.corporateSuggestion.some(
+                            (cs) => cs.userStatus === 1
+                          ) && (
+                            <div className="px-4 pb-3 pt-2 d-flex gap-5 justify-content-center">
+                              <button
+                                className="primaryBtn w-25"
+                                disabled={!selectedCorporateIds}
+                                onClick={() =>
+                                  handleCorporateAddSave(task?._id, [
+                                    selectedCorporateIds,
+                                  ])
+                                }
+                              >
+                                Accept Corporate
+                              </button>
+                              <button
+                                className="view-more-btn w-25"
+                                disabled={!selectedCorporateIds}
+                                onClick={() =>
+                                  handleCorporateReject(task?._id, [
+                                    selectedCorporateIds,
+                                  ])
+                                }
+                              >
+                                Reject Corporate
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

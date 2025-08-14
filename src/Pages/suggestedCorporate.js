@@ -167,7 +167,7 @@ export default function SuggestedCorporatePage() {
                                       <div className="row align-items-start g-4">
                                         <div className="col-md-2 text-center">
                                           <img
-                                            src={`${process.env.REACT_APP_API_URL}${data.corporateUser.profile_image}`}
+                                            src={`${process.env.REACT_APP_API_URL}${data.corporateUser.profile_image}` || defaultImage}
                                             alt="Profile"
                                             className="profile-image-business"
                                           />

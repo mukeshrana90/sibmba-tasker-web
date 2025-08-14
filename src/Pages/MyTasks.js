@@ -11,7 +11,7 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import moment from "moment";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
-import defaultImage from "../Assets/Images/placeholder.jpg"
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function MyTasks() {
   const navigate = useNavigate();
@@ -183,7 +183,7 @@ export default function MyTasks() {
                           </Tab.Pane>
                           <Tab.Pane eventKey="second">
                             <div>
-                              {allMyQuotations?.length > 0 ?
+                              {allMyQuotations?.length > 0 ? (
                                 allMyQuotations?.map((quotation, i) => (
                                   <div className="quotation-requests-wrap">
                                   <div className="quotation-requests quotation-requests-inner">
@@ -261,7 +261,16 @@ export default function MyTasks() {
                                                     height={40}
                                                   />
                                                   <div className="flex-grow-1">
-                                                    <div className="fw-bold">{corp.full_name}</div>
+                                                    <div className="fw-bold d-flex align-items-center gap-2">
+                                                      {corp.full_name}
+                                                      {Number(
+                                                        item?.userStatus
+                                                      ) === 1 && (
+                                                        <span className="badge bg-success">
+                                                          Selected
+                                                        </span>
+                                                      )}
+                                                    </div>
                                                     <div className="text-muted small">{corp.shop_name}</div>
                                                     <div className="text-muted small">{corp.email}</div>
                                                   </div>
@@ -273,7 +282,7 @@ export default function MyTasks() {
                                       )}
                                     </div>
                                   </div>
-                                )) : (
+                                  ))) : (
                                   <div className="no-upcoming-bookings">
                                     <svg
                                       xmlns="http://www.w3.org/2000/svg"

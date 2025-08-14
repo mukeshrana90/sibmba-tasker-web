@@ -31,7 +31,7 @@ const AddQuotationModal = ({
 }) => {
   const isEdit = !!quatation;
   const [showSuggestModal, setShowSuggestModal] = useState(false);
-  const [selectedCorporate, setSelectedCorporate] = useState(null);
+  const [selectedCorporate, setSelectedCorporate] = useState([]);
   const dispatch = useDispatch();
 
   // Initial form values
@@ -45,7 +45,7 @@ const AddQuotationModal = ({
     if (!show) {
       initialValues.price = "";
       initialValues.description = "";
-      setSelectedCorporate(null);
+      setSelectedCorporate([]);
     } else {
       if (
         Array.isArray(quatation?.corporateSuggestion) &&
@@ -74,7 +74,7 @@ const AddQuotationModal = ({
       dispatch(
         CustomerActions.createCorporateSuggestionsForTask({
           taskId: task?._id,
-          corporateIds: [selectedCorporate._id],
+          corporateIds: selectedCorporate.map(corp => corp._id), 
         })
       )
         .unwrap()
@@ -137,39 +137,60 @@ const AddQuotationModal = ({
                   />
                 </Form.Group>
                 {/* Show profile OR Add Corporate button */}
-                {selectedCorporate ? (
+                {selectedCorporate?.length > 0 ? (
                   <>
                     <div className="d-block">
                       <Form.Label className="mt-2">
-                        Suggested Corporate
+                        Suggested Corporates
                       </Form.Label>
                     </div>
-                    <div className="selected-corporate  p-2 border rounded d-flex justify-content-between align-items-center">
+
+                  {selectedCorporate.map((corp, index) => (
+                    <div
+                      key={corp._id || index}
+                      className="selected-corporate p-2 border rounded d-flex justify-content-between align-items-center mb-2"
+                    >
                       <div className="d-flex align-items-center">
+                      {corp.profile_image ? (
                         <img
-                          src={`${process.env.REACT_APP_API_URL}/${selectedCorporate.profile_image}`}
-                          alt={selectedCorporate.full_name}
+                          src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                          alt={corp.full_name}
                           width={40}
                           height={40}
                           className="rounded-circle me-2"
                         />
-                        <div>
-                          <div className="fw-bold">
-                            {selectedCorporate.full_name}
-                          </div>
-                          <div className="text-muted small">
-                            {selectedCorporate.shop_name}
+                      ) : (
+                        <div
+                          className="rounded-circle me-2 bg-secondary text-white d-flex align-items-center justify-content-center"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {corp.full_name?.[0]?.toUpperCase() || "?"}
+                        </div>
+                      )}
+                      <div>
+                        <div className="fw-bold">{corp.full_name}</div>
+                        <div className="text-muted small">
+                          {corp.shop_name}
                           </div>
                         </div>
                       </div>
-                     {!isEdit && (
+                    {!isEdit && (
                       <button
                         type="button"
                         className="btn-close"
-                        onClick={() => setSelectedCorporate(null)}
+                        onClick={() =>
+                          setSelectedCorporate((prev) =>
+                            prev.filter((c) => c._id !== corp._id)
+                          )
+                        }
                       />
                     )}
                     </div>
+                  ))}
                   </>
                 ) : (
                   <div className="text-center mt-4">

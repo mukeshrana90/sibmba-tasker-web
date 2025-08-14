@@ -16,7 +16,7 @@ import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirma
 import BookingCancelled from "../CommanComponents/Modals/BookingCancelled";
 import SuggestCorporateModal from "../CommanComponents/Modals/SuggestCorporateModal";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import defaultImage from "../Assets/Images/placeholder.jpg"
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function ServiceRequest() {
   const getStatusColor = (status) => {
@@ -116,7 +116,7 @@ export default function ServiceRequest() {
           dispatch(
             CustomerActions.createCorporateSuggestionsForTask({
               bookingId: id,
-              corporateIds: [selectedCorporate?._id],
+              corporateIds: selectedCorporate.map((corp) => corp._id),
             })
           );
           // Show success modal
@@ -310,60 +310,101 @@ export default function ServiceRequest() {
               </div>
             </Col>
             <Col lg={12}>
-             {bookingReqDetail?.corporateSuggestions.length > 0 && servicetype !== "approved" || servicetype !== "reject" && (
+             {(bookingReqDetail?.corporateSuggestions.length > 0 && servicetype !== "approved") ||(servicetype !== "reject" && (
                <div className="d-block">
                 <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
                   Suggest Corporate
                 </div>
               </div>
-             )}
-                {bookingReqDetail?.corporateSuggestions.length > 0 && (
-                <div className="selected-corporate p-3 border rounded d-flex justify-content-between align-items-center mb-5">
+              ))}
+              {bookingReqDetail?.corporateSuggestions?.length > 0 && (
+                <div className="selected-corporate-list mb-5">
+          {bookingReqDetail.corporateSuggestions.map(
+            (corpItem, index) => {
+              const corp = corpItem?.corporateIds;
+              if (!corp) return null;
+
+              return (
+                <div
+                  key={corpItem._id || index}
+                  className="selected-corporate p-3 border rounded d-flex justify-content-between align-items-center mb-2"
+                >
                   <div className="d-flex align-items-center">
                     <img
-                      src={`${process.env.REACT_APP_API_URL}/${bookingReqDetail?.corporateSuggestions[0].corporateIds.profile_image}`|| defaultImage}
-                      alt={bookingReqDetail?.corporateSuggestions[0].corporateIds?.full_name}
+                      src={
+                        corp.profile_image
+                          ? `${process.env.REACT_APP_API_URL}/${corp.profile_image}`
+                          : defaultImage
+                      }
+                      alt={corp.full_name}
                       width={40}
                       height={40}
                       className="rounded-circle me-2"
                     />
                     <div>
-                      <div className="fw-bold">
-                        {bookingReqDetail?.corporateSuggestions[0].corporateIds?.full_name}
+                      <div className="fw-bold d-flex align-items-center gap-2">
+                        {corp.full_name}
+                        {Number(corpItem?.userStatus) === 1 && (
+                          <span className="badge bg-success">
+                            Selected
+                          </span>
+                        )}
                       </div>
                       <div className="text-muted small">
-                        {bookingReqDetail?.corporateSuggestions[0].corporateIds?.email}
+                        {corp.email}
                       </div>
                     </div>
                   </div>
                 </div>
-              ) }
+              );
+            }
+          )}
+        </div>
+      )}
 
               {selectedCorporate ? (
-                <div className="selected-corporate p-3 border rounded d-flex justify-content-between align-items-center mb-5">
-                  <div className="d-flex align-items-center">
+            <>
+              {selectedCorporate.map((corp, index) => (
+                <div
+                  key={corp._id || index}
+                  className="selected-corporate p-2 border rounded d-flex justify-content-between align-items-center mb-2"
+                >
+                <div className="d-flex align-items-center">
+                  {corp.profile_image ? (
                     <img
-                      src={`${process.env.REACT_APP_API_URL}/${selectedCorporate.profile_image}` || defaultImage}
-                      alt={selectedCorporate.full_name}
+                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}` || defaultImage}
+                      alt={corp.full_name}
                       width={40}
                       height={40}
                       className="rounded-circle me-2"
                     />
-                    <div>
-                      <div className="fw-bold">
-                        {selectedCorporate.full_name}
-                      </div>
+                  ) : (
+                    <div
+                      className="rounded-circle me-2 bg-secondary text-white d-flex align-items-center justify-content-center"
+                      style={{
+                        width: 40,
+                        height: 40,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {corp.full_name?.[0]?.toUpperCase() || "?"}
+                    </div>
+                  )}
+                  <div>
+                    <div className="fw-bold">{corp.full_name}</div>
                       <div className="text-muted small">
-                        {selectedCorporate.shop_name}
+                        {corp.shop_name}
                       </div>
                     </div>
                   </div>
                   <button
                     type="button"
                     className="btn-close"
-                    onClick={() => setSelectedCorporate(null)}
+                    onClick={() => setSelectedCorporate((prev) =>  prev.filter((c) => c._id !== corp._id))}
                   />
                 </div>
+              ))}
+            </>
               ) : (
                 <>
                   {servicetype !== "approved" && servicetype !== "reject" ? (

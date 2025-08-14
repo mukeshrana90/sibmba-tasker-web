@@ -298,7 +298,7 @@ export default function LeadDetails() {
                               <div className="suggested-caproate">
                                 <h5>Suggested Corporate</h5>
                                 <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
-                                  {bookingState.corporateSuggestions.map(
+                                  {bookingState.corporateSuggestions.filter(item => Number(item?.userStatus) === 1).map(
                                     (item, idx) => (
                                       <div
                                         key={item._id || idx}
@@ -330,7 +330,7 @@ export default function LeadDetails() {
                               </div>
                               <div>
                                 {bookingState?.corporateSuggestions
-                                  ?.filter((item) => item.status !== "rejected")
+                                  ?.filter((item) => item.status !== "rejected" &&  Number(item?.userStatus) === 1)
                                   .map((item, index) => (
                                     <div
                                       key={item._id || index}
@@ -594,7 +594,7 @@ export default function LeadDetails() {
                                       <div className="suggested-caproate">
                                         <h5>Suggested Corporate</h5>
                                         <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
-                                          {quotation.corporateSuggestion.map(
+                                          {quotation.corporateSuggestion.filter(item => Number(item?.userStatus) === 1).map(
                                             (item, idx) => (
                                               <div
                                                 key={item._id || idx}
@@ -637,7 +637,7 @@ export default function LeadDetails() {
 
                                   <div className="quotation-inner d-flex justify-content-center gap-4 mt-3">
                                     {quotation?.corporateSuggestion?.some(
-                                      (s, index) => s.status !== "rejected"
+                                      (s, index) => s.status !== "rejected" && Number(s?.userStatus) === 1
                                     ) && (
                                       <>
                                         <button

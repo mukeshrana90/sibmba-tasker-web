@@ -398,8 +398,8 @@ export default function CorporateLeadsPage() {
                               </ul>
                             </div>
 
-                            {totalPages > 10 && (
-                              <div className="pagination-flexs mt-5">
+                            {leads?.total > 10 && (
+                              <div className="pagination-flexs mt-5 justify-content-end">
                                 <PaginationComponent
                                   page={page}
                                   setPage={setPage}
