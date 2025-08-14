@@ -256,7 +256,7 @@ export default function TaskDetail() {
                           <p>Offer Price</p>
                         </div>
                         {quotation[index]?.corporateSuggestion[index]?.corporateStatus !== corpoTaskStatus.COMPLETED ||
-                        quotation[index]?.corporateSuggestion?.[index]
+                        quotation[index]?.corporateSuggestion[index]
                           ?.userStatus === corpoTaskStatus.ACCEPT ? (
                           <div className="btn-price">
                             <button

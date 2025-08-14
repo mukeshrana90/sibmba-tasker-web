@@ -15,9 +15,9 @@ import ServiceActions from "../Redux/Actions/ServiceActions";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import ChatIcon from "../Assets/Images/chatIcon2.svg";
 
 export default function ServiceTaskDetails() {
-
   const getStatusColor = (status) => {
     const statusMap = {
       1: "yellow",
@@ -62,7 +62,9 @@ export default function ServiceTaskDetails() {
     setShowEditQuotation(true);
   };
 
-  const postTaskDetails = useSelector((state) => state.UserSlice.postTaskDetail);
+  const postTaskDetails = useSelector(
+    (state) => state.UserSlice.postTaskDetail
+  );
 
   const sliderSettings = {
     dots: true,
@@ -121,16 +123,22 @@ export default function ServiceTaskDetails() {
   //         });
   // };
 
-
-  const handleQuotationSubmit = ({ offer_price, description, task_id, quatation_id }) => {
+  const handleQuotationSubmit = ({
+    offer_price,
+    description,
+    task_id,
+    quatation_id,
+  }) => {
     if (quatation_id) {
       // Edit quotation
-      dispatch(ServiceActions.editQuotation({
-        quatation_id,
-        // task_id,
-        offer_price,
-        description
-      }))
+      dispatch(
+        ServiceActions.editQuotation({
+          quatation_id,
+          // task_id,
+          offer_price,
+          description,
+        })
+      )
         .then((res) => {
           if (res?.payload?.success) {
             toast.success("Quotation updated successfully");
@@ -148,7 +156,9 @@ export default function ServiceTaskDetails() {
         });
     } else {
       // Add new quotation
-      dispatch(ServiceActions.createQuotation({ task_id, offer_price, description }))
+      dispatch(
+        ServiceActions.createQuotation({ task_id, offer_price, description })
+      )
         .then((res) => {
           if (res?.payload?.success) {
             toast.success("Quotation added successfully");
@@ -163,36 +173,33 @@ export default function ServiceTaskDetails() {
     }
   };
 
-
-
   const handleTaskFunc = (data, type) => {
-
     let obj = {
       // quatation_id: id,
       task_id: id,
       // service_provider_id: data?.service_provider?._id,
-      status: type == "cancel" ? 2 : 3
-    }
+      status: type == "cancel" ? 2 : 3,
+    };
     if (type == "cancel") {
       dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
         if (res?.payload?.success) {
-          toast.success("Cancelled")
-          navigate("/taskslist")
+          toast.success("Cancelled");
+          navigate("/taskslist");
         } else {
-          toast.error(res?.payload?.message)
+          toast.error(res?.payload?.message);
         }
-      })
+      });
     } else {
       dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
         if (res?.payload?.success) {
-          toast.success("Success")
-          navigate("/taskslist")
+          toast.success("Success");
+          navigate("/taskslist");
         } else {
-          toast.error(res?.payload?.message)
+          toast.error(res?.payload?.message);
         }
-      })
+      });
     }
-  }
+  };
 
   const handleButtonClick = (id) => {
     setDropdownStates((prev) => ({
@@ -241,7 +248,8 @@ export default function ServiceTaskDetails() {
                   <div className="book-service-action-btn">
                     <h4>${task?.budget || "N/A"}</h4>
                     {status !== "task" ? (
-                   <button className="addQuotation"
+                      <button
+                        className="addQuotation"
                         onClick={handleShowQuotation}
                         disabled={quotations?.length > 0}
                       >
@@ -249,9 +257,7 @@ export default function ServiceTaskDetails() {
                       </button>
                     ) : (
                       <div className="book-service-action">
-                        <button
-                          onClick={() => handleTaskFunc(task, "cancel")}
-                        >
+                        <button onClick={() => handleTaskFunc(task, "cancel")}>
                           Cancel
                         </button>
                         <button onClick={() => handleTaskFunc(task, "job")}>
@@ -447,253 +453,329 @@ export default function ServiceTaskDetails() {
 
                 <div>
                   {/* Your Quotations */}
-                  {quotations?.filter(quotation =>
-                    localStorage.getItem('userId') === quotation?.service_provider?._id
+                  {quotations?.filter(
+                    (quotation) =>
+                      localStorage.getItem("userId") ===
+                      quotation?.service_provider?._id
                   )?.length > 0 && <p>Your Quotations</p>}
-                  {quotations?.filter(quotation =>
-                    localStorage.getItem('userId') === quotation?.service_provider?._id
-                  )?.map((quotation, index) => (
-                    <div className="quotation" key={index}>
-                      <div>
-                        <div className="quotation-txt-show d-flex justify-space-between">
-                          <div
-                            className="profile-side cursor-pointer"
-                          >
-                            <img
-                              className="point-cursor"
-                              src={`${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`}
-                              alt="categories-img"
-                            />
-                            <div>
-                              <h5>{quotation?.service_provider?.full_name}</h5>
-                              <p>{quotation?.service_provider?.address === 'undefined' ? '-' : quotation?.service_provider?.address}</p>
-                              <div className="rating-stars">
-                                <ul> <StarRating averageRating={quotation?.averageRating} /></ul>
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            {status !== "task" && (
-                              <div
-                                className="chat-btn-card mb-3"
-                                style={{ position: "relative" }}
-                                ref={(el) => (dropdownRefs.current[quotation._id] = el)}
-                              >
-                                <button
-                                  className="btn"
-                                  onClick={() => handleButtonClick(quotation?._id)}
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="32"
-                                    height="35"
-                                    viewBox=" _
-
-0 32 35"
-                                    fill="none"
-                                  >
-                                    <path
-                                      d="M16.0001 11.084C16.8838 11.084 17.6001 10.3005 17.6001 9.33398C17.6001 8.36749 16.8838 7.58398 16.0001 7.58398C15.1165 7.58398 14.4001 8.36749 14.4001 9.33398C14.4001 10.3005 15.1165 11.084 16.0001 11.084Z"
-                                      fill="#545454"
+                  {quotations
+                    ?.filter(
+                      (quotation) =>
+                        localStorage.getItem("userId") ===
+                        quotation?.service_provider?._id
+                    )
+                    ?.map((quotation, index) => (
+                      <div className="quotation" key={index}>
+                        <div>
+                          <div className="quotation-txt-show d-flex justify-space-between">
+                            <div className="profile-side cursor-pointer">
+                              <img
+                                className="point-cursor"
+                                src={`${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`}
+                                alt="categories-img"
+                              />
+                              <div>
+                                <h5>
+                                  {quotation?.service_provider?.full_name}
+                                </h5>
+                                <p>
+                                  {quotation?.service_provider?.address ===
+                                  "undefined"
+                                    ? "-"
+                                    : quotation?.service_provider?.address}
+                                </p>
+                                <div className="rating-stars">
+                                  <ul>
+                                    {" "}
+                                    <StarRating
+                                      averageRating={quotation?.averageRating}
                                     />
-                                    <path
-                                      d="M16.0001 19.25C16.8838 19.25 17.6001 18.4665 17.6001 17.5C17.6001 16.5335 16.8838 15.75 16.0001 15.75C15.1165 15.75 14.4001 16.5335 14.4001 17.5C14.4001 18.4665 15.1165 19.25 16.0001 19.25Z"
-                                      fill="#545454"
-                                    />
-                                    <path
-                                      d="M16.0001 27.418C16.8838 27.418 17.6001 26.6345 17.6001 25.668C17.6001 24.7015 16.8838 23.918 16.0001 23.918C15.1165 23.918 14.4001 24.7015 14.4001 25.668C14.4001 26.6345 15.1165 27.418 16.0001 27.418Z"
-                                      fill="#545454"
-                                    />
-                                  </svg>
-                                </button>
-                                {dropdownStates[quotation._id] && (
-                                  <div
-                                    style={{
-                                      position: "absolute",
-                                      top: "100%",
-                                      left: "0",
-                                      background: "#fff",
-                                      border: "1px solid #ccc",
-                                      borderRadius: "5px",
-                                      boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-                                      padding: "5px 0",
-                                      zIndex: 10,
-                                      minWidth: "100px",
-                                    }}
-                                  >
-                                    <button
-                                      style={{
-                                        display: "block",
-                                        width: "100%",
-                                        padding: "5px 10px",
-                                        textAlign: "left",
-                                        background: "none",
-                                        border: "none",
-                                        cursor: "pointer",
-                                      }}
-                                      onClick={() => handleShowEditQuotation(quotation)}
-                                    >
-                                      Edit
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            <h5>${quotation?.offer_price}</h5>
-                            <p>Offer Price</p>
-                          </div>
-                        </div>
-                        <p>{quotation?.description}</p>
-                      </div>
-                    {quotation?.corporateSuggestion?.length > 0 && (
-                      <div className="suggested-caproate">
-                        <h5>Suggested Corporate</h5>
-                        <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
-                          {quotation.corporateSuggestion.map((item, index) => {
-                            const corp = item?.corporateIds;
-                            if (!corp) return null;
-
-                            return (
-                              <div
-                                key={item._id || index} 
-                                className="corporate-item d-flex align-items-center py-2"
-                                style={{ gap: "10px" }}
-                              >
-                                {
-                                  corp.profile_image ? (
-                                    <img
-                                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}` || defaultImage}
-                                      alt={corp.full_name}
-                                      className="rounded-circle"
-                                      width={40}
-                                      height={40}
-                                    />
-                                  ) : (
-                                    <div
-                                      className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
-                                      style={{ width: 40, height: 40, fontWeight: 'bold', fontSize: 18 }}
-                                    >
-                                      {corp.full_name?.[0]?.toUpperCase() || "?"}
-                                    </div>
-                                  )
-                                }
-                                <div className="flex-grow-1">
-                                  <div className="fw-bold d-flex align-items-center gap-2">
-                                    {corp.full_name}
-                                    {Number(item?.userStatus) === 1 && (
-                                      <span className="badge bg-success">
-                                        Selected
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-muted small">{corp.shop_name}</div>
-                                  <div className="text-muted small">{corp.email}</div>
+                                  </ul>
                                 </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    </div>
-                  ))}
-
-                  {/* Others Quotations */}
-                  {quotations?.filter(quotation => localStorage.getItem('userId') !== quotation?.service_provider?._id)?.length > 0 && <p>Others Quotations</p>}
-                  {quotations?.filter(quotation => localStorage.getItem('userId') !== quotation?.service_provider?._id)?.map((quotation, index) => (
-                    <div className="quotation" key={index}>
-                      <div>
-                        <div className="quotation-txt-show d-flex justify-space-between">
-                          <div
-                            className="profile-side cursor-pointer"
-                          // onClick={() => navigate("/quotations-detail")}
-                          >
-                            <img
-                              className="point-cursor"
-                              src={`${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`}
-                              alt="categories-img"
-                            />
+                            </div>
                             <div>
-                              <h5>{quotation?.service_provider?.full_name}</h5>
-                              <p>{quotation?.service_provider?.address}</p>
-                              <div className="rating-stars">
-                                <ul> <StarRating averageRating={quotation?.averageRating} /></ul>
-                              </div>
+                              {status !== "task" && (
+                                <div
+                                  className="chat-btn-card mb-3"
+                                  style={{ position: "relative" }}
+                                  ref={(el) =>
+                                    (dropdownRefs.current[quotation._id] = el)
+                                  }
+                                >
+                                  <button
+                                    className="btn"
+                                    onClick={() =>
+                                      handleButtonClick(quotation?._id)
+                                    }
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="32"
+                                      height="35"
+                                      viewBox=" _
+
+0 32 35"
+                                      fill="none"
+                                    >
+                                      <path
+                                        d="M16.0001 11.084C16.8838 11.084 17.6001 10.3005 17.6001 9.33398C17.6001 8.36749 16.8838 7.58398 16.0001 7.58398C15.1165 7.58398 14.4001 8.36749 14.4001 9.33398C14.4001 10.3005 15.1165 11.084 16.0001 11.084Z"
+                                        fill="#545454"
+                                      />
+                                      <path
+                                        d="M16.0001 19.25C16.8838 19.25 17.6001 18.4665 17.6001 17.5C17.6001 16.5335 16.8838 15.75 16.0001 15.75C15.1165 15.75 14.4001 16.5335 14.4001 17.5C14.4001 18.4665 15.1165 19.25 16.0001 19.25Z"
+                                        fill="#545454"
+                                      />
+                                      <path
+                                        d="M16.0001 27.418C16.8838 27.418 17.6001 26.6345 17.6001 25.668C17.6001 24.7015 16.8838 23.918 16.0001 23.918C15.1165 23.918 14.4001 24.7015 14.4001 25.668C14.4001 26.6345 15.1165 27.418 16.0001 27.418Z"
+                                        fill="#545454"
+                                      />
+                                    </svg>
+                                  </button>
+                                  {dropdownStates[quotation._id] && (
+                                    <div
+                                      style={{
+                                        position: "absolute",
+                                        top: "100%",
+                                        left: "0",
+                                        background: "#fff",
+                                        border: "1px solid #ccc",
+                                        borderRadius: "5px",
+                                        boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+                                        padding: "5px 0",
+                                        zIndex: 10,
+                                        minWidth: "100px",
+                                      }}
+                                    >
+                                      <button
+                                        style={{
+                                          display: "block",
+                                          width: "100%",
+                                          padding: "5px 10px",
+                                          textAlign: "left",
+                                          background: "none",
+                                          border: "none",
+                                          cursor: "pointer",
+                                        }}
+                                        onClick={() =>
+                                          handleShowEditQuotation(quotation)
+                                        }
+                                      >
+                                        Edit
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              <h5>${quotation?.offer_price}</h5>
+                              <p>Offer Price</p>
                             </div>
                           </div>
-                          <div>
-                            {status !== "task" && (
-                              <div
-                                className="chat-btn-card"
-                                style={{ position: "relative" }}
-                                ref={(el) => (dropdownRefs.current[quotation._id] = el)}
-                              >
-                                <button
-                                  className="btn"
-                                  onClick={() => handleButtonClick(quotation?._id)}
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="32"
-                                    height="35"
-                                    viewBox="0 0 32 35"
-                                    fill="none"
-                                  >
-                                    <path
-                                      d="M16.0001 11.084C16.8838 11.084 17.6001 10.3005 17.6001 9.33398C17.6001 8.36749 16.8838 7.58398 16.0001 7.58398C15.1165 7.58398 14.4001 8.36749 14.4001 9.33398C14.4001 10.3005 15.1165 11.084 16.0001 11.084Z"
-                                      fill="#545454"
-                                    />
-                                    <path
-                                      d="M16.0001 19.25C16.8838 19.25 17.6001 18.4665 17.6001 17.5C17.6001 16.5335 16.8838 15.75 16.0001 15.75C15.1165 15.75 14.4001 16.5335 14.4001 17.5C14.4001 18.4665 15.1165 19.25 16.0001 19.25Z"
-                                      fill="#545454"
-                                    />
-                                    <path
-                                      d="M16.0001 27.418C16.8838 27.418 17.6001 26.6345 17.6001 25.668C17.6001 24.7015 16.8838 23.918 16.0001 23.918C15.1165 23.918 14.4001 24.7015 14.4001 25.668C14.4001 26.6345 15.1165 27.418 16.0001 27.418Z"
-                                      fill="#545454"
-                                    />
-                                  </svg>
-                                </button>
-                                {dropdownStates[quotation._id] && (
-                                  <div
-                                    style={{
-                                      position: "absolute",
-                                      top: "100%",
-                                      left: "0",
-                                      background: "#fff",
-                                      border: "1px solid #ccc",
-                                      borderRadius: "5px",
-                                      boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-                                      padding: "5px 0",
-                                      zIndex: 10,
-                                      minWidth: "100px",
-                                    }}
-                                  >
-                                    <button
-                                      style={{
-                                        display: "block",
-                                        width: "100%",
-                                        padding: "5px 10px",
-                                        textAlign: "left",
-                                        background: "none",
-                                        border: "none",
-                                        cursor: "pointer",
-                                      }}
-                                      onClick={() => handleShowEditQuotation(quotation)}
-                                    >
-                                      Edit
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            <h5>${quotation?.offer_price}</h5>
-                            <p>Offer Price</p>
-                          </div>
+                          <p>{quotation?.description}</p>
                         </div>
-                        <p>{quotation?.description}</p>
+                        {quotation?.corporateSuggestion?.length > 0 && (
+                          <div className="suggested-caproate">
+                            <h5>Suggested Corporate</h5>
+                            <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
+                              {quotation.corporateSuggestion.map(
+                                (item, index) => {
+                                  const corp = item?.corporateIds;
+                                  if (!corp) return null;
+
+                                  return (
+                                    <div
+                                      key={item._id || index}
+                                      className="corporate-item d-flex align-items-center py-2"
+                                      style={{ gap: "10px" }}
+                                    >
+                                      {corp.profile_image ? (
+                                        <img
+                                          src={
+                                            `${process.env.REACT_APP_API_URL}/${corp.profile_image}` ||
+                                            defaultImage
+                                          }
+                                          alt={corp.full_name}
+                                          className="rounded-circle"
+                                          width={40}
+                                          height={40}
+                                        />
+                                      ) : (
+                                        <div
+                                          className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                                          style={{
+                                            width: 40,
+                                            height: 40,
+                                            fontWeight: "bold",
+                                            fontSize: 18,
+                                          }}
+                                        >
+                                          {corp.full_name?.[0]?.toUpperCase() ||
+                                            "?"}
+                                        </div>
+                                      )}
+                                      <div className="flex-grow-1">
+                                        <div className="fw-bold d-flex align-items-center gap-2">
+                                          {corp.full_name}
+                                          {Number(item?.userStatus) === 1 && (
+                                            <span className="badge bg-success">
+                                              Selected
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="text-muted small">
+                                          {corp.shop_name}
+                                        </div>
+                                        <div className="text-muted small">
+                                          {corp.email}
+                                        </div>
+                                      </div>
+                                      {Number(item?.userStatus) === 1  &&
+                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                        <div
+                                          className="action-button-wrap"
+                                          onClick={() =>
+                                            navigate(
+                                              `/messages?userID=${corp._id}`
+                                            )
+                                          }
+                                        >
+                                          <div className="icon-circle green">
+                                            <img src={ChatIcon} alt="Chat" />
+                                          </div>
+                                          <span>Direct Chat</span>
+                                        </div>
+                                      </div> }
+                                   
+                                    </div>
+                                  );
+                                }
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    ))}
+
+                  {/* Others Quotations */}
+                  {quotations?.filter(
+                    (quotation) =>
+                      localStorage.getItem("userId") !==
+                      quotation?.service_provider?._id
+                  )?.length > 0 && <p>Others Quotations</p>}
+                  {quotations
+                    ?.filter(
+                      (quotation) =>
+                        localStorage.getItem("userId") !==
+                        quotation?.service_provider?._id
+                    )
+                    ?.map((quotation, index) => (
+                      <div className="quotation" key={index}>
+                        <div>
+                          <div className="quotation-txt-show d-flex justify-space-between">
+                            <div
+                              className="profile-side cursor-pointer"
+                              // onClick={() => navigate("/quotations-detail")}
+                            >
+                              <img
+                                className="point-cursor"
+                                src={`${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`}
+                                alt="categories-img"
+                              />
+                              <div>
+                                <h5>
+                                  {quotation?.service_provider?.full_name}
+                                </h5>
+                                <p>{quotation?.service_provider?.address}</p>
+                                <div className="rating-stars">
+                                  <ul>
+                                    {" "}
+                                    <StarRating
+                                      averageRating={quotation?.averageRating}
+                                    />
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              {status !== "task" && (
+                                <div
+                                  className="chat-btn-card"
+                                  style={{ position: "relative" }}
+                                  ref={(el) =>
+                                    (dropdownRefs.current[quotation._id] = el)
+                                  }
+                                >
+                                  <button
+                                    className="btn"
+                                    onClick={() =>
+                                      handleButtonClick(quotation?._id)
+                                    }
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="32"
+                                      height="35"
+                                      viewBox="0 0 32 35"
+                                      fill="none"
+                                    >
+                                      <path
+                                        d="M16.0001 11.084C16.8838 11.084 17.6001 10.3005 17.6001 9.33398C17.6001 8.36749 16.8838 7.58398 16.0001 7.58398C15.1165 7.58398 14.4001 8.36749 14.4001 9.33398C14.4001 10.3005 15.1165 11.084 16.0001 11.084Z"
+                                        fill="#545454"
+                                      />
+                                      <path
+                                        d="M16.0001 19.25C16.8838 19.25 17.6001 18.4665 17.6001 17.5C17.6001 16.5335 16.8838 15.75 16.0001 15.75C15.1165 15.75 14.4001 16.5335 14.4001 17.5C14.4001 18.4665 15.1165 19.25 16.0001 19.25Z"
+                                        fill="#545454"
+                                      />
+                                      <path
+                                        d="M16.0001 27.418C16.8838 27.418 17.6001 26.6345 17.6001 25.668C17.6001 24.7015 16.8838 23.918 16.0001 23.918C15.1165 23.918 14.4001 24.7015 14.4001 25.668C14.4001 26.6345 15.1165 27.418 16.0001 27.418Z"
+                                        fill="#545454"
+                                      />
+                                    </svg>
+                                  </button>
+                                  {dropdownStates[quotation._id] && (
+                                    <div
+                                      style={{
+                                        position: "absolute",
+                                        top: "100%",
+                                        left: "0",
+                                        background: "#fff",
+                                        border: "1px solid #ccc",
+                                        borderRadius: "5px",
+                                        boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+                                        padding: "5px 0",
+                                        zIndex: 10,
+                                        minWidth: "100px",
+                                      }}
+                                    >
+                                      <button
+                                        style={{
+                                          display: "block",
+                                          width: "100%",
+                                          padding: "5px 10px",
+                                          textAlign: "left",
+                                          background: "none",
+                                          border: "none",
+                                          cursor: "pointer",
+                                        }}
+                                        onClick={() =>
+                                          handleShowEditQuotation(quotation)
+                                        }
+                                      >
+                                        Edit
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              <h5>${quotation?.offer_price}</h5>
+                              <p>Offer Price</p>
+                            </div>
+                          </div>
+                          <p>{quotation?.description}</p>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
