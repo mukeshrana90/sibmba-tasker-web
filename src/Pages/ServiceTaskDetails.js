@@ -14,6 +14,7 @@ import AddQuotationModal from "../CommanComponents/Modals/AddQuotationModal";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function ServiceTaskDetails() {
 
@@ -561,7 +562,7 @@ export default function ServiceTaskDetails() {
                                 {
                                   corp.profile_image ? (
                                     <img
-                                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}` || defaultImage}
                                       alt={corp.full_name}
                                       className="rounded-circle"
                                       width={40}
@@ -577,7 +578,14 @@ export default function ServiceTaskDetails() {
                                   )
                                 }
                                 <div className="flex-grow-1">
-                                  <div className="fw-bold">{corp.full_name}</div>
+                                  <div className="fw-bold d-flex align-items-center gap-2">
+                                    {corp.full_name}
+                                    {Number(item?.userStatus) === 1 && (
+                                      <span className="badge bg-success">
+                                        Selected
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="text-muted small">{corp.shop_name}</div>
                                   <div className="text-muted small">{corp.email}</div>
                                 </div>

@@ -6,7 +6,7 @@ import  ServiceActions  from "../../Redux/Actions/ServiceActions";
 
 const SuggestCorporateModal = ({ show, onClose, onSave,customerData }) => {
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedCorps, setSelectedCorps] = useState([]); 
   const dispatch = useDispatch();
  const corporateSuggestions = useSelector(
     (state) => state.service.corporateSuggestions
@@ -29,6 +29,17 @@ useEffect(() => {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+  const toggleSelect = (corp) => {
+    setSelectedCorps((prev) => {
+      const exists = prev.find((x) => x._id === corp._id);
+      if (exists) {
+        return prev.filter((x) => x._id !== corp._id);
+      }
+      return [...prev, corp];
+    });
+  };
+
   return (
     <Modal
       show={show}
@@ -64,15 +75,24 @@ useEffect(() => {
         </div>
 
         <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
-          {filteredList.map((corp) => (
+          {filteredList.map((corp) => {const isSelected = selectedCorps.some((c) => c._id === corp._id);
+          return (
             <div
               key={corp._id}
               className={`d-flex align-items-center p-2 mb-2 border rounded ${
-                selectedId === corp._id ? "border-success" : ""
+                isSelected ? "border-success" : ""
               }`}
-              onClick={() => setSelectedId(corp._id)}
               style={{ cursor: "pointer" }}
             >
+              {/* Checkbox */}
+              <Form.Check
+                type="checkbox"
+                className="me-3"
+                checked={isSelected}
+                onChange={() => toggleSelect(corp)}
+              />
+
+              {/* Avatar */}
               {corp.profile_image ? (
                 <img
                   src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
@@ -95,22 +115,19 @@ useEffect(() => {
                 <div className="text-muted small">{corp?.shop_name}</div>
               </div>
             </div>
-          ))}
+          );})}
         </div>
 
         <div className="modal-footer-fixed px-4 pb-3 pt-2">
           <button
             className="btn btn-success mt-2"
-            disabled={!selectedId}
+            disabled={selectedCorps.length === 0}
             onClick={() => {
-              const selected = corporateSuggestions.find(
-                (c) => c._id === selectedId
-              );
-              onSave(selected);
+              onSave(selectedCorps); 
               onClose();
             }}
           >
-            Save Corporate
+            Save Corporates
           </button>
         </div>
       </Modal.Body>

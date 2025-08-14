@@ -248,7 +248,12 @@ useEffect(() => {
                               }
 
                                 <div className="flex-grow-1">
-                                  <div className="fw-bold">{corp.full_name}</div>
+                                 <div className="fw-bold d-flex align-items-center gap-2">
+                                  {corp.full_name}
+                                  {Number(item?.userStatus) === 1 && (
+                                    <span className="badge bg-success">Selected</span>
+                                  )}
+                                </div>
                                   <div className="text-muted small">{corp.shop_name}</div>
                                   <div className="text-muted small">{corp.email}</div>
                                 </div>
