@@ -51,6 +51,7 @@ export default function ServiceTaskDetails() {
 
   const [showEditQuotation, setShowEditQuotation] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleCloseEditQuotation = () => {
     setShowEditQuotation(false);
@@ -109,20 +110,6 @@ export default function ServiceTaskDetails() {
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
 
-  // const handleAddQuotation = ({ offer_price, description, task_id }) => {
-  //     dispatch(ServiceActions.createQuotation({ task_id, offer_price, description }))
-  //         .then((res) => {
-  //             if (res?.payload?.success) {
-  //                 dispatch(CustomerActions.getPostTaskDetail(id));
-  //             } else {
-  //                 //   alert("Failed to add quotation.");
-  //             }
-  //         })
-  //         .catch(() => {
-  //             // alert("Error adding quotation.");
-  //         });
-  // };
-
   const handleQuotationSubmit = ({
     offer_price,
     description,
@@ -141,12 +128,12 @@ export default function ServiceTaskDetails() {
       )
         .then((res) => {
           if (res?.payload?.success) {
-            toast.success("Quotation updated successfully");
             dispatch(CustomerActions.getPostTaskDetail(id));
             setDropdownStates((prev) => ({
               ...prev,
               [quatation_id]: false,
             }));
+            toast.success("Quotation updated successfully");
           } else {
             toast.error(res?.payload?.message || "Failed to update quotation");
           }
@@ -160,11 +147,11 @@ export default function ServiceTaskDetails() {
         ServiceActions.createQuotation({ task_id, offer_price, description })
       )
         .then((res) => {
-          if (res?.payload?.success) {
+          if (res?.payload?.success==='true') {
             toast.success("Quotation added successfully");
             dispatch(CustomerActions.getPostTaskDetail(id));
           } else {
-            toast.error(res?.payload?.message || "Failed to add quotation");
+          setError(res?.payload?.message)
           }
         })
         .catch(() => {
@@ -630,7 +617,7 @@ export default function ServiceTaskDetails() {
                                           {corp.email}
                                         </div>
                                       </div>
-                                      {Number(item?.userStatus) === 1  &&
+                                      {/* {Number(item?.userStatus) === 1  &&
                                          <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
                                         <div
                                           className="action-button-wrap"
@@ -645,7 +632,7 @@ export default function ServiceTaskDetails() {
                                           </div>
                                           <span>Direct Chat</span>
                                         </div>
-                                      </div> }
+                                      </div> } */}
                                    
                                     </div>
                                   );
@@ -788,6 +775,7 @@ export default function ServiceTaskDetails() {
         handleClose={handleCloseQuotation}
         task={task}
         onSubmit={handleQuotationSubmit}
+        error={error}
       />
 
       <AddQuotationModal
@@ -796,6 +784,7 @@ export default function ServiceTaskDetails() {
         task={task}
         onSubmit={handleQuotationSubmit}
         quatation={selectedQuotation}
+        error={error}
       />
 
       <Modal show={show} onHide={handleClose} centered>

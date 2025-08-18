@@ -28,6 +28,7 @@ const AddQuotationModal = ({
   task,
   onSubmit,
   quatation,
+  error
 }) => {
   const isEdit = !!quatation;
   const [showSuggestModal, setShowSuggestModal] = useState(false);
@@ -39,6 +40,12 @@ const AddQuotationModal = ({
     price: quatation?.offer_price || "",
     description: quatation?.description || "",
   };
+  
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   useEffect(() => {
     // Reset form when modal is opened/closed or quotation changes
