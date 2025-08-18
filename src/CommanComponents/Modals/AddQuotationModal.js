@@ -39,9 +39,9 @@ const AddQuotationModal = ({
     price: quatation?.offer_price || "",
     description: quatation?.description || "",
   };
+  
 
   useEffect(() => {
-    // Reset form when modal is opened/closed or quotation changes
     if (!show) {
       initialValues.price = "";
       initialValues.description = "";

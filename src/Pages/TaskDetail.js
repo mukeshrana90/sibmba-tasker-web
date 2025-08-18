@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import { corpoTaskStatus } from "../utils/Roles";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import ChatIcon from "../Assets/Images/chatIcon2.svg";
 
 export default function TaskDetail() {
   const navigate = useNavigate();
@@ -322,10 +323,10 @@ export default function TaskDetail() {
                                       }
                                     />
                                     <div className="flex-grow-1">
-                                      <div className="fw-bold d-flex align-items-center justify-content-between">
+                                      <div className="fw-bold d-flex">
                                         {corp.full_name}
                                         {status && (
-                                          <span className="badge bg-success ms-2">
+                                          <span className="badge bg-success ms-2 mb-0">
                                             Selected
                                           </span>
                                         )}
@@ -337,6 +338,21 @@ export default function TaskDetail() {
                                         {corp.email}
                                       </div>
                                     </div>
+                                    {status && Number(item?.userStatus) === 1  &&
+                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                        <div
+                                          className="action-button-wrap"
+                                          onClick={() =>
+                                            navigate(
+                                              `/messages?userID=${corp._id}`
+                                            )
+                                          }
+                                        >
+                                          <div className="icon-circle green">
+                                            <img src={ChatIcon} alt="Chat" />
+                                          </div>
+                                        </div>
+                                      </div> } 
                                   </div>
                                 );
                               }

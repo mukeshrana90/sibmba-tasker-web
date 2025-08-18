@@ -1,5 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import Api from "../../Services/api";
+import { toast } from "react-toastify";
 
 const ServiceActions = {
   // MARK: - CREATE PROFILE
@@ -163,14 +164,31 @@ const ServiceActions = {
   ),
 
   // get post task list service side
+  // createQuotation: createAsyncThunk(
+  //   "customer/create_quatation",
+  //   async (customerData) => {
+  //     const response = await Api.post(
+  //       `customer/create_quatation`,
+  //       customerData
+  //     );
+  //     return response.data;
+  //   }
+  // ),
   createQuotation: createAsyncThunk(
     "customer/create_quatation",
-    async (customerData) => {
-      const response = await Api.post(
-        `customer/create_quatation`,
-        customerData
-      );
-      return response.data;
+    async (customerData, { rejectWithValue }) => {
+      try {
+        const response = await Api.post(`customer/create_quatation`, customerData);
+        if (!response.data?.success) {
+          toast.error(response.data?.message || "Failed to create quotation");
+          return rejectWithValue(response.data);
+        }
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(
+          error.response?.data || { message: "Server error" }
+        );
+      }
     }
   ),
 
