@@ -51,7 +51,6 @@ export default function ServiceTaskDetails() {
 
   const [showEditQuotation, setShowEditQuotation] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
-  const [error, setError] = useState(null);
 
   const handleCloseEditQuotation = () => {
     setShowEditQuotation(false);
@@ -150,8 +149,6 @@ export default function ServiceTaskDetails() {
           if (res?.payload?.success==='true') {
             toast.success("Quotation added successfully");
             dispatch(CustomerActions.getPostTaskDetail(id));
-          } else {
-          setError(res?.payload?.message)
           }
         })
         .catch(() => {
@@ -775,7 +772,6 @@ export default function ServiceTaskDetails() {
         handleClose={handleCloseQuotation}
         task={task}
         onSubmit={handleQuotationSubmit}
-        error={error}
       />
 
       <AddQuotationModal
@@ -784,7 +780,6 @@ export default function ServiceTaskDetails() {
         task={task}
         onSubmit={handleQuotationSubmit}
         quatation={selectedQuotation}
-        error={error}
       />
 
       <Modal show={show} onHide={handleClose} centered>
