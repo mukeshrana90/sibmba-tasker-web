@@ -1,10 +1,13 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { ChatContext } from "../context/ChatProvider";
-import { Container } from "react-bootstrap";
-import moment from "moment";
+import { Container, Modal } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import defaultImage from "../Assets/Images/placeholder.jpg"
+import defaultImage from "../Assets/Images/placeholder.jpg";
+import { setCustomer } from "../Redux/Reducers/LoginSlice";
+import CustomerActions from "../Redux/Actions/CustomerActions";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 const MainChat = ({ sender_id, reciverID, socket }) => {
   const BASE_URL = process.env.REACT_APP_API_URLL;
   const token = localStorage.getItem("token");
@@ -17,8 +20,11 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
   const receiver_id = selectedUser || reciverID;
   const messagesEndRef = useRef(null);
   const messageContainerRef = useRef(null);
-
+  const navigate = useNavigate();
   const socketRef = useRef(null);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [packageDetails, setPackageDetails] = useState("");
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (!selectedUser && reciverID) {
@@ -175,6 +181,27 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
   }, [sender_id, receiver_id, token, newchat]);
 
   useEffect(() => {
+    if (token) {
+      getProfileApiCall();
+    }
+  }, [token]);
+
+  const getProfileApiCall = async () => {
+    try {
+      const apiRes = await dispatch(
+        CustomerActions.getProfileWithSuscription()
+      );
+      if (apiRes?.payload?.success) {
+        dispatch(setCustomer(apiRes?.payload?.data.user));
+      }
+      const user = apiRes?.payload?.data;
+      setPackageDetails(user.subscriptionDetail);
+    } catch (error) {
+      console.error("Subscription check failed:", error);
+    }
+  };
+
+  useEffect(() => {
     if (receiver_id) {
       setMessageHistory([]);
       setReceiverDetail(null);
@@ -185,18 +212,35 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
       );
     }
   }, [receiver_id]);
-
+  // const sendMessage = () => {
+  //   if (message.trim() !== "" && socketRef.current && receiver_id) {
+  //     const payload = {
+  //       sender_id,
+  //       receiver_id,
+  //       message,
+  //       message_type: 0,
+  //     };
+  //     socketRef.current.emit("send_message_new", payload);
+  //     console.log("MainChat: Sent message:", payload);
+  //     setMessage("");
+  //   }
+  // };
   const sendMessage = () => {
-    if (message.trim() !== "" && socketRef.current && receiver_id) {
-      const payload = {
-        sender_id,
-        receiver_id,
-        message,
-        message_type: 0,
-      };
-      socketRef.current.emit("send_message_new", payload);
-      console.log("MainChat: Sent message:", payload);
-      setMessage("");
+    if (packageDetails?.subscriptionPlan) {
+      setShowPlanModal(false);
+      if (message.trim() !== "" && socketRef.current && receiver_id) {
+        const payload = {
+          sender_id,
+          receiver_id,
+          message,
+          message_type: 0,
+        };
+        socketRef.current.emit("send_message_new", payload);
+        console.log("MainChat: Sent message:", payload);
+        setMessage("");
+      }
+    } else {
+      setShowPlanModal(true);
     }
   };
 
@@ -441,6 +485,28 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
           </button>
         </div>
       )}
+      <Modal
+        show={showPlanModal}
+        onHide={() => setShowPlanModal(false)}
+        centered
+        backdrop="static"
+        keyboard={false}
+      >
+        <Modal.Body>
+          <div className="comman-small-pop">
+            <h3>Upgrade Plan</h3>
+            <div className="d-flex justify-content-center download-app-section mt-2">
+              Please subscribe to our plan to send message
+            </div>
+            <div className="d-flex justify-content-center mt-3">
+                <button
+                  className="primaryBtn"onClick={() => navigate(`/payment`)}>
+                  Upgrade Plan
+                </button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
