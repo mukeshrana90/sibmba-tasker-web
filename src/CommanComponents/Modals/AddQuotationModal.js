@@ -66,10 +66,6 @@ const AddQuotationModal = ({
       task_id: task?._id,
       ...(isEdit && { quatation_id: quatation._id }),
     };
-
-    // onSubmit(payload);
-    // resetForm();
-    // handleClose();
     if (selectedCorporate && !isEdit) {
       dispatch(
         CustomerActions.createCorporateSuggestionsForTask({
@@ -193,6 +189,7 @@ const AddQuotationModal = ({
                   ))}
                   </>
                 ) : (
+                  !isEdit && (
                   <div className="text-center mt-4">
                     <button
                       type="button"
@@ -203,6 +200,7 @@ const AddQuotationModal = ({
                       Add Corporate
                     </button>
                   </div>
+                )
                 )}
 
                 {/* Suggest Modal */}

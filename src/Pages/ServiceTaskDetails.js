@@ -15,7 +15,6 @@ import ServiceActions from "../Redux/Actions/ServiceActions";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import defaultImage from "../Assets/Images/placeholder.jpg";
-import ChatIcon from "../Assets/Images/chatIcon2.svg";
 
 export default function ServiceTaskDetails() {
   const getStatusColor = (status) => {
@@ -44,8 +43,6 @@ export default function ServiceTaskDetails() {
   const [showQutation, setShowQuotation] = useState(false);
 
   const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
-
   const handleCloseQuotation = () => setShowQuotation(false);
   const handleShowQuotation = () => setShowQuotation(true);
 
@@ -146,8 +143,8 @@ export default function ServiceTaskDetails() {
         ServiceActions.createQuotation({ task_id, offer_price, description })
       )
         .then((res) => {
-          if (res?.payload?.success==='true') {
-            toast.success("Quotation added successfully");
+          if (res?.payload?.success) {
+            toast.success(res?.payload?.message);
             dispatch(CustomerActions.getPostTaskDetail(id));
           }
         })
