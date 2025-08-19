@@ -30,7 +30,7 @@ export default function SignUp() {
       password: "",
       confirmPassword: "",
       terms: false,
-      country_code: "+1",
+      country_code: "+263",
     },
     validationSchema: Yup.object({
       email: Yup.string().email("Invalid email address").required("Email is Required"),
