@@ -7,6 +7,7 @@ import { useDispatch } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { setCustomer } from "../../Redux/Reducers/LoginSlice";
 import Loader from "../../CommanComponents/Loader";
+import { useLocation, useNavigate } from "react-router-dom";
 function SubscriptionPlan() {
   const [activePlan, setActivePlan] = useState(null);
   const dispatch = useDispatch();
@@ -14,8 +15,12 @@ function SubscriptionPlan() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [isLoader, setLoader] = useState(false);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isSignup = searchParams.get("type") === "free";
+  const navigate = useNavigate();
 
-  const plans = [
+  let plans = [
     {
       id: "bronze",
       name: "Bronze Package",
@@ -36,6 +41,17 @@ function SubscriptionPlan() {
       details: ["Unlimited Leads Responses", "Unlimited online shop linking"],
     },
   ];
+  if (isSignup) {
+    plans = [
+      {
+        id: "free",
+        name: "Free Plan",
+        price: 0,
+        details: ["Continue with 90-Day Free Plan"],
+      },
+      ...plans,
+    ];
+  }
 
   const handlePay = async (item) => {
     setLoader(true);
@@ -78,74 +94,86 @@ function SubscriptionPlan() {
           <div className="bookings-details-title mb-4">
             <h2>Choose Your Plan</h2>
           </div>
-        {isLoader ? (
-          <Loader />
-        ) : (
-          <Row className="g-4">
-            {plans.map((plan) => {
-              const isActivePlan =
-                activePlan?.subscriptionPlan?.split(" ")[0]?.toLowerCase() ===
-                plan?.name?.split(" ")[0]?.toLowerCase();
-              return (
-                <Col md={4} key={plan.id}>
-                  <div
-                    className={`plan-card ${
-                      isActivePlan && activePlan?.status === "active"
-                        ? "highlight"
-                        : ""
-                    }`}
-                  >
-                    {plan.popular && (
-                      <div className="popular-badge">Popular</div>
-                    )}
-                    <h6 className="plan-name">{plan.name}</h6>
-                    <div className="plan-price">
-                      <span className="currency">$</span>
-                      <span className="amount">{plan.price}</span>
-                      <span className="duration">/month</span>
-                    </div>
-                    <ul className="plan-features">
-                      <div className="list-wrap">
-                        {plan.details.map((feature, idx) => (
-                          <li key={idx}>
-                            <img
-                              src={
-                                isActivePlan &&
-                                activePlan?.status === "active"
-                                  ? darkCheckIcon
-                                  : checkIcon
-                              }
-                              className="check-icon"
-                            />
-                            <i className="bi bi-check-circle-fill"></i>
-                            {feature}
-                          </li>
-                        ))}
+          {isLoader ? (
+            <Loader />
+          ) : (
+            <Row className="g-4">
+              {plans.map((plan) => {
+                const isActivePlan =
+                  activePlan?.subscriptionPlan?.split(" ")[0]?.toLowerCase() ===
+                  plan?.name?.split(" ")[0]?.toLowerCase();
+                return (
+                  <Col md={isSignup ? 3 : 4} key={plan.id}>
+                    <div
+                      className={`plan-card ${
+                        isActivePlan && activePlan?.status === "active"
+                          ? "highlight"
+                          : ""
+                      }`}
+                    >
+                      {plan.popular && (
+                        <div className="popular-badge">Popular</div>
+                      )}
+                      <h6 className="plan-name">{plan.name}</h6>
+                      <div className="plan-price">
+                        <span className="currency">$</span>
+                        <span className="amount">{plan.price}</span>
+                        <span className="duration">/month</span>
                       </div>
-                    </ul>
+                      <ul className="plan-features">
+                        <div className="list-wrap">
+                          {plan.details.map((feature, idx) => (
+                            <li key={idx}>
+                              <img
+                                src={
+                                  isActivePlan &&
+                                  activePlan?.status === "active"
+                                    ? darkCheckIcon
+                                    : checkIcon
+                                }
+                                className="check-icon"
+                              />
+                              <i className="bi bi-check-circle-fill"></i>
+                              {feature}
+                            </li>
+                          ))}
+                        </div>
+                      </ul>
+                      {plan.price === 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigate("/corporate", { replace: true });
+                          }}
+                          className="cursor-pointer primaryBtn mt-4"
+                        >
+                          Try For Free
+                        </button>
+                      )}
 
-                    {(!isActivePlan || activePlan?.status !== "active") && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedPlan(plan);
-                          if (activePlan?.status !== "active") {
-                            handlePay(plan);
-                          } else {
-                            setShowPlanModal(true);
-                          }
-                        }}
-                        className="cursor-pointer primaryBtn"
-                      >
-                        Purchase
-                      </button>
-                    )}
-                  </div>
-                </Col>
-              );
-            })}
-          </Row>
-        )}
+                      {plan.price !== 0 &&
+                        (!isActivePlan || activePlan?.status !== "active") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPlan(plan);
+                              if (activePlan?.status !== "active") {
+                                handlePay(plan);
+                              } else {
+                                setShowPlanModal(true);
+                              }
+                            }}
+                            className="cursor-pointer primaryBtn"
+                          >
+                            Purchase
+                          </button>
+                        )}
+                    </div>
+                  </Col>
+                );
+              })}
+            </Row>
+          )}
           <Modal
             show={showPlanModal}
             onHide={() => setShowPlanModal(false)}

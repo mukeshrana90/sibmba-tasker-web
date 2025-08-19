@@ -1404,7 +1404,7 @@ const ProviderForm = ({
                 localStorage.setItem("token", tokenval);
                 if (isCorporate) {
                   localStorage.setItem("role", 3);
-                  navigate("/corporate", { replace: true });
+                  navigate("/corporate/subscription-plan?type=free", { replace: true });
                 } else {
                   localStorage.setItem("role", 2);
                   navigate("/requests", { replace: true });
