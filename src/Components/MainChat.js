@@ -195,7 +195,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
         dispatch(setCustomer(apiRes?.payload?.data.user));
       }
       const user = apiRes?.payload?.data;
-      setPackageDetails(user.subscriptionDetail);
+      setPackageDetails(user);
     } catch (error) {
       console.error("Subscription check failed:", error);
     }
@@ -226,8 +226,23 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
   //   }
   // };
   const sendMessage = () => {
-    if (packageDetails?.subscriptionPlan) {
+    if (
+      packageDetails.user?.role == 2 &&
+      packageDetails?.subscriptionDetail?.subscriptionPlan
+    ) {
       setShowPlanModal(false);
+      if (message.trim() !== "" && socketRef.current && receiver_id) {
+        const payload = {
+          sender_id,
+          receiver_id,
+          message,
+          message_type: 0,
+        };
+        socketRef.current.emit("send_message_new", payload);
+        console.log("MainChat: Sent message:", payload);
+        setMessage("");
+      }
+    } else if (packageDetails.user?.role == 1 || packageDetails.user?.role == 3) {
       if (message.trim() !== "" && socketRef.current && receiver_id) {
         const payload = {
           sender_id,
@@ -252,7 +267,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
     if (!dateString) return "-";
 
     let utcDateString = dateString;
-    
+
     if (!dateString.includes("T")) {
       utcDateString = dateString.replace(" ", "T") + "Z";
     }
@@ -397,20 +412,22 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
                         </span>
                       </div>
                     ) : isImageMessage ? (
-                        <img
-                          src={`${process.env.REACT_APP_API_URLL}${ele?.message}`}
-                          alt="Chat attachment"
-                          style={{
-                            maxWidth: "250px",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            height:"200px"
-                          }}
-                        />
+                      <img
+                        src={`${process.env.REACT_APP_API_URLL}${ele?.message}`}
+                        alt="Chat attachment"
+                        style={{
+                          maxWidth: "250px",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          height: "200px",
+                        }}
+                      />
                     ) : (
                       <>
                         <p>{ele?.message}</p>
-                        <span className="text-transform">{formatDate(ele?.createdAt)}</span>
+                        <span className="text-transform">
+                          {formatDate(ele?.createdAt)}
+                        </span>
                       </>
                     )}
                   </div>
@@ -499,10 +516,12 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
               Please subscribe to our plan to send message
             </div>
             <div className="d-flex justify-content-center mt-3">
-                <button
-                  className="primaryBtn"onClick={() => navigate(`/payment`)}>
-                  Upgrade Plan
-                </button>
+              <button
+                className="primaryBtn"
+                onClick={() => navigate(`/payment`)}
+              >
+                Upgrade Plan
+              </button>
             </div>
           </div>
         </Modal.Body>
