@@ -21,6 +21,8 @@ const ProviderForm = ({
   handleSubmit,
   handleServiceSubmit,
   isCorporate,
+  showModal, 
+  setShowModal
 }) => {
   const initialValues = {
     full_name: "",
@@ -150,7 +152,7 @@ const ProviderForm = ({
     certifications: false,
     images: false,
   });
-  const [showModal, setShowModal] = useState(false);
+  // const [showModal, setShowModal] = useState(false);
 
   const profileInputRef = useRef(null);
   const govtIssueIdInputRef = useRef(null);
@@ -1317,7 +1319,7 @@ const ProviderForm = ({
             try {
               const filteredValues = filterApiPayload(values);
               await handleSubmit(filteredValues);
-              setShowModal(true);
+              // setShowModal(true);
             } catch (error) {
               toast.error("An error occurred during submission.");
             } finally {
@@ -1334,7 +1336,7 @@ const ProviderForm = ({
             // setShowModal(true);
             // setCurrentStep(currentStep + 1);
             if (isCorporate) {
-              setShowModal(true);
+              // setShowModal(true);
             } else {
               setCurrentStep(currentStep + 1);
             }
@@ -1400,8 +1402,9 @@ const ProviderForm = ({
             message="You’re all set!"
             onNext={() => {
               const tokenval = localStorage.getItem("temptoken");
-              if (tokenval) {
-                localStorage.setItem("token", tokenval);
+              const token = localStorage.getItem("token");
+              if (tokenval || token) {
+                localStorage.setItem("token", tokenval || token);
                 if (isCorporate) {
                   localStorage.setItem("role", 3);
                   navigate("/corporate/subscription-plan?type=free", { replace: true });

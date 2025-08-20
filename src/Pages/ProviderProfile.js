@@ -19,7 +19,7 @@ export default function ProviderProfile() {
   const role = query.get("role");
   const isCorporate = role == Roles.CORPORATE;
   const [validateForm, setValidateForm] = useState(null);
-
+  const [showModal, setShowModal] = useState(false);
   const steps = [
     "Some basic info",
     isCorporate ? "Business Information" : "Company details",
@@ -46,6 +46,7 @@ export default function ProviderProfile() {
       }
       const response = await dispatch(ServiceActions.createProfile(formData));
       if (response?.payload?.status_code === 200) {
+        setShowModal(true);
         // toast.success(response?.payload?.message);
       } else {
         toast.error(response?.payload?.message || "Failed to create profile");
@@ -142,6 +143,8 @@ export default function ProviderProfile() {
                   handleServiceSubmit={handleServiceSubmit}
                   setValidateForm={setValidateForm}
                   isCorporate={isCorporate}
+                  setShowModal={setShowModal}
+                  showModal={showModal}
                 />
               </div>
             </Col>
