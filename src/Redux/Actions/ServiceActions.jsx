@@ -179,7 +179,7 @@ const ServiceActions = {
     async (customerData, { rejectWithValue }) => {
       try {
         const response = await Api.post(`customer/create_quatation`, customerData);
-        if (!response.data?.success) {
+        if (response.data?.success == false) {
           toast.error(response.data?.message || "Failed to create quotation");
           return rejectWithValue(response.data);
         }
