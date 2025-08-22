@@ -143,8 +143,8 @@ export default function ProviderProfile() {
                   handleServiceSubmit={handleServiceSubmit}
                   setValidateForm={setValidateForm}
                   isCorporate={isCorporate}
-                  setShowModal={setShowModal}
-                  showModal={showModal}
+                  setShowModalCop={setShowModal}
+                  showModalCop={showModal}
                 />
               </div>
             </Col>

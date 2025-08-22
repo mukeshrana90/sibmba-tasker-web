@@ -21,8 +21,8 @@ const ProviderForm = ({
   handleSubmit,
   handleServiceSubmit,
   isCorporate,
-  showModal, 
-  setShowModal
+  showModalCop, 
+  setShowModalCop
 }) => {
   const initialValues = {
     full_name: "",
@@ -152,7 +152,7 @@ const ProviderForm = ({
     certifications: false,
     images: false,
   });
-  // const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const profileInputRef = useRef(null);
   const govtIssueIdInputRef = useRef(null);
@@ -1319,7 +1319,7 @@ const ProviderForm = ({
             try {
               const filteredValues = filterApiPayload(values);
               await handleSubmit(filteredValues);
-              // setShowModal(true);
+              setShowModal(true);
             } catch (error) {
               toast.error("An error occurred during submission.");
             } finally {
@@ -1336,7 +1336,7 @@ const ProviderForm = ({
             // setShowModal(true);
             // setCurrentStep(currentStep + 1);
             if (isCorporate) {
-              // setShowModal(true);
+              setShowModalCop(true);
             } else {
               setCurrentStep(currentStep + 1);
             }
@@ -1395,9 +1395,9 @@ const ProviderForm = ({
           <SuccessModal
             backdrop="static"
             keyboard={false}
-            show={showModal}
+            show={isCorporate ? showModalCop : showModal}
             onHide={() => {
-              setShowModal(false);
+               {isCorporate ? setShowModalCop(true) : setShowModal(false)};
             }}
             message="You’re all set!"
             onNext={() => {
@@ -1417,6 +1417,7 @@ const ProviderForm = ({
                 toast.error("Temporary token missing. Please try again.");
               }
               setShowModal(false);
+              setShowModalCop(false)
             }}
             // onNext={() => {
             //   setShowModal(false);
