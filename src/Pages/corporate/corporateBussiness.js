@@ -252,7 +252,7 @@ export default function CorporateBusinessPage() {
                                         {/* Facebook */}
                                         {data.facebook_link && (
                                           <a
-                                            href={data.facebook_link}
+                                             href={`//${data.facebook_link}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                           >
@@ -267,7 +267,7 @@ export default function CorporateBusinessPage() {
                                         {/* Instagram */}
                                         {data?.instagram_link && (
                                           <a
-                                            href={data.instagram_link}
+                                            href={`//${data.instagram_link}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                           >
