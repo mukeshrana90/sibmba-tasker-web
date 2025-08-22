@@ -12,7 +12,7 @@ const ImagePathCustomer = (filename) => {
     if (filename?.startsWith('http')) {
         return filename
     } else {
-        return `${API_FILE_ROOT}/${filename}`
+        return `${API_FILE_ROOT}${filename}`
     }
 }
 

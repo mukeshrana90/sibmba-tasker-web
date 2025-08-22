@@ -45,8 +45,7 @@ export default function CorporateBusinessPage() {
     const fetchCorporateInfo = async () => {
       setLoading(true);
       try {
-        const response = await dispatch(
-          CustomerActions.corpoProUserDetail({userId}));
+        const response = await dispatch(CustomerActions.corpoProUserDetail({ userId }));
         if (response?.payload) {
           setCorpoProfile(response.payload?.data);
           setProductList(response.payload?.data?.data || []);
@@ -152,8 +151,7 @@ export default function CorporateBusinessPage() {
                       <div>
                         <div className="fw-bold">{corpoProfile?.full_name}</div>
                         <div className="text-muted small">
-                          {data?.corporateCategoryId?.name ||
-                            "-"}
+                          {data?.corporateCategoryId?.name || "-"}
                         </div>
                       </div>
                     </div>
@@ -192,10 +190,7 @@ export default function CorporateBusinessPage() {
                                 <Loader />
                               ) : corpoProfile && productList ? (
                                 <ul className="list-unstyled">
-                                  <li
-                                    key={data._id}
-                                    className="mb-3"
-                                  >
+                                  <li key={data._id} className="mb-3">
                                     <div className="booking-card p-3">
                                       <div className="row align-items-start g-4">
                                         <div className="col-md-2 text-center">
@@ -211,8 +206,7 @@ export default function CorporateBusinessPage() {
 
                                         <div className="col-md-5">
                                           <h5 className="fw-semibold mb-2">
-                                            {data?.full_name ||
-                                              "N/A"}
+                                            {data?.full_name || "N/A"}
                                           </h5>
                                           <p className="mb-1">
                                             <strong>Email:</strong>{" "}
@@ -220,17 +214,12 @@ export default function CorporateBusinessPage() {
                                           </p>
                                           <p className="mb-1">
                                             <strong>Phone:</strong>{" "}
-                                            {data?.phone_number ||
-                                              "N/A"}
+                                            {data?.phone_number || "N/A"}
                                           </p>
                                           <p className="mb-1">
                                             <strong>Address:</strong>{" "}
-                                            {`${
-                                              data?.house_number ||
-                                              ""
-                                            }, ${
-                                              data
-                                                .street_address || ""
+                                            {`${data?.house_number || ""}, ${
+                                              data.street_address || ""
                                             }`}
                                           </p>
                                         </div>
@@ -238,20 +227,16 @@ export default function CorporateBusinessPage() {
                                         <div className="col-md-5">
                                           <p className="mb-1">
                                             <strong>Company Address:</strong>{" "}
-                                            {data.address ||
-                                              "N/A"}
+                                            {data.address || "N/A"}
                                           </p>
                                           <p className="mb-1">
                                             <strong>Profession Type:</strong>{" "}
-                                            {data
-                                              ?.corporateCategoryId?.name ||
+                                            {data?.corporateCategoryId?.name ||
                                               "N/A"}
                                           </p>
                                           <p className="mb-1">
                                             <strong>Verified:</strong>{" "}
-                                            {data.email_verified
-                                              ? "Yes"
-                                              : "No"}
+                                            {data.email_verified ? "Yes" : "No"}
                                           </p>
                                           <p className="mb-1">
                                             <strong>Status:</strong>{" "}
@@ -265,41 +250,45 @@ export default function CorporateBusinessPage() {
                                         {/* Facebook */}
                                         {data.facebook_link && (
                                           <a
-                                            href={
-                                              data.facebook_link
-                                            }
+                                            href={data.facebook_link}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                           >
-                                            <img src={facebookLogo}  alt="" height={30} />
+                                            <img
+                                              src={facebookLogo}
+                                              alt=""
+                                              height={30}
+                                            />
                                           </a>
                                         )}
 
                                         {/* Instagram */}
                                         {data?.instagram_link && (
                                           <a
-                                            href={
-                                              data.instagram_link
-                                            }
+                                            href={data.instagram_link}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                           >
-                                            <img src={instagramLogo}  alt="" height={30} />
+                                            <img
+                                              src={instagramLogo}
+                                              alt=""
+                                              height={30}
+                                            />
                                           </a>
                                         )}
 
                                         {/* Website */}
-                                        {data?.website_link && (
-                                          <a
-                                            href={
-                                              data.website_link
-                                            }
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                          >
-                                            <img src={link}  alt="" height={30}/>
-                                          </a>
-                                        )}
+                                        <a
+                                          href={`//${data.website_link}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          <img
+                                            src={link}
+                                            alt="website"
+                                            height={30}
+                                          />
+                                        </a>
                                       </div>
 
                                       <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3 mt-3">
@@ -364,9 +353,7 @@ export default function CorporateBusinessPage() {
                                               ) {
                                                 setShowPlanModal(true);
                                               } else {
-                                                setShowMapModal(
-                                                  data
-                                                );
+                                                setShowMapModal(data);
                                               }
                                             }}
                                           >
@@ -375,9 +362,7 @@ export default function CorporateBusinessPage() {
                                         </div>
                                       </div>
                                       <Modal
-                                        show={
-                                          showMapModal === data
-                                        }
+                                        show={showMapModal === data}
                                         onHide={() => setShowMapModal(false)}
                                         centered
                                         size="lg"
@@ -394,13 +379,9 @@ export default function CorporateBusinessPage() {
                                           <div className="comman-small-pop text-center">
                                             <MapComponent
                                               coordinates={
-                                                data?.location
-                                                  ?.coordinates
+                                                data?.location?.coordinates
                                               }
-                                              address={
-                                                data
-                                                  ?.street_address
-                                              }
+                                              address={data?.street_address}
                                             />
                                           </div>
                                         </Modal.Body>
