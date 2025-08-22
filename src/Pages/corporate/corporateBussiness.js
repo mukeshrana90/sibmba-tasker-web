@@ -45,7 +45,9 @@ export default function CorporateBusinessPage() {
     const fetchCorporateInfo = async () => {
       setLoading(true);
       try {
-        const response = await dispatch(CustomerActions.corpoProUserDetail({ userId }));
+        const response = await dispatch(
+          CustomerActions.corpoProUserDetail({ userId })
+        );
         if (response?.payload) {
           setCorpoProfile(response.payload?.data);
           setProductList(response.payload?.data?.data || []);
@@ -278,17 +280,19 @@ export default function CorporateBusinessPage() {
                                         )}
 
                                         {/* Website */}
-                                        <a
-                                          href={`//${data.website_link}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                        >
-                                          <img
-                                            src={link}
-                                            alt="website"
-                                            height={30}
-                                          />
-                                        </a>
+                                        {data?.website_link && (
+                                          <a
+                                            href={`//${data.website_link}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                          >
+                                            <img
+                                              src={link}
+                                              alt="website"
+                                              height={30}
+                                            />
+                                          </a>
+                                        )}
                                       </div>
 
                                       <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3 mt-3">
