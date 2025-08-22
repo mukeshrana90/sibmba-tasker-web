@@ -524,6 +524,30 @@ const CustomerActions = {
       }
     }
   ),
+  // getCorpProDetails
+  //   corpoProUserDetail: createAsyncThunk(
+  //   "/corporate/getUserDetail",
+  //   async (customerData) => {
+  //     if (customerData && customerData.productId) {
+  //       const response = await Api.get(
+  //         `/corporate/getUserDetail/${customerData?.productId}`
+  //       );
+  //       return response;
+  //     } else {
+  //       const queryParams = new URLSearchParams(customerData).toString();
+  //       const response = await Api.get(`/corporate/getUserDetail?${queryParams}`);
+  //       return response;
+  //     }
+  //   }
+  // ),
+    corpoProUserDetail: createAsyncThunk(
+    "/corporate/getUserDetail",
+    async (customerData) => {
+      const response = await Api.get(`/corporate/getUserDetail/${customerData.userId}`, );
+      return response.data;
+    }
+  ),
+
    // Buy Product
   buyProducts: createAsyncThunk("/customer/initiate_payment_for_product ",
     async (customerData) => {

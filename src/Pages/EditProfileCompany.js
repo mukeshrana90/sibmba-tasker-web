@@ -18,6 +18,7 @@ import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
+import { Roles } from "../utils/Roles";
 
 export default function EditProfileCompany() {
   const token = localStorage.getItem("token");
@@ -30,6 +31,8 @@ export default function EditProfileCompany() {
   const identificationLists = useSelector((e) => e.service.identificationList);
   const [showSocialMediaModal, setShowSocialMediaModal] = useState(false);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
+  const [role, setRole] = useState("");
+  const corporateCategory = useSelector((e) => e.service.corporateCategory);
 
   const initialValues = {
     full_name: customerDetails?.full_name || "",
@@ -54,8 +57,8 @@ export default function EditProfileCompany() {
     designation: customerDetails?.referenceDetails?.designation || "",
     referenceEmail: customerDetails?.referenceDetails?.referenceEmail || "",
     ref_phone_number: customerDetails?.referenceDetails?.phone_number || "",
+    corporateCategoryId: customerDetails?.corporateCategoryId?._id ||customerDetails?.corporateCategoryId ||  ""
   };
-
   const formik = useFormik({
     initialValues,
     enableReinitialize: true,
@@ -161,6 +164,7 @@ export default function EditProfileCompany() {
       designation: formik.values.designation,
       referenceEmail: formik.values.referenceEmail,
       ref_phone_number: formik.values.ref_phone_number,
+      corporateCategoryId:formik.values.corporateCategoryId
     };
     const apiRes = await dispatch(ServiceActions.updateReference(referenceData));
     setShowReferenceModal(false);
@@ -168,7 +172,9 @@ export default function EditProfileCompany() {
 
   useEffect(() => {
     dispatch(ServiceActions.getIdentificationList());
-  }, [dispatch]);
+    dispatch(ServiceActions.getCorporateCategoryList());
+    setRole(customerDetails?.role)
+  }, [role,dispatch]);
 
   return (
     <Layout>
@@ -283,40 +289,66 @@ export default function EditProfileCompany() {
                         </Form.Group>
                       </Col>
                     </Row>
+{role !== Roles.CORPORATE && (
+  <Row>
+    <Col lg={6}>
+      <Form.Group className="mb-3">
+        <Form.Label>Identify Yourself*</Form.Label>
+        <Form.Control
+          as="select"
+          name="identify_yourself"
+          className="form-select"
+          value={formik.values.identify_yourself}
+          onChange={formik.handleChange}
+        >
+          <option value="">Select</option>
+          {identificationLists?.data?.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </Form.Control>
+      </Form.Group>
+    </Col>
 
-                    <Row>
-                      <Col lg={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Identify Yourself*</Form.Label>
-                          <Form.Control
-                            as="select"
-                            name="identify_yourself"
-                            className="form-select"
-                            value={formik.values.identify_yourself}
-                            onChange={formik.handleChange}
-                          >
-                            <option value="">Select</option>
-                            {identificationLists?.data?.map((item) => (
-                              <option key={item} value={item}>
-                                {item}
-                              </option>
-                            ))}
-                          </Form.Control>
-                        </Form.Group>
-                      </Col>
-                      <Col lg={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Company Name*</Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="company_name"
-                            value={formik.values.company_name}
-                            onChange={formik.handleChange}
-                            placeholder="Enter Company Name"
-                          />
-                        </Form.Group>
-                      </Col>
-                    </Row>
+    <Col lg={6}>
+      <Form.Group className="mb-3">
+        <Form.Label>Company Name*</Form.Label>
+        <Form.Control
+          type="text"
+          name="company_name"
+          value={formik.values.company_name}
+          onChange={formik.handleChange}
+          placeholder="Enter Company Name"
+        />
+      </Form.Group>
+    </Col>
+  </Row>
+)}
+
+{role === Roles.CORPORATE && (
+  <Row>
+    <Col lg={12}>
+      <Form.Group className="mb-3">
+        <Form.Label>Business Category*</Form.Label>
+        <Form.Control
+          as="select"
+          name="corporateCategoryId"
+          className="form-select"
+          value={formik.values.corporateCategoryId}
+          onChange={formik.handleChange}
+        >
+          <option value="">Select</option>
+          {corporateCategory?.data?.map((item) => (
+            <option key={item._id} value={item._id}>
+              {item.name}
+            </option>
+          ))}
+        </Form.Control>
+      </Form.Group>
+    </Col>
+  </Row>
+)}
 
                     <Row>
                       <Col lg={6}>

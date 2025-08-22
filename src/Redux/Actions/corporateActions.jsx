@@ -42,7 +42,28 @@ const CorporateActions = {
   const response = await Api.get(`/corporate/get-upcoming-corporate-leads`);
   return response.data;
 }),
-  
+    getNearbyCorporatPro: createAsyncThunk(
+    "corporate/getNearbyCorporateWithCategory",
+    async (data, { rejectWithValue }) => {
+      try {
+        const params = {};
+
+        if (data?.lat) params.lat = data.lat;
+        if (data?.lng) params.lng = data.lng;
+        if (data?.page) params.page = data.page;
+        if (data?.limit) params.limit = data.limit;
+        if (data?.category_id) params.category_id = data.category_id;
+
+        const response = await Api.get(
+          "/corporate/getNearbyCorporateWithCategory",
+          { params }
+        );
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data || error.message);
+      }
+    }
+  ),
 };
 
 export default CorporateActions;

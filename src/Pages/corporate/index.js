@@ -102,7 +102,7 @@ const CorporateDashboard = () => {
     },
     {
       label: "Subscription",
-      value: corporateDashboard?.current_subscription==='active' ? corporateDashboard?.current_subscription?.subscriptionPlan : "Subscribe Now" || "Subscribe Now" ,
+      value: corporateDashboard?.current_subscription?.status==='active' ? corporateDashboard?.current_subscription?.subscriptionPlan : "Subscribe Now" || "Subscribe Now" ,
       icon: TierIcon,
       router: "/corporate/subscription-plan",
     },

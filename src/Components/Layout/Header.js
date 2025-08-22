@@ -26,6 +26,7 @@ const corporateRoutes = [
   { label: "Home", path: "/" },
   { label: "Product", path: "/corporate/products" },
   { label: "Leads", path: "/corporate/leads" },
+  { label: "Corporate Pro", path: "/corporate/corporate-pro" },
 ];
 
 const clientRoutes = [
@@ -154,7 +155,7 @@ export default function Header() {
         const endDate = new Date(user.subscriptionDetail.endDate);
         const packageName = user.subscriptionDetail?.subscriptionPlan;
 
-        if (currentDate > endDate) {
+        if (user.subscriptionDetail.status === "inactive" && currentDate > endDate) {
           setShowPlanModalMessage(
             "Your subscription has expired. Please renew to continue using the app."
           );
@@ -189,7 +190,7 @@ export default function Header() {
           setShowPlanModal(true);
         }
       }
-      if(location.pathname ==='/corporate/subscription-plan'){
+      if(location.pathname.startsWith("/corporate/subscription-plan")) {
         setShowPlanModal(false);
       }
     } catch (error) {
@@ -395,7 +396,7 @@ export default function Header() {
                                   <h2>{customerDetails?.full_name || "N/A"}</h2>
                                   <p
                                     onClick={() =>
-                                      role == Roles.SERVICE_PROVIDER
+                                      role == Roles.SERVICE_PROVIDER ||  role == Roles.CORPORATE  
                                         ? Navigate(`/edit-profile-company`)
                                         : Navigate(`/edit-profile`)
                                     }

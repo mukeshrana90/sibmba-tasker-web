@@ -47,6 +47,9 @@ import NearByCorporate from "../Pages/NearByCorporate";
 import SubscriptionPlan from "../Pages/corporate/SubscriptionPlan";
 import SubscriptionCancel from "../Pages/corporate/SubscriptionCancel";
 import SubscriptionSuccess from "../Pages/corporate/SubscriptionSuccess";
+import CorporatePro from "../Pages/corporate/corporatePro";
+import CorporateProDetails from "../Pages/corporate/corporateProDetails";
+import CorporateBusinessPage from "../Pages/corporate/corporateBussiness";
 
 
 const Login = lazy(() => import("../Pages/Login"));
@@ -121,12 +124,14 @@ const RoutesPage = () => {
               element={<CorporateEditProduct />}
             />
            <Route path="/corporate/products/details/:id" element={<ProductDetailsPage />} />
-
+            <Route path="/corporate/corporate-pro" element={<CorporatePro />} />
             <Route path="leads" element={<CorporateLeeds />} />
             <Route path="/corporate/lead-details/:id" element={<MyLeadDetails />} />
             <Route path="/corporate/subscription-plan" element={<SubscriptionPlan />} />
             <Route path="/corporate/subscription-success/:transactionId" element={<SubscriptionSuccess />} />
             <Route path="/corporate/subscription-cancel/:transactionId" element={<SubscriptionCancel />} />
+            <Route path="/corporate/corporate-pro-detail/:categoryId" element={<CorporateProDetails />} />
+            <Route path="/corporate/corporate-business/:id" element={<CorporateBusinessPage />} />
           </Route>
 
           {/* Private Routes */}

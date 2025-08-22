@@ -9,7 +9,8 @@ const corporateSlice = createSlice({
     leads:null,
     error: null,
     corporateDashboard:null,
-    upcomingtask:null
+    upcomingtask:null,
+    nearbyCorporateCategory:null
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -50,7 +51,17 @@ const corporateSlice = createSlice({
       state.loading = false;
       state.error = action.error;
     });
-
+    builder.addCase(CorporateActions.getNearbyCorporatPro.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(CorporateActions.getNearbyCorporatPro.fulfilled, (state, action) => {
+      state.loading = false;
+      state.nearbyCorporateCategory = action.payload.data; 
+    });
+    builder.addCase(CorporateActions.getNearbyCorporatPro.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error;
+    });
   },
 });
 
