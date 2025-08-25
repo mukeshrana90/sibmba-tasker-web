@@ -471,7 +471,7 @@ export default function EditProfileCompany() {
                     </Row>
 
                     <Row className="mb-3">
-                      <Col lg={6}>
+                      <Col lg={role === Roles.CORPORATE? '12' : '6'}>
                         <Button
                           variant="outline-success"
                           className="w-100"
@@ -480,7 +480,7 @@ export default function EditProfileCompany() {
                           Social Media Links
                         </Button>
                       </Col>
-                      <Col lg={6}>
+                         {role !== Roles.CORPORATE &&  role === Roles.SERVICE_PROVIDER &&                     <Col lg={6}>
                         <Button
                           variant="outline-success"
                           className="w-100"
@@ -489,6 +489,7 @@ export default function EditProfileCompany() {
                           Reference Details
                         </Button>
                       </Col>
+                        }
                     </Row>
                     <div className="submit-btn">
                       <button
