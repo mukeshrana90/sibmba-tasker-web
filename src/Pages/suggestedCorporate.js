@@ -13,6 +13,7 @@ import Loader from "../CommanComponents/Loader";
 import mapIcon from "../Assets/Images/map.svg";
 import MapComponent from "../CommanComponents/MapComponent";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import { setCustomer } from "../Redux/Reducers/LoginSlice";
 
 export default function SuggestedCorporatePage() {
   const navigate = useNavigate();
@@ -34,6 +35,9 @@ export default function SuggestedCorporatePage() {
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(false);
   const [getreview, setReview] = useState([]);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [packageDetails, setPackageDetails] = useState("");
+  const [role, setRole] = useState("");
 
   const data = useSelector((state) => state.service?.getCorporateList);
   useEffect(() => {
@@ -68,7 +72,43 @@ export default function SuggestedCorporatePage() {
     if (userId) {
       fetchCorporateInfo();
     }
+    getProfileApiCall();
   }, [dispatch, userId, page, limit, leadFilter, searchText]);
+
+  const getProfileApiCall = async () => {
+    try {
+      const apiRes = await dispatch(
+        CustomerActions.getProfileWithSuscription()
+      );
+      if (apiRes?.payload?.success) {
+        dispatch(setCustomer(apiRes?.payload?.data.user));
+      }
+      const user = apiRes?.payload?.data?.subscriptionDetail;
+      setRole(apiRes?.payload?.data.user?.role);
+      setPackageDetails(user);
+    } catch (error) {
+      console.error("Subscription check failed:", error);
+    }
+  };
+  const isSubscriptionExpired = (packageDetails) => {
+    if (!packageDetails || Object.keys(packageDetails).length === 0) {
+      return true;
+    }
+
+    const endDate = new Date(packageDetails.endDate);
+    const today = new Date();
+
+    if (packageDetails.status === "inactive") {
+      return true;
+    }
+
+    if (endDate < today) {
+      return true;
+    }
+
+    return false;
+  };
+
   return (
     <Layout>
       <section className="search-results-sec">
@@ -99,7 +139,10 @@ export default function SuggestedCorporatePage() {
                           <img
                             className="point-cursor avatar-circle"
                             style={{ width: 50, height: 50 }}
-                            src={`${process.env.REACT_APP_API_URL}${corpoProfile.profile_image}` || defaultImage}
+                            src={
+                              `${process.env.REACT_APP_API_URL}${corpoProfile.profile_image}` ||
+                              defaultImage
+                            }
                             alt="profile-img"
                           />
                         ) : (
@@ -140,9 +183,12 @@ export default function SuggestedCorporatePage() {
                               Business Details
                             </Nav.Link>
                           </Nav.Item>
-                          <Nav.Item>
+
+                          {role !==2 && 
+                            <Nav.Item>
                             <Nav.Link eventKey="products">Products</Nav.Link>
                           </Nav.Item>
+                          }
                           <Nav.Item>
                             <Nav.Link eventKey="reviews">
                               Customer Reviews
@@ -167,7 +213,10 @@ export default function SuggestedCorporatePage() {
                                       <div className="row align-items-start g-4">
                                         <div className="col-md-2 text-center">
                                           <img
-                                            src={`${process.env.REACT_APP_API_URL}${data.corporateUser.profile_image}` || defaultImage}
+                                            src={
+                                              `${process.env.REACT_APP_API_URL}${data.corporateUser.profile_image}` ||
+                                              defaultImage
+                                            }
                                             alt="Profile"
                                             className="profile-image-business"
                                           />
@@ -229,36 +278,86 @@ export default function SuggestedCorporatePage() {
                                       <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3 mt-3">
                                         <button
                                           className="view-more-btn"
-                                          onClick={() =>
-                                            navigate(
-                                              `/messages?userID=${data?.corporateUser._id}`
-                                            )
-                                          }
+                                          onClick={() => {
+                                            if (role === 2) {
+                                              if (
+                                                isSubscriptionExpired(
+                                                  packageDetails
+                                                )
+                                              ) {
+                                                setShowPlanModal(true);
+                                              } else {
+                                                navigate(
+                                                  `/messages?userID=${data?._id}`
+                                                );
+                                              }
+                                            } else {
+                                              navigate(
+                                                `/messages?userID=${data?.corporateUser._id}`
+                                              );
+                                            }
+                                          }}
                                         >
                                           <img src={ChatIcon} alt="Chat" />{" "}
                                           Direct Chat
                                         </button>
-                                        <div className="d-flex justify-content-center align-item-center book-service-action-btn">
-                                          <a
-                                            href={`tel:${data?.corporateUser.phone_number}`}
-                                            style={{ textDecoration: "none", fontSize:"15px", fontWeight:"400" }}
-                                            className="primaryBtn"
-                                          >
-                                            Call Now
-                                          </a>
-                                        </div>
                                         <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3">
                                           <button
-                                            className="view-more-btn"
-                                            width={20}
-                                            height={20}
-                                            onClick={() =>
-                                              setShowMapModal(
-                                                data?.corporateUser
-                                              )
-                                            }
+                                            className="primaryBtn"
+                                            style={{
+                                              fontSize: "15px",
+                                              fontWeight: "400",
+                                            }}
+                                            onClick={() => {
+                                              if (role === 2) {
+                                                if (
+                                                  isSubscriptionExpired(
+                                                    packageDetails
+                                                  )
+                                                ) {
+                                                  setShowPlanModal(true);
+                                                } else {
+                                                  window.location.href = `tel:${data?.corporateUser.phone_number}`;
+                                                }
+                                              } else {
+                                                window.location.href = `tel:${data?.corporateUser.phone_number}`;
+                                              }
+                                            }}
                                           >
-                                            <img src={mapIcon} alt="" /> Map
+                                            Call Now
+                                          </button>
+                                        </div>
+
+                                        <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3">
+                                          <button
+                                            className="view-more-btn d-flex align-items-center gap-2"
+                                            onClick={() => {
+                                              if (role === 2) {
+                                                if (
+                                                  isSubscriptionExpired(
+                                                    packageDetails
+                                                  )
+                                                ) {
+                                                  setShowPlanModal(true);
+                                                } else {
+                                                  setShowMapModal(
+                                                    data?.corporateUser
+                                                  );
+                                                }
+                                              } else {
+                                                setShowMapModal(
+                                                  data?.corporateUser
+                                                );
+                                              }
+                                            }}
+                                          >
+                                            <img
+                                              src={mapIcon}
+                                              alt="Map"
+                                              width={20}
+                                              height={20}
+                                            />
+                                            Map
                                           </button>
                                         </div>
                                       </div>
@@ -463,6 +562,32 @@ export default function SuggestedCorporatePage() {
                       </Col>
                     </Row>
                   </Tab.Container>
+                  <Modal
+                    show={showPlanModal}
+                    onHide={() => setShowPlanModal(false)}
+                    centered
+                    backdrop="static"
+                    keyboard={false}
+                  >
+                    <Modal.Body>
+                      <div className="comman-small-pop">
+                        <h3>Upgrade Plan</h3>
+                        <div className="d-flex justify-content-center download-app-section mt-2">
+                          Please subscribe to our plan to access this feature
+                        </div>
+                        <div className="d-flex justify-content-center mt-3">
+                          <button
+                            className="primaryBtn"
+                            onClick={() =>
+                              navigate(`/payment`)
+                            }
+                          >
+                            Upgrade Plan
+                          </button>
+                        </div>
+                      </div>
+                    </Modal.Body>
+                  </Modal>
                 </div>
               </div>
             </Col>
