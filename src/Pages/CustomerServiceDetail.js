@@ -324,10 +324,10 @@ export default function CustomerServiceDetail() {
             >
               <img
                 src={serviceDetail?.serviceProviderId?.profile_image ? `${process.env.REACT_APP_API_URL}/${serviceDetail?.serviceProviderId?.profile_image}` : defaultImage}
-                alt={serviceDetail?.serviceProviderId?.company_name}
+                alt={serviceDetail?.serviceProviderId?.company_name  !== "undefined" ? serviceDetail?.serviceProviderId?.company_name : '-'}
               />
               <div>
-                <h5>{serviceDetail?.serviceProviderId?.company_name}</h5>
+                <h5>{serviceDetail?.serviceProviderId?.company_name  !== "undefined" ? serviceDetail?.serviceProviderId?.company_name : '-'}</h5>
                 <p>{serviceDetail?.serviceProviderId?.street_address !== "undefined" ? serviceDetail?.serviceProviderId?.street_address : "-"}</p>
                  <p>{serviceDetail?.serviceProviderId?.suburbs !== "undefined" ? serviceDetail?.serviceProviderId?.suburbs : "-"}</p>
               </div>

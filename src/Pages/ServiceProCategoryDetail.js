@@ -383,7 +383,7 @@ export default function ServiceProCategoryDetail() {
                       {categoryDetail?.serviceProviderId?.full_name || "N/A"}
                     </h3>
                     <p>
-                      {categoryDetail?.serviceProviderId?.company_name || "N/A"}
+                      {categoryDetail?.serviceProviderId?.company_name !== 'undefined' ? categoryDetail?.serviceProviderId?.company_name : '-' || "N/A"}
                     </p>
                     <div className="d-flex">
                       <div className="chat-process-sec">

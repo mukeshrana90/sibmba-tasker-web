@@ -108,7 +108,7 @@ export default function ServiceProCategory() {
                                           <div className="bookings-card-data my-task-ad-card">
                                             <div>
                                               <h3>
-                                                {service?.serviceProviderId?.company_name ||
+                                                {service?.serviceProviderId?.company_name !== 'undefined' ? service?.serviceProviderId?.company_name  : '-' ||
                                                   "N/A"}
                                               </h3>
                                               <p>

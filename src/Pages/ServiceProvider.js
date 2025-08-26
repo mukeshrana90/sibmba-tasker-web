@@ -87,7 +87,7 @@ export default function ServiceProvider() {
                           }}
                         />
                         <div>
-                          <h5>{serviceSubCatDetail?.serviceProviderId?.company_name || '-'}</h5>
+                          <h5>{serviceSubCatDetail?.serviceProviderId?.company_name !=='undefined' ? serviceSubCatDetail?.serviceProviderId?.company_name  : '-' || '-'}</h5>
                           <p>
                             {serviceSubCatDetail?.serviceProviderId?.street_address ==='undefined' ? '-' : serviceSubCatDetail?.serviceProviderId?.street_address ||
                               "Service Provider"}
