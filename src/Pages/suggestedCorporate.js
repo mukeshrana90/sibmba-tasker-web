@@ -290,11 +290,13 @@ export default function SuggestedCorporatePage() {
                                                 navigate(
                                                   `/messages?userID=${data?._id}`
                                                 );
+                                                  localStorage.setItem("reciverID", data?._id );
                                               }
                                             } else {
                                               navigate(
                                                 `/messages?userID=${data?.corporateUser._id}`
                                               );
+                                            localStorage.setItem("reciverID", data?.corporateUser._id);
                                             }
                                           }}
                                         >

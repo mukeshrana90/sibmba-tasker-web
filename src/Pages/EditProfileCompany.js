@@ -321,7 +321,7 @@ export default function EditProfileCompany() {
                             <Form.Control
                               type="text"
                               name="company_name"
-                              value={formik.values.company_name}
+                              value={formik.values.company_name && formik.values.company_name !== 'undefined' ? formik.values.company_name : '-'}
                               onChange={formik.handleChange}
                               placeholder="Enter Company Name"
                             />

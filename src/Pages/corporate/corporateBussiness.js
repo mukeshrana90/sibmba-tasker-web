@@ -81,24 +81,35 @@ export default function CorporateBusinessPage() {
       console.error("Subscription check failed:", error);
     }
   };
-  const isSubscriptionExpired = (packageDetails) => {
+  
+  const isSubscriptionExpired = (user) => {
+    const packageDetails = user?.subscriptionDetail;
+    const currentDate = new Date();
+
+    // Case 1: No subscription details (free trial user)
     if (!packageDetails || Object.keys(packageDetails).length === 0) {
-      return true;
+      const createdAt = new Date(user?.user?.createdAt);
+      const diffInMs = currentDate - createdAt;
+      const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+      // free trial lasts 90 days
+      return diffInDays >= 90;
     }
 
+    // Case 2: Subscription exists
     const endDate = new Date(packageDetails.endDate);
-    const today = new Date();
 
-    if (packageDetails.status === "inactive") {
+    if (packageDetails.status === "inactive" && currentDate > endDate) {
       return true;
     }
 
-    if (endDate < today) {
+    if (endDate < currentDate) {
       return true;
     }
 
     return false;
   };
+
 
   return (
     <Layout>
@@ -309,6 +320,7 @@ export default function CorporateBusinessPage() {
                                               navigate(
                                                 `/messages?userID=${data?._id}`
                                               );
+                                            localStorage.setItem("reciverID", data._id);
                                             }
                                           }}
                                         >

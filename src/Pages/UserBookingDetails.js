@@ -558,10 +558,13 @@ export default function UserBookingDetails() {
                                             <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
                                               <div
                                                 className="action-button-wrap"
-                                                onClick={() =>
-                                                  navigate(
+                                                onClick={() =>{
+                                                   localStorage.setItem("reciverID", corp._id);
+                                                    navigate(
                                                     `/messages?userID=${corp._id}`
                                                   )
+                                                }
+                                                 
                                                 }
                                               >
                                                 <div className="icon-circle green">

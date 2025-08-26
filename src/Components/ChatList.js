@@ -30,7 +30,6 @@ const ChatList = () => {
         ele?.receiver?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : [];
-
   return (
       <div className="message-chat-list">
         <div className="chat-search">

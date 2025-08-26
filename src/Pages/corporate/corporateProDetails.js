@@ -55,7 +55,6 @@ export default function CorporateProDetails() {
     fetchData();
   }, [dispatch, page, limit, categoryId]);
 
-console.log(corporateDetail,'corporateDetail')
   return (
     <Layout>
       <section className="breadcrumb-nav">

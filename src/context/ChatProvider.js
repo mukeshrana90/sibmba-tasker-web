@@ -14,7 +14,6 @@ export const ChatProvider = ({ children }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [chatList, setChatList] = useState([]);
   const [newchat, setNewchat] = useState(false);
-
   useEffect(() => {
     let isMounted = true;
 
