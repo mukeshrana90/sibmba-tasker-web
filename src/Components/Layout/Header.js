@@ -20,7 +20,7 @@ const serviceProviderRoutes = [
   { label: "Service", path: "/allmyservices" },
   { label: "Tasks", path: "/taskslist" },
   { label: "Service Pro", path: "/service-pro" },
-  { label: "Corporate Pro", path: "/browse-corporate-category" },
+  // { label: "Corporate Pro", path: "/browse-corporate-category" },
 ];
 
 const corporateRoutes = [
