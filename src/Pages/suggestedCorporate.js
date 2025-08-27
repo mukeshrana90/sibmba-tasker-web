@@ -184,11 +184,11 @@ export default function SuggestedCorporatePage() {
                             </Nav.Link>
                           </Nav.Item>
 
-                          {role !==2 && 
+                          {role !== 2 && (
                             <Nav.Item>
-                            <Nav.Link eventKey="products">Products</Nav.Link>
-                          </Nav.Item>
-                          }
+                              <Nav.Link eventKey="products">Products</Nav.Link>
+                            </Nav.Item>
+                          )}
                           <Nav.Item>
                             <Nav.Link eventKey="reviews">
                               Customer Reviews
@@ -214,8 +214,9 @@ export default function SuggestedCorporatePage() {
                                         <div className="col-md-2 text-center">
                                           <img
                                             src={
-                                              `${process.env.REACT_APP_API_URL}${data.corporateUser.profile_image}` ||
-                                              defaultImage
+                                              data?.corporateUser?.profile_image
+                                                ? `${process.env.REACT_APP_API_URL}${data.corporateUser.profile_image}`
+                                                : defaultImage
                                             }
                                             alt="Profile"
                                             className="profile-image-business"
@@ -290,13 +291,19 @@ export default function SuggestedCorporatePage() {
                                                 navigate(
                                                   `/messages?userID=${data?._id}`
                                                 );
-                                                  localStorage.setItem("reciverID", data?._id );
+                                                localStorage.setItem(
+                                                  "reciverID",
+                                                  data?._id
+                                                );
                                               }
                                             } else {
                                               navigate(
                                                 `/messages?userID=${data?.corporateUser._id}`
                                               );
-                                            localStorage.setItem("reciverID", data?.corporateUser._id);
+                                              localStorage.setItem(
+                                                "reciverID",
+                                                data?.corporateUser._id
+                                              );
                                             }
                                           }}
                                         >
@@ -580,9 +587,7 @@ export default function SuggestedCorporatePage() {
                         <div className="d-flex justify-content-center mt-3">
                           <button
                             className="primaryBtn"
-                            onClick={() =>
-                              navigate(`/payment`)
-                            }
+                            onClick={() => navigate(`/payment`)}
                           >
                             Upgrade Plan
                           </button>

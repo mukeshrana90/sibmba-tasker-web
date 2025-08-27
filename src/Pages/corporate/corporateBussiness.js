@@ -81,7 +81,7 @@ export default function CorporateBusinessPage() {
       console.error("Subscription check failed:", error);
     }
   };
-  
+
   const isSubscriptionExpired = (user) => {
     const packageDetails = user?.subscriptionDetail;
     const currentDate = new Date();
@@ -109,7 +109,6 @@ export default function CorporateBusinessPage() {
 
     return false;
   };
-
 
   return (
     <Layout>
@@ -209,8 +208,9 @@ export default function CorporateBusinessPage() {
                                         <div className="col-md-2 text-center">
                                           <img
                                             src={
-                                              `${process.env.REACT_APP_API_URL}${data?.profile_image}` ||
-                                              defaultImage
+                                              data?.profile_image
+                                                ? `${process.env.REACT_APP_API_URL}${data?.profile_image}`
+                                                : defaultImage
                                             }
                                             alt="Profile"
                                             className="profile-image-business"
@@ -263,7 +263,7 @@ export default function CorporateBusinessPage() {
                                         {/* Facebook */}
                                         {data.facebook_link && (
                                           <a
-                                             href={`//${data.facebook_link}`}
+                                            href={`//${data.facebook_link}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                           >
@@ -320,7 +320,10 @@ export default function CorporateBusinessPage() {
                                               navigate(
                                                 `/messages?userID=${data?._id}`
                                               );
-                                            localStorage.setItem("reciverID", data._id);
+                                              localStorage.setItem(
+                                                "reciverID",
+                                                data._id
+                                              );
                                             }
                                           }}
                                         >
