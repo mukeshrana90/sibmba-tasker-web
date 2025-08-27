@@ -5806,3 +5806,9 @@ section.page-mt {
     }
   }
 }
+.social-links{
+  img{
+    height: 30px;
+    width: 30px;
+  }
+}

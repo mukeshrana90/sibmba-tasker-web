@@ -13,7 +13,9 @@ import { formatDate } from "fullcalendar/index.js";
 import MapComponent from "../CommanComponents/MapComponent";
 import Slider from "react-slick";
 import defaultImage from "../Assets/Images/placeholder.jpg"
-
+import facebookLogo from "../Assets/Images/facebook.svg";
+import instagramLogo from "../Assets/Images/instagram.svg";
+import link from "../Assets/Images/link.png";
 import "swiper/css";
 import "swiper/css/navigation";
 import Loader from "../CommanComponents/Loader";
@@ -330,8 +332,52 @@ export default function CustomerServiceDetail() {
                 <h5>{serviceDetail?.serviceProviderId?.company_name  !== "undefined" ? serviceDetail?.serviceProviderId?.company_name : '-'}</h5>
                 <p>{serviceDetail?.serviceProviderId?.street_address !== "undefined" ? serviceDetail?.serviceProviderId?.street_address : "-"}</p>
                  <p>{serviceDetail?.serviceProviderId?.suburbs !== "undefined" ? serviceDetail?.serviceProviderId?.suburbs : "-"}</p>
+                 <div className="social-links d-flex gap-2 align-items-center justify-content-start mt-2">
+                    {/* Facebook */}
+                    {serviceDetail?.serviceProviderId?.facebook_link && (
+                      <a
+                        href={`//${serviceDetail?.serviceProviderId?.facebook_link}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img
+                          src={facebookLogo}
+                          alt=""
+                        />
+                      </a>
+                    )}
+
+                    {/* Instagram */}
+                    {serviceDetail?.serviceProviderId?.instagram_link && (
+                      <a
+                        href={`//${serviceDetail?.serviceProviderId?.instagram_link}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img
+                          src={instagramLogo}
+                          alt=""
+                        />
+                      </a>
+                    )}
+
+                    {/* Website */}
+                    {serviceDetail?.serviceProviderId?.website_link && (
+                      <a
+                        href={`//${serviceDetail?.serviceProviderId?.website_link}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img
+                          src={link}
+                          alt="website"
+                        />
+                      </a>
+                    )}
+                  </div>
               </div>
             </div>
+
           </div>
         </Container>
       </section>
