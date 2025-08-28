@@ -175,7 +175,7 @@ export default function NearByCorporate() {
                         fill="#CCCCCC"
                       />
                     </svg>
-                    <h5 className="mt-3 ">No corporates Details Found</h5>
+                    <h5 className="mt-3 ">No Corporates Details Found</h5>
                   </div>
                 )}
               </>
