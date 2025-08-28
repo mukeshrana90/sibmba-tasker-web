@@ -178,8 +178,12 @@ textarea:focus {
 
 .remember-check {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
+  .form-label{
+    margin-top: -4px;
+    font-size: 13px;
+  }
 }
 
 .remember-check input {

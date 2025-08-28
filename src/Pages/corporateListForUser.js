@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import { Container, Row, Col } from "react-bootstrap";
-import { useDispatch, useSelector } from "react-redux";
-import CustomerActions from "../Redux/Actions/CustomerActions";
-import { useParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import defaultImage from "../Assets/Images/placeholder.jpg";
 import Loader from "../CommanComponents/Loader";
@@ -19,9 +17,6 @@ export default function CorporateListForUser() {
   const [limit] = useState(10);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(false);
-  const corporateSuggestions1 = useSelector(
-    (state) => state.service.corporateSuggestions?.data
-  );
   const [corporateSuggestions, setCorporateSuggestions] = useState("");
 
   useEffect(() => {

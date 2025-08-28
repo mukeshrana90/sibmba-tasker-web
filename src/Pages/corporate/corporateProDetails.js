@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Layout from "../../Components/Layout/Layout";
-import { Tab, Nav, Container, Row, Col, Modal } from "react-bootstrap";
-import { useDispatch, useSelector } from "react-redux";
+import { Container, Row, Col } from "react-bootstrap";
+import { useDispatch } from "react-redux";
 import { useParams } from "react-router-dom";
 import PaginationComponent from "../../CommanComponents/PaginationComponent";
 import Loader from "../../CommanComponents/Loader";
