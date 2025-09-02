@@ -63,7 +63,37 @@ export default function TermsConditions() {
               <p>
                 <b>OTP Consent via SMS:</b> By opting in, you agree to receive SMS OTPs for identity verification and secure platform access.
               </p>
-              
+              {/* start */}
+              <p>
+                <b>⁠Purpose of SMS Messages:</b> By providing your phone number during sign-up, you agree to receive One-Time Password (OTP) messages from Simba Tasker. These SMS messages are used only to verify your identity and secure your account.
+              </p>
+               <p>
+                <b>⁠ ⁠Message Frequency:</b> You will only receive SMS messages when you:
+                  <ul>
+                    <li>Register for a new account</li>
+                  <li>Log in from a new device</li>
+                  <li>Reset your password or perform another action that requires verification</li>
+                  </ul>
+                  You will not receive marketing or promotional messages.
+              </p>
+              <p>
+                <b>Message & Data Rates:</b> Standard carrier text messaging and data rates may apply depending on your mobile plan.
+              </p>
+              <p>
+                <b>Opt-Out: </b>Because OTP messages are required for account security, the only way to stop receiving them is to delete or deactivate your Simba Tasker account.
+              </p>
+               <p>
+                <b>⁠Support & Help: </b>If you need help with SMS messages, contact us at:
+                <p>
+                Email:{" "}
+                <a href="mailto:info@simbatasker.com">info@simbatasker.com</a>
+                <br />
+              </p>
+              </p>
+                <p>
+                <b>Privacy: </b>Your phone number will only be used for account verification and security purposes. We will never sell, rent, or share your number with third parties for marketing. Please also review our Privacy Policy.
+              </p>
+              {/* end */}
               <p>
                 <b> 2. Acceptance of Terms</b> By creating an account on Simba
                 Tasker, both service providers and customers agree to these

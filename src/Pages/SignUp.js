@@ -214,7 +214,7 @@ export default function SignUp() {
                       />
                       {/* <input type="checkbox" class="red" id="filled-in-box" /> */}
                       <Form.Label for="filled-in-box">
-                       I agree to receive SMS text messages from Simba Tasker Enterprises Pvt Ltd about my bookings, service updates, and account notifications. 
+                      I agree to receive a one-time SMS code for account verification. Message and data rates may apply. See our {" "}  
                         <a
                           href="https://simbatasker.com/terms-and-conditions"
                           target="_blank"
