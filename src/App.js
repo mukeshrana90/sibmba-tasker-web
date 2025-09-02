@@ -9,9 +9,13 @@ function App() {
   const [locationHandled, setLocationHandled] = useState(false);
 
   useEffect(() => {
+    const path = window.location.pathname;
     const existingLat = localStorage.getItem("latitude");
     const existingLng = localStorage.getItem("longitude");
-  
+     if (path.includes("terms-and-conditions") || path.includes("privacy-policy")) {
+      setLocationHandled(true);
+      return;
+    }
     if (existingLat && existingLng) {
       setLocationHandled(true);
       return;
