@@ -221,7 +221,7 @@ export default function SignUp() {
                           rel="noopener noreferrer"
                           className="login-link-txt"
                         >
-                          Terms and Conditions of Service
+                          Terms & Conditions
                         </a>
                         {/* <Link
                           to={`https://simbatasker.com/terms-and-conditions`}
