@@ -40,6 +40,7 @@ export default function OtpVarification() {
   const userId = query.get("userId");
   const type = query.get("type");
   const role = query.get("role");
+  const otpType = query.get("otpType") || "1"; // Default to 1 (email) if not provided
   const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState(30);
   const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
@@ -90,11 +91,13 @@ export default function OtpVarification() {
   const handleResendOTP = async () => {
     setResendOtploading(true);
     let res = await dispatch(
-      CustomerActions.resendOtp({ user_id: userId, type: 1 })
+      CustomerActions.resendOtp({ user_id: userId, type: Number(otpType) })
     );
     if (res?.payload?.success) {
-      toast.success("OTP has been resent to your provided email")
-      // toast.success(res?.payload?.message);
+      const message = Number(otpType) === 3 
+        ? "OTP has been resent to your WhatsApp number"
+        : "OTP has been resent to your provided email";
+      toast.success(message);
       setTimer(30);
       setOtp("");
     } else {
@@ -149,7 +152,7 @@ export default function OtpVarification() {
     }
     setVerifyOtpLoading(true);
     const res = await dispatch(
-      CustomerActions.verifyOtp({ user_id: userId, otp, type: 1 })
+      CustomerActions.verifyOtp({ user_id: userId, otp, type: Number(otpType) })
     );
     if (res?.payload?.success) {
       toast.success(res?.payload?.message);
