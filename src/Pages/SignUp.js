@@ -13,6 +13,8 @@ import eyeClosedIcon from "../Assets/Images/eye-off-fill.svg";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { useQuery } from "../utils/CommonFunction";
+import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
+import { toast } from "react-toastify";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -22,6 +24,8 @@ export default function SignUp() {
   const [localLoading, setLocalLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [signupLoading, setSignupLoading] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -48,24 +52,11 @@ export default function SignUp() {
       terms: Yup.boolean().oneOf([true], "You must accept the terms"),
     }),
     onSubmit: async (values) => {
-      localStorage.setItem("signupFormData", JSON.stringify(values));
-      let payload = {
-        email: values?.email,
-        country_code: values?.country_code ,
-        phone_number: values?.phone,
-        password: values?.password,
-        role: Number(role) || 1,
-        type: 1,
-      };
-      setLocalLoading(true);
-      const response = await dispatch(CustomerActions.createCustomer(payload));
-      if (response?.payload?.status_code === 200) {
-        navigate(
-          `/otp-varification?userId=${response?.payload?.data?._id}&role=${role || 1 // changed
-          }`
-        );
+      if (!formik.isValid) {
+        return;
       }
-      setLocalLoading(false);
+      localStorage.setItem("signupFormData", JSON.stringify(values));
+      setShowOtpModal(true);
     },
   });
 
@@ -82,6 +73,32 @@ export default function SignUp() {
       formik.setValues(parsedData);
     }
   }, []);
+
+  const handleOtpTypeSelection = async (otpType) => {
+    setSignupLoading(true);
+    const payload = {
+      email: formik.values.email,
+      country_code: formik.values.country_code || "+91",
+      phone_number: formik.values.phone,
+      password: formik.values.password,
+      role: Number(role) || 1,
+      type: otpType,
+    };
+    const response = await dispatch(CustomerActions.createCustomer(payload));
+    if (response?.payload?.status_code === 200) {
+      toast.success(response?.payload?.message || "Registration successful");
+      setShowOtpModal(false);
+      navigate(
+        `/otp-varification?userId=${response?.payload?.data?._id}&role=${role || 1}&otpType=${otpType}`
+      );
+    } else {
+      toast.error(response?.payload?.message || "Registration failed");
+      if (response?.payload?.status_code === 400) {
+        setShowOtpModal(false);
+      }
+    }
+    setSignupLoading(false);
+  };
 
   return (
     <div className="p-3">
@@ -259,6 +276,14 @@ export default function SignUp() {
           </Col>
         </div>
       </Container>
+      <OtpSelectionModal
+        show={showOtpModal}
+        onHide={() => setShowOtpModal(false)}
+        email={formik.values.email}
+        phoneNumber={`${formik.values.country_code}${formik.values.phone}`}
+        onSelect={handleOtpTypeSelection}
+        isLoading={signupLoading}
+      />
     </div>
   );
 }

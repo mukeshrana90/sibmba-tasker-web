@@ -8,12 +8,18 @@ import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
+import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [forgotLoading, setForgotLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [phoneNumber, setPhoneNumber] = useState(null);
+  const [countryCode, setCountryCode] = useState(null);
+  const [sendingOtpLoading, setSendingOtpLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,14 +38,38 @@ export default function ForgotPassword() {
       CustomerActions.forgotPassword({ email, type: 1 })
     );
     if (res.payload.success) {
+      setUserId(res.payload.data._id);
+      setPhoneNumber(res.payload.data?.phone_number || null);
+      setCountryCode(res.payload.data?.country_code || null);
+      setShowOtpModal(true);
+    } else {
+      toast.error(res.payload.message);
+    }
+    setForgotLoading(false);
+  };
+
+  const handleOtpTypeSelection = async (otpType) => {
+    setSendingOtpLoading(true);
+    const payload = {
+      phone_number: phoneNumber,
+      country_code: countryCode,
+      email: email,
+      type: otpType,
+      // value: 1, // Default role for forgot password flow
+    };
+    let res = await dispatch(
+      CustomerActions.forgotPassword(payload)
+    );
+    if (res.payload.success) {
       toast.success(res.payload.message);
-      navigate(`/otp-varification?userId=${res.payload.data._id}&type=forgot`, {
+      setShowOtpModal(false);
+      navigate(`/otp-varification?userId=${userId}&type=forgot&otpType=${otpType}`, {
         replace: true,
       });
     } else {
       toast.error(res.payload.message);
     }
-    setForgotLoading(false);
+    setSendingOtpLoading(false);
   };
 
   return (
@@ -87,6 +117,14 @@ export default function ForgotPassword() {
           </Col>
         </div>
       </Container>
+      <OtpSelectionModal
+        show={showOtpModal}
+        onHide={() => setShowOtpModal(false)}
+        email={email}
+        phoneNumber={phoneNumber}
+        onSelect={handleOtpTypeSelection}
+        isLoading={sendingOtpLoading}
+      />
     </div>
   );
 }
