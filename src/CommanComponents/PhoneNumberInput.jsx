@@ -3,20 +3,31 @@ import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { Form } from "react-bootstrap";
 
-const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, initialCountry, formik }) => {
-
-  const handleChange = (phone) => {
+const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, initialCountry, formik, onPhoneChange }) => {
+  const handleChange = (phone, meta) => {
+    const dialCode = meta?.country?.dialCode || "";
+    const countryCode = dialCode ? `+${dialCode}` : "";
+    
+    let phoneWithoutCountryCode = phone;
+    if (dialCode && phone.startsWith(`+${dialCode}`)) {
+      phoneWithoutCountryCode = phone.substring(`+${dialCode}`.length).trim();
+    } else if (phone.startsWith("+")) {
+      phoneWithoutCountryCode = phone.replace(/^\+?\d+\s*/, "").trim();
+    }
+    
     if (formik) {
-      formik.setFieldValue("phone_number", phone);
+      formik.setFieldValue("phone_number", phoneWithoutCountryCode);
+      formik.setFieldValue("country_code", countryCode);
       formik.setFieldTouched("phone_number", true);
     } else if (setFieldValue) {
-      // setFieldValue("phone_number", phone);
-      setFieldValue("ref_phone_number", phone);
+      setFieldValue("ref_phone_number", phoneWithoutCountryCode);
       if (onChange) {
-        onChange(phone); 
+        onChange(phoneWithoutCountryCode, countryCode); 
       }
     } else if (onChange) {
-      onChange(phone); 
+      onChange(phoneWithoutCountryCode, countryCode); 
+    } else if (onPhoneChange) {
+      onPhoneChange(phoneWithoutCountryCode, countryCode);
     }
   };
 

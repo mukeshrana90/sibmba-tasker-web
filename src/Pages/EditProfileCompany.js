@@ -34,11 +34,37 @@ export default function EditProfileCompany() {
   const [role, setRole] = useState("");
   const corporateCategory = useSelector((e) => e.service.corporateCategory);
 
+  const getPhoneNumberAndCountryCode = (phoneValue) => {
+    if (!phoneValue) return { phone: "", countryCode: "" };
+    
+    if (phoneValue.startsWith("+")) {
+      const match = phoneValue.match(/^\+(\d+)\s*(.+)$/);
+      if (match) {
+        return {
+          phone: match[2].trim(),
+          countryCode: `+${match[1]}`,
+        };
+      }
+    }
+    
+    if (customerDetails?.country_code) {
+      return {
+        phone: phoneValue,
+        countryCode: customerDetails.country_code,
+      };
+    }
+    
+    return { phone: phoneValue, countryCode: "" };
+  };
+
+  const phoneData = getPhoneNumberAndCountryCode(customerDetails?.phone_number || "");
+
   const initialValues = {
     full_name: customerDetails?.full_name || "",
     identify_yourself: customerDetails?.identify_yourself || "",
     company_name: customerDetails?.company_name || "",
-    phone_number: customerDetails?.phone_number || "",
+    phone_number: phoneData.phone,
+    country_code: phoneData.countryCode,
     email: customerDetails?.email || "",
     house_number: customerDetails?.house_number || "",
     address: customerDetails?.address || customerDetails?.street_address || "",
@@ -360,9 +386,12 @@ export default function EditProfileCompany() {
                           <Form.Label>Phone Number*</Form.Label>
                           <PhoneNumberInput
                             initialCountry="in"
-                            value={formik.values.phone_number || ""}
-                            onChange={(phone) => {
+                            value={formik.values.country_code && formik.values.phone_number 
+                              ? `${formik.values.country_code} ${formik.values.phone_number}` 
+                              : formik.values.phone_number || ""}
+                            onPhoneChange={(phone, countryCode) => {
                               formik.setFieldValue("phone_number", phone);
+                              formik.setFieldValue("country_code", countryCode);
                               formik.setFieldTouched("phone_number", true);
                             }}
                           />
