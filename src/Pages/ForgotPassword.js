@@ -33,19 +33,23 @@ export default function ForgotPassword() {
       toast.error("Please enter a valid email address");
       return;
     }
-    setForgotLoading(true);
-    let res = await dispatch(
-      CustomerActions.forgotPassword({ email, type: 1 })
-    );
-    if (res.payload.success) {
-      setUserId(res.payload.data._id);
-      setPhoneNumber(res.payload.data?.phone_number || null);
-      setCountryCode(res.payload.data?.country_code || null);
-      setShowOtpModal(true);
-    } else {
-      toast.error(res.payload.message);
+
+    try {
+      setForgotLoading(true);
+      const res = await dispatch(CustomerActions.forgotPassword({ email, type: 1 }));
+      if (res?.payload?.success) {
+        setUserId(res.payload.data?._id);
+        setPhoneNumber(res.payload.data?.phone_number || null);
+        setCountryCode(res.payload.data?.country_code || null);
+        setShowOtpModal(true);
+      } else {
+        toast.error(res?.payload?.message || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      toast.error("Unable to send OTP. Please try again.");
+    } finally {
+      setForgotLoading(false);
     }
-    setForgotLoading(false);
   };
 
   const handleOtpTypeSelection = async (otpType) => {
@@ -53,23 +57,25 @@ export default function ForgotPassword() {
     const payload = {
       phone_number: phoneNumber,
       country_code: countryCode,
-      email: email,
+      email,
       type: otpType,
-      // value: 1, // Default role for forgot password flow
     };
-    let res = await dispatch(
-      CustomerActions.forgotPassword(payload)
-    );
-    if (res.payload.success) {
-      toast.success(res.payload.message);
-      setShowOtpModal(false);
-      navigate(`/otp-varification?userId=${userId}&type=forgot&otpType=${otpType}`, {
-        replace: true,
-      });
-    } else {
-      toast.error(res.payload.message);
+    try {
+      const res = await dispatch(CustomerActions.forgotPassword(payload));
+      if (res?.payload?.success) {
+        toast.success(res?.payload?.message || "OTP sent successfully");
+        setShowOtpModal(false);
+        navigate(`/otp-varification?userId=${userId}&type=forgot&otpType=${otpType}`, {
+          replace: true,
+        });
+      } else {
+        toast.error(res?.payload?.message || "Failed to send OTP. Please try again.");
+      }
+    } catch (error) {
+      toast.error("Failed to send OTP. Please try again.");
+    } finally {
+      setSendingOtpLoading(false);
     }
-    setSendingOtpLoading(false);
   };
 
   return (
