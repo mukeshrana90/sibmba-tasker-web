@@ -1,16 +1,26 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { Form } from "react-bootstrap";
 
 const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, initialCountry, formik, onPhoneChange }) => {
+  const [dialCode, setDialCode] = useState("");
+
+  const displayValue = useMemo(() => {
+    const v = (value || "").trim();
+    if (!v) return "";
+    if (v.startsWith("+")) return v;
+    return dialCode ? `+${dialCode} ${v}` : "";
+  }, [value, dialCode]);
+
   const handleChange = (phone, meta) => {
-    const dialCode = meta?.country?.dialCode || "";
-    const countryCode = dialCode ? `+${dialCode}` : "";
-    
+    const nextDialCode = meta?.country?.dialCode || dialCode;
+    if (meta?.country?.dialCode) setDialCode(meta.country.dialCode);
+
+    const countryCode = nextDialCode ? `+${nextDialCode}` : "";
     let phoneWithoutCountryCode = phone;
-    if (dialCode && phone.startsWith(`+${dialCode}`)) {
-      phoneWithoutCountryCode = phone.substring(`+${dialCode}`.length).trim();
+    if (nextDialCode && phone.startsWith(`+${nextDialCode}`)) {
+      phoneWithoutCountryCode = phone.substring(`+${nextDialCode}`.length).trim();
     } else if (phone.startsWith("+")) {
       phoneWithoutCountryCode = phone.replace(/^\+?\d+\s*/, "").trim();
     }
@@ -19,13 +29,14 @@ const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, init
       formik.setFieldValue("phone_number", phoneWithoutCountryCode);
       formik.setFieldValue("country_code", countryCode);
       formik.setFieldTouched("phone_number", true);
+    } else if (setFieldValue && onChange) {
+      setFieldValue("phone_number", phoneWithoutCountryCode);
+      onChange(phoneWithoutCountryCode, countryCode);
     } else if (setFieldValue) {
       setFieldValue("ref_phone_number", phoneWithoutCountryCode);
-      if (onChange) {
-        onChange(phoneWithoutCountryCode, countryCode); 
-      }
+      if (onChange) onChange(phoneWithoutCountryCode, countryCode);
     } else if (onChange) {
-      onChange(phoneWithoutCountryCode, countryCode); 
+      onChange(phoneWithoutCountryCode, countryCode);
     } else if (onPhoneChange) {
       onPhoneChange(phoneWithoutCountryCode, countryCode);
     }
@@ -37,7 +48,7 @@ const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, init
         <div className="number-country">
           <PhoneInput
             defaultCountry={initialCountry || "in"}
-            value={value}
+            value={displayValue}
             onChange={handleChange}
             placeholder="Enter phone number"
             disableFlags
