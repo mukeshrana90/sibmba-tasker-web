@@ -102,7 +102,7 @@ export default function ServiceRequest() {
       [id]: !prev[id],
     }));
   };
-  const handleAccept = () => {
+  const handleAccept1 = () => {
     // First: Accept the booking
     dispatch(
       ServiceActions.updateBookingStatus({
@@ -129,6 +129,39 @@ export default function ServiceRequest() {
       })
       .catch(() => {
         toast.error("An error occurred. Please try again.");
+      });
+  };
+  const handleAccept = () => {
+    console.log(selectedCorporate);
+  
+    dispatch(
+      ServiceActions.updateBookingStatus({
+        booking_id: id,
+        status: 2,
+      })
+    )
+      .then((e) => {
+        if (e?.payload?.success) {
+  
+          // Only call this if corporate exists (optional optimization)
+          if (selectedCorporate && selectedCorporate.length > 0) {
+            dispatch(
+              CustomerActions.createCorporateSuggestionsForTask({
+                bookingId: id,
+                corporateIds: selectedCorporate.map((corp) => corp?._id),
+              })
+            );
+          }
+  
+          setIsRequestModal(true);
+  
+          setTimeout(() => {
+            Navigate("/requests");
+          }, 3000);
+        }
+      })
+      .catch((err) => {
+        console.log(err);
       });
   };
 
