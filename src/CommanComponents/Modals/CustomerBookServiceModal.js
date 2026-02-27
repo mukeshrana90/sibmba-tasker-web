@@ -38,16 +38,32 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
     return serviceDetail?.availability?.[0]?.day.includes(dayName);
   };
   const isDateAvailable = (date) => {
-    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-    if (serviceDetail?.availability?.length) {
-      return serviceDetail?.availability?.some((slot) =>
-        slot.day.includes(dayName.toLowerCase())
-      );
-    } else {
-      return data?.serviceSubCategory?.availability?.some((slot) =>
-        slot?.day.includes(dayName.toLowerCase())
-      );
-    }
+    if (!date) return false;
+  
+    const dayName = date
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toLowerCase();
+  
+    const availability =
+      serviceDetail?.availability?.length
+        ? serviceDetail.availability
+        : data?.serviceSubCategory?.availability;
+  
+    if (!availability?.length) return false;
+  
+    return availability.some((slot) => {
+      if (!slot?.day) return false;
+  
+      if (Array.isArray(slot.day)) {
+        return slot.day.map(d => d.toLowerCase()).includes(dayName);
+      }
+  
+      if (typeof slot.day === "string") {
+        return slot.day.toLowerCase().includes(dayName);
+      }
+  
+      return false;
+    });
   };
 
   const handleBooking = async () => {
