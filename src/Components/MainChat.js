@@ -227,8 +227,7 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
   // };
   const sendMessage = () => {
     if (
-      packageDetails.user?.role == 2 &&
-      packageDetails?.subscriptionDetail?.subscriptionPlan
+      packageDetails.user?.role == 2 &&  packageDetails?.user.isSubscribed ==1
     ) {
       setShowPlanModal(false);
       if (message.trim() !== "" && socketRef.current && receiver_id) {
