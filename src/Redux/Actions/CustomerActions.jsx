@@ -562,6 +562,11 @@ const CustomerActions = {
       return response.data;
     }
   ),
+  // MARK: - LOG OUT
+  logOutUser: createAsyncThunk("/customer/auth/logOut", async () => {
+    const response = await Api.post("/customer/auth/logOut");
+    return response.data;
+  }),
 };
 
 export default CustomerActions;

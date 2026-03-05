@@ -105,13 +105,18 @@ export default function Header() {
     dispatch(CustomerActions.notificationToggler());
   };
 
-  const handleLogout = () => {
+    const handleLogout = async () => {
     setShowPlanModal(false);
     setShowLogoutModal(false);
-    toast.success("Log out successfully");
-    localStorage.clear();
-    Navigate(`/`);
-    window.location.reload();
+    const res = await dispatch(
+      CustomerActions.logOutUser()
+    );
+    if(res && res.payload?.success){
+      toast.success(res.payload?.message);
+      localStorage.clear();
+      Navigate(`/`);
+      window.location.reload();
+    }
   };
 
  const handleStripe = () => {
