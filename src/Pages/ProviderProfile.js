@@ -38,8 +38,8 @@ export default function ProviderProfile() {
         } else if (values[key] instanceof File && values[key]) {
           formData.append(key, values[key]);
         } else if (values[key] !== null && values[key] !== undefined && values[key] !== "") {
-          // Only append reference_skip if it's explicitly true
-          if (key === "reference_skip") {
+          // Only append skip flags if they're explicitly true
+          if (key === "reference_skip" || key === "document_skip") {
             if (values[key] === true) {
               formData.append(key, true);
             }
