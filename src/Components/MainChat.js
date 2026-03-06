@@ -226,22 +226,45 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
   //   }
   // };
   const sendMessage = () => {
-    if (
-      packageDetails.user?.role == 2 &&  packageDetails?.user.isSubscribed ==1
-    ) {
-      setShowPlanModal(false);
-      if (message.trim() !== "" && socketRef.current && receiver_id) {
-        const payload = {
-          sender_id,
-          receiver_id,
-          message,
-          message_type: 0,
-        };
-        socketRef.current.emit("send_message_new", payload);
-        console.log("MainChat: Sent message:", payload);
-        setMessage("");
+    // Service Provider (role 2) - check subscription
+    if (packageDetails.user?.role == 2) {
+      if (packageDetails?.user.isSubscribed == 1) {
+        setShowPlanModal(false);
+        if (message.trim() !== "" && socketRef.current && receiver_id) {
+          const payload = {
+            sender_id,
+            receiver_id,
+            message,
+            message_type: 0,
+          };
+          socketRef.current.emit("send_message_new", payload);
+          console.log("MainChat: Sent message:", payload);
+          setMessage("");
+        }
+      } else {
+        setShowPlanModal(true);
       }
-    } else if (packageDetails.user?.role == 1 || packageDetails.user?.role == 3) {
+    } 
+    else if (packageDetails.user?.role == 3) {
+      if (packageDetails?.user.isSubscribed == 1) {
+        setShowPlanModal(false);
+        if (message.trim() !== "" && socketRef.current && receiver_id) {
+          const payload = {
+            sender_id,
+            receiver_id,
+            message,
+            message_type: 0,
+          };
+          socketRef.current.emit("send_message_new", payload);
+          console.log("MainChat: Sent message:", payload);
+          setMessage("");
+        }
+      } else {
+        setShowPlanModal(true);
+      }
+    } 
+    // Customer (role 1) - no subscription check needed
+    else if (packageDetails.user?.role == 1) {
       if (message.trim() !== "" && socketRef.current && receiver_id) {
         const payload = {
           sender_id,
@@ -517,7 +540,16 @@ const MainChat = ({ sender_id, reciverID, socket }) => {
             <div className="d-flex justify-content-center mt-3">
               <button
                 className="primaryBtn"
-                onClick={() => navigate(`/payment`)}
+                onClick={() => {
+                  const role = packageDetails?.user?.role;
+                  if (role == 3) {
+                    // Corporate user - navigate to corporate subscription plan
+                    navigate(`/corporate/subscription-plan`);
+                  } else {
+                    // Service provider - navigate to payment
+                    navigate(`/payment`);
+                  }
+                }}
               >
                 Upgrade Plan
               </button>

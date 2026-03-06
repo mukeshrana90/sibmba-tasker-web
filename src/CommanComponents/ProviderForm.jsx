@@ -44,6 +44,7 @@ const ProviderForm = ({
     relation: "",
     designation: "",
     referenceEmail: "",
+    ref_phone_number: "",
     phone_number: "",
     govtIssueId: null,
     businessLicence: null,
@@ -57,6 +58,8 @@ const ProviderForm = ({
     desc: "",
     address: "",
     corporateCategoryId: "",
+    reference_skip: false,
+    document_skip: false,
   };
 
   const validationSchemas = [
@@ -105,7 +108,7 @@ const ProviderForm = ({
           referenceEmail: Yup.string()
             .email("Invalid email")
             .required("Email is required"),
-          phone_number: Yup.string()
+          ref_phone_number: Yup.string()
             .trim()
             .required("Phone number is required"),
         }),
@@ -294,6 +297,14 @@ const ProviderForm = ({
 
   const validatePreviousSteps = async (values) => {
     for (let i = 0; i < currentStep; i++) {
+      // Skip validation for step 2 (reference step) if reference_skip is true
+      if (i === 2 && !isCorporate && (values.reference_skip === true || values.reference_skip === "true")) {
+        continue;
+      }
+      // Skip validation for step 3 (document step) if document_skip is true
+      if (i === 3 && !isCorporate && (values.document_skip === true || values.document_skip === "true")) {
+        continue;
+      }
       try {
         await validationSchemas[i].validate(values, { abortEarly: false });
       } catch (errors) {
@@ -323,7 +334,12 @@ const ProviderForm = ({
     setFieldValue,
     values,
     setFieldTouched,
-    touched
+    touched,
+    handleSubmit,
+    setCurrentStep,
+    filterApiPayload,
+    errors,
+    isSubmitting
   ) => {
     switch (currentStep) {
       case 0:
@@ -752,11 +768,9 @@ const ProviderForm = ({
                       type="text"
                       placeholder="Enter Name"
                     />
-                    <ErrorMessage
-                      name="reference_name"
-                      component="div"
-                      className="text-danger"
-                    />
+                    {touched.reference_name && errors.reference_name && (
+                      <div className="text-danger">{errors.reference_name}</div>
+                    )}
                   </Form.Group>
                 </div>
               </Col>
@@ -770,11 +784,9 @@ const ProviderForm = ({
                       type="text"
                       placeholder="Enter Relation"
                     />
-                    <ErrorMessage
-                      name="relation"
-                      component="div"
-                      className="text-danger"
-                    />
+                    {touched.relation && errors.relation && (
+                      <div className="text-danger">{errors.relation}</div>
+                    )}
                   </Form.Group>
                 </div>
               </Col>
@@ -801,11 +813,9 @@ const ProviderForm = ({
                       type="email"
                       placeholder="Enter Email"
                     />
-                    <ErrorMessage
-                      name="referenceEmail"
-                      component="div"
-                      className="text-danger"
-                    />
+                    {touched.referenceEmail && errors.referenceEmail && (
+                      <div className="text-danger">{errors.referenceEmail}</div>
+                    )}
                   </Form.Group>
                 </div>
               </Col>
@@ -830,22 +840,22 @@ const ProviderForm = ({
                 /> */}
                 <PhoneNumberInput
                   initialCountry="in"
-                  value={values.phone_number || ""}
+                  value={values.ref_phone_number || ""}
                   setFieldValue={setFieldValue}
                   onChange={(phone) => {
-                    setFieldValue("phone_number", phone);
-                    setFieldTouched("phone_number", true);
+                    setFieldValue("ref_phone_number", phone);
+                    setFieldTouched("ref_phone_number", true);
                   }}
                   error={
-                    touched.phone_number && (
+                    touched.ref_phone_number && (
                       <ErrorMessage
-                        name="phone_number"
+                        name="ref_phone_number"
                         component="div"
                         className="text-danger"
                       />
                     )
                   }
-                  touched={touched.phone_number}
+                  touched={touched.ref_phone_number}
                 />
               </Col>
             </Row>
@@ -1285,9 +1295,26 @@ const ProviderForm = ({
     <Formik
       initialValues={initialValues}
       validationSchema={validationSchemas[currentStep]}
-      validateOnChange={true}
+      validateOnChange={false}
       validateOnBlur={false}
-      onSubmit={async (values, { setSubmitting }) => {
+      validateOnMount={false}
+      enableReinitialize={true}
+      onSubmit={async (values, { setSubmitting, setTouched, validateForm }) => {
+        // Mark reference fields as touched only when user clicks Continue (not on page load)
+        if (currentStep === 2 && !isCorporate) {
+          const errors = await validateForm();
+          if (errors && Object.keys(errors).length > 0) {
+            setTouched({
+              reference_name: true,
+              relation: true,
+              referenceEmail: true,
+              ref_phone_number: true,
+            });
+            setSubmitting(false);
+            return;
+          }
+        }
+        
         if (currentStep === 0 && !values.profile_image) {
           toast.error("Please upload a profile image before proceeding.");
           setSubmitting(false);
@@ -1295,23 +1322,34 @@ const ProviderForm = ({
         }
 
         if (currentStep === 3 || (currentStep === 2 && isCorporate)) {
-          if (
-            !values.govtIssueId &&
-            !values.businessLicence &&
-            !values.permit &&
-            !values.certifications
-          ) {
-            toast.error("At least one document is required");
-            setSubmitting(false);
-            return;
+          // Skip document validation if document_skip is true
+          if (!values.document_skip) {
+            if (
+              !values.govtIssueId &&
+              !values.businessLicence &&
+              !values.permit &&
+              !values.certifications
+            ) {
+              toast.error("At least one document is required");
+              setSubmitting(false);
+              return;
+            }
           }
         }
 
-        const previousStepsValid = await validatePreviousSteps(values);
-        if (!previousStepsValid) {
-          toast.error("Please complete all previous steps before proceeding.");
-          setSubmitting(false);
-          return;
+        // Skip validation check for provider side if reference or documents were skipped
+        // Only validate previous steps if we're not skipping any steps
+        const shouldSkipValidation = 
+          (!isCorporate && currentStep === 3 && values.reference_skip === true) ||
+          (!isCorporate && currentStep === 4 && (values.reference_skip === true || values.document_skip === true));
+        
+        if (!shouldSkipValidation) {
+          const previousStepsValid = await validatePreviousSteps(values);
+          if (!previousStepsValid) {
+            toast.error("Please complete all previous steps before proceeding.");
+            setSubmitting(false);
+            return;
+          }
         }
         if (currentStep < 3) {
           if (currentStep === 2 && isCorporate) {
@@ -1329,6 +1367,13 @@ const ProviderForm = ({
             setCurrentStep(currentStep + 1);
           }
         } else if (currentStep === 3) {
+          // If documents were skipped, proceed without validation
+          if (!isCorporate && values.document_skip) {
+            setCurrentStep(currentStep + 1);
+            setSubmitting(false);
+            return;
+          }
+          
           setSubmitting(true);
           try {
             const filteredValues = filterApiPayload(values);
@@ -1374,12 +1419,95 @@ const ProviderForm = ({
         errors,
       }) => (
         <FormikForm className="commn-provider-docu">
-          {renderStepContent(setFieldValue, values, setFieldTouched, touched)}
-          <div className="submit-btnn">
+          {renderStepContent(setFieldValue, values, setFieldTouched, touched, handleSubmit, setCurrentStep, filterApiPayload, errors, isSubmitting)}
+          <div className="submit-btnn" style={{ display: "flex", gap: "12px", justifyContent: "flex-end", alignItems: "center" }}>
+            {!isCorporate && currentStep === 2 && (
+              <button
+                type="button"
+                className="submit forgot-btn half-width-btn"
+                style={{ 
+                  backgroundColor: "#f5f5f5", 
+                  borderColor: "#e0e0e0",
+                  color: "#333",
+                  borderRadius: "16px",
+                  padding: "10px 24px",
+                  fontWeight: "500",
+                  border: "1px solid #e0e0e0",
+                  transition: "all 0.3s ease"
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#e8e8e8";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "#f5f5f5";
+                }}
+                disabled={isSubmitting}
+                onClick={async () => {
+                  try {
+                    // Set reference_skip in form values so it persists across steps
+                    await setFieldValue("reference_skip", true);
+                    const skipValues = { ...values, reference_skip: true };
+                    const filteredValues = filterApiPayload(skipValues);
+                    await handleSubmit(filteredValues);
+                    // Small delay to ensure form values are updated
+                    setTimeout(() => {
+                      setCurrentStep(currentStep + 1);
+                    }, 100);
+                  } catch (error) {
+                    console.error("Error skipping reference:", error);
+                    toast.error("An error occurred while skipping reference.");
+                  }
+                }}
+              >
+                Skip
+              </button>
+            )}
+            {!isCorporate && currentStep === 3 && (
+              <button
+                type="button"
+                className="submit forgot-btn half-width-btn"
+                style={{ 
+                  backgroundColor: "#f5f5f5", 
+                  borderColor: "#e0e0e0",
+                  color: "#333",
+                  borderRadius: "16px",
+                  padding: "10px 24px",
+                  fontWeight: "500",
+                  border: "1px solid #e0e0e0",
+                  transition: "all 0.3s ease"
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#e8e8e8";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "#f5f5f5";
+                }}
+                disabled={isSubmitting}
+                onClick={async () => {
+                  try {
+                    // Set document_skip in form values so it persists across steps
+                    await setFieldValue("document_skip", true);
+                    const skipValues = { ...values, document_skip: true };
+                    const filteredValues = filterApiPayload(skipValues);
+                    await handleSubmit(filteredValues);
+                    // Small delay to ensure form values are updated
+                    setTimeout(() => {
+                      setCurrentStep(currentStep + 1);
+                    }, 100);
+                  } catch (error) {
+                    console.error("Error skipping documents:", error);
+                    toast.error("An error occurred while skipping documents.");
+                  }
+                }}
+              >
+                Skip
+              </button>
+            )}
             <button
               type="submit"
               className="submit forgot-btn half-width-btn"
               disabled={isSubmitting}
+              style={{ borderRadius: "16px", padding: "10px 24px" }}
             >
               {currentStep === 3 || currentStep === 4 ? "Submit" : "Continue"}
             </button>

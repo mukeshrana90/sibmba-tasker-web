@@ -83,14 +83,15 @@ export default function SuggestedCorporatePage() {
       if (apiRes?.payload?.success) {
         dispatch(setCustomer(apiRes?.payload?.data.user));
       }
-      const user = apiRes?.payload?.data?.subscriptionDetail;
+      const isSubscribed = apiRes?.payload?.data?.user?.isSubscribed;
+      const corporateUser = isSubscribed === 1; // true if subscribed (1), false if not (0)
       setRole(apiRes?.payload?.data.user?.role);
-      setPackageDetails(user);
+      setPackageDetails(corporateUser);
     } catch (error) {
       console.error("Subscription check failed:", error);
     }
   };
-  const isSubscriptionExpired = (packageDetails) => {
+  const isSubscriptionExpiredOld = (packageDetails) => {
     if (!packageDetails || Object.keys(packageDetails).length === 0) {
       return true;
     }
@@ -107,6 +108,9 @@ export default function SuggestedCorporatePage() {
     }
 
     return false;
+  };
+  const isSubscriptionExpired = (packageDetails) => {
+    return !packageDetails;
   };
 
   return (

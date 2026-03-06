@@ -5817,3 +5817,10 @@ section.page-mt {
     width: 30px;
   }
 }
+.skip-btn {
+  background: #d5efe6;
+  border: 1px solid #278754db;
+  color: #333 !important;
+  border-radius: 16px !important;
+  padding: 10px 20px !important;
+}

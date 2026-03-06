@@ -37,8 +37,15 @@ export default function ProviderProfile() {
           });
         } else if (values[key] instanceof File && values[key]) {
           formData.append(key, values[key]);
-        } else if (values[key]) {
-          formData.append(key, values[key]);
+        } else if (values[key] !== null && values[key] !== undefined && values[key] !== "") {
+          // Only append reference_skip if it's explicitly true
+          if (key === "reference_skip") {
+            if (values[key] === true) {
+              formData.append(key, true);
+            }
+          } else {
+            formData.append(key, values[key]);
+          }
         }
       });
       if(isCorporate && currentStep === 3){
