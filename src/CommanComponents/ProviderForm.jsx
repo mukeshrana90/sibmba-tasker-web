@@ -162,6 +162,13 @@ const ProviderForm = ({
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [hasExistingAddress, setHasExistingAddress] = useState(false);
+  
+  // Default Zimbabwe coordinates (Harare)
+  const defaultZimbabweLocation = {
+    lat: -17.8292,
+    lng: 31.0522,
+    address: "Harare, Zimbabwe"
+  };
 
   // Get current location when modal opens
   useEffect(() => {
@@ -176,8 +183,19 @@ const ProviderForm = ({
           },
           (error) => {
             console.error("Error getting current location:", error);
+            // If geolocation fails, use default Zimbabwe location
+            setCurrentLocation({
+              lat: defaultZimbabweLocation.lat,
+              lng: defaultZimbabweLocation.lng,
+            });
           }
         );
+      } else {
+        // If geolocation is not available, use default Zimbabwe location
+        setCurrentLocation({
+          lat: defaultZimbabweLocation.lat,
+          lng: defaultZimbabweLocation.lng,
+        });
       }
     }
 
@@ -712,7 +730,7 @@ const ProviderForm = ({
                       <Form.Control
                         type="text"
                         placeholder="Click to select address"
-                        value={values.street_address || ""}
+                        value={values.street_address ? values.street_address : ""}
                         readOnly
                         onClick={() => {
                           // Initialize selectedAddress if street_address exists
@@ -744,6 +762,7 @@ const ProviderForm = ({
                             setFieldValue("long", "");
                             setFieldTouched("street_address", false);
                             setSelectedAddress(null);
+                            setHasExistingAddress(false);
                           }}
                           style={{
                             position: "absolute",
@@ -1697,15 +1716,14 @@ const ProviderForm = ({
                                 lng: parseFloat(lng),
                                 value: {
                                   description: address,
-                                }
+                                },
+                                place: place // Store the place object for later use
                               };
                               setSelectedAddress(addressData);
                               setCurrentLocation(null); // Clear current location when address is selected
                             }
                             
-                            // Use handlePlaceSelect to populate all fields
-                            handlePlaceSelect(place, setFieldValue, setFieldTouched, values);
-                            
+                            // Don't populate form fields yet - wait for Select button click
                             // Don't close modal automatically - user will click Select button
                           }
                         }}
@@ -1727,10 +1745,23 @@ const ProviderForm = ({
                         borderRadius: "8px",
                         whiteSpace: "nowrap",
                         height: "38px",
-                        marginTop: "0"
+                        marginTop: "0",
+                        backgroundColor: "#278754",
+                        color: "#ffffff",
+                        border: "none"
                       }}
                       onClick={() => {
                         if (selectedAddress || values.street_address) {
+                          // If address is selected, update the form fields using handlePlaceSelect
+                          if (selectedAddress && selectedAddress.place) {
+                            handlePlaceSelect(selectedAddress.place, setFieldValue, setFieldTouched, values);
+                          } else if (selectedAddress) {
+                            // Fallback if place object is not available
+                            setFieldValue("street_address", selectedAddress.label || selectedAddress.value?.description || "");
+                            setFieldValue("lat", selectedAddress.lat);
+                            setFieldValue("long", selectedAddress.lng);
+                            setFieldTouched("street_address", true);
+                          }
                           setShowAddressModal(false);
                         } else {
                           toast.error("Please select an address first");
@@ -1743,7 +1774,7 @@ const ProviderForm = ({
                   </div>
                 </div>
                 <div className="mt-3" style={{ height: "400px", width: "100%", minHeight: "400px", position: "relative", zIndex: 1 }}>
-                  {((selectedAddress && selectedAddress.lat && selectedAddress.lng) || (values.lat && values.long) || currentLocation) ? (
+                  {((selectedAddress && selectedAddress.lat && selectedAddress.lng) || (values.lat && values.long) || currentLocation || defaultZimbabweLocation) ? (
                     <MapComponent
                       coordinates={
                         selectedAddress && selectedAddress.lat && selectedAddress.lng
@@ -1752,14 +1783,14 @@ const ProviderForm = ({
                           ? [parseFloat(values.long), parseFloat(values.lat)]
                           : currentLocation
                           ? [parseFloat(currentLocation.lng), parseFloat(currentLocation.lat)]
-                          : null
+                          : [defaultZimbabweLocation.lng, defaultZimbabweLocation.lat]
                       }
                       address={
                         selectedAddress?.value?.description || 
                         selectedAddress?.label || 
                         values.street_address || 
-                        "Current Location" ||
-                        ""
+                        (currentLocation ? "Current Location" : defaultZimbabweLocation.address) ||
+                        defaultZimbabweLocation.address
                       }
                       onMapClick={async (clickedPosition) => {
                         try {
@@ -1780,31 +1811,20 @@ const ProviderForm = ({
                                   }
                                 };
 
-                                // Update selected address
+                                // Update selected address with place object
                                 const addressData = {
                                   label: results[0].formatted_address,
                                   lat: clickedPosition.lat,
                                   lng: clickedPosition.lng,
                                   value: {
                                     description: results[0].formatted_address,
-                                  }
+                                  },
+                                  place: place // Store the place object for later use
                                 };
                                 setSelectedAddress(addressData);
                                 setCurrentLocation(null);
-
-                                // Use handlePlaceSelect to populate all form fields
-                                handlePlaceSelect(place, setFieldValue, setFieldTouched, values);
-
-                                // Update the address input field value directly
-                                setTimeout(() => {
-                                  const addressInputs = document.querySelectorAll('input.form-control');
-                                  addressInputs.forEach((input) => {
-                                    if (input.placeholder && input.placeholder.toLowerCase().includes('address')) {
-                                      input.value = results[0].formatted_address;
-                                    }
-                                  });
-                                }, 100);
                                 
+                                // Don't populate form fields yet - wait for Select button click
                                 // Don't close modal automatically - user will click Select button
                               } else {
                                 console.error('Geocoder failed due to: ' + status);
