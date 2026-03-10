@@ -645,32 +645,66 @@ const ProviderForm = ({
                   <div className="form-set">
                     <Form.Group className="mb-3" controlId="formShopName">
                       <Form.Label>Company Address*</Form.Label>
-                      <AddressAutocomplete
-                        apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
-                        placeholder="Company Address"
-                        onPlaceSelected={(place) =>
-                          setFieldValue("address", place.formatted_address)
-                        }
-                        defaultValue={values.address}
-                        options={{
-                          types: ["address"],
-                        }}
-                        onChange={(e) => {
-                          setFieldValue("address", e.target.value);
-                          setFieldTouched("address", true);
-                          if (e.target.value.trim() === "") {
-                            setFieldValue("address", "");
-                            setFieldTouched("address", false);
-                          }
-                        }}
-                      />
-
-                      {/* <Field
-                        name="address"
-                        as={Form.Control}
-                        type="text"
-                        placeholder="Company Address"
-                      /> */}
+                      <div style={{ position: "relative" }}>
+                        <Form.Control
+                          type="text"
+                          placeholder="Click to select address"
+                          value={values.address ? values.address : ""}
+                          readOnly
+                          onClick={() => {
+                            // Initialize selectedAddress if address exists
+                            if (values.address && values.lat && values.long) {
+                              setSelectedAddress({
+                                label: values.address,
+                                lat: parseFloat(values.lat),
+                                lng: parseFloat(values.long),
+                                value: {
+                                  description: values.address,
+                                }
+                              });
+                              setHasExistingAddress(true);
+                            } else {
+                              setSelectedAddress(null);
+                              setHasExistingAddress(false);
+                            }
+                            setShowAddressModal(true);
+                          }}
+                          style={{ cursor: "pointer" }}
+                        />
+                        {values.address && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFieldValue("address", "");
+                              setFieldValue("lat", "");
+                              setFieldValue("long", "");
+                              setFieldTouched("address", false);
+                              setSelectedAddress(null);
+                              setHasExistingAddress(false);
+                            }}
+                            style={{
+                              position: "absolute",
+                              right: "10px",
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              background: "none",
+                              border: "none",
+                              fontSize: "18px",
+                              cursor: "pointer",
+                              color: "#999",
+                              padding: "0",
+                              width: "20px",
+                              height: "20px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center"
+                            }}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                       <ErrorMessage
                         name="address"
                         component="div"
@@ -1694,7 +1728,7 @@ const ProviderForm = ({
                   <div style={{ position: "relative", width: "100%", display: "flex", gap: "10px", alignItems: "flex-start" }}>
                     <div style={{ flex: 1, position: "relative" }}>
                       <AddressAutocomplete
-                        key={`address-autocomplete-${showAddressModal}`}
+                        key={`address-autocomplete-${showAddressModal}-${selectedAddress?.label}`}
                         apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
                         onPlaceSelected={(place) => {
                           if (place) {
@@ -1727,13 +1761,17 @@ const ProviderForm = ({
                             // Don't close modal automatically - user will click Select button
                           }
                         }}
-                        defaultValue={values.street_address || ""}
+                        defaultValue={selectedAddress?.label || (isCorporate ? values.address : values.street_address) || ""}
                         options={{
                           types: ["address"],
                           componentRestrictions: { country: [] }
                         }}
                         onChange={(e) => {
                           // Allow typing in the search field - this is needed for autocomplete to work
+                          // If user is typing, clear the selected address to prevent conflicts
+                          if (selectedAddress && e.target.value !== selectedAddress.label) {
+                            setSelectedAddress(null);
+                          }
                         }}
                       />
                     </div>
@@ -1751,23 +1789,39 @@ const ProviderForm = ({
                         border: "none"
                       }}
                       onClick={() => {
-                        if (selectedAddress || values.street_address) {
-                          // If address is selected, update the form fields using handlePlaceSelect
+                        if (selectedAddress || (isCorporate ? values.address : values.street_address)) {
+                          // If address is selected, update the form fields
                           if (selectedAddress && selectedAddress.place) {
-                            handlePlaceSelect(selectedAddress.place, setFieldValue, setFieldTouched, values);
+                            if (isCorporate) {
+                              // For corporate, just set the address field
+                              setFieldValue("address", selectedAddress.label || selectedAddress.value?.description || "");
+                              setFieldValue("lat", selectedAddress.lat);
+                              setFieldValue("long", selectedAddress.lng);
+                              setFieldTouched("address", true);
+                            } else {
+                              // For non-corporate, use the detailed address parsing
+                              handlePlaceSelect(selectedAddress.place, setFieldValue, setFieldTouched, values);
+                            }
                           } else if (selectedAddress) {
                             // Fallback if place object is not available
-                            setFieldValue("street_address", selectedAddress.label || selectedAddress.value?.description || "");
-                            setFieldValue("lat", selectedAddress.lat);
-                            setFieldValue("long", selectedAddress.lng);
-                            setFieldTouched("street_address", true);
+                            if (isCorporate) {
+                              setFieldValue("address", selectedAddress.label || selectedAddress.value?.description || "");
+                              setFieldValue("lat", selectedAddress.lat);
+                              setFieldValue("long", selectedAddress.lng);
+                              setFieldTouched("address", true);
+                            } else {
+                              setFieldValue("street_address", selectedAddress.label || selectedAddress.value?.description || "");
+                              setFieldValue("lat", selectedAddress.lat);
+                              setFieldValue("long", selectedAddress.lng);
+                              setFieldTouched("street_address", true);
+                            }
                           }
                           setShowAddressModal(false);
                         } else {
                           toast.error("Please select an address first");
                         }
                       }}
-                      disabled={!selectedAddress && !values.street_address}
+                      disabled={!selectedAddress && !(isCorporate ? values.address : values.street_address)}
                     >
                       Select
                     </button>
@@ -1788,7 +1842,7 @@ const ProviderForm = ({
                       address={
                         selectedAddress?.value?.description || 
                         selectedAddress?.label || 
-                        values.street_address || 
+                        (isCorporate ? values.address : values.street_address) || 
                         (currentLocation ? "Current Location" : defaultZimbabweLocation.address) ||
                         defaultZimbabweLocation.address
                       }
