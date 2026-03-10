@@ -4,11 +4,13 @@ import * as Yup from "yup";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
+import Modal from "react-bootstrap/Modal";
 import defaultSilhouette from "../Assets/Images/silhotte.svg";
 import uploadSvg from "../Assets/Images/upload.svg";
 import PhoneNumberInput from "./PhoneNumberInput";
 import SuccessModal from "./Modals/SuccessModal";
 import AddressAutocomplete from "./AddressAutocomplete";
+import MapComponent from "./MapComponent";
 import { toast } from "react-toastify";
 import { timeSchedule, weekDays } from "../utils/rawjson";
 import { useDispatch, useSelector } from "react-redux";
@@ -156,6 +158,50 @@ const ProviderForm = ({
     images: false,
   });
   const [showModal, setShowModal] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [hasExistingAddress, setHasExistingAddress] = useState(false);
+
+  // Get current location when modal opens
+  useEffect(() => {
+    if (showAddressModal && !currentLocation && !selectedAddress && !hasExistingAddress) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setCurrentLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          },
+          (error) => {
+            console.error("Error getting current location:", error);
+          }
+        );
+      }
+    }
+
+    // Fix Google Places Autocomplete dropdown z-index when modal is open
+    if (showAddressModal) {
+      const fixPacContainer = () => {
+        const pacContainers = document.querySelectorAll('.pac-container');
+        pacContainers.forEach((container) => {
+          if (container) {
+            container.style.zIndex = '1055';
+            container.style.position = 'absolute';
+          }
+        });
+      };
+
+      // Fix immediately and also after a short delay to catch dynamically created containers
+      fixPacContainer();
+      const interval = setInterval(fixPacContainer, 100);
+
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [showAddressModal, currentLocation, selectedAddress, hasExistingAddress]);
 
   const profileInputRef = useRef(null);
   const govtIssueIdInputRef = useRef(null);
@@ -339,7 +385,13 @@ const ProviderForm = ({
     setCurrentStep,
     filterApiPayload,
     errors,
-    isSubmitting
+    isSubmitting,
+    showAddressModal,
+    setShowAddressModal,
+    selectedAddress,
+    setSelectedAddress,
+    handlePlaceSelect,
+    currentLocation
   ) => {
     switch (currentStep) {
       case 0:
@@ -656,41 +708,65 @@ const ProviderForm = ({
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formStreetAddress">
                     <Form.Label>Street Address*</Form.Label>
-                    {/* <AddressAutocomplete
-                      apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
-                      onPlaceSelected={(place) => handlePlaceSelect(place, setFieldValue, setFieldTouched, values)}
-                      defaultValue={values.street_address}
-                      options={{
-                        types: ["address"],
-                      }}
-                      onChange={(e) => {
-                        setFieldValue("street_address", e.target.value);
-                        setFieldTouched("street_address", true);
-                      }}
-                    /> */}
-                    <AddressAutocomplete
-                      apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
-                      onPlaceSelected={(place) =>
-                        handlePlaceSelect(
-                          place,
-                          setFieldValue,
-                          setFieldTouched,
-                          values
-                        )
-                      }
-                      defaultValue={values.street_address}
-                      options={{
-                        types: ["address"],
-                      }}
-                      onChange={(e) => {
-                        setFieldValue("street_address", e.target.value);
-                        setFieldTouched("street_address", true);
-                        if (e.target.value.trim() === "") {
-                          setFieldValue("street_address", "");
-                          setFieldTouched("street_address", false);
-                        }
-                      }}
-                    />
+                    <div style={{ position: "relative" }}>
+                      <Form.Control
+                        type="text"
+                        placeholder="Click to select address"
+                        value={values.street_address || ""}
+                        readOnly
+                        onClick={() => {
+                          // Initialize selectedAddress if street_address exists
+                          if (values.street_address && values.lat && values.long) {
+                            setSelectedAddress({
+                              label: values.street_address,
+                              lat: parseFloat(values.lat),
+                              lng: parseFloat(values.long),
+                              value: {
+                                description: values.street_address,
+                              }
+                            });
+                            setHasExistingAddress(true);
+                          } else {
+                            setSelectedAddress(null);
+                            setHasExistingAddress(false);
+                          }
+                          setShowAddressModal(true);
+                        }}
+                        style={{ cursor: "pointer" }}
+                      />
+                      {values.street_address && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFieldValue("street_address", "");
+                            setFieldValue("lat", "");
+                            setFieldValue("long", "");
+                            setFieldTouched("street_address", false);
+                            setSelectedAddress(null);
+                          }}
+                          style={{
+                            position: "absolute",
+                            right: "10px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            background: "none",
+                            border: "none",
+                            fontSize: "18px",
+                            cursor: "pointer",
+                            color: "#999",
+                            padding: "0",
+                            width: "20px",
+                            height: "20px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                          }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                     <ErrorMessage
                       name="street_address"
                       component="div"
@@ -839,7 +915,7 @@ const ProviderForm = ({
                   }
                 /> */}
                 <PhoneNumberInput
-                  initialCountry="in"
+                  initialCountry="zw"
                   value={values.ref_phone_number || ""}
                   setFieldValue={setFieldValue}
                   onChange={(phone) => {
@@ -1419,7 +1495,7 @@ const ProviderForm = ({
         errors,
       }) => (
         <FormikForm className="commn-provider-docu">
-          {renderStepContent(setFieldValue, values, setFieldTouched, touched, handleSubmit, setCurrentStep, filterApiPayload, errors, isSubmitting)}
+          {renderStepContent(setFieldValue, values, setFieldTouched, touched, handleSubmit, setCurrentStep, filterApiPayload, errors, isSubmitting, showAddressModal, setShowAddressModal, selectedAddress, setSelectedAddress, handlePlaceSelect, currentLocation)}
           <div className="submit-btnn" style={{ display: "flex", gap: "12px", justifyContent: "flex-end", alignItems: "center" }}>
             {!isCorporate && currentStep === 2 && (
               <button
@@ -1507,7 +1583,13 @@ const ProviderForm = ({
               type="submit"
               className="submit forgot-btn half-width-btn"
               disabled={isSubmitting}
-              style={{ borderRadius: "16px", padding: "10px 24px" }}
+              style={{ 
+                borderRadius: "16px", 
+                padding: "10px 24px",
+                backgroundColor: "#278754",
+                color: "#ffffff",
+                border: "none"
+              }}
             >
               {currentStep === 3 || currentStep === 4 ? "Submit" : "Continue"}
             </button>
@@ -1556,6 +1638,203 @@ const ProviderForm = ({
             //   navigate("/requests", { replace: true });
             // }}
           />
+
+          {/* Address Selection Modal */}
+          <Modal
+            show={showAddressModal}
+            onHide={() => {
+              setShowAddressModal(false);
+              setSelectedAddress(null);
+              setCurrentLocation(null);
+            }}
+            centered
+            size="lg"
+            style={{ zIndex: 1050 }}
+          >
+            <style>
+              {`
+                .pac-container {
+                  z-index: 1055 !important;
+                  position: absolute !important;
+                }
+                .modal.show {
+                  z-index: 1050 !important;
+                }
+                .modal-backdrop {
+                  z-index: 1040 !important;
+                }
+              `}
+            </style>
+            <Modal.Header closeButton className="border-none pb-0">
+              <Modal.Title>Select Address</Modal.Title>
+            </Modal.Header>
+            <Modal.Body style={{ position: "relative", overflow: "visible", padding: "20px" }}>
+              <div className="comman-small-pop" style={{ position: "relative" }}>
+                <div className="mb-3" style={{ position: "relative" }}>
+                  <label className="form-label" style={{ marginBottom: "8px", display: "block" }}>Search Address</label>
+                  <div style={{ position: "relative", width: "100%", display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                    <div style={{ flex: 1, position: "relative" }}>
+                      <AddressAutocomplete
+                        key={`address-autocomplete-${showAddressModal}`}
+                        apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
+                        onPlaceSelected={(place) => {
+                          if (place) {
+                            const geometry = place.geometry?.location;
+                            const address = place.formatted_address || place.name;
+                            
+                            // Get lat/lng - handle both function and number formats
+                            let lat, lng;
+                            if (geometry) {
+                              lat = typeof geometry.lat === 'function' ? geometry.lat() : (geometry.lat || geometry.lat());
+                              lng = typeof geometry.lng === 'function' ? geometry.lng() : (geometry.lng || geometry.lng());
+                            }
+                            
+                            // Store selected address for map display immediately
+                            if (lat != null && lng != null) {
+                              const addressData = {
+                                label: address,
+                                lat: parseFloat(lat),
+                                lng: parseFloat(lng),
+                                value: {
+                                  description: address,
+                                }
+                              };
+                              setSelectedAddress(addressData);
+                              setCurrentLocation(null); // Clear current location when address is selected
+                            }
+                            
+                            // Use handlePlaceSelect to populate all fields
+                            handlePlaceSelect(place, setFieldValue, setFieldTouched, values);
+                            
+                            // Don't close modal automatically - user will click Select button
+                          }
+                        }}
+                        defaultValue={values.street_address || ""}
+                        options={{
+                          types: ["address"],
+                          componentRestrictions: { country: [] }
+                        }}
+                        onChange={(e) => {
+                          // Allow typing in the search field - this is needed for autocomplete to work
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{
+                        padding: "8px 20px",
+                        borderRadius: "8px",
+                        whiteSpace: "nowrap",
+                        height: "38px",
+                        marginTop: "0"
+                      }}
+                      onClick={() => {
+                        if (selectedAddress || values.street_address) {
+                          setShowAddressModal(false);
+                        } else {
+                          toast.error("Please select an address first");
+                        }
+                      }}
+                      disabled={!selectedAddress && !values.street_address}
+                    >
+                      Select
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3" style={{ height: "400px", width: "100%", minHeight: "400px", position: "relative", zIndex: 1 }}>
+                  {((selectedAddress && selectedAddress.lat && selectedAddress.lng) || (values.lat && values.long) || currentLocation) ? (
+                    <MapComponent
+                      coordinates={
+                        selectedAddress && selectedAddress.lat && selectedAddress.lng
+                          ? [parseFloat(selectedAddress.lng), parseFloat(selectedAddress.lat)]
+                          : values.lat && values.long
+                          ? [parseFloat(values.long), parseFloat(values.lat)]
+                          : currentLocation
+                          ? [parseFloat(currentLocation.lng), parseFloat(currentLocation.lat)]
+                          : null
+                      }
+                      address={
+                        selectedAddress?.value?.description || 
+                        selectedAddress?.label || 
+                        values.street_address || 
+                        "Current Location" ||
+                        ""
+                      }
+                      onMapClick={async (clickedPosition) => {
+                        try {
+                          // Reverse geocode the clicked coordinates
+                          const geocoder = new window.google.maps.Geocoder();
+                          geocoder.geocode(
+                            { location: clickedPosition },
+                            (results, status) => {
+                              if (status === 'OK' && results && results[0]) {
+                                const place = {
+                                  formatted_address: results[0].formatted_address,
+                                  address_components: results[0].address_components,
+                                  geometry: {
+                                    location: {
+                                      lat: () => clickedPosition.lat,
+                                      lng: () => clickedPosition.lng,
+                                    }
+                                  }
+                                };
+
+                                // Update selected address
+                                const addressData = {
+                                  label: results[0].formatted_address,
+                                  lat: clickedPosition.lat,
+                                  lng: clickedPosition.lng,
+                                  value: {
+                                    description: results[0].formatted_address,
+                                  }
+                                };
+                                setSelectedAddress(addressData);
+                                setCurrentLocation(null);
+
+                                // Use handlePlaceSelect to populate all form fields
+                                handlePlaceSelect(place, setFieldValue, setFieldTouched, values);
+
+                                // Update the address input field value directly
+                                setTimeout(() => {
+                                  const addressInputs = document.querySelectorAll('input.form-control');
+                                  addressInputs.forEach((input) => {
+                                    if (input.placeholder && input.placeholder.toLowerCase().includes('address')) {
+                                      input.value = results[0].formatted_address;
+                                    }
+                                  });
+                                }, 100);
+                                
+                                // Don't close modal automatically - user will click Select button
+                              } else {
+                                console.error('Geocoder failed due to: ' + status);
+                                toast.error('Could not get address for selected location');
+                              }
+                            }
+                          );
+                        } catch (error) {
+                          console.error('Error reverse geocoding:', error);
+                          toast.error('Error getting address for selected location');
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div style={{ 
+                      height: "400px", 
+                      width: "100%", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center",
+                      backgroundColor: "#f5f5f5",
+                      border: "1px dashed #ccc"
+                    }}>
+                      <p className="text-muted">Map will appear when you search or select an address</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Modal.Body>
+          </Modal>
         </FormikForm>
       )}
     </Formik>

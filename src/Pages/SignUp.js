@@ -78,7 +78,7 @@ export default function SignUp() {
     setSignupLoading(true);
     const payload = {
       email: formik.values.email,
-      country_code: formik.values.country_code || "+91",
+      country_code: formik.values.country_code || "+263",
       phone_number: formik.values.phone,
       password: formik.values.password,
       role: Number(role) || 1,

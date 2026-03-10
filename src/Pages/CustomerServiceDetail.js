@@ -336,7 +336,12 @@ export default function CustomerServiceDetail() {
                     {/* Facebook */}
                     {serviceDetail?.serviceProviderId?.facebook_link && (
                       <a
-                        href={`//${serviceDetail?.serviceProviderId?.facebook_link}`}
+                        href={
+                          serviceDetail?.serviceProviderId?.facebook_link?.startsWith('http://') || 
+                          serviceDetail?.serviceProviderId?.facebook_link?.startsWith('https://')
+                            ? serviceDetail?.serviceProviderId?.facebook_link
+                            : `https://${serviceDetail?.serviceProviderId?.facebook_link}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -350,7 +355,12 @@ export default function CustomerServiceDetail() {
                     {/* Instagram */}
                     {serviceDetail?.serviceProviderId?.instagram_link && (
                       <a
-                        href={`//${serviceDetail?.serviceProviderId?.instagram_link}`}
+                        href={
+                          serviceDetail?.serviceProviderId?.instagram_link?.startsWith('http://') || 
+                          serviceDetail?.serviceProviderId?.instagram_link?.startsWith('https://')
+                            ? serviceDetail?.serviceProviderId?.instagram_link
+                            : `https://${serviceDetail?.serviceProviderId?.instagram_link}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -364,7 +374,12 @@ export default function CustomerServiceDetail() {
                     {/* Website */}
                     {serviceDetail?.serviceProviderId?.website_link && (
                       <a
-                        href={`//${serviceDetail?.serviceProviderId?.website_link}`}
+                        href={
+                          serviceDetail?.serviceProviderId?.website_link?.startsWith('http://') || 
+                          serviceDetail?.serviceProviderId?.website_link?.startsWith('https://')
+                            ? serviceDetail?.serviceProviderId?.website_link
+                            : `https://${serviceDetail?.serviceProviderId?.website_link}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                       >
