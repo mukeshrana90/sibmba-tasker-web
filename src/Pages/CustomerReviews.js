@@ -14,16 +14,11 @@ import StarRating from "../CommanComponents/StarRating";
 export default function CustomerReviews() {
   const Navigate = useNavigate();
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState("all");
   const reviewList = useSelector((e) => e.service.getReviewList);
 
   useEffect(() => {
-    let status;
-    if (activeTab === "all") status = null; // Fetch all reviews
-    else if (activeTab === "published") status = 1; // Published reviews
-    else if (activeTab === "rejected") status = 2; // Rejected reviews
-    dispatch(ServiceActions.getCustomerReviews({ status }));
-  }, [dispatch, activeTab]);
+    dispatch(ServiceActions.getCustomerReviews({}));
+  }, [dispatch]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -34,16 +29,23 @@ export default function CustomerReviews() {
   };
 
   const filteredReviews = (tab) => {
+    const list = Array.isArray(reviewList) ? reviewList : [];
     if (tab === "all") {
-      return (
-        reviewList?.filter((review) => !review.hasOwnProperty("status")) || []
-      );
-    } else if (tab === "published") {
-      return reviewList?.filter((review) => review.status === 1) || [];
-    } else if (tab === "rejected") {
-      return reviewList?.filter((review) => review.status === 2) || [];
+      return list;
+    }
+    if (tab === "published") {
+      return list.filter((review) => Number(review.status) === 1);
+    }
+    if (tab === "rejected") {
+      return list.filter((review) => Number(review.status) === 2);
     }
     return [];
+  };
+
+  const getReviewStatusNum = (review) => Number(review?.status);
+  const isReviewPending = (review) => {
+    const s = getReviewStatusNum(review);
+    return s !== 1 && s !== 2;
   };
 
   const handleReviewAction = (id, action) => {
@@ -55,7 +57,7 @@ export default function CustomerReviews() {
       dispatch(ServiceActions.updateReviewStatus(data)).then((res) => {
         if (res?.payload?.success) {
           toast.success("Review Published Successfully");
-          dispatch(ServiceActions.getCustomerReviews());
+          dispatch(ServiceActions.getCustomerReviews({}));
         }
       });
     } else {
@@ -66,7 +68,7 @@ export default function CustomerReviews() {
       dispatch(ServiceActions.updateReviewStatus(data)).then((res) => {
         if (res?.payload?.success) {
           toast.success("Review Rejected Successfully");
-          dispatch(ServiceActions.getCustomerReviews());
+          dispatch(ServiceActions.getCustomerReviews({}));
         }
       });
     }
@@ -84,7 +86,6 @@ export default function CustomerReviews() {
                   <Tab.Container
                     id="left-tabs-example"
                     defaultActiveKey="all"
-                    onSelect={(key) => setActiveTab(key)}
                   >
                     <Row>
                       <Col sm={12}>
@@ -116,8 +117,27 @@ export default function CustomerReviews() {
                                     md={6}
                                     className="mb-4"
                                   >
-                                    <div className="review-section">
-                                      <div>
+                                    <div
+                                      className={`review-section${
+                                        !isReviewPending(review)
+                                          ? " review-section--with-corner-badge"
+                                          : ""
+                                      }`}
+                                    >
+                                      {!isReviewPending(review) && (
+                                        <span
+                                          className={
+                                            getReviewStatusNum(review) === 1
+                                              ? "review-status-corner-badge review-status-corner-badge--published"
+                                              : "review-status-corner-badge review-status-corner-badge--rejected"
+                                          }
+                                        >
+                                          {getReviewStatusNum(review) === 1
+                                            ? "Published"
+                                            : "Rejected"}
+                                        </span>
+                                      )}
+                                      <div className="review-section-main">
                                         <div className="review-content">
                                           <div className=" review-main d-flex align-items-center">
                                             <img
@@ -134,40 +154,43 @@ export default function CustomerReviews() {
                                                 {review.user_id?.full_name ||
                                                   ""}
                                               </h3>
-                                         
-                                                  <StarRating averageRating={review?.rating} type={"noreview"}/>
-                                                {" "}
-                                            
-                                                {formatDate( review?.createdAt  )}
+
+                                              <StarRating
+                                                averageRating={review?.rating}
+                                                type={"noreview"}
+                                              />{" "}
+                                              {formatDate(review?.createdAt)}
                                             </div>
                                           </div>
                                           <p>{review.message || ""}</p>
                                         </div>
                                       </div>
-                                      <div className="review-btn">
-                                        <button
-                                          onClick={() =>
-                                            handleReviewAction(
-                                              review?._id,
-                                              "publish"
-                                            )
-                                          }
-                                          disabled={review.status === 1}
-                                        >
-                                          Publish
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            handleReviewAction(
-                                              review?._id,
-                                              "reject"
-                                            )
-                                          }
-                                          disabled={review.status === 2}
-                                        >
-                                          Reject
-                                        </button>
-                                      </div>
+                                      {isReviewPending(review) && (
+                                        <div className="review-btn">
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleReviewAction(
+                                                review?._id,
+                                                "publish"
+                                              )
+                                            }
+                                          >
+                                            Publish
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleReviewAction(
+                                                review?._id,
+                                                "reject"
+                                              )
+                                            }
+                                          >
+                                            Reject
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   </Col>
                                 ))}

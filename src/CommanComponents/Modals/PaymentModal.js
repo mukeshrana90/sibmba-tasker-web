@@ -63,7 +63,7 @@ const PaymentModal = ({
               </svg>
             </div>
             <p className="mb-3">
-              You service has been completed. Please pay to
+              Your service has been completed. Please pay to
               <br /> proceed further.
             </p>
             <h5>$ {data?.serviceSubCategory?.price || payment || data?.budget}</h5>

@@ -15,12 +15,14 @@ import "react-phone-input-2/lib/style.css";
 import { useQuery } from "../utils/CommonFunction";
 import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
 import { toast } from "react-toastify";
+import { getFirebaseToken } from "../utils/fireBaseConfig";
 
 export default function SignUp() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const query = useQuery();
   const role = query.get("role");
+  const [fcmToken, setFcmToken] = useState(null);
   const [localLoading, setLocalLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -67,6 +69,21 @@ export default function SignUp() {
   };
 
   useEffect(() => {
+    const handleGetFirebaseToken = async () => {
+      try {
+        const token = await getFirebaseToken();
+        setFcmToken(token);
+        if (token) {
+          localStorage.setItem("device_token", token);
+        }
+      } catch (error) {
+        console.error("An error occurred while retrieving the Firebase token: ", error);
+      }
+    };
+    handleGetFirebaseToken();
+  }, []);
+
+  useEffect(() => {
     const savedData = localStorage.getItem("signupFormData");
     if (savedData) {
       const parsedData = JSON.parse(savedData);
@@ -76,6 +93,19 @@ export default function SignUp() {
 
   const handleOtpTypeSelection = async (otpType) => {
     setSignupLoading(true);
+    let deviceToken = fcmToken || localStorage.getItem("device_token");
+    if (!deviceToken) {
+      try {
+        deviceToken = await getFirebaseToken();
+        if (deviceToken) {
+          setFcmToken(deviceToken);
+          localStorage.setItem("device_token", deviceToken);
+        }
+      } catch {
+        /* same as login: register without device_token if FCM unavailable */
+      }
+    }
+
     const payload = {
       email: formik.values.email,
       country_code: formik.values.country_code || "+263",
@@ -84,6 +114,9 @@ export default function SignUp() {
       role: Number(role) || 1,
       type: otpType,
     };
+    if (deviceToken) {
+      payload.device_token = deviceToken;
+    }
     const response = await dispatch(CustomerActions.createCustomer(payload));
     if (response?.payload?.status_code === 200) {
       toast.success(response?.payload?.message || "Registration successful");

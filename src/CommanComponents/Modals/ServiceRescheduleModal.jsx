@@ -99,8 +99,26 @@ const ServiceRescheduleModal = ({ show, setShow, service_id, data }) => {
   }, [data]);
 
   const isDateAvailable = (date) => {
-    const dayName = date.toLocaleString("en-US", { weekday: "long" }).toUpperCase();
-    return bookingReqDetail?.serviceSubCategory?.availability?.[0]?.day.includes(dayName);
+    if (!date) return false;
+    const dayName = date
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toLowerCase();
+
+    const availability = bookingReqDetail?.serviceSubCategory?.availability;
+    if (!Array.isArray(availability) || availability.length === 0) {
+      return true;
+    }
+
+    return availability.some((slot) => {
+      if (!slot?.day) return false;
+      if (Array.isArray(slot.day)) {
+        return slot.day.some((d) => String(d).toLowerCase() === dayName);
+      }
+      if (typeof slot.day === "string") {
+        return slot.day.toLowerCase() === dayName;
+      }
+      return false;
+    });
   };
 
 

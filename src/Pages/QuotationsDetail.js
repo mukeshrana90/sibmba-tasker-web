@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import Slider from "react-slick";
 import Modal from "react-bootstrap/Modal";
@@ -10,8 +10,8 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast } from "react-toastify";
 import Loader from "../CommanComponents/Loader";
+import { getQuotationPosterDecisionState } from "../utils/quotationPosterDecision";
 export default function QuotationsDetail() {
-  const navigate = useNavigate();
   const { id } = useParams()
   const dispatch = useDispatch()
   const [show, setShow] = useState(false);
@@ -52,53 +52,47 @@ export default function QuotationsDetail() {
       },
     ],
   };
-useEffect(() => {
-  const fetchData = async () => {
-    if (quotationDetailById) return;
+  useEffect(() => {
+    if (!id) return;
     setLoading(true);
-    try {
-      dispatch(CustomerActions.getQuotationDataById(id));
-    } catch (error) {
-      console.error('Error fetching quotation detail:', error);
-    } finally {
-      setLoading(false);
-    }
+    dispatch(CustomerActions.getQuotationDataById(id)).finally(() =>
+      setLoading(false)
+    );
+  }, [dispatch, id]);
+
+  const handleAccept = (data, type) => {
+    const obj = {
+      quatation_id: data?._id,
+      task_id: data?.task_id?._id,
+      service_provider_id: data?.service_provider?._id,
+      status: type === "accept" ? 1 : 2,
+    };
+    const providerName =
+      data?.service_provider?.full_name?.trim() || "Provider";
+
+    dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
+      if (res?.payload?.success) {
+        toast.success(
+          type === "accept"
+            ? `You accepted ${providerName}'s quotation.`
+            : `You rejected ${providerName}'s quotation.`
+        );
+        dispatch(CustomerActions.getQuotationDataById(id));
+        dispatch(CustomerActions.getMyQuotationsList());
+        dispatch(CustomerActions.getPostList());
+      } else {
+        toast.error(res?.payload?.message || "Could not update quotation.");
+      }
+    });
   };
 
-  if (id) {
-    fetchData();
-  }
-}, [dispatch, id, quotationDetailById]);
+  const posterState = quotationDetailById
+    ? getQuotationPosterDecisionState(quotationDetailById)
+    : { showActions: true, badge: null };
 
-   const handleAccept = (data, type) => {
-      let obj = {
-        quatation_id: data?._id,
-        task_id: data?.task_id?._id,
-        service_provider_id: data?.service_provider?._id,
-        status: type == "accept" ? 1 : 2
-      }
-      if(type == "accept") {
-      dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
-        if(res?.payload?.success){
-          toast.success("Accepted.")
-          navigate("/my-task")
-          dispatch(CustomerActions.getPostList());
-        }else {
-          toast.error(res?.payload?.message)
-        }
-      })
-    } else {
-      dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
-        if(res?.payload?.success){
-          toast.success("Rejected.")
-          navigate("/my-task")
-          dispatch(CustomerActions.getPostList());
-        }else {
-          toast.error(res?.payload?.message)
-        }
-      })
-    }
-    }
+  const isCustomerPoster =
+    Number(window.localStorage.getItem("role")) === 1 ||
+    String(window.localStorage.role) === "1";
 
 
   return (
@@ -264,10 +258,26 @@ useEffect(() => {
                       </div>
                     )}
                 </div>
-              {window.localStorage.role ===1  ? <div className="quotation-requests-btns">
-                <button onClick={() => handleAccept(quotationDetailById, "accept")}>Accept</button>
-                <button onClick={() => handleAccept(quotationDetailById, "reject")}>Reject</button>
-                </div> : ""}
+              {isCustomerPoster && posterState.showActions ? (
+                <div className="quotation-requests-btns">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleAccept(quotationDetailById, "accept")
+                    }
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleAccept(quotationDetailById, "reject")
+                    }
+                  >
+                    Reject
+                  </button>
+                </div>
+              ) : null}
               </div>
                )
               }

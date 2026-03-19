@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -40,6 +40,27 @@ const getStatusColor = (status) => {
 
   return statusMap[status] || "N/A";
 };
+
+const isSeekerConfirmedBookingData = (booking) => {
+  if (!booking || typeof booking !== "object") return false;
+  return (
+    booking.seeker_confirmed_completion === true ||
+    booking.seekerConfirmedCompletion === true ||
+    booking.is_seeker_confirmed_complete === true ||
+    booking.seeker_confirm_complete === true
+  );
+};
+
+const isSeekerConfirmedTaskData = (t) => {
+  if (!t || typeof t !== "object") return false;
+  return (
+    t.seeker_confirmed_completion === true ||
+    t.seekerConfirmedCompletion === true ||
+    t.is_seeker_confirmed_complete === true ||
+    t.seeker_confirm_complete === true
+  );
+};
+
 // const getStatusLabel = (status) => {
 //   const statusMap = {
 //     1: "Pending",
@@ -75,6 +96,13 @@ export default function UserBookingDetails() {
   const [refetchToggle, setRefetchToggle] = useState(false);
   const [corporateProfile, setCorporateProfile] = useState(null);
   const [selectedCorporateIds, setSelectedCorporateIds] = useState(null);
+  const [seekerBookingConfirmed, setSeekerBookingConfirmed] = useState(false);
+  const [seekerTaskConfirmed, setSeekerTaskConfirmed] = useState(false);
+  const [jobDoneSubmitting, setJobDoneSubmitting] = useState(false);
+  const [showJobDoneConfirmModal, setShowJobDoneConfirmModal] =
+    useState(false);
+  const [jobDoneConfirmTarget, setJobDoneConfirmTarget] = useState(null);
+  const paymentPromptAutoShownRef = useRef(false);
 
   const handleEditOpen = (id) => {
     seteditShow(true);
@@ -102,6 +130,61 @@ export default function UserBookingDetails() {
       setCorporateSuggestions(res?.payload?.data?.corporateSuggestions);
     });
   }, [id, type, editshow, show, refetchToggle]);
+
+  useEffect(() => {
+    paymentPromptAutoShownRef.current = false;
+    setSeekerBookingConfirmed(false);
+    setSeekerTaskConfirmed(false);
+  }, [id?.id, type]);
+
+  useEffect(() => {
+    if (bookingState && isSeekerConfirmedBookingData(bookingState)) {
+      setSeekerBookingConfirmed(true);
+    }
+  }, [bookingState]);
+
+  useEffect(() => {
+    const t = taskbooking?.task;
+    if (t && isSeekerConfirmedTaskData(t)) {
+      setSeekerTaskConfirmed(true);
+    }
+  }, [taskbooking]);
+
+  useEffect(() => {
+    if (paymentPromptAutoShownRef.current) return;
+
+    if (!type && bookingState) {
+      const unpaid = !["paid"].includes(bookingState.payment?.status);
+      const seekerOk =
+        isSeekerConfirmedBookingData(bookingState) || seekerBookingConfirmed;
+      if (bookingState.status === 4 && unpaid && seekerOk) {
+        paymentPromptAutoShownRef.current = true;
+        setSelectedBoooking(bookingState);
+        setBookingId(bookingState._id);
+        setPaymentShow(true);
+      }
+      return;
+    }
+
+    if (type && taskbooking?.task) {
+      const t = taskbooking.task;
+      const unpaid = t?.payment?.status === "pending";
+      const seekerOk =
+        isSeekerConfirmedTaskData(t) || seekerTaskConfirmed;
+      if (Number(t?.status) === 3 && unpaid && seekerOk) {
+        paymentPromptAutoShownRef.current = true;
+        setSelectedBoooking(taskbooking);
+        setBookingId(t._id);
+        setPaymentShow(true);
+      }
+    }
+  }, [
+    bookingState,
+    taskbooking,
+    type,
+    seekerBookingConfirmed,
+    seekerTaskConfirmed,
+  ]);
 
   const handleFeedbackOpen = () => {
     setShowFeedback(true);
@@ -356,6 +439,117 @@ export default function UserBookingDetails() {
   const selectedQuotation = quotations?.find(
     (q) => q._id === task?.quatation_id
   );
+
+  const bookingSeekerOk =
+    isSeekerConfirmedBookingData(bookingState) || seekerBookingConfirmed;
+  const bookingShowJobDoneBtn =
+    bookingState &&
+    bookingState.status === 4 &&
+    !["paid"].includes(bookingState.payment?.status) &&
+    !bookingSeekerOk;
+  const bookingShowPayBtn =
+    bookingState &&
+    bookingState.status === 4 &&
+    !["paid"].includes(bookingState.payment?.status) &&
+    bookingSeekerOk;
+
+  const taskSeekerOk =
+    task && (isSeekerConfirmedTaskData(task) || seekerTaskConfirmed);
+  const taskShowJobDoneBtn =
+    task &&
+    Number(task.status) === 3 &&
+    task.payment?.status === "pending" &&
+    !taskSeekerOk;
+  const taskShowPayBtn =
+    task &&
+    Number(task.status) === 3 &&
+    task.payment?.status === "pending" &&
+    taskSeekerOk;
+
+  const handleSeekerConfirmBooking = async () => {
+    if (!bookingState?._id) return false;
+    setJobDoneSubmitting(true);
+    try {
+      const res = await dispatch(
+        CustomerActions.seekerConfirmBookingComplete({
+          booking_id: bookingState._id,
+        })
+      );
+      const ok =
+        Boolean(res?.payload?.success) || res?.payload?.status_code === 200;
+      if (ok) {
+        toast.success(
+          res?.payload?.message || "You confirmed the booking is complete."
+        );
+        setSeekerBookingConfirmed(true);
+        setRefetchToggle((x) => !x);
+      } else {
+        toast.error(
+          res?.payload?.message || "Could not confirm. Please try again."
+        );
+      }
+      return ok;
+    } catch {
+      toast.error("Could not confirm. Please try again.");
+      return false;
+    } finally {
+      setJobDoneSubmitting(false);
+    }
+  };
+
+  const handleSeekerConfirmTask = async () => {
+    if (!task?._id) return false;
+    setJobDoneSubmitting(true);
+    try {
+      const res = await dispatch(
+        CustomerActions.seekerConfirmTaskComplete({ task_id: task._id })
+      );
+      const ok =
+        Boolean(res?.payload?.success) || res?.payload?.status_code === 200;
+      if (ok) {
+        toast.success(
+          res?.payload?.message || "You confirmed the task is complete."
+        );
+        setSeekerTaskConfirmed(true);
+        setRefetchToggle((x) => !x);
+      } else {
+        toast.error(
+          res?.payload?.message || "Could not confirm. Please try again."
+        );
+      }
+      return ok;
+    } catch {
+      toast.error("Could not confirm. Please try again.");
+      return false;
+    } finally {
+      setJobDoneSubmitting(false);
+    }
+  };
+
+  const openJobDoneConfirmModal = (target) => {
+    setJobDoneConfirmTarget(target);
+    setShowJobDoneConfirmModal(true);
+  };
+
+  const closeJobDoneConfirmModal = () => {
+    if (jobDoneSubmitting) return;
+    setShowJobDoneConfirmModal(false);
+    setJobDoneConfirmTarget(null);
+  };
+
+  const handleConfirmJobDoneInModal = async () => {
+    let ok = false;
+    if (jobDoneConfirmTarget === "booking") {
+      ok = await handleSeekerConfirmBooking();
+    } else if (jobDoneConfirmTarget === "task") {
+      ok = await handleSeekerConfirmTask();
+    }
+    if (ok) {
+      setShowJobDoneConfirmModal(false);
+      setJobDoneConfirmTarget(null);
+    }
+  };
+
   return (
     <Layout>
       <section className="service-detail-sec mb-5">
@@ -393,7 +587,27 @@ export default function UserBookingDetails() {
                           <p>{task?.details}</p>
                           {task?.status !== 1 && task?.status !== 2 && (
                             <>
-                              {task?.payment?.status === "pending" && (
+                              {taskShowJobDoneBtn && (
+                                <div className="mt-3 text-center">
+                                  <div className="book-service-action-btn d-flex justify-content-center mt-2">
+                                    <button
+                                      type="button"
+                                      className="booking-job-done-btn"
+                                      onClick={() =>
+                                        openJobDoneConfirmModal("task")
+                                      }
+                                      disabled={jobDoneSubmitting}
+                                    >
+                                      Job Done
+                                    </button>
+                                  </div>
+                                  <p className="text-muted small mt-2 mb-0 text-center px-2">
+                                    Confirm the service is complete to unlock
+                                    payment.
+                                  </p>
+                                </div>
+                              )}
+                              {taskShowPayBtn && (
                                 <div className="mt-3 text-center">
                                   <button
                                     className="btn btn-outline-success w-100"
@@ -654,6 +868,18 @@ export default function UserBookingDetails() {
                           Service provider has completed your task.
                         </p>
                       )}
+                      {task?.status === 3 &&
+                        ["paid"].includes(task?.payment?.status) && (
+                          <div
+                            className="booking-payment-success-highlight"
+                            role="status"
+                          >
+                            <p>
+                              Job done! Your payment was successful. Thank you
+                              for using Simba Tasker.
+                            </p>
+                          </div>
+                        )}
 
                       <div className="d-flex">
                         <span className="fw-semibold me-2">Scheduled for:</span>
@@ -730,18 +956,32 @@ export default function UserBookingDetails() {
                               </button>
                             )}
 
-                            {[4].includes(bookingState.status) && (
-                              <button
-                                className="text-white"
-                                type="button"
-                                onClick={() => {
-                                  handlePaymentOpen(bookingState._id);
-                                  setSelectedBoooking(bookingState);
-                                }}
-                              >
-                                Pay Now
-                              </button>
-                            )}
+                            {[4].includes(bookingState.status) &&
+                              bookingShowJobDoneBtn && (
+                                <button
+                                  type="button"
+                                  className="booking-job-done-btn"
+                                  disabled={jobDoneSubmitting}
+                                  onClick={() =>
+                                    openJobDoneConfirmModal("booking")
+                                  }
+                                >
+                                  Job Done
+                                </button>
+                              )}
+                            {[4].includes(bookingState.status) &&
+                              bookingShowPayBtn && (
+                                <button
+                                  className="text-white"
+                                  type="button"
+                                  onClick={() => {
+                                    handlePaymentOpen(bookingState._id);
+                                    setSelectedBoooking(bookingState);
+                                  }}
+                                >
+                                  Pay Now
+                                </button>
+                              )}
 
                             {[1, 2].includes(bookingState.status) && (
                               <button
@@ -800,6 +1040,20 @@ export default function UserBookingDetails() {
                                   : "completed"
                               } your booking.`}
                         </p>
+                        {bookingState.status === 4 &&
+                          ["paid"].includes(
+                            bookingState.payment?.status
+                          ) && (
+                            <div
+                              className="booking-payment-success-highlight"
+                              role="status"
+                            >
+                              <p>
+                                Job done! Your payment was successful. Thank you
+                                for using Simba Tasker.
+                              </p>
+                            </div>
+                          )}
                         <p className="text-trnsform">
                           {bookingState.slotTime?.[0] || "Time N/A"},{" "}
                           {moment(bookingState.date).format("DD MMM")}
@@ -1239,6 +1493,43 @@ export default function UserBookingDetails() {
         service_id={boookingId}
         data={selectedBoooking}
       /> */}
+
+      <Modal
+        show={showJobDoneConfirmModal}
+        onHide={closeJobDoneConfirmModal}
+        centered
+        backdrop={jobDoneSubmitting ? "static" : true}
+        keyboard={!jobDoneSubmitting}
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title>Confirm job complete</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-0 text-secondary">
+            Are you sure you want to mark this job as done? After you confirm,
+            the <strong className="text-dark">Pay Now</strong> option will
+            appear so you can complete payment.
+          </p>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 job-done-confirm-modal-footer">
+          <button
+            type="button"
+            className="btn btn-light border job-done-confirm-modal-btn"
+            onClick={closeJobDoneConfirmModal}
+            disabled={jobDoneSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="booking-job-done-btn job-done-confirm-modal-btn"
+            onClick={handleConfirmJobDoneInModal}
+            disabled={jobDoneSubmitting}
+          >
+            {jobDoneSubmitting ? "Please wait…" : "Yes, job done"}
+          </button>
+        </Modal.Footer>
+      </Modal>
 
       <PaymentModal
         paymentshow={paymentshow}

@@ -1736,6 +1736,76 @@ input[type="checkbox"]:checked::before {
   color: #252525;
 }
 
+/* Seeker "Job Done" — single button matches :first-child + :last-child; force theme primary + white text */
+.book-service-action-btn button.booking-job-done-btn,
+button.booking-job-done-btn {
+  background: #038654 !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.book-service-action-btn button.booking-job-done-btn:hover:not(:disabled),
+button.booking-job-done-btn:hover:not(:disabled) {
+  background: #027348 !important;
+  color: #fff !important;
+}
+.book-service-action-btn button.booking-job-done-btn:disabled,
+button.booking-job-done-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  color: #fff !important;
+}
+
+/* Confirm job complete modal — equal width & height for Cancel / Yes */
+.modal-footer.job-done-confirm-modal-footer {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.job-done-confirm-modal-footer .job-done-confirm-modal-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+/* Highlight: job done + payment success (user booking / task detail) */
+.booking-payment-success-highlight {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  padding: 14px 16px 14px 18px;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(3, 134, 84, 0.12) 0%,
+    rgba(3, 134, 84, 0.06) 100%
+  );
+  border: 1px solid rgba(3, 134, 84, 0.35);
+  border-left: 4px solid #038654;
+  box-shadow: 0 2px 8px rgba(3, 134, 84, 0.12);
+}
+.booking-payment-success-highlight p {
+  margin: 0;
+  color: #026842;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .review-slide-card {
   border-radius: 8px;
   border: 1px solid #e5e5e5;
@@ -2426,6 +2496,20 @@ input[type="checkbox"]:checked::before {
     border: 0 !important;
     box-shadow: none !important;
   }
+}
+
+/* Task poster quotation cards — corner status badge (Accepted / Rejected) */
+.quotation-poster-card {
+  position: relative;
+}
+
+.quotation-poster-card--with-badge {
+  padding-top: 22px;
+}
+
+.quotation-poster-card--with-badge .tasks-requests-btns,
+.quotation-poster-card--with-badge .quotation-requests-task-btns {
+  padding-right: 96px;
 }
 
 .quotation {
@@ -4406,15 +4490,56 @@ button.read-more-btn {
 }
 
 .review-section {
+  position: relative;
   border-radius: 10px;
   border: 1px solid #e4e4e7;
   background: #fff;
   padding: 20px;
+  padding-top: 22px;
   display: flex;
   justify-content: space-between;
   gap: 20px;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.review-section-main {
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.review-section--with-corner-badge .review-section-main {
+  padding-right: 96px;
+}
+
+/* Small corner status — not full-width “button” badges */
+.review-status-corner-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  line-height: 1.25;
+  border-radius: 999px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.review-status-corner-badge--published {
+  color: #027a52;
+  background: rgba(3, 134, 84, 0.12);
+  border: 1px solid rgba(3, 134, 84, 0.35);
+}
+
+.review-status-corner-badge--rejected {
+  color: #b91c1c;
+  background: rgba(193, 12, 0, 0.08);
+  border: 1px solid rgba(193, 12, 0, 0.3);
 }
 
 .review-content p {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -14,6 +14,10 @@ import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import { corpoTaskStatus } from "../utils/Roles";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import {
+  getQuotationPosterDecisionState,
+  mergeQuotationWithOptimisticStatus,
+} from "../utils/quotationPosterDecision";
 import ChatIcon from "../Assets/Images/chatIcon2.svg";
 
 export default function TaskDetail() {
@@ -26,6 +30,32 @@ export default function TaskDetail() {
     (state) => state.UserSlice.postTaskDetail
   );
   const [selectedCorporateIds, setSelectedCorporateIds] = useState("");
+  /** After accept/reject, hide buttons even if GET task detail lags or omits `status`. */
+  const [optimisticQuotationStatusById, setOptimisticQuotationStatusById] =
+    useState(() => ({}));
+  const optimisticQuotationRef = useRef({});
+  optimisticQuotationRef.current = optimisticQuotationStatusById;
+  const quotationSubmittingIdsRef = useRef(new Set());
+  const [quotationSubmittingById, setQuotationSubmittingById] = useState({});
+
+  const beginQuotationAction = (quotationId) => {
+    if (!quotationId || quotationSubmittingIdsRef.current.has(quotationId)) {
+      return false;
+    }
+    quotationSubmittingIdsRef.current.add(quotationId);
+    setQuotationSubmittingById((s) => ({ ...s, [quotationId]: true }));
+    return true;
+  };
+
+  const endQuotationAction = (quotationId) => {
+    if (!quotationId) return;
+    quotationSubmittingIdsRef.current.delete(quotationId);
+    setQuotationSubmittingById((s) => {
+      const next = { ...s };
+      delete next[quotationId];
+      return next;
+    });
+  };
   const sliderSettings = {
     dots: true,
     arrows: false,
@@ -63,49 +93,121 @@ export default function TaskDetail() {
   };
 
   useEffect(() => {
+    setOptimisticQuotationStatusById({});
+    quotationSubmittingIdsRef.current = new Set();
+    setQuotationSubmittingById({});
     dispatch(CustomerActions.getPostTaskDetail(id));
   }, [dispatch, id]);
 
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
 
-  const handleAccept = (data, type,corporateIds) => {
-    const statusValue = type === "accept" ? 1 : 2;
+  const handleAccept = async (data, type, corporateIds) => {
+    const qid = data?._id;
+
+    if (type === 3) {
+      if (!beginQuotationAction(qid)) return;
+      const taskStatusPayload = {
+        quatation_id: data?._id,
+        task_id: id,
+        service_provider_id: data?.service_provider?._id,
+        status: 3,
+      };
+      const suggestionStatusPayload = {
+        taskId: id,
+        status: 3,
+        corporateId: corporateIds || undefined,
+      };
+      try {
+        const resTask = await dispatch(
+          CustomerActions.acceptRejectTaskStatus(taskStatusPayload)
+        );
+        if (!resTask?.payload?.success) {
+          toast.error(
+            resTask?.payload?.message || "Could not update task status."
+          );
+          return;
+        }
+        await dispatch(
+          CustomerActions.acceptRejectTaskCorporateSuggestion(
+            suggestionStatusPayload
+          )
+        );
+        toast.success("Job marked as done.");
+        dispatch(CustomerActions.getPostTaskDetail(id));
+      } catch {
+        toast.error("Something went wrong. Please try again.");
+      } finally {
+        endQuotationAction(qid);
+      }
+      return;
+    }
+
+    if (type !== "accept" && type !== "reject") {
+      return;
+    }
+
+    if (!qid) return;
+
+    const merged = mergeQuotationWithOptimisticStatus(
+      data,
+      optimisticQuotationRef.current
+    );
+    if (!getQuotationPosterDecisionState(merged).showActions) {
+      return;
+    }
+
+    if (!beginQuotationAction(qid)) return;
+
+    const statusValueAcceptReject = type === "accept" ? 1 : 2;
+    const providerName = data?.service_provider?.full_name?.trim() || "Provider";
 
     const taskStatusPayload = {
       quatation_id: data?._id,
       task_id: id,
       service_provider_id: data?.service_provider?._id,
-      status: statusValue,
+      status: statusValueAcceptReject,
     };
 
     const suggestionStatusPayload = {
       taskId: id,
-      status: statusValue,
+      status: statusValueAcceptReject,
       corporateId: corporateIds || undefined,
     };
 
-    const handleDispatch = (action, successMessage, errorMessage) => {
-      return dispatch(action).then((res) => {
-        if (res?.payload?.success) {
-          navigate("/my-task");
-        }
-      });
-    };
+    try {
+      const resTask = await dispatch(
+        CustomerActions.acceptRejectTaskStatus(taskStatusPayload)
+      );
+      if (!resTask?.payload?.success) {
+        toast.error(
+          resTask?.payload?.message || "Could not update quotation status."
+        );
+        return;
+      }
 
-    handleDispatch(
-      CustomerActions.acceptRejectTaskStatus(taskStatusPayload),
-      type === "accept" ? "Accepted." : "Rejected.",
-      "Failed to update task status"
-    );
+      await dispatch(
+        CustomerActions.acceptRejectTaskCorporateSuggestion(
+          suggestionStatusPayload
+        )
+      );
 
-    handleDispatch(
-      CustomerActions.acceptRejectTaskCorporateSuggestion(
-        suggestionStatusPayload
-      ),
-      type === "accept" ? "Accepted." : "Rejected.",
-      "Failed to update suggestion status"
-    );
+      setOptimisticQuotationStatusById((prev) => ({
+        ...prev,
+        [qid]: statusValueAcceptReject,
+      }));
+
+      toast.success(
+        type === "accept"
+          ? `You accepted ${providerName}'s quotation.`
+          : `You rejected ${providerName}'s quotation.`
+      );
+      dispatch(CustomerActions.getPostTaskDetail(id));
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      endQuotationAction(qid);
+    }
   };
 
   const handleDeletePost = (id) => {
@@ -216,12 +318,47 @@ export default function TaskDetail() {
               </div>
             ) : (
               <div>
-                {quotations?.map((quotation, index) => (
-                  <div className="quotation-requests-wrap">
-                    <div
-                      className="quotation-requests quotation-requests-inner"
-                      key={index}
-                    >
+                {quotations?.map((quotation, index) => {
+                  const quotationForUi = mergeQuotationWithOptimisticStatus(
+                    quotation,
+                    optimisticQuotationStatusById
+                  );
+                  const posterState =
+                    getQuotationPosterDecisionState(quotationForUi);
+                  const firstCs = quotation?.corporateSuggestion?.[0];
+                  const showJobDone =
+                    posterState.badge === "accepted" &&
+                    firstCs &&
+                    Number(firstCs.corporateStatus) ===
+                      corpoTaskStatus.COMPLETED &&
+                    Number(firstCs.userStatus) !== corpoTaskStatus.ACCEPT;
+
+                  const submittingThis =
+                    !!quotationSubmittingById[quotation._id];
+
+                  return (
+                  <div
+                    className={`quotation-requests-wrap quotation-poster-card${
+                      posterState.badge
+                        ? " quotation-poster-card--with-badge"
+                        : ""
+                    }`}
+                    key={quotation._id || index}
+                  >
+                    {!posterState.showActions && posterState.badge && (
+                      <span
+                        className={
+                          posterState.badge === "accepted"
+                            ? "review-status-corner-badge review-status-corner-badge--published"
+                            : "review-status-corner-badge review-status-corner-badge--rejected"
+                        }
+                      >
+                        {posterState.badge === "accepted"
+                          ? "Accepted"
+                          : "Rejected"}
+                      </span>
+                    )}
+                    <div className="quotation-requests quotation-requests-inner">
                       <div className="quotation-requests-inner">
                         <div className="quotation-txt-show">
                           <div
@@ -256,31 +393,47 @@ export default function TaskDetail() {
                           <h5>${quotation?.offer_price}</h5>
                           <p>Offer Price</p>
                         </div>
-                        {quotation[index]?.corporateSuggestion[index]?.corporateStatus !== corpoTaskStatus.COMPLETED ||
-                        quotation[index]?.corporateSuggestion[index]
-                          ?.userStatus === corpoTaskStatus.ACCEPT ? (
+                        {posterState.showActions ? (
                           <div className="btn-price">
                             <button
-                              onClick={() => handleAccept(quotation, "accept",selectedCorporateIds )}
+                              type="button"
+                              disabled={submittingThis}
+                              onClick={() =>
+                                handleAccept(
+                                  quotation,
+                                  "accept",
+                                  selectedCorporateIds
+                                )
+                              }
                             >
                               Accept
                             </button>
                             <button
-                              onClick={() => handleAccept(quotation, "reject",selectedCorporateIds) }
+                              type="button"
+                              disabled={submittingThis}
+                              onClick={() =>
+                                handleAccept(
+                                  quotation,
+                                  "reject",
+                                  selectedCorporateIds
+                                )
+                              }
                             >
                               Reject
                             </button>
                           </div>
-                        ) : (
+                        ) : showJobDone ? (
                           <div className="btn-price">
                             <button
+                              type="button"
                               className="primaryBtn"
+                              disabled={submittingThis}
                               onClick={() => handleAccept(quotation, 3)}
                             >
                               Job Done
                             </button>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     <div className="quotation-wrapper">
@@ -393,7 +546,8 @@ export default function TaskDetail() {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

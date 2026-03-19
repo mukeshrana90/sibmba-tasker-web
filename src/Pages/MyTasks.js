@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -12,12 +12,41 @@ import moment from "moment";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import {
+  getQuotationPosterDecisionState,
+  mergeQuotationWithOptimisticStatus,
+} from "../utils/quotationPosterDecision";
 
 export default function MyTasks() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const [activeTab, setActiveTab] = useState("first");
+  const [optimisticQuotationStatusById, setOptimisticQuotationStatusById] =
+    useState(() => ({}));
+  const optimisticQuotationRef = useRef({});
+  optimisticQuotationRef.current = optimisticQuotationStatusById;
+  const quotationSubmittingIdsRef = useRef(new Set());
+  const [quotationSubmittingById, setQuotationSubmittingById] = useState({});
+
+  const beginQuotationAction = (quotationId) => {
+    if (!quotationId || quotationSubmittingIdsRef.current.has(quotationId)) {
+      return false;
+    }
+    quotationSubmittingIdsRef.current.add(quotationId);
+    setQuotationSubmittingById((s) => ({ ...s, [quotationId]: true }));
+    return true;
+  };
+
+  const endQuotationAction = (quotationId) => {
+    if (!quotationId) return;
+    quotationSubmittingIdsRef.current.delete(quotationId);
+    setQuotationSubmittingById((s) => {
+      const next = { ...s };
+      delete next[quotationId];
+      return next;
+    });
+  };
 
   const allMyPosts = useSelector((state) => state.UserSlice.postlist);
   const allMyQuotations = useSelector((state) => state.UserSlice.myQuotations);
@@ -27,23 +56,52 @@ export default function MyTasks() {
     dispatch(CustomerActions.getMyQuotationsList());
   }, [dispatch]);
 
-  const handleAccept = (data, type) => {
-    let obj = {
+  const handleAccept = async (data, type) => {
+    const qid = data?._id;
+    if (!qid) return;
+
+    const merged = mergeQuotationWithOptimisticStatus(
+      data,
+      optimisticQuotationRef.current
+    );
+    if (!getQuotationPosterDecisionState(merged).showActions) {
+      return;
+    }
+
+    if (!beginQuotationAction(qid)) return;
+
+    const obj = {
       quatation_id: data?._id,
       task_id: data?.task_id?._id,
       service_provider_id: data?.service_provider?._id,
       status: type === "accept" ? 1 : 2,
     };
 
-    dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
+    const providerName = data?.service_provider?.full_name?.trim() || "Provider";
+    const statusValue = type === "accept" ? 1 : 2;
+
+    try {
+      const res = await dispatch(CustomerActions.acceptRejectTaskStatus(obj));
       if (res?.payload?.success) {
-        toast.success(type === "accept" ? "Accepted." : "Rejected.");
-        setActiveTab("first");
+        setOptimisticQuotationStatusById((prev) => ({
+          ...prev,
+          [qid]: statusValue,
+        }));
+        toast.success(
+          type === "accept"
+            ? `You accepted ${providerName}'s quotation.`
+            : `You rejected ${providerName}'s quotation.`
+        );
+        dispatch(CustomerActions.getMyQuotationsList());
         dispatch(CustomerActions.getPostList());
       } else {
-        toast.error(res?.payload?.message);
+        toast.error(res?.payload?.message || "Could not update quotation.");
       }
-    });
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      endQuotationAction(qid);
+    }
   };
 
   return (
@@ -184,8 +242,41 @@ export default function MyTasks() {
                           <Tab.Pane eventKey="second">
                             <div>
                               {allMyQuotations?.length > 0 ? (
-                                allMyQuotations?.map((quotation, i) => (
-                                  <div className="quotation-requests-wrap">
+                                allMyQuotations?.map((quotation) => {
+                                  const quotationForUi =
+                                    mergeQuotationWithOptimisticStatus(
+                                      quotation,
+                                      optimisticQuotationStatusById
+                                    );
+                                  const posterState =
+                                    getQuotationPosterDecisionState(
+                                      quotationForUi
+                                    );
+                                  const submittingThis =
+                                    !!quotationSubmittingById[quotation._id];
+                                  return (
+                                  <div
+                                    key={quotation._id}
+                                    className={`quotation-requests-wrap${
+                                      posterState.badge
+                                        ? " quotation-poster-card quotation-poster-card--with-badge"
+                                        : " quotation-poster-card"
+                                    }`}
+                                  >
+                                  {!posterState.showActions &&
+                                    posterState.badge && (
+                                      <span
+                                        className={
+                                          posterState.badge === "accepted"
+                                            ? "review-status-corner-badge review-status-corner-badge--published"
+                                            : "review-status-corner-badge review-status-corner-badge--rejected"
+                                        }
+                                      >
+                                        {posterState.badge === "accepted"
+                                          ? "Accepted"
+                                          : "Rejected"}
+                                      </span>
+                                    )}
                                   <div className="quotation-requests quotation-requests-inner">
                                     <div className="quotation-requests-inner">
                                       <div className="quotation-txt-show">
@@ -220,8 +311,11 @@ export default function MyTasks() {
                                         <h5>${quotation?.offer_price}</h5>
                                         <p>Offer Price</p>
                                       </div>
+                                      {posterState.showActions && (
                                       <div className="tasks-btn">
                                         <button
+                                          type="button"
+                                          disabled={submittingThis}
                                           onClick={() =>
                                             handleAccept(quotation, "accept")
                                           }
@@ -229,6 +323,8 @@ export default function MyTasks() {
                                           Accept
                                         </button>
                                         <button
+                                          type="button"
+                                          disabled={submittingThis}
                                           onClick={() =>
                                             handleAccept(quotation, "reject")
                                           }
@@ -236,6 +332,7 @@ export default function MyTasks() {
                                           Reject
                                         </button>
                                       </div>
+                                      )}
                                     </div>
                                   </div>
                                    <div className="quotation-wrapper">
@@ -282,7 +379,9 @@ export default function MyTasks() {
                                       )}
                                     </div>
                                   </div>
-                                  ))) : (
+                                  );
+                                })
+                              ) : (
                                   <div className="no-upcoming-bookings">
                                     <svg
                                       xmlns="http://www.w3.org/2000/svg"

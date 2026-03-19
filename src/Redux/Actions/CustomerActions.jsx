@@ -311,10 +311,32 @@ const CustomerActions = {
       return response.data;
     }
   ),
-    payTask: createAsyncThunk(
+  payTask: createAsyncThunk(
     "/customer/initiate_payment_task ",
     async (payload) => {
       const response = await Api.post("/customer/initiate_payment_task", payload);
+      return response.data;
+    }
+  ),
+
+  seekerConfirmBookingComplete: createAsyncThunk(
+    "customer/seekerConfirmBookingComplete",
+    async (payload) => {
+      const response = await Api.post(
+        "/customer/seeker-confirm-booking-complete",
+        payload
+      );
+      return response.data;
+    }
+  ),
+
+  seekerConfirmTaskComplete: createAsyncThunk(
+    "customer/seekerConfirmTaskComplete",
+    async (payload) => {
+      const response = await Api.post(
+        "/customer/seeker-confirm-task-complete",
+        payload
+      );
       return response.data;
     }
   ),
