@@ -30,6 +30,9 @@ export default function Login() {
       try {
         const token = await getFirebaseToken();
         setFcmToken(token);
+        if (token) {
+          localStorage.setItem("device_token", token);
+        }
       } catch (error) {
         console.error("An error occurred while retrieving the Firebase token: ", error);
       }
@@ -106,9 +109,13 @@ export default function Login() {
     e.preventDefault();
     if (!validateForm()) return;
   
-    let payload = formData;
-    if (fcmToken) {
-      payload = { ...payload, device_token: fcmToken };
+    const deviceToken = fcmToken || localStorage.getItem("device_token");
+    const payload = {
+      ...formData,
+      device_type: "web",
+    };
+    if (deviceToken) {
+      payload.device_token = deviceToken;
     }
     setLocalLoading(true);
     const response = await dispatch(CustomerActions.loginCustomer(payload));

@@ -113,10 +113,9 @@ export default function SignUp() {
       password: formik.values.password,
       role: Number(role) || 1,
       type: otpType,
+      device_type: "web",
+      device_token: deviceToken || "",
     };
-    if (deviceToken) {
-      payload.device_token = deviceToken;
-    }
     const response = await dispatch(CustomerActions.createCustomer(payload));
     if (response?.payload?.status_code === 200) {
       toast.success(response?.payload?.message || "Registration successful");
