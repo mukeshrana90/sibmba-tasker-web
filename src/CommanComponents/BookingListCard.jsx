@@ -4,15 +4,19 @@ import { getStatusLabel } from "../utils/CommonFunction";
 import CustomerBookServiceModal from "./Modals/CustomerBookServiceModal";
 
 const getStatusColor = (status) => {
+  const s = Number(status);
   const statusMap = {
-      1: "pending",
-      2: "completed",
-      3: "cancelled",
-      4: "completed",
-      5: "rejected",
-    };
+    0: "pending",
+    1: "pending",
+    2: "completed",
+    3: "cancelled",
+    4: "completed",
+    5: "rejected",
+    6: "completed",
+    7: "completed",
+  };
 
-  return statusMap[status] || "N/A";
+  return statusMap[s] || "N/A";
 };
 
 const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
@@ -43,7 +47,7 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                 </p>
               </div>
               {/* Pending */}
-              {data?.status === 1 && (
+              {(data?.status === 1 || data?.status === 0) && (
                 <div className="bookings-card-edit">
                   <button
                     type="button"
@@ -59,7 +63,10 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
               )}
 
               {/* confirmed */}
-              {(data?.status === 2 || data?.status === 4) && (
+              {(data?.status === 2 ||
+                data?.status === 4 ||
+                data?.status === 6 ||
+                data?.status === 7) && (
                 <div
                   className="provider-view-pro"
                   // onClick={() => navigate("/service-provider")}
@@ -83,7 +90,10 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                  </span>
               </div>
 
-              {(data?.status === 2 || data?.status === 4) && (
+              {(data?.status === 2 ||
+                data?.status === 4 ||
+                data?.status === 6 ||
+                data?.status === 7) && (
                 <div className="chat-btn-card">
                   <button className="">
                     <svg

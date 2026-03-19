@@ -10,7 +10,10 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast } from "react-toastify";
 import Loader from "../CommanComponents/Loader";
-import { getQuotationPosterDecisionState } from "../utils/quotationPosterDecision";
+import {
+  getQuotationPosterDecisionState,
+  mergeQuotationWithParentTaskForStatus,
+} from "../utils/quotationPosterDecision";
 export default function QuotationsDetail() {
   const { id } = useParams()
   const dispatch = useDispatch()
@@ -63,7 +66,7 @@ export default function QuotationsDetail() {
   const handleAccept = (data, type) => {
     const obj = {
       quatation_id: data?._id,
-      task_id: data?.task_id?._id,
+      task_id: data?.task_id?._id ?? data?.task_id,
       service_provider_id: data?.service_provider?._id,
       status: type === "accept" ? 1 : 2,
     };

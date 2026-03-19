@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -9,16 +9,28 @@ import Modal from "react-bootstrap/Modal";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import Slider from "react-slick";
-import moment from "moment";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import { corpoTaskStatus } from "../utils/Roles";
 import defaultImage from "../Assets/Images/placeholder.jpg";
 import {
+  getPosterTaskDetailStepperStatus,
   getQuotationPosterDecisionState,
   mergeQuotationWithOptimisticStatus,
+  mergeQuotationWithParentTaskForStatus,
 } from "../utils/quotationPosterDecision";
 import ChatIcon from "../Assets/Images/chatIcon2.svg";
+import JobFlowStepper from "../CommanComponents/JobFlowStepper";
+import {
+  getSeekerTaskFlowDescription,
+  getTaskFlowStepperState,
+  JOB_FLOW_STEP_LABELS,
+  seekerShouldHideTaskCancellationActions,
+  taskStatus,
+} from "../utils/jobFlowStatus";
+import { formatTaskWhenDoneDisplay } from "../utils/CommonFunction";
+import { isSeekerConfirmedTaskData } from "../utils/seekerCompletion";
+import PaymentModal from "../CommanComponents/Modals/PaymentModal";
 
 export default function TaskDetail() {
   const navigate = useNavigate();
@@ -37,6 +49,11 @@ export default function TaskDetail() {
   optimisticQuotationRef.current = optimisticQuotationStatusById;
   const quotationSubmittingIdsRef = useRef(new Set());
   const [quotationSubmittingById, setQuotationSubmittingById] = useState({});
+  const [paymentshow, setPaymentShow] = useState(false);
+  const [paymentTaskId, setPaymentTaskId] = useState(null);
+  const [seekerTaskConfirmed, setSeekerTaskConfirmed] = useState(false);
+  const [jobDoneSubmitting, setJobDoneSubmitting] = useState(false);
+  const [showJobDoneConfirmModal, setShowJobDoneConfirmModal] = useState(false);
 
   const beginQuotationAction = (quotationId) => {
     if (!quotationId || quotationSubmittingIdsRef.current.has(quotationId)) {
@@ -96,11 +113,117 @@ export default function TaskDetail() {
     setOptimisticQuotationStatusById({});
     quotationSubmittingIdsRef.current = new Set();
     setQuotationSubmittingById({});
+    setSeekerTaskConfirmed(false);
+    setPaymentShow(false);
+    setPaymentTaskId(null);
     dispatch(CustomerActions.getPostTaskDetail(id));
   }, [dispatch, id]);
 
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
+
+  const taskSeekerOk =
+    task && (isSeekerConfirmedTaskData(task) || seekerTaskConfirmed);
+  /** Unpaid: explicit `pending` or no payment object yet after provider completes */
+  const taskPaymentPending =
+    task &&
+    (task.payment == null ||
+      String(task?.payment?.status || "").toLowerCase() === "pending");
+  const taskShowSeekerJobDoneBtn =
+    task &&
+    Number(task.status) === taskStatus.COMPLETED &&
+    taskPaymentPending &&
+    !taskSeekerOk;
+  const taskShowSeekerPayBtn =
+    task &&
+    Number(task.status) === taskStatus.COMPLETED &&
+    taskPaymentPending &&
+    taskSeekerOk;
+
+  /** Show next to Job Done / Pay when task is completed or has quotation flow */
+  const showTaskDetailViewHistory =
+    Boolean(quotations?.length > 0) ||
+    (task != null && Number(task.status) === taskStatus.COMPLETED);
+
+  const paymentModalPayload = useMemo(
+    () => ({ task, quotations }),
+    [task, quotations]
+  );
+
+  const handlePaymentOpen = (taskId) => {
+    setPaymentTaskId(taskId);
+    setPaymentShow(true);
+  };
+
+  const handlePaymentClose = () => {
+    setPaymentShow(false);
+    setPaymentTaskId(null);
+  };
+
+  const handleSeekerConfirmTask = async () => {
+    if (!task?._id) return false;
+    setJobDoneSubmitting(true);
+    try {
+      const res = await dispatch(
+        CustomerActions.seekerConfirmTaskComplete({ task_id: task._id })
+      );
+      const ok =
+        Boolean(res?.payload?.success) || res?.payload?.status_code === 200;
+      if (ok) {
+        toast.success(
+          res?.payload?.message || "You confirmed the task is complete."
+        );
+        setSeekerTaskConfirmed(true);
+        dispatch(CustomerActions.getPostTaskDetail(id));
+      } else {
+        toast.error(
+          res?.payload?.message || "Could not confirm. Please try again."
+        );
+      }
+      return ok;
+    } catch {
+      toast.error("Could not confirm. Please try again.");
+      return false;
+    } finally {
+      setJobDoneSubmitting(false);
+    }
+  };
+
+  const closeJobDoneConfirmModal = () => {
+    if (jobDoneSubmitting) return;
+    setShowJobDoneConfirmModal(false);
+  };
+
+  const handleConfirmJobDoneInModal = async () => {
+    const ok = await handleSeekerConfirmTask();
+    if (ok) {
+      setShowJobDoneConfirmModal(false);
+    }
+  };
+
+  /** Aligns stepper with quotation badges when `task.status` lags or legacy coerce would wrong-map `1`. */
+  const posterStepperStatus = useMemo(
+    () =>
+      getPosterTaskDetailStepperStatus(
+        task,
+        quotations,
+        optimisticQuotationStatusById
+      ),
+    [task, quotations, optimisticQuotationStatusById]
+  );
+
+  const getPosterTaskStatusColor = (st) => {
+    const s = Number(st);
+    const statusMap = {
+      0: "yellow",
+      1: "green",
+      2: "red",
+      3: "green",
+      4: "green",
+      5: "green",
+    };
+    return statusMap[s] || "green";
+  };
 
   const handleAccept = async (data, type, corporateIds) => {
     const qid = data?._id;
@@ -149,9 +272,9 @@ export default function TaskDetail() {
 
     if (!qid) return;
 
-    const merged = mergeQuotationWithOptimisticStatus(
-      data,
-      optimisticQuotationRef.current
+    const merged = mergeQuotationWithParentTaskForStatus(
+      mergeQuotationWithOptimisticStatus(data, optimisticQuotationRef.current),
+      task
     );
     if (!getQuotationPosterDecisionState(merged).showActions) {
       return;
@@ -264,29 +387,101 @@ export default function TaskDetail() {
                   <h3>{task?.need_done || "Task"}</h3>
                   <h5>
                     {task?.task_time},{" "}
-                    {task?.when_done
-                      ? moment(task.when_done).format("DD MMM")
-                      : "N/A"}
+                    {formatTaskWhenDoneDisplay(task?.when_done)}
                   </h5>
                   <p>{task?.details || "No description provided."}</p>
-                  <div className="book-service-action-btn">
+                  <div className="book-service-action-btn task-detail-price-actions">
                     <h4>${task?.budget || "N/A"}</h4>
+                    <div className="task-detail-primary-actions">
+                      {taskShowSeekerJobDoneBtn && (
+                        <button
+                          type="button"
+                          className="booking-job-done-btn"
+                          onClick={() => setShowJobDoneConfirmModal(true)}
+                          disabled={jobDoneSubmitting}
+                        >
+                          Job Done
+                        </button>
+                      )}
+                      {taskShowSeekerPayBtn && (
+                        <button
+                          type="button"
+                          className="task-poster-completion-card__pay"
+                          onClick={() => handlePaymentOpen(task._id)}
+                        >
+                          Pay Now
+                        </button>
+                      )}
+                      {showTaskDetailViewHistory && (
+                        <button
+                          type="button"
+                          className="task-detail-view-history-btn"
+                          onClick={() => navigate("/bookings")}
+                        >
+                          View history
+                        </button>
+                      )}
+                    </div>
                     {quotations?.length === 0 ? (
                       <button
                         onClick={() => navigate(`/edit-task/${task?._id}`)}
                       >
                         Edit Post
                       </button>
-                    ) : (
+                    ) : !seekerShouldHideTaskCancellationActions(
+                        task?.status
+                      ) ? (
                       <button onClick={() => handleDeletePost(task?._id)}>
                         Delete Post
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
             </Col>
           </Row>
+          {quotations?.length > 0 && (
+            <Row>
+              <Col lg={12}>
+                <section className="booking-status-sec mt-3">
+                  <div className="booking-status-txt pt-0">
+                    <div className="booking-status-left-txt">
+                      <h2>Status</h2>
+                      {(() => {
+                        const flow =
+                          getTaskFlowStepperState(posterStepperStatus);
+                        const headline =
+                          flow.variant !== "default"
+                            ? flow.terminalLabel || "Status"
+                            : JOB_FLOW_STEP_LABELS[flow.activeStep] ||
+                              "Status";
+                        return (
+                          <>
+                            <h3
+                              className={getPosterTaskStatusColor(
+                                posterStepperStatus
+                              )}
+                            >
+                              {headline}
+                            </h3>
+                            <JobFlowStepper
+                              mode="task"
+                              status={posterStepperStatus}
+                            />
+                            <p>
+                              {getSeekerTaskFlowDescription(
+                                posterStepperStatus
+                              )}
+                            </p>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </section>
+              </Col>
+            </Row>
+          )}
         </Container>
       </section>
       <section className="category-services-sec pt-0 mt-5">
@@ -319,9 +514,12 @@ export default function TaskDetail() {
             ) : (
               <div>
                 {quotations?.map((quotation, index) => {
-                  const quotationForUi = mergeQuotationWithOptimisticStatus(
-                    quotation,
-                    optimisticQuotationStatusById
+                  const quotationForUi = mergeQuotationWithParentTaskForStatus(
+                    mergeQuotationWithOptimisticStatus(
+                      quotation,
+                      optimisticQuotationStatusById
+                    ),
+                    task
                   );
                   const posterState =
                     getQuotationPosterDecisionState(quotationForUi);
@@ -648,6 +846,51 @@ export default function TaskDetail() {
           </div>
         </Modal.Body>
       </Modal>
+
+      <Modal
+        show={showJobDoneConfirmModal}
+        onHide={closeJobDoneConfirmModal}
+        centered
+        backdrop={jobDoneSubmitting ? "static" : true}
+        keyboard={!jobDoneSubmitting}
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title>Confirm job complete</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-0 text-secondary">
+            Are you sure you want to mark this job as done? After you confirm,
+            the <strong className="text-dark">Pay Now</strong> option will
+            appear so you can complete payment.
+          </p>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 job-done-confirm-modal-footer">
+          <button
+            type="button"
+            className="btn btn-light border job-done-confirm-modal-btn"
+            onClick={closeJobDoneConfirmModal}
+            disabled={jobDoneSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="booking-job-done-btn job-done-confirm-modal-btn"
+            onClick={handleConfirmJobDoneInModal}
+            disabled={jobDoneSubmitting}
+          >
+            {jobDoneSubmitting ? "Please wait…" : "Yes, job done"}
+          </button>
+        </Modal.Footer>
+      </Modal>
+
+      <PaymentModal
+        paymentshow={paymentshow}
+        handlePaymentClose={handlePaymentClose}
+        id={paymentTaskId}
+        type="task"
+        data={paymentModalPayload}
+      />
     </Layout>
   );
 }

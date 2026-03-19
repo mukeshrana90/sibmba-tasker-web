@@ -12,7 +12,6 @@ import Layout from "../../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import Slider from "react-slick";
-import moment from "moment";
 import StarRating from "../../CommanComponents/StarRating";
 import ChatIcon from "../../Assets/Images/chat.svg";
 import mapIcon from "../../Assets/Images/map.svg";
@@ -20,6 +19,7 @@ import { Modal } from "react-bootstrap";
 import MapComponent from "../../CommanComponents/MapComponent";
 import CorporateActions from "../../Redux/Actions/corporateActions";
 import { toast } from "react-toastify";
+import { formatTaskWhenDoneDisplay } from "../../utils/CommonFunction";
 
 export default function LeadDetails() {
   const navigate = useNavigate();
@@ -421,9 +421,7 @@ export default function LeadDetails() {
                       <h3>{task?.need_done || "Task"}</h3>
                       <h5>
                         {task?.task_time},{" "}
-                        {task?.when_done
-                          ? moment(task.when_done).format("DD MMM")
-                          : "N/A"}
+                        {formatTaskWhenDoneDisplay(task?.when_done)}
                       </h5>
                       <p>{task?.details || "No description provided."}</p>
                       <p>Budget:${task?.budget || "-"}</p>
@@ -573,11 +571,10 @@ export default function LeadDetails() {
                                       </div>
                                       <p>
                                         {task?.task_time},{" "}
-                                        {task?.when_done
-                                          ? moment(task.when_done).format(
-                                              "DD MMM YY"
-                                            )
-                                          : "N/A"}
+                                        {formatTaskWhenDoneDisplay(
+                                          task?.when_done,
+                                          "DD MMM YY"
+                                        )}
                                       </p>
                                     </div>
                                     <div className="quotation-requests-task-btns">

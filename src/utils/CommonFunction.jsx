@@ -176,16 +176,52 @@ const downloadInvoiceUrl = (relativeUrl) => {
   document.body.removeChild(link);
 };
 
-const getStatusLabel = (status) => {
-  const statusMap = {
-    1: 'Pending',
-    2: 'Confirmed',
-    3: 'Canceled',
-    4: 'Completed',
-    5: 'Rejected',
-  };
+/**
+ * Format seeker task `when_done` for UI. API uses `MM-DD-YYYY` (see PostTask); avoids moment deprecation from implicit parsing.
+ * @param {string | Date | null | undefined} whenDone
+ * @param {string} [outFormat]
+ * @returns {string}
+ */
+const formatTaskWhenDoneDisplay = (whenDone, outFormat = "DD MMM") => {
+  if (whenDone === null || whenDone === undefined || whenDone === "") {
+    return "N/A";
+  }
+  if (moment.isMoment(whenDone)) {
+    return whenDone.isValid() ? whenDone.format(outFormat) : "N/A";
+  }
+  if (whenDone instanceof Date) {
+    const d = moment(whenDone);
+    return d.isValid() ? d.format(outFormat) : "N/A";
+  }
+  const str = String(whenDone).trim();
+  const usMdY = moment(str, "MM-DD-YYYY", true);
+  if (usMdY.isValid()) {
+    return usMdY.format(outFormat);
+  }
+  const iso = moment(str, moment.ISO_8601, true);
+  if (iso.isValid()) {
+    return iso.format(outFormat);
+  }
+  const ymd = moment(str, "YYYY-MM-DD", true);
+  if (ymd.isValid()) {
+    return ymd.format(outFormat);
+  }
+  return "N/A";
+};
 
-  return statusMap[status] || 'N/A';
+const getStatusLabel = (status) => {
+  const s = Number(status);
+  const statusMap = {
+    0: "Pending",
+    1: "Requested",
+    2: "Accepted",
+    3: "Canceled",
+    4: "Completed",
+    5: "Rejected",
+    6: "On the way",
+    7: "In progress",
+  };
+  return statusMap[s] || "N/A";
 };
 
 const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
@@ -209,5 +245,6 @@ export {
   convertDateToString,
   getStatusLabel,
   convertDateToStringNew,
-  expiresAt
+  expiresAt,
+  formatTaskWhenDoneDisplay,
 };

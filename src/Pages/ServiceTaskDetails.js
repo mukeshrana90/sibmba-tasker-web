@@ -9,24 +9,32 @@ import Modal from "react-bootstrap/Modal";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import Slider from "react-slick";
-import moment from "moment";
 import AddQuotationModal from "../CommanComponents/Modals/AddQuotationModal";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import defaultImage from "../Assets/Images/placeholder.jpg";
-
+import JobFlowStepper from "../CommanComponents/JobFlowStepper";
+import { formatTaskWhenDoneDisplay } from "../utils/CommonFunction";
+import {
+  getProviderTaskDetailActionVisibility,
+  getTaskFlowDescription,
+  getTaskFlowStepperState,
+  JOB_FLOW_STEP_LABELS,
+  taskStatus,
+} from "../utils/jobFlowStatus";
 export default function ServiceTaskDetails() {
   const getStatusColor = (status) => {
+    const s = Number(status);
     const statusMap = {
-      1: "yellow",
-      2: "green",
-      3: "red",
+      0: "yellow",
+      1: "green",
+      2: "red",
+      3: "green",
       4: "green",
-      5: "red",
+      5: "green",
     };
-
-    return statusMap[status] || "N/A";
+    return statusMap[s] || "green";
   };
 
   const dropdownRefs = useRef({});
@@ -48,6 +56,7 @@ export default function ServiceTaskDetails() {
 
   const [showEditQuotation, setShowEditQuotation] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
+  const [taskStatusSubmitting, setTaskStatusSubmitting] = useState(false);
 
   const handleCloseEditQuotation = () => {
     setShowEditQuotation(false);
@@ -154,32 +163,62 @@ export default function ServiceTaskDetails() {
     }
   };
 
-  const handleTaskFunc = (data, type) => {
-    let obj = {
-      // quatation_id: id,
-      task_id: id,
-      // service_provider_id: data?.service_provider?._id,
-      status: type == "cancel" ? 2 : 3,
-    };
-    if (type == "cancel") {
-      dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
+  /**
+   * Provider task status updates (same API as cancel / job done).
+   * @param {number} nextStatus
+   * @param {{ navigateToList?: boolean; successMessage: string }} opts
+   */
+  const applyProviderTaskStatus = (nextStatus, opts) => {
+    const { navigateToList = false, successMessage } = opts;
+    if (taskStatusSubmitting || !id) return;
+    setTaskStatusSubmitting(true);
+    dispatch(
+      CustomerActions.acceptRejectTaskStatus({
+        task_id: id,
+        status: nextStatus,
+      })
+    )
+      .then((res) => {
         if (res?.payload?.success) {
-          toast.success("Cancelled");
-          navigate("/taskslist");
+          toast.success(successMessage);
+          dispatch(CustomerActions.getPostTaskDetail(id));
+          if (navigateToList) {
+            navigate("/taskslist");
+          }
         } else {
-          toast.error(res?.payload?.message);
+          toast.error(res?.payload?.message || "Could not update status.");
         }
-      });
-    } else {
-      dispatch(CustomerActions.acceptRejectTaskStatus(obj)).then((res) => {
-        if (res?.payload?.success) {
-          toast.success("Success");
-          navigate("/taskslist");
-        } else {
-          toast.error(res?.payload?.message);
-        }
-      });
-    }
+      })
+      .catch(() => {
+        toast.error("Something went wrong. Please try again.");
+      })
+      .finally(() => setTaskStatusSubmitting(false));
+  };
+
+  const handleTaskCancel = () => {
+    applyProviderTaskStatus(taskStatus.REJECTED, {
+      navigateToList: true,
+      successMessage: "Cancelled",
+    });
+  };
+
+  const handleTaskJobDone = () => {
+    applyProviderTaskStatus(taskStatus.COMPLETED, {
+      navigateToList: true,
+      successMessage: "Success",
+    });
+  };
+
+  const handleOnTheWay = () => {
+    applyProviderTaskStatus(taskStatus.ON_THE_WAY, {
+      successMessage: "Marked as on the way.",
+    });
+  };
+
+  const handleInProgress = () => {
+    applyProviderTaskStatus(taskStatus.IN_PROGRESS, {
+      successMessage: "Marked as in progress.",
+    });
   };
 
   const handleButtonClick = (id) => {
@@ -221,9 +260,7 @@ export default function ServiceTaskDetails() {
                   <h3>{task?.need_done || "Task"}</h3>
                   <h5>
                     {task?.task_time},{" "}
-                    {task?.when_done
-                      ? moment(task.when_done).format("DD MMM")
-                      : "N/A"}
+                    {formatTaskWhenDoneDisplay(task?.when_done)}
                   </h5>
                   <p>{task?.details || "No description provided."}</p>
                   <div className="book-service-action-btn">
@@ -237,14 +274,68 @@ export default function ServiceTaskDetails() {
                         Add Quotation
                       </button>
                     ) : (
-                      <div className="book-service-action">
-                        <button onClick={() => handleTaskFunc(task, "cancel")}>
-                          Cancel
-                        </button>
-                        <button onClick={() => handleTaskFunc(task, "job")}>
-                          Job Done{" "}
-                        </button>
-                      </div>
+                      (() => {
+                        const {
+                          showCancel,
+                          showOnTheWay,
+                          showInProgress,
+                          showJobDone,
+                        } = getProviderTaskDetailActionVisibility(task?.status);
+
+                        return (
+                          <div className="book-service-action book-service-action--task-flow">
+                            {showCancel && (
+                              <button
+                                type="button"
+                                className="task-flow-btn task-flow-btn--outline"
+                                disabled={taskStatusSubmitting}
+                                onClick={handleTaskCancel}
+                              >
+                                Cancel
+                              </button>
+                            )}
+                            {showOnTheWay && (
+                              <button
+                                type="button"
+                                className="task-flow-btn task-flow-btn--on-way"
+                                disabled={taskStatusSubmitting}
+                                onClick={handleOnTheWay}
+                              >
+                                On the Way
+                              </button>
+                            )}
+                            {showInProgress && (
+                              <button
+                                type="button"
+                                className="task-flow-btn task-flow-btn--start-job"
+                                disabled={taskStatusSubmitting}
+                                onClick={handleInProgress}
+                              >
+                                In Progress
+                              </button>
+                            )}
+                            {showJobDone && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="task-flow-btn task-flow-btn--primary"
+                                  disabled={taskStatusSubmitting}
+                                  onClick={handleTaskJobDone}
+                                >
+                                  Job Done
+                                </button>
+                                <button
+                                  type="button"
+                                  className="task-flow-btn task-flow-btn--outline-primary"
+                                  onClick={() => navigate("/my-task")}
+                                >
+                                  View history
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()
                     )}
                   </div>
                 </div>
@@ -259,18 +350,27 @@ export default function ServiceTaskDetails() {
                   <div className="booking-status-txt pt-0">
                     <div className="booking-status-left-txt">
                       <h2>Status</h2>
-                      <h3 className={getStatusColor(task?.status)}>
-                        Scheduled to work
-                      </h3>
-                      <p>
-                        Service provider need to start work on scheduled day.
-                      </p>
-                      <h5>
-                        {task?.task_time},{" "}
-                        {task?.when_done
-                          ? moment(task?.when_done).format("DD MMM")
-                          : "N/A"}
-                      </h5>
+                      {(() => {
+                        const flow = getTaskFlowStepperState(task?.status);
+                        const headline =
+                          flow.variant !== "default"
+                            ? flow.terminalLabel || "Status"
+                            : JOB_FLOW_STEP_LABELS[flow.activeStep] ||
+                              "Status";
+                        return (
+                          <>
+                            <h3 className={getStatusColor(task?.status)}>
+                              {headline}
+                            </h3>
+                            <JobFlowStepper mode="task" status={task?.status} />
+                            <p>{getTaskFlowDescription(task?.status)}</p>
+                            <h5>
+                              {task?.task_time},{" "}
+                              {formatTaskWhenDoneDisplay(task?.when_done)}
+                            </h5>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </section>

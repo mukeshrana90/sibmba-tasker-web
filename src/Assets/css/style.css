@@ -25,6 +25,11 @@ body {
   font-family: "Inter", serif !important;
 }
 
+:root {
+  --simba-green: #038654;
+  --simba-green-hover: #027348;
+}
+
 .btn-check:checked + .btn,
 .btn.active,
 .btn.show,
@@ -1672,8 +1677,9 @@ input[type="checkbox"]:checked::before {
   color: #252525;
   font-family: "Open Sans";
   font-size: 32px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: normal;
+  letter-spacing: -0.02em;
 }
 
 .service-detail-card p {
@@ -1690,6 +1696,12 @@ input[type="checkbox"]:checked::before {
   align-items: center;
   margin-bottom: 0;
   padding-top: 20px;
+}
+
+.service-detail-card .book-service-action-btn h4 {
+  color: var(--simba-green);
+  font-weight: 700;
+  font-size: 1.5rem;
 }
 
 .book-service-action-btn {
@@ -1746,6 +1758,11 @@ button.booking-job-done-btn {
   padding: 12px 24px;
   font-size: 15px;
   font-weight: 500;
+  min-height: 48px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 .book-service-action-btn button.booking-job-done-btn:hover:not(:disabled),
 button.booking-job-done-btn:hover:not(:disabled) {
@@ -1757,6 +1774,136 @@ button.booking-job-done-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
   color: #fff !important;
+}
+
+/* Task detail — budget row: Job Done / Pay / history inline */
+.book-service-action-btn.task-detail-price-actions {
+  flex-wrap: wrap;
+  row-gap: 12px;
+  column-gap: 16px;
+  align-items: center;
+}
+
+.task-detail-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Job Done / Pay / View history — same height; View history wider */
+.task-detail-primary-actions .task-poster-completion-card__pay {
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.book-service-action-btn .task-detail-view-history-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 36px !important;
+  border-radius: 10px;
+  border: 2px solid var(--simba-green, #038654) !important;
+  background: #fff !important;
+  color: var(--simba-green, #038654) !important;
+  font-size: 15px !important;
+  font-weight: 600;
+  font-family: "Open Sans", sans-serif;
+  cursor: pointer;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+  box-sizing: border-box;
+  min-height: 48px;
+  min-width: 180px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.book-service-action-btn .task-detail-view-history-btn:hover:not(:disabled) {
+  background: rgba(3, 134, 84, 0.1) !important;
+  color: var(--simba-green-hover, #027348) !important;
+  border-color: var(--simba-green-hover, #027348) !important;
+}
+
+/* Poster task detail — confirm job + pay on same page (no Bookings-only flow) */
+.task-poster-completion-card {
+  margin-top: 4px;
+}
+
+.task-poster-completion-card__inner {
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 42%, #fff 100%);
+  border: 1px solid rgba(3, 134, 84, 0.22);
+  border-radius: 14px;
+  padding: 20px 22px 18px;
+  box-shadow: 0 4px 20px rgba(30, 58, 95, 0.08);
+}
+
+.task-poster-completion-card__title {
+  color: #252525;
+  font-family: "Open Sans", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.task-poster-completion-card__text {
+  color: #4b5563;
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+  max-width: 640px;
+}
+
+.task-poster-completion-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.task-poster-completion-card__hint {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  max-width: 480px;
+}
+
+.task-poster-completion-card__pay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  border-radius: 10px;
+  border: 0;
+  background: var(--simba-green);
+  color: #fff !important;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(3, 134, 84, 0.35);
+}
+
+.task-poster-completion-card__pay:hover {
+  background: var(--simba-green-hover);
+  color: #fff !important;
+}
+
+.task-poster-completion-card__secondary {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #1565c0;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.task-poster-completion-card__secondary:hover {
+  color: #0d47a1;
 }
 
 /* Confirm job complete modal — equal width & height for Cancel / Yes */
@@ -2037,6 +2184,97 @@ button.booking-job-done-btn:disabled {
   background: #038654;
 }
 
+/* Service provider task flow: Cancel + On the Way + In Progress + Job Done */
+.book-service-action--task-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  grid-template-columns: unset;
+  width: 100%;
+  max-width: 640px;
+}
+
+.book-service-action--task-flow .task-flow-btn {
+  padding: 12px 20px;
+  border-radius: 10px;
+  text-align: center;
+  font-family: "Open Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: normal;
+  cursor: pointer;
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease, transform 0.12s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.book-service-action--task-flow .task-flow-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.book-service-action--task-flow .task-flow-btn--outline {
+  border: 1px solid #d1d5db;
+  background-color: #fff;
+  color: #374151;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.book-service-action--task-flow .task-flow-btn--outline:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.book-service-action--task-flow .task-flow-btn--on-way,
+.book-service-action--task-flow .task-flow-btn--start-job {
+  border: 0;
+  color: #fff;
+  background: var(--simba-green);
+}
+
+.book-service-action--task-flow .task-flow-btn--on-way:hover:not(:disabled),
+.book-service-action--task-flow .task-flow-btn--start-job:hover:not(:disabled) {
+  background: var(--simba-green-hover);
+}
+
+.book-service-action--task-flow .task-flow-btn--outline-primary {
+  border: 2px solid var(--simba-green);
+  background-color: #fff;
+  color: var(--simba-green);
+  min-width: 180px;
+  padding-left: 32px;
+  padding-right: 32px;
+  font-size: 15px;
+}
+
+.book-service-action--task-flow .task-flow-btn--outline-primary:hover:not(:disabled) {
+  background-color: rgba(3, 134, 84, 0.08);
+}
+
+.book-service-action--task-flow .task-flow-btn--primary {
+  border: 0;
+  color: #fff;
+  background: var(--simba-green);
+  padding-left: 28px;
+  padding-right: 28px;
+  font-size: 15px;
+}
+
+.book-service-action--task-flow .task-flow-btn--primary:hover:not(:disabled) {
+  background: var(--simba-green-hover);
+}
+
 .bookings-tab-nav .nav-link {
   border-radius: var(--bs-nav-pills-border-radius);
   color: #545454;
@@ -2233,8 +2471,9 @@ button.booking-job-done-btn:disabled {
   color: #252525;
   font-family: "Open Sans";
   font-size: 30px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: normal;
+  letter-spacing: -0.02em;
 }
 
 .booking-status-left-txt h3 {
@@ -2263,11 +2502,11 @@ button.booking-job-done-btn:disabled {
 }
 
 .booking-status-left-txt .green {
-  color: #038654;
+  color: var(--simba-green);
 }
 
 .booking-status-left-txt .yellow {
-  color: #038654;
+  color: #b45309;
 }
 
 .booking-status-left-txt .red {
@@ -2282,6 +2521,130 @@ button.booking-job-done-btn:disabled {
 
 .booking-status-booking {
   display: grid;
+}
+
+/* Flow stepper — simple web layout (wraps on narrow viewports) */
+.job-flow-stepper {
+  width: 100%;
+  margin: 12px 0;
+}
+
+.job-flow-stepper__banner {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+
+.job-flow-stepper__banner--rejected {
+  color: #991b1b;
+  background: rgba(193, 12, 0, 0.08);
+  border: 1px solid rgba(193, 12, 0, 0.25);
+}
+
+.job-flow-stepper__banner--cancelled {
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.job-flow-stepper__row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 4px 0;
+  width: 100%;
+}
+
+.job-flow-stepper__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  z-index: 1;
+}
+
+.job-flow-stepper__node {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.job-flow-stepper__node--past {
+  background: #5c636a;
+  border: 2px solid #5c636a;
+}
+
+.job-flow-stepper__node--current {
+  background: var(--simba-green);
+  border: 2px solid var(--simba-green);
+}
+
+.job-flow-stepper__node--future {
+  background: #fff;
+  border: 2px solid #e5e7eb;
+}
+
+.job-flow-stepper__node--muted {
+  background: #f2f4f7;
+  border: 2px solid #e4e7ec;
+  opacity: 0.85;
+}
+
+.job-flow-stepper__label {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #545454;
+  text-align: center;
+  line-height: 1.25;
+  max-width: 96px;
+  padding: 0 4px;
+}
+
+@media (min-width: 576px) {
+  .job-flow-stepper__label {
+    font-size: 13px;
+    max-width: 110px;
+  }
+}
+
+.job-flow-stepper__label--current {
+  color: var(--simba-green);
+  font-weight: 600;
+}
+
+.job-flow-stepper__line {
+  flex: 1 1 12px;
+  min-width: 8px;
+  max-width: 48px;
+  height: 2px;
+  margin-top: 11px;
+  margin-left: -2px;
+  margin-right: -2px;
+  border-radius: 1px;
+  align-self: flex-start;
+}
+
+.job-flow-stepper__line--done {
+  background: #9ca3af;
+}
+
+.job-flow-stepper__line--todo {
+  background: #e5e7eb;
+}
+
+.job-flow-stepper__line--muted {
+  background: #f2f4f7;
 }
 
 .reason-for-cancellation h5 {
@@ -4402,14 +4765,15 @@ button.next-btn.btn-success.mt-3.btn.btn-primary {
   text-align: center;
   font-family: "Open Sans";
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: normal;
-  padding: 12px 34px;
-  border-radius: 8px;
-  background: #038654;
+  padding: 12px 28px;
+  border-radius: 10px;
+  background: var(--simba-green);
   border: 0;
   width: 100%;
   min-width: 230px;
+  box-shadow: 0 1px 3px rgba(3, 134, 84, 0.25);
 }
 
 .design-button {
@@ -4625,14 +4989,15 @@ button.read-more-btn {
   text-align: center;
   font-family: "Open Sans";
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: normal;
-  padding: 12px 34px;
-  border-radius: 8px;
-  background: #038654;
+  padding: 12px 28px;
+  border-radius: 10px;
+  background: var(--simba-green);
   border: 0;
   width: 100%;
   min-width: 230px;
+  box-shadow: 0 1px 3px rgba(3, 134, 84, 0.25);
 }
 
 .tasks-btn button:last-child {
@@ -4640,15 +5005,16 @@ button.read-more-btn {
   text-align: center;
   font-family: "Open Sans";
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: normal;
-  padding: 12px 34px;
-  border-radius: 8px;
-  background: transparent;
+  padding: 12px 28px;
+  border-radius: 10px;
+  background: #fff;
   border: 0;
   width: 100%;
   min-width: 230px;
-  border: 1px solid #c10c00;
+  border: 2px solid #c10c00;
+  box-shadow: 0 1px 2px rgba(193, 12, 0, 0.08);
 }
 
 .tasks-requests-btns {

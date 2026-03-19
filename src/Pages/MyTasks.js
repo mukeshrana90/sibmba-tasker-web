@@ -8,13 +8,15 @@ import Nav from "react-bootstrap/Nav";
 import Tab from "react-bootstrap/Tab";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import moment from "moment";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import { formatTaskWhenDoneDisplay } from "../utils/CommonFunction";
 import {
   getQuotationPosterDecisionState,
   mergeQuotationWithOptimisticStatus,
+  mergeQuotationWithParentTaskForStatus,
+  resolveParentTaskForQuotationMerge,
 } from "../utils/quotationPosterDecision";
 
 export default function MyTasks() {
@@ -60,9 +62,10 @@ export default function MyTasks() {
     const qid = data?._id;
     if (!qid) return;
 
-    const merged = mergeQuotationWithOptimisticStatus(
-      data,
-      optimisticQuotationRef.current
+    const parentTask = resolveParentTaskForQuotationMerge(data, allMyPosts);
+    const merged = mergeQuotationWithParentTaskForStatus(
+      mergeQuotationWithOptimisticStatus(data, optimisticQuotationRef.current),
+      parentTask
     );
     if (!getQuotationPosterDecisionState(merged).showActions) {
       return;
@@ -72,7 +75,7 @@ export default function MyTasks() {
 
     const obj = {
       quatation_id: data?._id,
-      task_id: data?.task_id?._id,
+      task_id: data?.task_id?._id ?? data?.task_id,
       service_provider_id: data?.service_provider?._id,
       status: type === "accept" ? 1 : 2,
     };
@@ -170,9 +173,9 @@ export default function MyTasks() {
                                               <h3>{post.need_done}</h3>
                                               <p>
                                                 {post.task_time},{" "}
-                                                {`${moment(
+                                                {formatTaskWhenDoneDisplay(
                                                   post.when_done
-                                                ).format("DD MMM")}`}
+                                                )}
                                               </p>
                                               <span>{post.details}</span>
                                               <h5>${post.budget}</h5>
@@ -243,10 +246,18 @@ export default function MyTasks() {
                             <div>
                               {allMyQuotations?.length > 0 ? (
                                 allMyQuotations?.map((quotation) => {
-                                  const quotationForUi =
-                                    mergeQuotationWithOptimisticStatus(
+                                  const parentTask =
+                                    resolveParentTaskForQuotationMerge(
                                       quotation,
-                                      optimisticQuotationStatusById
+                                      allMyPosts
+                                    );
+                                  const quotationForUi =
+                                    mergeQuotationWithParentTaskForStatus(
+                                      mergeQuotationWithOptimisticStatus(
+                                        quotation,
+                                        optimisticQuotationStatusById
+                                      ),
+                                      parentTask
                                     );
                                   const posterState =
                                     getQuotationPosterDecisionState(

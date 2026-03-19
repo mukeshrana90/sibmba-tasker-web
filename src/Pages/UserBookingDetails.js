@@ -16,7 +16,19 @@ import { toast } from "react-toastify";
 import CorporateActions from "../Redux/Actions/corporateActions";
 import ChatIcon from "../Assets/Images/chatIcon2.svg";
 import defaultImage from "../Assets/Images/placeholder.jpg";
-import { getStatusLabel } from "../utils/CommonFunction";
+import {
+  formatTaskWhenDoneDisplay,
+  getStatusLabel,
+} from "../utils/CommonFunction";
+import JobFlowStepper from "../CommanComponents/JobFlowStepper";
+import {
+  bookingSeekerShouldHideCancellationActions,
+  getBookingFlowDescription,
+  getSeekerTaskFlowDescription,
+  seekerShouldHideTaskCancellationActions,
+} from "../utils/jobFlowStatus";
+import { getPosterTaskDetailStepperStatus } from "../utils/quotationPosterDecision";
+import { isSeekerConfirmedTaskData } from "../utils/seekerCompletion";
 
 // const getStatusColor = (status) => {
 //   const statusMap = {
@@ -30,15 +42,18 @@ import { getStatusLabel } from "../utils/CommonFunction";
 //   return statusMap[status] || "N/A";
 // };
 const getStatusColor = (status) => {
+  const s = Number(status);
   const statusMap = {
+    0: "pending",
     1: "pending",
     2: "completed",
     3: "cancelled",
     4: "completed",
     5: "rejected",
+    6: "completed",
+    7: "completed",
   };
-
-  return statusMap[status] || "N/A";
+  return statusMap[s] || "N/A";
 };
 
 const isSeekerConfirmedBookingData = (booking) => {
@@ -50,28 +65,6 @@ const isSeekerConfirmedBookingData = (booking) => {
     booking.seeker_confirm_complete === true
   );
 };
-
-const isSeekerConfirmedTaskData = (t) => {
-  if (!t || typeof t !== "object") return false;
-  return (
-    t.seeker_confirmed_completion === true ||
-    t.seekerConfirmedCompletion === true ||
-    t.is_seeker_confirmed_complete === true ||
-    t.seeker_confirm_complete === true
-  );
-};
-
-// const getStatusLabel = (status) => {
-//   const statusMap = {
-//     1: "Pending",
-//     2: "Cancelled",
-//     3: "Completed",
-//     4: "Completed",
-//     5: "Rejected",
-//   };
-
-//   return statusMap[status] || "N/A";
-// };
 
 export default function UserBookingDetails() {
   const dispatch = useDispatch();
@@ -440,6 +433,12 @@ export default function UserBookingDetails() {
     (q) => q._id === task?.quatation_id
   );
 
+  const posterTaskStepperStatus = getPosterTaskDetailStepperStatus(
+    task,
+    quotations,
+    {}
+  );
+
   const bookingSeekerOk =
     isSeekerConfirmedBookingData(bookingState) || seekerBookingConfirmed;
   const bookingShowJobDoneBtn =
@@ -601,10 +600,6 @@ export default function UserBookingDetails() {
                                       Job Done
                                     </button>
                                   </div>
-                                  <p className="text-muted small mt-2 mb-0 text-center px-2">
-                                    Confirm the service is complete to unlock
-                                    payment.
-                                  </p>
                                 </div>
                               )}
                               {taskShowPayBtn && (
@@ -638,7 +633,10 @@ export default function UserBookingDetails() {
                           )}
                         </div>
                         <div>
-                          {task?.status === 1 && (
+                          {task?.status === 1 &&
+                            !seekerShouldHideTaskCancellationActions(
+                              task?.status
+                            ) && (
                             <div className="book-service-action-btn mt-2">
                               <button
                                 type="button"
@@ -832,65 +830,54 @@ export default function UserBookingDetails() {
                         </div>
                       </div>
                     </div>
-                    {/* Booking Status */}
-                    <div className="mt-4 border-top pt-3">
-                      <div className="d-flex mb-2">
-                        <span className="fw-semibold me-2">Status:</span>
-                        {task?.status === 1 && (
-                          <span className="corporate_inner pending">
-                            Pending
-                          </span>
-                        )}
-                        {task?.status === 2 && (
-                          <span className="corporate_inner cancelled">
-                            Cancelled
-                          </span>
-                        )}
-                        {task?.status === 3 && (
-                          <span className="corporate_inner completed">
-                            Completed
-                          </span>
-                        )}
-                      </div>
+                    {/* Task status (seeker) — stepper + copy */}
+                    <section className="booking-status-sec mt-4">
+                      <div className="booking-status-txt pt-0">
+                        <div className="booking-status-left-txt w-100">
+                          {task?.status !== undefined &&
+                            task?.status !== null && (
+                              <>
+                                <h2>Status</h2>
+                                <JobFlowStepper
+                                  mode="task"
+                                  status={posterTaskStepperStatus}
+                                  className="mb-3"
+                                />
+                                <p className="text-muted mb-2">
+                                  {getSeekerTaskFlowDescription(
+                                    posterTaskStepperStatus
+                                  )}
+                                </p>
+                              </>
+                            )}
+                          {task?.status === 3 &&
+                            ["paid"].includes(task?.payment?.status) && (
+                              <div
+                                className="booking-payment-success-highlight"
+                                role="status"
+                              >
+                                <p>
+                                  Job done! Your payment was successful. Thank
+                                  you for using Simba Tasker.
+                                </p>
+                              </div>
+                            )}
 
-                      {task?.status === 1 && (
-                        <p className="text-muted mb-2">
-                          Service provider has not accepted your booking.
-                        </p>
-                      )}
-                      {task?.status === 2 && (
-                        <p className="text-muted mb-2">
-                          Service provider has cancelled your booking.
-                        </p>
-                      )}
-                      {task?.status === 3 && (
-                        <p className="text-muted mb-2">
-                          Service provider has completed your task.
-                        </p>
-                      )}
-                      {task?.status === 3 &&
-                        ["paid"].includes(task?.payment?.status) && (
-                          <div
-                            className="booking-payment-success-highlight"
-                            role="status"
-                          >
-                            <p>
-                              Job done! Your payment was successful. Thank you
-                              for using Simba Tasker.
-                            </p>
+                          <div className="d-flex mt-2">
+                            <span className="fw-semibold me-2">
+                              Scheduled for:
+                            </span>
+                            <span className="text-muted">
+                              {task?.task_time || "N/A"},{" "}
+                              {formatTaskWhenDoneDisplay(
+                                task?.when_done,
+                                "DD MMMM YYYY"
+                              )}
+                            </span>
                           </div>
-                        )}
-
-                      <div className="d-flex">
-                        <span className="fw-semibold me-2">Scheduled for:</span>
-                        <span className="text-muted">
-                          {task?.task_time || "N/A"},{" "}
-                          {moment(task?.when_done, "MM-DD-YYYY").format(
-                            "DD MMMM YYYY"
-                          )}
-                        </span>
+                        </div>
                       </div>
-                    </div>
+                    </section>
                   </div>
                 </section>
               ) : bookingState ? (
@@ -983,7 +970,10 @@ export default function UserBookingDetails() {
                                 </button>
                               )}
 
-                            {[1, 2].includes(bookingState.status) && (
+                            {[1, 2].includes(bookingState.status) &&
+                              !bookingSeekerShouldHideCancellationActions(
+                                bookingState.status
+                              ) && (
                               <button
                                 type="button"
                                 className="outline text-white"
@@ -1019,6 +1009,11 @@ export default function UserBookingDetails() {
                   <section className="booking-status-sec mt-4">
                     <Container>
                       <div className="booking-status-booking">
+                        <JobFlowStepper
+                          mode="booking"
+                          status={bookingState.status}
+                          className="mb-3"
+                        />
                         <div className="flex">
                           Status:{" "}
                           <h3
@@ -1030,15 +1025,16 @@ export default function UserBookingDetails() {
                           </h3>
                         </div>
                         <p>
-                          {bookingState.status === 3
-                            ? "Service provider has canceled your booking."
-                            : bookingState.payment?.status === "paid"
-                            ? "Service provider has completed this service."
-                            : `Service provider has ${
-                                bookingState.status === 1
-                                  ? "not accepted"
-                                  : "completed"
-                              } your booking.`}
+                          {getBookingFlowDescription(bookingState.status) ||
+                            (bookingState.status === 3
+                              ? "Service provider has canceled your booking."
+                              : bookingState.payment?.status === "paid"
+                              ? "Service provider has completed this service."
+                              : `Service provider has ${
+                                  bookingState.status === 1
+                                    ? "not accepted"
+                                    : "completed"
+                                } your booking.`)}
                         </p>
                         {bookingState.status === 4 &&
                           ["paid"].includes(
