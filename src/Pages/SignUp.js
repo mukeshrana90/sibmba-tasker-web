@@ -17,6 +17,36 @@ import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
 import { toast } from "react-toastify";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
 
+function normalizeWebDeviceToken(value) {
+  if (value == null) return "";
+  const s = String(value).trim();
+  return s || "";
+}
+
+async function resolveWebDeviceTokenForRegister(fcmTokenState) {
+  const tryFresh = async () => {
+    try {
+      const token = await getFirebaseToken();
+      return normalizeWebDeviceToken(token);
+    } catch {
+      return "";
+    }
+  };
+
+  let resolved = await tryFresh();
+  if (!resolved) {
+    await new Promise((r) => setTimeout(r, 400));
+    resolved = await tryFresh();
+  }
+  if (!resolved) {
+    resolved = normalizeWebDeviceToken(localStorage.getItem("device_token"));
+  }
+  if (!resolved) {
+    resolved = normalizeWebDeviceToken(fcmTokenState);
+  }
+  return resolved;
+}
+
 export default function SignUp() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -72,9 +102,10 @@ export default function SignUp() {
     const handleGetFirebaseToken = async () => {
       try {
         const token = await getFirebaseToken();
-        setFcmToken(token);
-        if (token) {
-          localStorage.setItem("device_token", token);
+        const normalized = normalizeWebDeviceToken(token);
+        setFcmToken(normalized || null);
+        if (normalized) {
+          localStorage.setItem("device_token", normalized);
         }
       } catch (error) {
         console.error("An error occurred while retrieving the Firebase token: ", error);
@@ -93,17 +124,10 @@ export default function SignUp() {
 
   const handleOtpTypeSelection = async (otpType) => {
     setSignupLoading(true);
-    let deviceToken = fcmToken || localStorage.getItem("device_token");
-    if (!deviceToken) {
-      try {
-        deviceToken = await getFirebaseToken();
-        if (deviceToken) {
-          setFcmToken(deviceToken);
-          localStorage.setItem("device_token", deviceToken);
-        }
-      } catch {
-        /* same as login: register without device_token if FCM unavailable */
-      }
+    const deviceToken = await resolveWebDeviceTokenForRegister(fcmToken);
+    if (deviceToken) {
+      localStorage.setItem("device_token", deviceToken);
+      setFcmToken(deviceToken);
     }
 
     const payload = {
@@ -114,7 +138,7 @@ export default function SignUp() {
       role: Number(role) || 1,
       type: otpType,
       device_type: "web",
-      device_token: deviceToken || "",
+      device_token: deviceToken,
     };
     const response = await dispatch(CustomerActions.createCustomer(payload));
     if (response?.payload?.status_code === 200) {
