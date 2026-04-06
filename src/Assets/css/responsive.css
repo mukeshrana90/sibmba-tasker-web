@@ -410,3 +410,33 @@
 }
 
 }
+
+@media (max-width: 575.98px) {
+  .provider-pro-view.provider-pro-view--profile {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .provider-pro-view--profile .provider-pro-view__main {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .provider-pro-view--profile .provider-pro-view__info {
+    width: 100%;
+  }
+
+  .provider-pro-view--profile .provider-stats-row {
+    justify-content: center;
+  }
+
+  .provider-pro-view--profile .provider-rating-row {
+    justify-content: center;
+  }
+
+  .provider-pro-view--profile .provider-pro-view__location {
+    text-align: center;
+  }
+}

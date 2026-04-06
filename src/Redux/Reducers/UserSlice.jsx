@@ -26,6 +26,7 @@ const UserSlice = createSlice({
     statsListData: null,
     notificationData: null,
     detailService: null,
+    serviceProviderProfile: null,
     loading: false,
     error: null,
   },
@@ -448,7 +449,25 @@ const UserSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       }
-    )
+    );
+
+    builder.addCase(CustomerActions.getServiceProviderProfile.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(
+      CustomerActions.getServiceProviderProfile.fulfilled,
+      (state, action) => {
+        state.loading = false;
+        state.serviceProviderProfile = action.payload;
+      }
+    );
+    builder.addCase(
+      CustomerActions.getServiceProviderProfile.rejected,
+      (state) => {
+        state.loading = false;
+        state.serviceProviderProfile = null;
+      }
+    );
   },
 
 });

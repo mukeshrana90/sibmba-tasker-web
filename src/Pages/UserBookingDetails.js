@@ -28,7 +28,11 @@ import {
   seekerShouldHideTaskCancellationActions,
 } from "../utils/jobFlowStatus";
 import { getPosterTaskDetailStepperStatus } from "../utils/quotationPosterDecision";
-import { isSeekerConfirmedTaskData } from "../utils/seekerCompletion";
+import {
+  isSeekerConfirmedBookingData,
+  isSeekerConfirmedTaskData,
+} from "../utils/seekerCompletion";
+import StarRating from "../CommanComponents/StarRating";
 
 // const getStatusColor = (status) => {
 //   const statusMap = {
@@ -54,16 +58,6 @@ const getStatusColor = (status) => {
     7: "completed",
   };
   return statusMap[s] || "N/A";
-};
-
-const isSeekerConfirmedBookingData = (booking) => {
-  if (!booking || typeof booking !== "object") return false;
-  return (
-    booking.seeker_confirmed_completion === true ||
-    booking.seekerConfirmedCompletion === true ||
-    booking.is_seeker_confirmed_complete === true ||
-    booking.seeker_confirm_complete === true
-  );
 };
 
 export default function UserBookingDetails() {
@@ -95,6 +89,7 @@ export default function UserBookingDetails() {
   const [showJobDoneConfirmModal, setShowJobDoneConfirmModal] =
     useState(false);
   const [jobDoneConfirmTarget, setJobDoneConfirmTarget] = useState(null);
+  const [existingFeedback, setExistingFeedback] = useState(null);
   const paymentPromptAutoShownRef = useRef(false);
 
   const handleEditOpen = (id) => {
@@ -129,6 +124,25 @@ export default function UserBookingDetails() {
     setSeekerBookingConfirmed(false);
     setSeekerTaskConfirmed(false);
   }, [id?.id, type]);
+
+  useEffect(() => {
+    const bookingId = !type ? bookingState?._id : null;
+    const taskId = type ? taskbooking?.task?._id : null;
+    if (!bookingId && !taskId) {
+      setExistingFeedback(null);
+      return;
+    }
+    dispatch(
+      CustomerActions.getMyFeedbackForJob({
+        booking_id: bookingId || undefined,
+        task_id: taskId || undefined,
+      })
+    ).then((res) => {
+      if (res?.payload?.success) {
+        setExistingFeedback(res?.payload?.data || null);
+      }
+    });
+  }, [dispatch, type, bookingState?._id, taskbooking?.task?._id, refetchToggle]);
 
   useEffect(() => {
     if (bookingState && isSeekerConfirmedBookingData(bookingState)) {
@@ -224,17 +238,22 @@ export default function UserBookingDetails() {
 
     const feedbackData = {
       Booking_id: bookingState?._id,
-      ...(task?.id && { task_id: task.id }),
+      ...(task?._id && { task_id: task._id }),
       message,
       rating,
       type: 1,
       ...corporateFields,
     };
 
-    dispatch(CustomerActions.feedbackActions(feedbackData));
-
-    handleFeedbackClose();
-    setShowThankYou(true);
+    dispatch(CustomerActions.feedbackActions(feedbackData)).then((res) => {
+      if (res?.payload?.success) {
+        setExistingFeedback(res?.payload?.data || null);
+        handleFeedbackClose();
+        setShowThankYou(true);
+      } else {
+        toast.error(res?.payload?.message || "Could not submit feedback");
+      }
+    });
   };
 
   const handleAccept = (status, corporateIds) => {
@@ -465,6 +484,46 @@ export default function UserBookingDetails() {
     task.payment?.status === "pending" &&
     taskSeekerOk;
 
+  const hasSubmittedFeedback = Boolean(existingFeedback?._id);
+
+  const renderExistingFeedback = () => {
+    if (!hasSubmittedFeedback) return null;
+    return (
+      <section className="category-services-sec pt-0">
+        <Container>
+          <div className="category-services-lists">
+            <div className="list-title">
+              <h3>Your Feedback</h3>
+            </div>
+            <div className="review-section2">
+              <div className="review-content2">
+                <div className="review-main2 d-flex align-items-center">
+                  <div>
+                    <h3>You</h3>
+                    <p>
+                      <StarRating
+                        averageRating={existingFeedback?.rating}
+                        type={"noreview"}
+                      />
+                    </p>
+                  </div>
+                  <div className="date-sec">
+                    {moment(existingFeedback?.createdAt || new Date()).format(
+                      "DD MMM"
+                    )}
+                  </div>
+                </div>
+                <div className="review-msgs">
+                  <p>{existingFeedback?.message || "-"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+    );
+  };
+
   const handleSeekerConfirmBooking = async () => {
     if (!bookingState?._id) return false;
     setJobDoneSubmitting(true);
@@ -619,8 +678,16 @@ export default function UserBookingDetails() {
                                 <button
                                   className="btn btn-light border w-50 me-2"
                                   onClick={handleFeedbackOpen}
+                                  disabled={hasSubmittedFeedback}
+                                  title={
+                                    hasSubmittedFeedback
+                                      ? "Feedback already submitted"
+                                      : "Give feedback"
+                                  }
                                 >
-                                  Give Feedback
+                                  {hasSubmittedFeedback
+                                    ? "Feedback Submitted"
+                                    : "Give Feedback"}
                                 </button>
                                 <button
                                   className="btn btn-outline-success w-50 me-2"
@@ -815,8 +882,11 @@ export default function UserBookingDetails() {
                                                 handleFeedbackOpen();
                                                 setCorporateProfile(corp);
                                               }}
+                                              disabled={hasSubmittedFeedback}
                                             >
-                                              Give Feedback
+                                              {hasSubmittedFeedback
+                                                ? "Feedback Submitted"
+                                                : "Give Feedback"}
                                             </button>
                                           )}
                                         </div>
@@ -878,6 +948,8 @@ export default function UserBookingDetails() {
                         </div>
                       </div>
                     </section>
+
+                    {renderExistingFeedback()}
                   </div>
                 </section>
               ) : bookingState ? (
@@ -991,8 +1063,16 @@ export default function UserBookingDetails() {
                           <button
                             className="feedback-btn"
                             onClick={handleFeedbackOpen}
+                            disabled={hasSubmittedFeedback}
+                            title={
+                              hasSubmittedFeedback
+                                ? "Feedback already submitted"
+                                : "Give feedback"
+                            }
                           >
-                            Give Feedback
+                            {hasSubmittedFeedback
+                              ? "Feedback Submitted"
+                              : "Give Feedback"}
                           </button>
                           <button
                             className="primaryBtn"
@@ -1231,6 +1311,8 @@ export default function UserBookingDetails() {
                       </div>
                     </Container>
                   </section>
+
+                  {renderExistingFeedback()}
                 </section>
               ) : null}
             </Col>

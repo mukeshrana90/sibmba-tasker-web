@@ -28,6 +28,14 @@ export default function CustomerReviews() {
     });
   };
 
+  const getTaskLabel = (review) => {
+    if (!review?.task_id) return null;
+    const title = review?.task_id?.need_done || "Task";
+    const taskDateRaw = review?.task_id?.when_done || review?.task_id?.createdAt;
+    const taskDate = taskDateRaw ? formatDate(taskDateRaw) : null;
+    return taskDate ? `${title} • ${taskDate}` : title;
+  };
+
   const filteredReviews = (tab) => {
     const list = Array.isArray(reviewList) ? reviewList : [];
     if (tab === "all") {
@@ -163,6 +171,12 @@ export default function CustomerReviews() {
                                             </div>
                                           </div>
                                           <p>{review.message || ""}</p>
+                                          {getTaskLabel(review) && (
+                                            <div className="review-task-chip mt-2">
+                                              <span className="review-task-chip__label">Task</span>
+                                              <span className="review-task-chip__value">{getTaskLabel(review)}</span>
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
                                       {isReviewPending(review) && (
@@ -260,6 +274,12 @@ export default function CustomerReviews() {
                                           </div>
                                           <div className="review-msgs">
                                             <p>{review.message || ""}</p>
+                                            {getTaskLabel(review) && (
+                                              <div className="review-task-chip mt-2">
+                                                <span className="review-task-chip__label">Task</span>
+                                                <span className="review-task-chip__value">{getTaskLabel(review)}</span>
+                                              </div>
+                                            )}
                                           </div>
                                         </div>
                                       </div>
@@ -333,6 +353,12 @@ export default function CustomerReviews() {
                                           </div>
                                           <div className="review-msgs">
                                             <p>{review.message || ""}</p>
+                                            {getTaskLabel(review) && (
+                                              <div className="review-task-chip mt-2">
+                                                <span className="review-task-chip__label">Task</span>
+                                                <span className="review-task-chip__value">{getTaskLabel(review)}</span>
+                                              </div>
+                                            )}
                                           </div>
                                         </div>
                                       </div>

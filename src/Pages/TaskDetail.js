@@ -406,7 +406,7 @@ export default function TaskDetail() {
                       {taskShowSeekerPayBtn && (
                         <button
                           type="button"
-                          className="task-poster-completion-card__pay"
+                          className="task-detail-view-history-btn"
                           onClick={() => handlePaymentOpen(task._id)}
                         >
                           Pay Now

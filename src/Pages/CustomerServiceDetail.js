@@ -321,7 +321,9 @@ export default function CustomerServiceDetail() {
             <div
               className="provider-view-pro"
               onClick={() =>
-                Navigate(`/service-provider/${serviceDetail?._id}`)
+                Navigate(
+                  `/service-provider/${serviceDetail?.serviceProviderId?._id}`
+                )
               }
             >
               <img

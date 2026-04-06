@@ -1,6 +1,6 @@
 import React from 'react';
 
-const StarRating = ({ averageRating, type }) => {
+const StarRating = ({ averageRating, type, reviewCount }) => {
   const maxStars = 5;
   const stars = [];
 
@@ -50,10 +50,24 @@ const StarRating = ({ averageRating, type }) => {
     );
   }
 
+  const avgNum = Number(averageRating);
+  const avgLabel = Number.isFinite(avgNum) ? avgNum.toFixed(1) : "0.0";
+
   return (
     <div className="rating-stars">
       <ul>{stars}</ul>
-      {type !== "noreview" && <p>({averageRating} reviews)</p>}
+      {type !== "noreview" && (
+        <p className="rating-stars-caption">
+          {reviewCount != null ? (
+            <>
+              {avgLabel} · {reviewCount}{" "}
+              {reviewCount === 1 ? "review" : "reviews"}
+            </>
+          ) : (
+            <>({avgLabel})</>
+          )}
+        </p>
+      )}
     </div>
   );
 }

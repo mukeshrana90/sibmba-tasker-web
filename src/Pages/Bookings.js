@@ -16,6 +16,7 @@ export default function Bookings() {
 
   const [activeTab, setActiveTab] = useState("upcoming");
   const [bookingList, setBookingList] = useState([]);
+  const [bookingTypeView, setBookingTypeView] = useState("service");
   const [show, setShow] = useState(false);
   const [boookingId, setBookingId] = useState(null);
   const [selectedBoooking, setSelectedBoooking] = useState(null);
@@ -39,6 +40,10 @@ export default function Bookings() {
       }
     });
   }, [activeTab, show, dispatch]);
+
+  useEffect(() => {
+    setBookingTypeView("service");
+  }, [activeTab]);
 
   const handleOpen = (id, bookingData) => {
     setShow(true);
@@ -89,32 +94,75 @@ export default function Bookings() {
       );
     }
 
-    const serviceBookings = list.filter((item) => item.type === "booking");
-    const taskBookings = list.filter((item) => item.type === "task");
+    const byLatest = (a, b) => {
+      const aTime = new Date(a?.createdAt || a?.updatedAt || a?.date || 0).getTime();
+      const bTime = new Date(b?.createdAt || b?.updatedAt || b?.date || 0).getTime();
+      return bTime - aTime;
+    };
+
+    const serviceBookings = list
+      .filter((item) => item.type === "booking")
+      .sort(byLatest);
+    const taskBookings = list
+      .filter((item) => item.type === "task")
+      .sort(byLatest);
+
+    const hasServiceBookings = serviceBookings.length > 0;
+    const hasTaskBookings = taskBookings.length > 0;
+
+    const selectedView = bookingTypeView;
 
     return (
       <>
-        {serviceBookings.length > 0 && (
+        {(hasServiceBookings || hasTaskBookings) && (
+          <div className="bookings-type-toggle" role="tablist" aria-label="Booking type view">
+            <button
+              type="button"
+              className={`bookings-type-toggle-btn ${
+                selectedView === "service" ? "active" : ""
+              }`}
+              onClick={() => setBookingTypeView("service")}
+            >
+              Service Bookings
+            </button>
+            <button
+              type="button"
+              className={`bookings-type-toggle-btn ${
+                selectedView === "task" ? "active" : ""
+              }`}
+              onClick={() => setBookingTypeView("task")}
+            >
+              Task Bookings
+            </button>
+          </div>
+        )}
+
+        {selectedView === "service" && (
           <>
             <h5 className="mb-3 mt-3">Service Bookings</h5>
-            <ul>
-              {serviceBookings.map((res) => (
-                <BookingListCard
-                  key={res.id}
-                  data={res}
-                  handleOpen={() => handleOpen(res.id, res)}
-                  setSelectedBoooking={setSelectedBoooking}
-                />
-              ))}
-            </ul>
+            {hasServiceBookings ? (
+              <ul>
+                {serviceBookings.map((res) => (
+                  <BookingListCard
+                    key={res.id}
+                    data={res}
+                    handleOpen={() => handleOpen(res.id, res)}
+                    setSelectedBoooking={setSelectedBoooking}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <p className="mb-3">No Service Bookings</p>
+            )}
           </>
         )}
 
-        {taskBookings.length > 0 && (
+        {selectedView === "task" && (
           <>
             <h5 className="mb-3 mt-4">Task Bookings</h5>
-            <ul className="task-booking-list">
-              {taskBookings.map((data) => {
+            {hasTaskBookings ? (
+              <ul className="task-booking-list">
+                {taskBookings.map((data) => {
                 const provider =
                   data.serviceProvider || data.serviceProviderId || {};
                 const imgBase = process.env.REACT_APP_API_URL || "";
@@ -215,8 +263,11 @@ export default function Bookings() {
                     </div>
                   </li>
                 );
-              })}
-            </ul>
+                })}
+              </ul>
+            ) : (
+              <p className="mb-3">No Task Bookings</p>
+            )}
           </>
         )}
       </>

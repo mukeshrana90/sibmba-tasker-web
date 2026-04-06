@@ -449,6 +449,16 @@ const CustomerActions = {
     }
   ),
 
+  getMyFeedbackForJob: createAsyncThunk(
+    "customer/get-my-feedback-for-job",
+    async ({ booking_id, task_id }) => {
+      const response = await Api.get("/customer/get-my-feedback-for-job", {
+        params: { booking_id, task_id },
+      });
+      return response.data;
+    }
+  ),
+
   faqsListingAction: createAsyncThunk(
     "customer/faqs_listing",
     async (customerData) => {
@@ -499,6 +509,20 @@ const CustomerActions = {
         },
       });
       return response.data;
+    }
+  ),
+
+  getServiceProviderProfile: createAsyncThunk(
+    "/customer/serviceProviderProfile",
+    async ({ providerId, lat, long }, { rejectWithValue }) => {
+      const response = await Api.get(`/customer/service-provider-profile`, {
+        params: { providerId, lat, long },
+      });
+      const body = response?.data;
+      if (body?.success === false) {
+        return rejectWithValue(body.message || "Failed to load provider");
+      }
+      return body?.data !== undefined ? body.data : body;
     }
   ),
   // corporate/product
