@@ -127,8 +127,21 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
 
   useEffect(() => {
     if (data) {
-      setTimeState(data?.slotTime[0]);
-      setSelectedDate(data?.date);
+      setTimeState(data?.slotTime?.[0] || "");
+      const rawDate = data?.date || data?.when_done;
+      let parsedDate = null;
+      if (rawDate) {
+        const direct = new Date(rawDate);
+        if (!Number.isNaN(direct.getTime())) {
+          parsedDate = direct;
+        } else if (typeof rawDate === "string") {
+          const m = rawDate.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+          if (m) {
+            parsedDate = new Date(`${m[3]}-${m[1]}-${m[2]}`);
+          }
+        }
+      }
+      setSelectedDate(parsedDate);
       setMsgState(data?.message);
     }
   }, [data]);

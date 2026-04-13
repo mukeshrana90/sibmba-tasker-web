@@ -1,3 +1,32 @@
+.task-dispute-link-btn {
+  border: 0 !important;
+  background: transparent !important;
+  color: #374151 !important;
+  font-size: 17px;
+  font-weight: 500;
+  padding: 0 !important;
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: auto !important;
+  box-shadow: none !important;
+  text-decoration: none;
+}
+
+.task-dispute-link-btn span {
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
+.book-service-action-btn .task-dispute-link-btn,
+.book-service-action-btnn .task-dispute-link-btn,
+.requestBookingBtn .task-dispute-link-btn {
+  background: transparent !important;
+  color: #6b7280 !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
 @import url("https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&display=swap");
 
 * {
@@ -1673,6 +1702,149 @@ input[type="checkbox"]:checked::before {
   aspect-ratio: 16 / 9;
 }
 
+.service-detail-media {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.task-creator-rating {
+  border: 1px solid #e8ece9;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fafcfa;
+}
+
+.task-creator-rating .task-creator-rating-title {
+  margin: 0 0 6px;
+  color: #252525;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.task-creator-rating-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.task-creator-rating-name {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: normal;
+}
+
+.task-creator-rating .rating-stars {
+  margin-bottom: 0;
+}
+
+.task-creator-rating-view-btn {
+  border: 1px solid #038654;
+  background: #038654;
+  color: #fff;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.task-creator-rating-view-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.task-creator-ratings-modal-body {
+  max-height: 65vh;
+  overflow: auto;
+}
+
+.task-creator-ratings-summary {
+  border: 1px solid #e8ece9;
+  border-radius: 8px;
+  background: #f8fcf9;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.task-creator-ratings-list {
+  display: grid;
+  gap: 10px;
+}
+
+.task-creator-rating-item {
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.task-creator-rating-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.task-creator-rating-item-date {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.task-rating-reviewer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.task-rating-reviewer-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.task-rating-reviewer-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: #038654;
+}
+
+.task-rating-reviewer-name {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.task-rating-meta-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px 10px;
+  margin-bottom: 8px;
+}
+
+.task-rating-meta-grid span {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.task-rating-meta-grid strong {
+  color: #374151;
+  font-weight: 600;
+}
+
 .service-detail-card h3 {
   color: #252525;
   font-family: "Open Sans";
@@ -1930,6 +2102,20 @@ button.booking-job-done-btn:disabled {
   box-sizing: border-box;
 }
 
+.modal-footer.dispute-modal-footer {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-footer.dispute-modal-footer .dispute-modal-btn {
+  min-width: 120px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+}
+
 /* Highlight: job done + payment success (user booking / task detail) */
 .booking-payment-success-highlight {
   margin-top: 12px;
@@ -1980,7 +2166,7 @@ button.booking-job-done-btn:disabled {
   border-radius: 50%;
   height: 56px;
   object-fit: cover;
-  width: 140px;
+  width: 60px;
 }
 
 .review-slide-card > div h4 {
@@ -2541,16 +2727,22 @@ button.booking-job-done-btn:disabled {
   box-shadow: 0px 1px 2px 0px #1018280d;
 }
 
+.bookings-type-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .bookings-type-toggle {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   border: 1px solid #e4e4e7;
   border-radius: 10px;
   padding: 6px;
   width: fit-content;
-  margin: 8px auto 12px;
+  margin: 8px 0 12px;
   background: #fff;
 }
 
@@ -2744,6 +2936,53 @@ button.booking-job-done-btn:disabled {
   display: grid;
 }
 
+.booking-status-booking--flow {
+  width: 100%;
+}
+
+.booking-status-booking--flow .job-flow-stepper__row {
+  width: 50%;
+}
+
+@media (max-width: 991px) {
+  .booking-status-booking--flow .job-flow-stepper__row {
+    width: 100%;
+  }
+}
+
+.booking-status-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-bottom: 8px;
+}
+
+.booking-status-chip.pending {
+  background-color: #fce5cd;
+  color: #d17f00;
+  border: 1px solid #d17f00;
+}
+
+.booking-status-chip.accepted,
+.booking-status-chip.completed {
+  background-color: rgba(3, 134, 84, 0.1);
+  color: #038654;
+  border: 1px solid #038654;
+}
+
+.booking-status-chip.rejected,
+.booking-status-chip.cancelled {
+  background-color: rgba(250, 82, 82, 0.1);
+  color: #fa5252;
+  border: 1px solid #fa5252;
+}
+
 /* Flow stepper — simple web layout (wraps on narrow viewports) */
 .job-flow-stepper {
   width: 100%;
@@ -2773,9 +3012,9 @@ button.booking-job-done-btn:disabled {
 .job-flow-stepper__row {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-start;
-  justify-content: flex-start;
+  justify-content: stretch;
   gap: 4px 0;
   width: 100%;
 }
@@ -2801,8 +3040,8 @@ button.booking-job-done-btn:disabled {
 }
 
 .job-flow-stepper__node--past {
-  background: #5c636a;
-  border: 2px solid #5c636a;
+  background: var(--simba-green);
+  border: 2px solid var(--simba-green);
 }
 
 .job-flow-stepper__node--current {
@@ -2845,9 +3084,8 @@ button.booking-job-done-btn:disabled {
 }
 
 .job-flow-stepper__line {
-  flex: 1 1 12px;
-  min-width: 8px;
-  max-width: 48px;
+  flex: 1 1 0;
+  min-width: 12px;
   height: 2px;
   margin-top: 11px;
   margin-left: -2px;
@@ -2857,7 +3095,17 @@ button.booking-job-done-btn:disabled {
 }
 
 .job-flow-stepper__line--done {
-  background: #9ca3af;
+  background: var(--simba-green);
+}
+
+.completed-status-note {
+  margin-top: 10px;
+  border: 1px solid rgba(3, 134, 84, 0.45);
+  background: rgba(3, 134, 84, 0.08);
+  color: #038654;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-weight: 600;
 }
 
 .job-flow-stepper__line--todo {
@@ -3068,6 +3316,58 @@ button.booking-job-done-btn:disabled {
     width: 70%;
   }
 }
+
+.quotation-requests--completed {
+  align-items: flex-start;
+}
+
+.requests-completed-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: 100%;
+}
+.requests-completed-main.task-detail-map-container{
+  grid-template-columns: 1fr !important;
+}
+
+.requests-completed-map {
+  width: 100%;
+}
+
+.requests-completed-map-actions {
+  justify-content: flex-end;
+  background: #fff;
+  padding: 8px 0;
+}
+
+.rate-customer-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.rate-customer-modal-btn {
+  min-width: 130px;
+  min-height: 50px;
+  padding: 12px 24px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+@media (min-width: 992px) {
+  .requests-completed-main {
+    grid-template-columns: minmax(0, 1fr) 600px !important;
+    align-items: start;
+  }
+}
+
+.quotation-requests--completed .corporate_inner.completed {
+  margin-left: auto;
+  align-self: flex-start;
+}
 .quotation-requests-wrap {
   border-radius: 10px;
   border: 1px solid #e4e4e7;
@@ -3094,6 +3394,20 @@ button.booking-job-done-btn:disabled {
 .quotation-poster-card--with-badge .tasks-requests-btns,
 .quotation-poster-card--with-badge .quotation-requests-task-btns {
   padding-right: 96px;
+}
+
+.quotation-poster-card--locked {
+  background: #f7f8f9;
+  opacity: 0.7;
+}
+
+.quotation-poster-card--locked .quotation-requests,
+.quotation-poster-card--locked .quotation-wrapper {
+  pointer-events: none;
+}
+
+.quotation-poster-card--locked button {
+  cursor: not-allowed !important;
 }
 
 .quotation {
@@ -3162,6 +3476,35 @@ button.booking-job-done-btn:disabled {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+.quotation-requests-btns.quotation-requests-action {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row !important;
+  gap: 12px;
+  button{
+    width:fit-content !important;
+  }
+}
+.quotation-requests-btns--inline {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.quotation-requests-btns--inline button {
+  width: auto;
+  min-width: 120px;
+  margin: 0;
+  padding: 10px 18px;
+  white-space: nowrap;
+}
+
+.quotation-requests-btns--inline button:last-child {
+  min-width: 120px;
+  padding: 10px 18px;
 }
 
 .quotation-requests-btns button {
@@ -6146,6 +6489,17 @@ section.page-mt {
   display: flex;
   justify-content: center;
   margin-bottom: 30px;
+}
+
+.requestBookingBtn--approved {
+  justify-content: flex-end;
+  margin: 8px 0 16px;
+}
+
+.book-service-action--single {
+  display: inline-flex;
+  grid-template-columns: unset;
+  gap: 0;
 }
 .task-card-ui {
   border-radius: 14px;

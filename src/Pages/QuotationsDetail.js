@@ -89,8 +89,14 @@ export default function QuotationsDetail() {
     });
   };
 
-  const posterState = quotationDetailById
-    ? getQuotationPosterDecisionState(quotationDetailById)
+  const mergedQuotationForUi = quotationDetailById
+    ? mergeQuotationWithParentTaskForStatus(
+        quotationDetailById,
+        quotationDetailById?.task_id
+      )
+    : null;
+  const posterState = mergedQuotationForUi
+    ? getQuotationPosterDecisionState(mergedQuotationForUi)
     : { showActions: true, badge: null };
 
   const isCustomerPoster =
@@ -262,7 +268,7 @@ export default function QuotationsDetail() {
                     )}
                 </div>
               {isCustomerPoster && posterState.showActions ? (
-                <div className="quotation-requests-btns">
+                <div className="quotation-requests-btns quotation-requests-action">
                   <button
                     type="button"
                     onClick={() =>

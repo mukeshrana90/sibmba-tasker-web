@@ -2,24 +2,54 @@ import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import Nav from "react-bootstrap/Nav";
 import Tab from "react-bootstrap/Tab";
+import Modal from "react-bootstrap/Modal";
+import Form from "react-bootstrap/Form";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
+import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
 import CancelModal from "../CommanComponents/Modals/CancelModal";
+import JobFlowStepper from "../CommanComponents/JobFlowStepper";
+import { bookingStatus, getBookingFlowDescription } from "../utils/jobFlowStatus";
 
 export default function Requests() {
   const Navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState("first");
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = (params.get("tab") || "").toLowerCase();
+    if (tab === "approved") {
+      setActiveTab("second");
+      return;
+    }
+    if (tab === "rejected") {
+      setActiveTab("third");
+      return;
+    }
+    if (tab === "completed") {
+      setActiveTab("fourth");
+      return;
+    }
+    if (tab === "requests") {
+      setActiveTab("first");
+    }
+  }, [location.search]);
+
   const [isRequestModal, setIsRequestModal] = useState(false);
   const [showModalCancel, setShowModalCancel] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
 
   const serviceRequestList = useSelector(
     (e) => e.service.getServiceRequestList
@@ -30,12 +60,14 @@ export default function Requests() {
     if (activeTab === "first") status = 1; // Pending
     else if (activeTab === "second") status = 2; // Accepted
     else if (activeTab === "third") status = 3; // Rejected
+    else if (activeTab === "fourth") status = 4; // Completed
     dispatch(ServiceActions.getRequestList({ status }));
   }, [dispatch, activeTab]);
   const statusMap = {
     1: "pending",
     2: "accepted",
-    3: "rejected"
+    3: "rejected",
+    4: "completed",
   };
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -49,6 +81,22 @@ export default function Requests() {
     return slotTime.length > 0 ? slotTime.join(", ") : "Not specified";
   };
 
+  const getMapCoordinates = (request) => {
+    const directLat = Number(request?.latitude ?? request?.lat ?? request?.location?.lat);
+    const directLng = Number(request?.longitude ?? request?.lng ?? request?.location?.lng);
+    if (!Number.isNaN(directLat) && !Number.isNaN(directLng)) {
+      return { lat: directLat, lng: directLng };
+    }
+    const coords = request?.location?.coordinates;
+    if (Array.isArray(coords) && coords.length >= 2) {
+      const [lng, lat] = coords;
+      if (!Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng))) {
+        return { lat: Number(lat), lng: Number(lng) };
+      }
+    }
+    return null;
+  };
+
   // Filter requests based on tab
   const filteredRequests = (tab) => {
     if (tab === "first") {
@@ -57,6 +105,8 @@ export default function Requests() {
       return serviceRequestList?.filter((request) => request.status == 2);
     } else if (tab === "third") {
       return serviceRequestList?.filter((request) => request.status == 3);
+    } else if (tab === "fourth") {
+      return serviceRequestList?.filter((request) => request.status == 4);
     }
     return [];
   };
@@ -98,6 +148,52 @@ export default function Requests() {
     setShowModalCancel(false);
   };
 
+  const handleOpenFeedback = (request) => {
+    setSelectedRequest(request);
+    setFeedbackRating(0);
+    setFeedbackMessage("");
+    setShowFeedbackModal(true);
+  };
+
+  const handleCloseFeedback = () => {
+    if (feedbackSubmitting) return;
+    setShowFeedbackModal(false);
+    setFeedbackRating(0);
+    setFeedbackMessage("");
+    setSelectedRequest(null);
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!selectedRequest?._id) return;
+    if (!feedbackRating || !feedbackMessage.trim()) {
+      toast.error("Please give rating and message.");
+      return;
+    }
+    setFeedbackSubmitting(true);
+    const customerId =serviceRequestList.find(item => item._id === selectedRequest._id)?.bookBy;
+    console.log(customerId,'ssss');
+  
+    try {
+      const res = await dispatch(CustomerActions.giveFeedbackToSeeker({
+        bookingId: selectedRequest._id,
+        ratedSeekerId: customerId,
+        rating: feedbackRating,
+        message: feedbackMessage.trim(),
+        type: 1,
+      }));
+      if (res?.payload?.success) {
+        toast.success("Feedback submitted successfully.");
+        handleCloseFeedback();
+      } else {
+        toast.error(res?.payload?.message || "Could not submit feedback.");
+      }
+    } catch {
+      toast.error("Could not submit feedback.");
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
   return (
     <Layout>
       <section className="search-results-sec">
@@ -109,7 +205,7 @@ export default function Requests() {
                 <div className="bookings-tabs">
                   <Tab.Container
                     id="left-tabs-example"
-                    defaultActiveKey="first"
+                    activeKey={activeTab}
                     onSelect={(key) => setActiveTab(key)}
                   >
                     <Row>
@@ -124,6 +220,9 @@ export default function Requests() {
                             </Nav.Item>
                             <Nav.Item>
                               <Nav.Link eventKey="third">Rejected</Nav.Link>
+                            </Nav.Item>
+                            <Nav.Item>
+                              <Nav.Link eventKey="fourth">Completed</Nav.Link>
                             </Nav.Item>
                           </Nav>
                         </div>
@@ -481,6 +580,114 @@ export default function Requests() {
                               </div>
                             )}
                           </Tab.Pane>
+                          <Tab.Pane eventKey="fourth">
+                            {filteredRequests("fourth")?.length > 0 ? (
+                              filteredRequests("fourth")?.map((request) => (
+                                <div
+                                  className="quotation-requests quotation-requests--completed"
+                                  key={request._id}
+                                >
+                                  <div className="requests-completed-main map-container-service-tasks">
+                                    <div className="requests-time-checkup requests-completed-left">
+                                      <h3
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() =>
+                                          Navigate(`/requestdetail/${request?._id}?service=completed`)
+                                        }
+                                      >
+                                        {request.serviceSubCategory?.serviceSubCategoryName || "Service"}
+                                      </h3>
+                                      <p className="text-muted">{request?.message}</p>
+                                      <p>
+                                        {formatTimeSlot(request.slotTime)}, {formatDate(request.date)}
+                                      </p>
+                                      <p>{request.address || "-"}</p>
+                                      <div className="mt-3">
+                                        <JobFlowStepper
+                                          mode="booking"
+                                          status={bookingStatus.COMPLETED}
+                                        />
+                                        <p className="mt-2 mb-0">This task is completed.</p>
+                                        <div className="completed-status-note">
+                                          Job completed. Payment will be processed by the customer.
+                                        </div>
+                                        <div className="book-service-action-btn d-flex gap-2 mt-3">
+                                          <button
+                                            type="button"
+                                            className="booking-job-done-btn"
+                                            onClick={() => handleOpenFeedback(request)}
+                                          >
+                                            Rate the Customer
+                                          </button>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          className="task-dispute-link-btn"
+                                          onClick={() =>
+                                            Navigate(`/requestdetail/${request?._id}?service=completed`)
+                                          }
+                                        >
+                                          Having an issue? <span>Raise Dispute</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                    {(() => {
+                                      const map = getMapCoordinates(request);
+                                      if (!map) return null;
+                                      const mapUrl = `https://maps.google.com/maps?q=${map.lat},${map.lng}&z=14&output=embed`;
+                                      const shareUrl = `https://maps.google.com/?q=${map.lat},${map.lng}`;
+                                      return (
+                                        <div className="requests-completed-map">
+                                          <iframe
+                                            title={`completed-map-${request?._id}`}
+                                            src={mapUrl}
+                                            width="100%"
+                                            height="220"
+                                            style={{ border: 0, borderRadius: "8px" }}
+                                            loading="lazy"
+                                          />
+                                          <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
+                                            <button
+                                              type="button"
+                                              className="booking-job-done-btn"
+                                              onClick={() => window.open(shareUrl, "_blank")}
+                                            >
+                                              Open in Maps
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="booking-job-done-btn"
+                                              onClick={async () => {
+                                                if (navigator.share) {
+                                                  await navigator.share({
+                                                    title: "Task Location",
+                                                    text: "Completed task location",
+                                                    url: shareUrl,
+                                                  });
+                                                  return;
+                                                }
+                                                if (navigator.clipboard?.writeText) {
+                                                  await navigator.clipboard.writeText(shareUrl);
+                                                  toast.success("Location copied.");
+                                                }
+                                              }}
+                                            >
+                                              Share Location
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="no-upcoming-bookings">
+                                <h3>No Completed Bookings Yet</h3>
+                                <p>Currently you don’t have any completed bookings.</p>
+                              </div>
+                            )}
+                          </Tab.Pane>
                         </Tab.Content>
                       </Col>
                     </Row>
@@ -505,6 +712,70 @@ export default function Requests() {
         handleConfirm={handleConfirmCancel}
         handleCut={handleCloseModalCancell}
       />
+      <Modal
+        show={showFeedbackModal}
+        onHide={handleCloseFeedback}
+        centered
+        backdrop={feedbackSubmitting ? "static" : true}
+      >
+        <Modal.Header closeButton={!feedbackSubmitting}>
+          <Modal.Title>Rate Customer</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="rating-stars mb-3">
+            <ul className="d-flex list-unstyled gap-2 mb-0">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <li key={star}>
+                  <button
+                    type="button"
+                    onClick={() => setFeedbackRating(star)}
+                    style={{ background: "transparent", border: 0, padding: 0 }}
+                  >
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill={star <= feedbackRating ? "#FFC107" : "#E0E0E0"}
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Form.Group>
+            <Form.Label>Message</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              value={feedbackMessage}
+              onChange={(e) => setFeedbackMessage(e.target.value)}
+              placeholder="Write your feedback"
+              disabled={feedbackSubmitting}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer className="rate-customer-modal-footer">
+          <button
+            type="button"
+            className="btn btn-light border rate-customer-modal-btn"
+            onClick={handleCloseFeedback}
+            disabled={feedbackSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="booking-job-done-btn rate-customer-modal-btn"
+            onClick={handleSubmitFeedback}
+            disabled={feedbackSubmitting}
+          >
+            {feedbackSubmitting ? "Please wait..." : "Submit"}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </Layout>
   );
 }

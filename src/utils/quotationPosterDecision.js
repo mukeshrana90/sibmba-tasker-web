@@ -31,6 +31,92 @@ function getStatusFromTaskLike(taskLike) {
   return NaN;
 }
 
+function getTaskAffectedQuotationId(taskLike) {
+  if (!taskLike || typeof taskLike !== "object") return null;
+  return (
+    taskLike.quatation_id ??
+    taskLike.quotation_id ??
+    taskLike.quote_id ??
+    null
+  );
+}
+
+function getParentSelectedServiceProviderId(parentTask) {
+  if (!parentTask || typeof parentTask !== "object") return null;
+  return (
+    parentTask.serviceProviderId ??
+    parentTask.service_provider_id ??
+    parentTask.service_provider?._id ??
+    null
+  );
+}
+
+function quotationMatchesTaskSelection(quotation, parentTask) {
+  const selectedQid = getTaskAffectedQuotationId(parentTask);
+  if (selectedQid == null || quotation?._id == null) return false;
+  if (String(selectedQid) !== String(quotation._id)) return false;
+  const selectedProviderId = getParentSelectedServiceProviderId(parentTask);
+  if (selectedProviderId == null) return true;
+  const qProviderId =
+    quotation?.service_provider?._id ?? quotation?.service_provider_id ?? null;
+  if (qProviderId == null) return false;
+  return String(selectedProviderId) === String(qProviderId);
+}
+
+function isTaskLevelDecisionForDifferentQuotation(
+  statusValue,
+  affectedQuotationId,
+  quotationId
+) {
+  if (
+    (statusValue !== STATUS_ACCEPTED && statusValue !== STATUS_REJECTED) ||
+    affectedQuotationId == null ||
+    quotationId == null
+  ) {
+    return false;
+  }
+  return String(affectedQuotationId) !== String(quotationId);
+}
+
+function hasProviderRejectionMarker(quotation) {
+  if (!quotation || typeof quotation !== "object") return false;
+  if (
+    quotation.rejected_by_quotation_sender === true ||
+    quotation.rejectedByQuotationSender === true
+  ) {
+    return true;
+  }
+  if (
+    quotation.reopen_for_poster === true ||
+    quotation.can_poster_respond === true
+  ) {
+    return true;
+  }
+  const role = Number(
+    quotation.reject_by_role ??
+      quotation.rejected_by_role ??
+      quotation.rejectByRole ??
+      quotation.rejectedByRole
+  );
+  if (role === Roles.SERVICE_PROVIDER) return true;
+  const source = String(
+    quotation.rejected_by ??
+      quotation.reject_by ??
+      quotation.rejection_source ??
+      ""
+  ).toLowerCase();
+  if (
+    source.includes("service_provider") ||
+    source.includes("service-provider") ||
+    source.includes("quotation_sender") ||
+    source.includes("provider") ||
+    source === "2"
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function getQuotationNumericStatus(quotation) {
   if (!quotation || typeof quotation !== "object") return NaN;
 
@@ -44,26 +130,71 @@ export function getQuotationNumericStatus(quotation) {
       quotation.approval_status ??
       NaN
   );
+  const rootTaskLike =
+    quotation.task_id && typeof quotation.task_id === "object"
+      ? quotation.task_id
+      : quotation.task && typeof quotation.task === "object"
+      ? quotation.task
+      : null;
+  const rootAffectedQuotationId = getTaskAffectedQuotationId(rootTaskLike);
+  if (
+    isTaskLevelDecisionForDifferentQuotation(
+      raw,
+      rootAffectedQuotationId,
+      quotation?._id
+    )
+  ) {
+    return NaN;
+  }
   if (!Number.isNaN(raw) && raw !== 0) return raw;
   if (raw === 0) return 0;
 
   /** Populated task document: `get_task_by_id` / listings often put `status` here */
+  const affectedFromTaskId =
+    quotation.task_id && typeof quotation.task_id === "object"
+      ? getTaskAffectedQuotationId(quotation.task_id)
+      : null;
   const fromTaskId = getStatusFromTaskLike(
     quotation.task_id && typeof quotation.task_id === "object"
       ? quotation.task_id
       : null
   );
+  if (
+    isTaskLevelDecisionForDifferentQuotation(
+      fromTaskId,
+      affectedFromTaskId,
+      quotation?._id
+    )
+  ) {
+    return NaN;
+  }
   if (!Number.isNaN(fromTaskId)) return fromTaskId;
 
+  const affectedFromTask =
+    quotation.task && typeof quotation.task === "object"
+      ? getTaskAffectedQuotationId(quotation.task)
+      : null;
   const fromTask = getStatusFromTaskLike(
     quotation.task && typeof quotation.task === "object" ? quotation.task : null
   );
+  if (
+    isTaskLevelDecisionForDifferentQuotation(
+      fromTask,
+      affectedFromTask,
+      quotation?._id
+    )
+  ) {
+    return NaN;
+  }
   if (!Number.isNaN(fromTask)) return fromTask;
 
   if (quotation.is_accepted === true || quotation.accepted === true) {
     return STATUS_ACCEPTED;
   }
   if (quotation.is_rejected === true || quotation.rejected === true) {
+    return STATUS_REJECTED;
+  }
+  if (hasProviderRejectionMarker(quotation)) {
     return STATUS_REJECTED;
   }
 
@@ -114,6 +245,40 @@ export function mergeQuotationWithParentTaskForStatus(quotation, parentTask) {
     parentStatus === ""
   ) {
     return quotation;
+  }
+
+  /**
+   * Do not fan-out `ACCEPTED` from task to every quotation.
+   * Backend may set task accepted without marking which single quotation won.
+   * If we merged `1` here, all quotations incorrectly show "Accepted".
+   */
+  if (Number(parentStatus) === taskStatus.ACCEPTED) {
+    return quotation;
+  }
+
+  const parentAffectedQuotationId = getTaskAffectedQuotationId(parentTask);
+  if (
+    Number(parentStatus) === taskStatus.REJECTED &&
+    parentAffectedQuotationId != null &&
+    quotation?._id != null &&
+    String(parentAffectedQuotationId) !== String(quotation._id)
+  ) {
+    return quotation;
+  }
+
+  const psNum = Number(parentStatus);
+  const isPostQuotationSelectionLifecycle =
+    psNum === taskStatus.COMPLETED ||
+    psNum === taskStatus.ON_THE_WAY ||
+    psNum === taskStatus.IN_PROGRESS;
+
+  if (isPostQuotationSelectionLifecycle) {
+    if (parentAffectedQuotationId == null) {
+      return quotation;
+    }
+    if (!quotationMatchesTaskSelection(quotation, parentTask)) {
+      return quotation;
+    }
   }
 
   const pid = parentTask._id;
@@ -194,46 +359,7 @@ export function resolveParentTaskForQuotationMerge(quotation, tasks) {
  * @returns {boolean}
  */
 export function isQuotationRejectionByServiceProvider(quotation) {
-  if (!quotation || typeof quotation !== "object") return false;
-
-  if (
-    quotation.rejected_by_quotation_sender === true ||
-    quotation.rejectedByQuotationSender === true
-  ) {
-    return true;
-  }
-  if (
-    quotation.reopen_for_poster === true ||
-    quotation.can_poster_respond === true
-  ) {
-    return true;
-  }
-
-  const role = Number(
-    quotation.reject_by_role ??
-      quotation.rejected_by_role ??
-      quotation.rejectByRole ??
-      quotation.rejectedByRole
-  );
-  if (role === Roles.SERVICE_PROVIDER) return true;
-
-  const source = String(
-    quotation.rejected_by ??
-      quotation.reject_by ??
-      quotation.rejection_source ??
-      ""
-  ).toLowerCase();
-  if (
-    source.includes("service_provider") ||
-    source.includes("service-provider") ||
-    source.includes("quotation_sender") ||
-    source.includes("provider")
-  ) {
-    return true;
-  }
-  if (source === "2") return true;
-
-  return false;
+  return hasProviderRejectionMarker(quotation);
 }
 
 /**
@@ -247,7 +373,7 @@ export function getQuotationPosterDecisionState(quotation) {
 
   if (status === STATUS_REJECTED) {
     if (isQuotationRejectionByServiceProvider(quotation)) {
-      return { showActions: true, badge: null };
+      return { showActions: false, badge: "rejected" };
     }
     return { showActions: false, badge: "rejected" };
   }
@@ -322,4 +448,72 @@ export function getPosterTaskDetailStepperStatus(
   }
 
   return s;
+}
+
+function getQuotationTaskId(quotation) {
+  if (!quotation || typeof quotation !== "object") return null;
+  const tid = quotation.task_id;
+  if (tid && typeof tid === "object") {
+    return tid._id ?? null;
+  }
+  return tid ?? null;
+}
+
+/**
+ * True when any quotation in a task is already accepted (or task moved beyond accepted).
+ * Used to disable remaining pending quotation actions for that task.
+ *
+ * @param {unknown[] | null | undefined} quotations
+ * @param {Record<string, unknown> | null | undefined} parentTask
+ * @param {Record<string, 1 | 2 | 3>} [optimisticById]
+ * @returns {boolean}
+ */
+export function hasAcceptedQuotationForTask(
+  quotations,
+  parentTask,
+  optimisticById = {}
+) {
+  const taskStatusNumber = Number(
+    parentTask?.status ?? parentTask?.task_status ?? parentTask?.quotation_status
+  );
+  if (
+    taskStatusNumber === taskStatus.ACCEPTED ||
+    taskStatusNumber === taskStatus.ON_THE_WAY ||
+    taskStatusNumber === taskStatus.IN_PROGRESS ||
+    taskStatusNumber === taskStatus.COMPLETED
+  ) {
+    return true;
+  }
+
+  if (!Array.isArray(quotations) || quotations.length === 0) return false;
+  return quotations.some((q) => {
+    const merged = mergeQuotationWithParentTaskForStatus(
+      mergeQuotationWithOptimisticStatus(q, optimisticById),
+      parentTask
+    );
+    return getQuotationPosterDecisionState(merged).badge === "accepted";
+  });
+}
+
+/**
+ * Returns task ids where at least one quotation is accepted.
+ *
+ * @param {unknown[] | null | undefined} quotations
+ * @param {Record<string, 1 | 2 | 3>} [optimisticById]
+ * @returns {Set<string>}
+ */
+export function getAcceptedQuotationTaskIds(quotations, optimisticById = {}) {
+  const acceptedTaskIds = new Set();
+  if (!Array.isArray(quotations) || quotations.length === 0) return acceptedTaskIds;
+
+  quotations.forEach((q) => {
+    const merged = mergeQuotationWithOptimisticStatus(q, optimisticById);
+    if (getQuotationPosterDecisionState(merged).badge !== "accepted") return;
+    const taskId = getQuotationTaskId(merged);
+    if (taskId != null) {
+      acceptedTaskIds.add(String(taskId));
+    }
+  });
+
+  return acceptedTaskIds;
 }

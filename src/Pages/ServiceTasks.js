@@ -6,15 +6,20 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import Nav from "react-bootstrap/Nav";
 import Tab from "react-bootstrap/Tab";
+import Modal from "react-bootstrap/Modal";
+import Form from "react-bootstrap/Form";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
+import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
 import CancelModal from "../CommanComponents/Modals/CancelModal";
 import FilterModal from "../CommanComponents/Modals/FilterModal";
 import moment from "moment";
-import defaultImage from "../Assets/Images/placeholder.jpg"
+import defaultImage from "../Assets/Images/placeholder.jpg";
+import JobFlowStepper from "../CommanComponents/JobFlowStepper";
+import { getTaskFlowDescription, taskStatus } from "../utils/jobFlowStatus";
 export default function ServiceTasks() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -24,10 +29,16 @@ export default function ServiceTasks() {
   const [showModalCancel, setShowModalCancel] = useState(false);
   const [ids, setIds] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [selectedCompletedTask, setSelectedCompletedTask] = useState(null);
   const [filteredData, setFilteredData] = useState({
     acceptedTasks: [],
     myQuotations: [],
     tasks: [],
+    completedTasks: [],
   });
   const postTasksList = useSelector(
     (state) => state.service.getPostTaskService
@@ -60,6 +71,7 @@ export default function ServiceTasks() {
         acceptedTasks: filteredAccepted,
         myQuotations: [],
         tasks: [],
+        completedTasks: [],
       });
     } else if (activeTab === "second") {
       const filteredQuotations = (postTasksList.myQuotations || []).filter(
@@ -71,6 +83,7 @@ export default function ServiceTasks() {
         acceptedTasks: [],
         myQuotations: filteredQuotations,
         tasks: [],
+        completedTasks: [],
       });
     } else if (activeTab === "third") {
       const filteredTasks = (postTasksList.tasks || []).filter(
@@ -82,6 +95,20 @@ export default function ServiceTasks() {
         acceptedTasks: [],
         myQuotations: [],
         tasks: filteredTasks,
+        completedTasks: [],
+      });
+    } else if (activeTab === "fourth") {
+      const filteredCompleted = (postTasksList.completedTasks || []).filter((task) => {
+        const matchesQuery =
+          task?.need_done?.toLowerCase().includes(query) ||
+          task?.user_details?.full_name?.toLowerCase().includes(query);
+        return Number(task?.status) === taskStatus.COMPLETED && matchesQuery;
+      });
+      setFilteredData({
+        acceptedTasks: [],
+        myQuotations: [],
+        tasks: [],
+        completedTasks: filteredCompleted,
       });
     }
   }, [postTasksList, searchQuery, activeTab]);
@@ -172,6 +199,87 @@ export default function ServiceTasks() {
   // Handle search input change
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
+  };
+
+  const handleOpenFeedback = (task) => {
+    setSelectedCompletedTask(task);
+    setFeedbackRating(0);
+    setFeedbackMessage("");
+    setShowFeedbackModal(true);
+  };
+
+  const handleCloseFeedback = () => {
+    if (feedbackSubmitting) return;
+    setShowFeedbackModal(false);
+    setFeedbackRating(0);
+    setFeedbackMessage("");
+    setSelectedCompletedTask(null);
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!selectedCompletedTask?._id) return;
+    if (!feedbackRating || !feedbackMessage.trim()) {
+      toast.error("Please give rating and message.");
+      return;
+    }
+    setFeedbackSubmitting(true);
+    const customerId =
+      selectedCompletedTask?.user_details?._id ||
+      selectedCompletedTask?.user_details?.id ||
+      selectedCompletedTask?.bookBy?._id ||
+      selectedCompletedTask?.bookBy?.id ||
+      selectedCompletedTask?.user_id?._id ||
+      selectedCompletedTask?.user_id?.id ||
+      (typeof selectedCompletedTask?.user_id === "string"
+        ? selectedCompletedTask.user_id
+        : null) ||
+      selectedCompletedTask?.customer_id ||
+      selectedCompletedTask?.seekerId;
+    if (!customerId) {
+      toast.error("Could not identify the customer.");
+      setFeedbackSubmitting(false);
+      return;
+    }
+    const payload = {
+      task_id: selectedCompletedTask._id,
+      ratedSeekerId: customerId,
+      rating: feedbackRating,
+      message: feedbackMessage.trim(),
+      type: 2,
+    };
+    try {
+      const res = await dispatch(CustomerActions.giveFeedbackToSeeker(payload));
+      if (res?.payload?.success) {
+        toast.success("Feedback submitted successfully.");
+        handleCloseFeedback();
+      } else {
+        toast.error(res?.payload?.message || "Could not submit feedback.");
+      }
+    } catch {
+      toast.error("Could not submit feedback.");
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
+  const getTaskMapCoordinates = (task) => {
+    const directLat = Number(
+      task?.latitude ?? task?.lat ?? task?.location?.lat
+    );
+    const directLng = Number(
+      task?.longitude ?? task?.lng ?? task?.location?.lng
+    );
+    if (!Number.isNaN(directLat) && !Number.isNaN(directLng)) {
+      return { lat: directLat, lng: directLng };
+    }
+    const coords = task?.location?.coordinates;
+    if (Array.isArray(coords) && coords.length >= 2) {
+      const [lng, lat] = coords;
+      if (!Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng))) {
+        return { lat: Number(lat), lng: Number(lng) };
+      }
+    }
+    return null;
   };
 
   const renderTaskCard = (task) => (
@@ -268,6 +376,120 @@ export default function ServiceTasks() {
     </div>
   );
 
+  const renderCompletedTaskCard = (task) => {
+    const detailUrl = `/servicetasksdetails/${task?._id}?status=task`;
+    const map = getTaskMapCoordinates(task);
+    const mapUrl = map
+      ? `https://maps.google.com/maps?q=${map.lat},${map.lng}&z=14&output=embed`
+      : null;
+    const shareUrl = map
+      ? `https://maps.google.com/?q=${map.lat},${map.lng}`
+      : null;
+
+    return (
+      <div
+        className="quotation-requests quotation-requests--completed"
+        key={task?._id}
+      >
+        <div className="requests-completed-main map-container-service-tasks">
+          <div className="requests-time-checkup requests-completed-left d-flex gap-3">
+            <img
+              style={{ cursor: "pointer", width: 100, height: 100, objectFit: "cover", borderRadius: 8, flexShrink: 0 }}
+              onClick={() => navigate(detailUrl)}
+              src={
+                task?.images?.length > 0
+                  ? `${process.env.REACT_APP_API_URLL}${task.images[0]}`
+                  : defaultImage
+              }
+              alt="Task"
+              className="task-image"
+            />
+            <div className="flex-grow-1">
+              <h3
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate(detailUrl)}
+              >
+                {task?.need_done || ""}
+              </h3>
+              <p className="text-muted">{task?.details || ""}</p>
+              <p>
+                {task?.task_time}, {formatDatee(task?.when_done)}
+              </p>
+              <p>{task?.address}</p>
+              <p className="task-price mb-0">${task?.budget}</p>
+              <div className="mt-3">
+                <JobFlowStepper mode="task" status={task?.status} />
+                <p className="mt-2 mb-0">
+                  {getTaskFlowDescription(task?.status)}
+                </p>
+                <div className="completed-status-note">
+                  Job completed. Payment will be processed by the customer.
+                </div>
+                <div className="book-service-action-btn d-flex gap-2 mt-3">
+                  <button
+                    type="button"
+                    className="booking-job-done-btn"
+                    onClick={() => handleOpenFeedback(task)}
+                  >
+                    Rate the Customer
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="task-dispute-link-btn"
+                  onClick={() => navigate(detailUrl)}
+                >
+                  Having an issue? <span>Raise Dispute</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          {map && mapUrl && shareUrl ? (
+            <div className="requests-completed-map">
+              <iframe
+                title={`completed-task-map-${task?._id}`}
+                src={mapUrl}
+                width="100%"
+                height="220"
+                style={{ border: 0, borderRadius: "8px" }}
+                loading="lazy"
+              />
+              <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
+                <button
+                  type="button"
+                  className="booking-job-done-btn"
+                  onClick={() => window.open(shareUrl, "_blank")}
+                >
+                  Open in Maps
+                </button>
+                <button
+                  type="button"
+                  className="booking-job-done-btn"
+                  onClick={async () => {
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: "Task location",
+                        text: "Completed task location",
+                        url: shareUrl,
+                      });
+                      return;
+                    }
+                    if (navigator.clipboard?.writeText) {
+                      await navigator.clipboard.writeText(shareUrl);
+                      toast.success("Location copied.");
+                    }
+                  }}
+                >
+                  Share Location
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <section className="search-results-sec">
@@ -328,6 +550,9 @@ export default function ServiceTasks() {
                             </Nav.Item>
                             <Nav.Item>
                               <Nav.Link eventKey="third">Upcoming</Nav.Link>
+                            </Nav.Item>
+                            <Nav.Item>
+                              <Nav.Link eventKey="fourth">Completed</Nav.Link>
                             </Nav.Item>
                           </Nav>
                         </div>
@@ -431,6 +656,22 @@ export default function ServiceTasks() {
                               </div>
                             )}
                           </Tab.Pane>
+                          <Tab.Pane eventKey="fourth">
+                            {filteredData?.completedTasks?.length > 0 ? (
+                              filteredData?.completedTasks.map(
+                                renderCompletedTaskCard
+                              )
+                            ) : (
+                              <div className="no-upcoming-bookings">
+                                <h3>No Completed Tasks Found</h3>
+                                <p>
+                                  {searchQuery
+                                    ? "No completed tasks match your search."
+                                    : "Currently you don’t have any completed tasks."}
+                                </p>
+                              </div>
+                            )}
+                          </Tab.Pane>
                         </Tab.Content>
                       </Col>
                     </Row>
@@ -455,6 +696,70 @@ export default function ServiceTasks() {
           handleClose={() => setShowModal(false)}
           type={activeTab}
         />
+        <Modal
+          show={showFeedbackModal}
+          onHide={handleCloseFeedback}
+          centered
+          backdrop={feedbackSubmitting ? "static" : true}
+        >
+          <Modal.Header closeButton={!feedbackSubmitting}>
+            <Modal.Title>Rate Customer</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="rating-stars mb-3">
+              <ul className="d-flex list-unstyled gap-2 mb-0">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <li key={star}>
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackRating(star)}
+                      style={{ background: "transparent", border: 0, padding: 0 }}
+                    >
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill={star <= feedbackRating ? "#FFC107" : "#E0E0E0"}
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                      </svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Form.Group>
+              <Form.Label>Message</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+                placeholder="Write your feedback"
+                disabled={feedbackSubmitting}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer className="rate-customer-modal-footer">
+            <button
+              type="button"
+              className="btn btn-light border rate-customer-modal-btn"
+              onClick={handleCloseFeedback}
+              disabled={feedbackSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="booking-job-done-btn rate-customer-modal-btn"
+              onClick={handleSubmitFeedback}
+              disabled={feedbackSubmitting}
+            >
+              {feedbackSubmitting ? "Please wait..." : "Submit"}
+            </button>
+          </Modal.Footer>
+        </Modal>
         <ToastContainer />
       </section>
     </Layout>

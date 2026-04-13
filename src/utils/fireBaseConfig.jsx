@@ -1,7 +1,7 @@
 // src/Utils/firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getToken, getMessaging, onMessage } from "firebase/messaging";
+import { getToken, getMessaging, isSupported, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
  
@@ -18,7 +18,20 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
-const messaging = getMessaging(app);
+let messagingInstancePromise = null;
+
+const getMessagingInstance = async () => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return null;
+  }
+  if (!("serviceWorker" in navigator)) return null;
+  const supported = await isSupported().catch(() => false);
+  if (!supported) return null;
+  if (!messagingInstancePromise) {
+    messagingInstancePromise = Promise.resolve(getMessaging(app));
+  }
+  return messagingInstancePromise;
+};
 
 export const getOrRegisterServiceWorker = () => {
   if ("serviceWorker" in navigator) {
@@ -37,22 +50,31 @@ export const getOrRegisterServiceWorker = () => {
   throw new Error("The browser doesn`t support service worker.");
 };
 
-const getFirebaseToken = () =>
-  getOrRegisterServiceWorker().then((serviceWorkerRegistration) =>
-    getToken(messaging, {
-      vapidKey:
-        "BGM7XIrtDKd1tV47j5fvu_iaJMn3HX-n_zQKTcyF7h1GDNgZszjAs8G-eZSI7mV72ygdmXAKhtJMrLzdThNIagg",
-      serviceWorkerRegistration,
-    })
-  );
+const getFirebaseToken = async () => {
+  const messaging = await getMessagingInstance();
+  if (!messaging) return "";
+  const serviceWorkerRegistration = await getOrRegisterServiceWorker();
+  return getToken(messaging, {
+    vapidKey:
+      "BGM7XIrtDKd1tV47j5fvu_iaJMn3HX-n_zQKTcyF7h1GDNgZszjAs8G-eZSI7mV72ygdmXAKhtJMrLzdThNIagg",
+    serviceWorkerRegistration,
+  });
+};
 
 // const onForegroundMessage = () =>
 //   new Promise((resolve) => onMessage(messaging, (payload) => resolve(payload)));
 
 const onForegroundMessage = (callback) => {
-  return onMessage(messaging, (payload) => {
-    callback(payload);
-  });
+  let unsubscribe = () => {};
+  getMessagingInstance()
+    .then((messaging) => {
+      if (!messaging) return;
+      unsubscribe = onMessage(messaging, (payload) => {
+        callback(payload);
+      });
+    })
+    .catch(() => {});
+  return () => unsubscribe();
 };
 
 

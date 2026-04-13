@@ -204,8 +204,13 @@ export default function PostTask() {
                             as={Form.Select}
                           >
                             <option value="">Select a service</option>
-                            {categories?.allCat?.map((ele, index) => (
-                              <option value={ele?._id}>{ele?.service_category_name}</option>
+                            {categories?.allCat?.map((ele) => (
+                              <option
+                                key={ele?._id || ele?.service_category_name}
+                                value={ele?._id}
+                              >
+                                {ele?.service_category_name}
+                              </option>
                             ))}
 
 

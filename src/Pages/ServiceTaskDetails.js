@@ -24,6 +24,14 @@ import {
   taskStatus,
 } from "../utils/jobFlowStatus";
 export default function ServiceTaskDetails() {
+  const TASK_STATUS_TOAST_ID = "service-task-status-update";
+  const showSingleStatusToast = (message) => {
+    toast.dismiss();
+    toast.clearWaitingQueue?.();
+    setTimeout(() => {
+      toast.success(message, { toastId: TASK_STATUS_TOAST_ID });
+    }, 0);
+  };
   const getStatusColor = (status) => {
     const s = Number(status);
     const statusMap = {
@@ -57,6 +65,15 @@ export default function ServiceTaskDetails() {
   const [showEditQuotation, setShowEditQuotation] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [taskStatusSubmitting, setTaskStatusSubmitting] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeTitle, setDisputeTitle] = useState("");
+  const [disputeDescription, setDisputeDescription] = useState("");
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [showCreatorRatingsModal, setShowCreatorRatingsModal] = useState(false);
+  const [creatorRatingsLoading, setCreatorRatingsLoading] = useState(false);
+  const [taskCreatorRatingsData, setTaskCreatorRatingsData] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const taskStatusSubmittingRef = useRef(false);
 
   const handleCloseEditQuotation = () => {
     setShowEditQuotation(false);
@@ -111,9 +128,102 @@ export default function ServiceTaskDetails() {
   useEffect(() => {
     dispatch(CustomerActions.getPostTaskDetail(id));
   }, [dispatch, id]);
+  useEffect(() => {
+    if (!navigator?.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }),
+      () => {}
+    );
+  }, []);
 
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
+  const customerRatingSummary = postTaskDetails?.data?.customerRatingSummary;
+  const taskCreatorAverageRatingRaw =
+    customerRatingSummary?.averageRating ??
+    task?.user_id?.customerAverageRating ??
+    task?.user_id?.averageRating;
+  const taskCreatorReviewCountRaw =
+    customerRatingSummary?.reviewCount ??
+    task?.user_id?.customerReviewCount ??
+    task?.user_id?.overallFeedbackCount;
+  const taskCreatorAverageRating = Number.isFinite(
+    Number(taskCreatorAverageRatingRaw)
+  )
+    ? Number(taskCreatorAverageRatingRaw)
+    : 0;
+  const taskCreatorReviewCount = Number.isFinite(Number(taskCreatorReviewCountRaw))
+    ? Number(taskCreatorReviewCountRaw)
+    : 0;
+  const taskCreatorUserId = task?.user_id?._id ?? task?.user_id?.id ?? task?.user_id;
+  const taskCreatorName = task?.user_id?.full_name || "Task Creator";
+  const creatorRatingsListRaw =
+    taskCreatorRatingsData?.overallFeedbacks ??
+    taskCreatorRatingsData?.ratings ??
+    taskCreatorRatingsData?.reviews ??
+    [];
+  const creatorRatingsList = Array.isArray(creatorRatingsListRaw)
+    ? creatorRatingsListRaw
+    : [];
+  const creatorRatingsAverage = Number(
+    taskCreatorRatingsData?.averageRating ??
+      taskCreatorRatingsData?.customerAverageRating ??
+      taskCreatorAverageRating
+  );
+  const creatorRatingsCount = Number(
+    taskCreatorRatingsData?.reviewCount ??
+      taskCreatorRatingsData?.customerReviewCount ??
+      taskCreatorRatingsData?.overallFeedbackCount ??
+      creatorRatingsList.length ??
+      taskCreatorReviewCount
+  );
+  const taskCreatorNameFromRatings =
+    creatorRatingsList?.[0]?.ratedSeekerId?.full_name || taskCreatorName;
+  const selectedQuotationId =
+    task?.quatation_id ?? task?.quotation_id ?? task?.quote_id;
+  const acceptedQuotationForMap = quotations?.find(
+    (q) => String(q?._id) === String(selectedQuotationId)
+  );
+  const selectedServiceProviderId =
+    task?.serviceProviderId ??
+    task?.service_provider_id ??
+    task?.service_provider?._id ??
+    acceptedQuotationForMap?.service_provider?._id ??
+    acceptedQuotationForMap?.service_provider_id;
+  const canRaiseTaskDispute = Boolean(
+    task?.referenceId &&
+      selectedQuotationId &&
+      [
+        taskStatus.ON_THE_WAY,
+        taskStatus.IN_PROGRESS,
+        taskStatus.COMPLETED,
+      ].includes(Number(task?.status))
+  );
+  const taskCoordinates = Array.isArray(task?.location?.coordinates)
+    ? task.location.coordinates
+    : null;
+  const providerCoordinates = Array.isArray(
+    acceptedQuotationForMap?.service_provider?.location?.coordinates
+  )
+    ? acceptedQuotationForMap.service_provider.location.coordinates
+    : null;
+  const mapLat = taskCoordinates?.[1] ?? providerCoordinates?.[1] ?? null;
+  const mapLng = taskCoordinates?.[0] ?? providerCoordinates?.[0] ?? null;
+  const hasRouteCoordinates =
+    taskCoordinates?.[1] != null &&
+    taskCoordinates?.[0] != null &&
+    providerCoordinates?.[1] != null &&
+    providerCoordinates?.[0] != null;
+  const routeEmbedUrl = hasRouteCoordinates
+    ? `https://maps.google.com/maps?saddr=${taskCoordinates[1]},${taskCoordinates[0]}&daddr=${providerCoordinates[1]},${providerCoordinates[0]}&output=embed`
+    : `https://maps.google.com/maps?q=${mapLat},${mapLng}&z=14&output=embed`;
+  const routeShareUrl = hasRouteCoordinates
+    ? `https://www.google.com/maps/dir/?api=1&origin=${taskCoordinates[1]},${taskCoordinates[0]}&destination=${providerCoordinates[1]},${providerCoordinates[0]}&travelmode=driving`
+    : `https://maps.google.com/?q=${mapLat},${mapLng}`;
 
   const handleQuotationSubmit = ({
     offer_price,
@@ -170,17 +280,23 @@ export default function ServiceTaskDetails() {
    */
   const applyProviderTaskStatus = (nextStatus, opts) => {
     const { navigateToList = false, successMessage } = opts;
-    if (taskStatusSubmitting || !id) return;
+    if (taskStatusSubmittingRef.current || !id) return;
+    taskStatusSubmittingRef.current = true;
     setTaskStatusSubmitting(true);
+    const requestData = {
+      task_id: id,
+      status: nextStatus,
+      ...(selectedQuotationId ? { quatation_id: selectedQuotationId } : {}),
+      ...(selectedServiceProviderId
+        ? { service_provider_id: selectedServiceProviderId }
+        : {}),
+    };
     dispatch(
-      CustomerActions.acceptRejectTaskStatus({
-        task_id: id,
-        status: nextStatus,
-      })
+      CustomerActions.acceptRejectTaskStatus(requestData)
     )
       .then((res) => {
         if (res?.payload?.success) {
-          toast.success(successMessage);
+          showSingleStatusToast(successMessage);
           dispatch(CustomerActions.getPostTaskDetail(id));
           if (navigateToList) {
             navigate("/taskslist");
@@ -192,7 +308,10 @@ export default function ServiceTaskDetails() {
       .catch(() => {
         toast.error("Something went wrong. Please try again.");
       })
-      .finally(() => setTaskStatusSubmitting(false));
+      .finally(() => {
+        taskStatusSubmittingRef.current = false;
+        setTaskStatusSubmitting(false);
+      });
   };
 
   const handleTaskCancel = () => {
@@ -205,7 +324,7 @@ export default function ServiceTaskDetails() {
   const handleTaskJobDone = () => {
     applyProviderTaskStatus(taskStatus.COMPLETED, {
       navigateToList: true,
-      successMessage: "Success",
+      successMessage: "Job marked as done.",
     });
   };
 
@@ -227,6 +346,66 @@ export default function ServiceTaskDetails() {
       [id]: !prev[id],
     }));
   };
+  const handleOpenDisputeModal = () => setShowDisputeModal(true);
+  const handleCloseDisputeModal = () => {
+    if (disputeSubmitting) return;
+    setShowDisputeModal(false);
+    setDisputeTitle("");
+    setDisputeDescription("");
+  };
+  const handleSubmitDispute = async () => {
+    if (!disputeTitle.trim() || !disputeDescription.trim()) {
+      toast.error("Please enter title and message.");
+      return;
+    }
+    if (!task?.referenceId) {
+      toast.error("Task reference not found.");
+      return;
+    }
+    setDisputeSubmitting(true);
+    try {
+      const res = await dispatch(
+        CustomerActions.raiseDispute({
+          referenceId: task.referenceId,
+          reason: disputeTitle.trim(),
+          description: disputeDescription.trim(),
+        })
+      );
+      if (res?.payload?.success) {
+        toast.success(res?.payload?.message || "Dispute submitted successfully.");
+        handleCloseDisputeModal();
+      } else {
+        toast.error(res?.payload?.message || "Could not submit dispute.");
+      }
+    } catch {
+      toast.error("Could not submit dispute.");
+    } finally {
+      setDisputeSubmitting(false);
+    }
+  };
+  const handleCloseCreatorRatingsModal = () => setShowCreatorRatingsModal(false);
+  const handleOpenCreatorRatingsModal = async () => {
+    if (!taskCreatorUserId) {
+      toast.error("Task creator id not found.");
+      return;
+    }
+    setCreatorRatingsLoading(true);
+    setShowCreatorRatingsModal(true);
+    try {
+      const res = await dispatch(
+        CustomerActions.getCustomerRatingsById(taskCreatorUserId)
+      );
+      if (res?.payload?.success === false) {
+        toast.error(res?.payload?.message || "Could not load ratings.");
+        return;
+      }
+      setTaskCreatorRatingsData(res?.payload?.data ?? res?.payload ?? null);
+    } catch {
+      toast.error("Could not load ratings.");
+    } finally {
+      setCreatorRatingsLoading(false);
+    }
+  };
 
   return (
     <Layout>
@@ -238,24 +417,66 @@ export default function ServiceTaskDetails() {
                 <h2>Task Details</h2>
               </div>
               <div className="service-detail-card pt-3">
-                {task?.images?.length > 0 ? (
-                  <Slider {...sliderSettings}>
-                    {task.images.map((image, index) => (
-                      <div key={index} className="card-box">
-                        <img
-                          src={`${process.env.REACT_APP_API_URLL}${image}`}
-                          alt={task.need_done}
-                          style={{ maxWidth: "200px", margin: "0 auto" }}
-                        />
+                <div className="service-detail-media">
+                  {task?.images?.length > 0 ? (
+                    <Slider {...sliderSettings}>
+                      {task.images.map((image, index) => (
+                        <div key={index} className="card-box">
+                          <img
+                            src={`${process.env.REACT_APP_API_URLL}${image}`}
+                            alt={task.need_done}
+                            style={{ maxWidth: "200px", margin: "0 auto" }}
+                          />
+                        </div>
+                      ))}
+                    </Slider>
+                  ) : (
+                    <img
+                      src={require("../Assets/Images/placeholder.jpg")}
+                      alt="Default"
+                    />
+                  )}
+                  {task && (
+                    <div className="task-creator-rating">
+                      <div className="task-creator-rating-head">
+                        <div>
+                          <p className="task-creator-rating-title">
+                            Task Creator Rating
+                          </p>
+                          <p className="task-creator-rating-name mb-0">
+                            {taskCreatorName}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="task-creator-rating-view-btn"
+                          onClick={handleOpenCreatorRatingsModal}
+                          disabled={creatorRatingsLoading || !taskCreatorUserId}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                          {creatorRatingsLoading ? "Loading..." : "View"}
+                        </button>
                       </div>
-                    ))}
-                  </Slider>
-                ) : (
-                  <img
-                    src={require("../Assets/Images/placeholder.jpg")}
-                    alt="Default"
-                  />
-                )}
+                      <StarRating
+                        averageRating={taskCreatorAverageRating}
+                        reviewCount={taskCreatorReviewCount}
+                      />
+                    </div>
+                  )}
+                </div>
                 <div>
                   <h3>{task?.need_done || "Task"}</h3>
                   <h5>
@@ -338,6 +559,15 @@ export default function ServiceTaskDetails() {
                       })()
                     )}
                   </div>
+                  {canRaiseTaskDispute && (
+                    <button
+                      type="button"
+                      className="task-dispute-link-btn"
+                      onClick={handleOpenDisputeModal}
+                    >
+                      Having an issue? <span>Raise Dispute</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </Col>
@@ -347,31 +577,90 @@ export default function ServiceTaskDetails() {
             <Row>
               <Col lg={12}>
                 <section className="booking-status-sec mt-3">
-                  <div className="booking-status-txt pt-0">
-                    <div className="booking-status-left-txt">
-                      <h2>Status</h2>
-                      {(() => {
-                        const flow = getTaskFlowStepperState(task?.status);
-                        const headline =
-                          flow.variant !== "default"
-                            ? flow.terminalLabel || "Status"
-                            : JOB_FLOW_STEP_LABELS[flow.activeStep] ||
-                              "Status";
-                        return (
-                          <>
-                            <h3 className={getStatusColor(task?.status)}>
-                              {headline}
-                            </h3>
-                            <JobFlowStepper mode="task" status={task?.status} />
-                            <p>{getTaskFlowDescription(task?.status)}</p>
-                            <h5>
-                              {task?.task_time},{" "}
-                              {formatTaskWhenDoneDisplay(task?.when_done)}
-                            </h5>
-                          </>
-                        );
-                      })()}
+                  <div className="requests-completed-main  task-detail-map-container">
+                    <div className="booking-status-txt pt-0 pb-0">
+                      <div className="booking-status-left-txt">
+                        <h2>Status</h2>
+                        {(() => {
+                          const flow = getTaskFlowStepperState(task?.status);
+                          const headline =
+                            flow.variant !== "default"
+                              ? flow.terminalLabel || "Status"
+                              : JOB_FLOW_STEP_LABELS[flow.activeStep] ||
+                                "Status";
+                          return (
+                            <>
+                              <h3 className={getStatusColor(task?.status)}>
+                                {headline}
+                              </h3>
+                              <JobFlowStepper
+                                mode="task"
+                                status={task?.status}
+                              />
+                              <p>{getTaskFlowDescription(task?.status)}</p>
+                              <h5>
+                                {task?.task_time},{" "}
+                                {formatTaskWhenDoneDisplay(task?.when_done)}
+                              </h5>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
+                    {(() => {
+                      const s = Number(task?.status);
+                      const shouldShowMap =
+                        mapLat != null &&
+                        mapLng != null &&
+                        (s === taskStatus.ON_THE_WAY ||
+                          s === taskStatus.IN_PROGRESS ||
+                          s === taskStatus.COMPLETED);
+                      if (!shouldShowMap) return null;
+                      return (
+                        <div className="requests-completed-map">
+                          <h2>Live Location</h2>
+                          <iframe
+                            title="Provider Task Map"
+                            src={routeEmbedUrl}
+                            width="100%"
+                            height="260"
+                            style={{ border: 0, borderRadius: "8px" }}
+                            loading="lazy"
+                          />
+                          <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
+                            <button
+                              type="button"
+                              className="booking-job-done-btn"
+                              onClick={() => window.open(routeShareUrl, "_blank")}
+                            >
+                              Open in Maps
+                            </button>
+                            <button
+                              type="button"
+                              className="booking-job-done-btn"
+                              onClick={async () => {
+                                if (navigator.share) {
+                                  await navigator.share({
+                                    title: "Task Route",
+                                    text: "Task to provider route",
+                                    url: routeShareUrl,
+                                  });
+                                  return;
+                                }
+                                if (navigator.clipboard?.writeText) {
+                                  await navigator.clipboard.writeText(
+                                    routeShareUrl
+                                  );
+                                  toast.success("Location copied.");
+                                }
+                              }}
+                            >
+                              Share Location
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </section>
               </Col>
@@ -380,6 +669,7 @@ export default function ServiceTaskDetails() {
         </Container>
       </section>
 
+      {status !== "task" && (
       <section className="category-services-sec pt-0 mt-5">
         <Container>
           <div className="category-services-lists">
@@ -863,6 +1153,7 @@ export default function ServiceTaskDetails() {
           </div>
         </Container>
       </section>
+      )}
 
       <AddQuotationModal
         show={showQutation}
@@ -971,6 +1262,182 @@ export default function ServiceTaskDetails() {
             <button onClick={handleClose}>Cancel</button>
             <button onClick={handleClose}>Save</button>
           </div>
+        </Modal.Body>
+      </Modal>
+      <Modal show={showDisputeModal} onHide={handleCloseDisputeModal} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title>Raise Dispute</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Title</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Dispute title"
+              value={disputeTitle}
+              onChange={(e) => setDisputeTitle(e.target.value)}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Message</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              placeholder="Describe the issue..."
+              value={disputeDescription}
+              onChange={(e) => setDisputeDescription(e.target.value)}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 dispute-modal-footer">
+          <button
+            type="button"
+            className="btn btn-light border dispute-modal-btn"
+            onClick={handleCloseDisputeModal}
+            disabled={disputeSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="booking-job-done-btn dispute-modal-btn"
+            onClick={handleSubmitDispute}
+            disabled={disputeSubmitting}
+          >
+            {disputeSubmitting ? "Please wait..." : "Submit"}
+          </button>
+        </Modal.Footer>
+      </Modal>
+      <Modal
+        show={showCreatorRatingsModal}
+        onHide={handleCloseCreatorRatingsModal}
+        centered
+        size="lg"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title>{taskCreatorNameFromRatings} Ratings</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="task-creator-ratings-modal-body">
+          {creatorRatingsLoading ? (
+            <p className="mb-0">Loading ratings...</p>
+          ) : (
+            <>
+              <div className="task-creator-ratings-summary">
+                <StarRating
+                  averageRating={Number.isFinite(creatorRatingsAverage) ? creatorRatingsAverage : 0}
+                  reviewCount={Number.isFinite(creatorRatingsCount) ? creatorRatingsCount : 0}
+                />
+              </div>
+              {creatorRatingsList.length > 0 ? (
+                <div className="task-creator-ratings-list">
+                  {creatorRatingsList.map((rating, index) => {
+                    const reviewText =
+                      rating?.feedback ||
+                      rating?.review ||
+                      rating?.message ||
+                      rating?.description ||
+                      "No comment";
+                    const reviewDate =
+                      rating?.createdAt || rating?.updatedAt || null;
+                    const reviewerName =
+                      rating?.reviewerProviderId?.full_name || "Provider";
+                    const reviewerImage = rating?.reviewerProviderId?.profile_image;
+                    const ratedSeekerName =
+                      rating?.ratedSeekerId?.full_name || taskCreatorNameFromRatings;
+                    const ratedSeekerImage = rating?.ratedSeekerId?.profile_image;
+                    const reviewTypeLabel =
+                      Number(rating?.type) === 1
+                        ? "Booking"
+                        : Number(rating?.type) === 2
+                        ? "Task"
+                        : "-";
+                    return (
+                      <div
+                        className="task-creator-rating-item"
+                        key={rating?._id || index}
+                      >
+                        <div className="task-creator-rating-item-top">
+                          <StarRating
+                            averageRating={Number(rating?.rating || 0)}
+                            type="noreview"
+                          />
+                          {reviewDate && (
+                            <span className="task-creator-rating-item-date">
+                              {new Date(reviewDate).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="task-rating-reviewer">
+                          {reviewerImage && (
+                            <img
+                              src={`${process.env.REACT_APP_API_URL}${reviewerImage}`}
+                              alt={reviewerName}
+                              className="task-rating-reviewer-avatar"
+                              onLoad={(e) => {
+                                e.currentTarget.style.display = "inline-block";
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fallback =
+                                  e.currentTarget.nextElementSibling;
+                                if (fallback) fallback.style.display = "inline-flex";
+                              }}
+                            />
+                          )}
+                          <div
+                            className="task-rating-reviewer-avatar task-rating-reviewer-avatar-fallback"
+                            style={{ display: reviewerImage ? "none" : "inline-flex" }}
+                          >
+                            {reviewerName?.[0]?.toUpperCase() || "P"}
+                          </div>
+                          <span className="task-rating-reviewer-name">
+                            Reviewed by {reviewerName}
+                          </span>
+                        </div>
+                        <div className="task-rating-reviewer">
+                          {ratedSeekerImage && (
+                            <img
+                              src={`${process.env.REACT_APP_API_URL}${ratedSeekerImage}`}
+                              alt={ratedSeekerName}
+                              className="task-rating-reviewer-avatar"
+                              onLoad={(e) => {
+                                e.currentTarget.style.display = "inline-block";
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fallback =
+                                  e.currentTarget.nextElementSibling;
+                                if (fallback) fallback.style.display = "inline-flex";
+                              }}
+                            />
+                          )}
+                          <div
+                            className="task-rating-reviewer-avatar task-rating-reviewer-avatar-fallback"
+                            style={{
+                              display: ratedSeekerImage ? "none" : "inline-flex",
+                            }}
+                          >
+                            {ratedSeekerName?.[0]?.toUpperCase() || "U"}
+                          </div>
+                          <span className="task-rating-reviewer-name">
+                            Rated user {ratedSeekerName}
+                          </span>
+                        </div>
+                        <div className="task-rating-meta-grid">
+                          <span>
+                            <strong>Type:</strong> {reviewTypeLabel}
+                          </span>
+                        </div>
+                        <p className="mb-0">{reviewText}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="mb-0 text-muted">No ratings available.</p>
+              )}
+            </>
+          )}
         </Modal.Body>
       </Modal>
     </Layout>

@@ -17,8 +17,25 @@ import BookingCancelled from "../CommanComponents/Modals/BookingCancelled";
 import SuggestCorporateModal from "../CommanComponents/Modals/SuggestCorporateModal";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import JobFlowStepper from "../CommanComponents/JobFlowStepper";
+import {
+  bookingStatus,
+  getBookingFlowStepperState,
+  getBookingFlowDescription,
+  JOB_FLOW_STEP_LABELS,
+} from "../utils/jobFlowStatus";
 
 export default function ServiceRequest() {
+  const SERVICE_REQUEST_STATUS_TOAST_ID = "service-request-status-update";
+  const showSingleStatusToast = (message) => {
+    toast.dismiss();
+    toast.clearWaitingQueue?.();
+    setTimeout(() => {
+      toast.success(message, {
+        toastId: SERVICE_REQUEST_STATUS_TOAST_ID,
+      });
+    }, 0);
+  };
   const getStatusColor = (status) => {
     const statusMap = {
       1: "yellow",
@@ -45,8 +62,19 @@ export default function ServiceRequest() {
 
   const [cancelReason, setCancelReason] = useState("");
   const [cancelNotes, setCancelNotes] = useState("");
+  const [jobDoneSubmitting, setJobDoneSubmitting] = useState(false);
+  const [showJobDoneConfirmModal, setShowJobDoneConfirmModal] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeTitle, setDisputeTitle] = useState("");
+  const [disputeDescription, setDisputeDescription] = useState("");
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
 
   const bookingReqDetail = useSelector((e) => e.service.getBookingRequestList);
+  const canRaiseBookingDispute = Boolean(
+    bookingReqDetail?.referenceId &&
+      [2, 4, 6, 7].includes(Number(bookingReqDetail?.status))
+  );
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -94,6 +122,25 @@ export default function ServiceRequest() {
 
   useEffect(() => {
     dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
+  }, []);
+  useEffect(() => {
+    if (!id || servicetype !== "approved") return;
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
+    }, 15000);
+    return () => window.clearInterval(intervalId);
+  }, [dispatch, id, servicetype]);
+  useEffect(() => {
+    if (!navigator?.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }),
+      () => {}
+    );
   }, []);
 
   const handleButtonClick = (id) => {
@@ -165,18 +212,55 @@ export default function ServiceRequest() {
       });
   };
 
-  const handleJobDone = () => {
+  const handleJobDone = (targetStatus = 4) => {
+    if (jobDoneSubmitting) return;
+    setJobDoneSubmitting(true);
     dispatch(
       ServiceActions.updateBookingStatus({
         booking_id: id,
-        status: 4, // Accepted
+        status: targetStatus,
       })
     ).then((res) => {
       if (res?.payload?.success) {
-        toast.success("Success");
-        Navigate("/requests");
+        const msg =
+          Number(targetStatus) === bookingStatus.ON_THE_WAY
+            ? "Marked as on the way."
+            : Number(targetStatus) === bookingStatus.IN_PROGRESS
+            ? "Marked as in progress."
+            : "Job marked as done.";
+        showSingleStatusToast(msg);
+        dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
       }
+    }).finally(() => {
+      setJobDoneSubmitting(false);
     });
+  };
+  const providerNextStatusMap = {
+    [bookingStatus.ACCEPTED]: bookingStatus.ON_THE_WAY,
+    [bookingStatus.ON_THE_WAY]: bookingStatus.IN_PROGRESS,
+    [bookingStatus.IN_PROGRESS]: bookingStatus.COMPLETED,
+  };
+  const providerButtonLabelMap = {
+    [bookingStatus.ACCEPTED]: "On the Way",
+    [bookingStatus.ON_THE_WAY]: "In Progress",
+    [bookingStatus.IN_PROGRESS]: "Job Done",
+  };
+  const providerCurrentStatus = Number(bookingReqDetail?.status);
+  const providerNextStatus = providerNextStatusMap[providerCurrentStatus];
+  const providerProgressBtnLabel = providerButtonLabelMap[providerCurrentStatus];
+  const showProviderJobDoneBtn =
+    servicetype === "approved" && Boolean(providerNextStatus);
+  const canProviderCancelBooking = [bookingStatus.REQUESTED, bookingStatus.ACCEPTED].includes(
+    providerCurrentStatus
+  );
+  const handleOpenJobDoneConfirm = () => setShowJobDoneConfirmModal(true);
+  const handleCloseJobDoneConfirm = () => {
+    if (jobDoneSubmitting) return;
+    setShowJobDoneConfirmModal(false);
+  };
+  const handleConfirmJobDone = async () => {
+    await handleJobDone(bookingStatus.COMPLETED);
+    setShowJobDoneConfirmModal(false);
   };
 
   const handleShowCancelBooking = () => {
@@ -202,6 +286,64 @@ export default function ServiceRequest() {
         toast.error("Failed to reject booking.");
       });
   };
+  const bookingCoordinates = Array.isArray(bookingReqDetail?.location?.coordinates)
+    ? bookingReqDetail.location.coordinates
+    : null;
+  const customerCoordinates = Array.isArray(
+    bookingReqDetail?.bookBy?.location?.coordinates
+  )
+    ? bookingReqDetail.bookBy.location.coordinates
+    : null;
+  const mapLat = bookingCoordinates?.[1] ?? customerCoordinates?.[1] ?? null;
+  const mapLng = bookingCoordinates?.[0] ?? customerCoordinates?.[0] ?? null;
+  const hasRouteCoordinates =
+    currentLocation?.lat != null &&
+    currentLocation?.lng != null &&
+    mapLat != null &&
+    mapLng != null;
+  const routeEmbedUrl = hasRouteCoordinates
+    ? `https://maps.google.com/maps?saddr=${currentLocation.lat},${currentLocation.lng}&daddr=${mapLat},${mapLng}&output=embed`
+    : `https://maps.google.com/maps?q=${mapLat},${mapLng}&z=14&output=embed`;
+  const routeShareUrl = hasRouteCoordinates
+    ? `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.lat},${currentLocation.lng}&destination=${mapLat},${mapLng}&travelmode=driving`
+    : `https://maps.google.com/?q=${mapLat},${mapLng}`;
+  const handleOpenDisputeModal = () => setShowDisputeModal(true);
+  const handleCloseDisputeModal = () => {
+    if (disputeSubmitting) return;
+    setShowDisputeModal(false);
+    setDisputeTitle("");
+    setDisputeDescription("");
+  };
+  const handleSubmitDispute = async () => {
+    if (!disputeTitle.trim() || !disputeDescription.trim()) {
+      toast.error("Please enter title and message.");
+      return;
+    }
+    if (!bookingReqDetail?.referenceId) {
+      toast.error("Booking reference not found.");
+      return;
+    }
+    setDisputeSubmitting(true);
+    try {
+      const res = await dispatch(
+        CustomerActions.raiseDispute({
+          referenceId: bookingReqDetail.referenceId,
+          reason: disputeTitle.trim(),
+          description: disputeDescription.trim(),
+        })
+      );
+      if (res?.payload?.success) {
+        toast.success(res?.payload?.message || "Dispute submitted successfully.");
+        handleCloseDisputeModal();
+      } else {
+        toast.error(res?.payload?.message || "Could not submit dispute.");
+      }
+    } catch {
+      toast.error("Could not submit dispute.");
+    } finally {
+      setDisputeSubmitting(false);
+    }
+  };
 
   return (
     <Layout>
@@ -210,10 +352,12 @@ export default function ServiceRequest() {
           <Row>
             <Col lg={12}>
               <div className="heading">
-                {servicetype == "approved" ? (
+                {servicetype === "approved" ? (
                   <h2>Service Approved</h2>
-                ) : (
+                ) : servicetype === "reject" ? (
                   <h2>Cancel Request</h2>
+                ) : (
+                  <h2>Request Detail</h2>
                 )}
               </div>
               <div className="service-approved-detail-card">
@@ -239,7 +383,7 @@ export default function ServiceRequest() {
                           ?.serviceSubCategoryName
                       }
                     </h3>
-                    {servicetype !== "reject" && (
+                    {servicetype !== "reject" && canProviderCancelBooking && (
                       <div
                         className="chat-btn-card"
                         style={{ position: "relative" }}
@@ -324,6 +468,22 @@ export default function ServiceRequest() {
                     {bookingReqDetail?.desc}
                     <span>{bookingReqDetail?.address}</span>
                   </p>
+                  {servicetype === "approved" && showProviderJobDoneBtn && (
+                    <div className="book-service-action book-service-action--single mt-3">
+                      <button
+                        disabled={jobDoneSubmitting}
+                        onClick={() => {
+                          if (providerNextStatus === bookingStatus.COMPLETED) {
+                            handleOpenJobDoneConfirm();
+                            return;
+                          }
+                          handleJobDone(providerNextStatus);
+                        }}
+                      >
+                        {providerProgressBtnLabel}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div></div>
@@ -464,15 +624,13 @@ export default function ServiceRequest() {
               />
             </Col>
             <Col>
-              <div className="requestBookingBtn">
+              <div
+                className={`requestBookingBtn ${
+                  servicetype === "approved" ? "requestBookingBtn--approved" : ""
+                }`}
+              >
                 {servicetype !== "reject" ? (
-                  servicetype === "approved" ? (
-                    <>
-                      <div className="book-service-action">
-                        <button onClick={handleJobDone}>Job Done</button>
-                      </div>
-                    </>
-                  ) : (
+                  servicetype === "approved" ? null : (
                     <div className="book-service-action-btnn">
                       <button onClick={handleShowReschedule}>Reschedule</button>
                       <button onClick={handleAccept}>Accept</button>
@@ -486,6 +644,15 @@ export default function ServiceRequest() {
                   </div>
                 )}
               </div>
+              {canRaiseBookingDispute && (
+                <button
+                  type="button"
+                  className="task-dispute-link-btn"
+                  onClick={handleOpenDisputeModal}
+                >
+                  Having an issue? <span>Raise Dispute</span>
+                </button>
+              )}
             </Col>
             {servicetype === "reject" && (
               <Col lg={12}>
@@ -538,17 +705,75 @@ export default function ServiceRequest() {
             )}
             {servicetype === "approved" && (
               <section className="booking-status-sec ">
-                <div className="booking-status-txt pt-0">
-                  <div className="booking-status-left-txt">
-                    <h2>Status</h2>
-                    <h3 className={getStatusColor(bookingReqDetail?.status)}>
-                      Scheduled to work
-                    </h3>
-                    <p>Service provider need to start work on scheduled day.</p>
-                    <h4>{`${bookingReqDetail?.slotTime[0]}, ${moment(
-                      bookingReqDetail?.date
-                    ).format("DD MMM")}`}</h4>
+                <div className="requests-completed-main task-detail-map-container">
+                  <div className="booking-status-txt pt-0 pb-0">
+                    <div className="booking-status-left-txt">
+                      <h2>Status</h2>
+                      {(() => {
+                        const flow = getBookingFlowStepperState(bookingReqDetail?.status);
+                        const headline =
+                          flow.variant !== "default"
+                            ? flow.terminalLabel || "Status"
+                            : JOB_FLOW_STEP_LABELS[flow.activeStep] || "Scheduled to work";
+                        const description = getBookingFlowDescription(bookingReqDetail?.status) ||
+                          "Service provider need to start work on scheduled day.";
+                        return (
+                          <>
+                            <h3 className={getStatusColor(bookingReqDetail?.status)}>
+                              {headline}
+                            </h3>
+                            <JobFlowStepper mode="booking" status={bookingReqDetail?.status} />
+                            <p>{description}</p>
+                            <h4>{`${bookingReqDetail?.slotTime[0]}, ${moment(
+                              bookingReqDetail?.date
+                            ).format("DD MMM")}`}</h4>
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
+                  {[bookingStatus.ON_THE_WAY, bookingStatus.IN_PROGRESS, bookingStatus.COMPLETED].includes(
+                    Number(bookingReqDetail?.status)
+                  ) &&
+                    mapLat != null &&
+                    mapLng != null && (
+                      <div className="requests-completed-map">
+                        <h2>Live Location</h2>
+                        <iframe
+                          title="Provider Booking Map"
+                          src={routeEmbedUrl}
+                          width="100%"
+                          height="260"
+                          style={{ border: 0, borderRadius: "8px" }}
+                          loading="lazy"
+                        />
+                        <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
+                          <button
+                            type="button"
+                            className="booking-job-done-btn"
+                            onClick={() => window.open(routeShareUrl, "_blank")}
+                          >
+                            Open in Maps
+                          </button>
+                          <button
+                            type="button"
+                            className="booking-job-done-btn"
+                            onClick={async () => {
+                              if (navigator.share) {
+                                await navigator.share({ title: "Location", url: routeShareUrl });
+                                return;
+                              }
+                              if (navigator.clipboard?.writeText) {
+                                await navigator.clipboard.writeText(routeShareUrl);
+                                toast.success("Location copied.");
+                              }
+                            }}
+                          >
+                            Share Location
+                          </button>
+                        </div>
+                      </div>
+                    )}
                 </div>
               </section>
             )}
@@ -662,6 +887,85 @@ export default function ServiceRequest() {
         setIsRequestModal={setIsCancelModal}
         request={bookingReqDetail}
       />
+      <Modal show={showDisputeModal} onHide={handleCloseDisputeModal} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title>Raise Dispute</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Title</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Dispute title"
+              value={disputeTitle}
+              onChange={(e) => setDisputeTitle(e.target.value)}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Message</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              placeholder="Describe the issue..."
+              value={disputeDescription}
+              onChange={(e) => setDisputeDescription(e.target.value)}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 dispute-modal-footer">
+          <button
+            type="button"
+            className="btn btn-light border dispute-modal-btn"
+            onClick={handleCloseDisputeModal}
+            disabled={disputeSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="booking-job-done-btn dispute-modal-btn"
+            onClick={handleSubmitDispute}
+            disabled={disputeSubmitting}
+          >
+            {disputeSubmitting ? "Please wait..." : "Submit"}
+          </button>
+        </Modal.Footer>
+      </Modal>
+      <Modal
+        show={showJobDoneConfirmModal}
+        onHide={handleCloseJobDoneConfirm}
+        centered
+        backdrop={jobDoneSubmitting ? "static" : true}
+        keyboard={!jobDoneSubmitting}
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title>Confirm job complete</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-0 text-secondary">
+            Are you sure you want to mark this booking as done? After this,
+            customer can proceed with payment.
+          </p>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 job-done-confirm-modal-footer">
+          <button
+            type="button"
+            className="btn btn-light border job-done-confirm-modal-btn"
+            onClick={handleCloseJobDoneConfirm}
+            disabled={jobDoneSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="booking-job-done-btn job-done-confirm-modal-btn"
+            onClick={handleConfirmJobDone}
+            disabled={jobDoneSubmitting}
+          >
+            {jobDoneSubmitting ? "Please wait..." : "Yes, job done"}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </Layout>
   );
 }

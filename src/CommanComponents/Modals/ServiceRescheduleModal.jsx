@@ -69,16 +69,28 @@ const ServiceRescheduleModal = ({ show, setShow, service_id, data }) => {
     };
     
     const apiRes = await dispatch(ServiceActions.rescheduleBooking(payload));
-    
-    if (apiRes?.payload.success) {
-      toast.success(apiRes?.payload?.message);
-      dispatch(ServiceActions.getBookingReqDetailById({ id: service_id }));
-      setShow(false);
-      setIsRequestModal(true);
-      // navigate("/requests")
-    } else {
+
+    if (!apiRes?.payload?.success) {
       toast.error(apiRes?.payload?.message);
+      return;
     }
+
+    const acceptRes = await dispatch(
+      ServiceActions.updateBookingStatus({
+        booking_id: bookingReqDetail?._id,
+        status: 2,
+      })
+    );
+
+    if (!acceptRes?.payload?.success) {
+      toast.error(acceptRes?.payload?.message || "Could not auto-accept booking.");
+      return;
+    }
+
+    toast.success(apiRes?.payload?.message || "Booking rescheduled successfully.");
+    dispatch(ServiceActions.getBookingReqDetailById({ id: service_id }));
+    setShow(false);
+    navigate("/requests?tab=approved");
   };
 
   useEffect(() => {

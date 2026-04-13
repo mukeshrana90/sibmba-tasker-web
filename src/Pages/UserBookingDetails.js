@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -16,16 +16,19 @@ import { toast } from "react-toastify";
 import CorporateActions from "../Redux/Actions/corporateActions";
 import ChatIcon from "../Assets/Images/chatIcon2.svg";
 import defaultImage from "../Assets/Images/placeholder.jpg";
+import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
 import {
   formatTaskWhenDoneDisplay,
-  getStatusLabel,
 } from "../utils/CommonFunction";
-import JobFlowStepper from "../CommanComponents/JobFlowStepper";
 import {
+  bookingStatus,
   bookingSeekerShouldHideCancellationActions,
+  getBookingFlowStepperState,
   getBookingFlowDescription,
+  JOB_FLOW_STEP_LABELS,
   getSeekerTaskFlowDescription,
   seekerShouldHideTaskCancellationActions,
+  taskStatus,
 } from "../utils/jobFlowStatus";
 import { getPosterTaskDetailStepperStatus } from "../utils/quotationPosterDecision";
 import {
@@ -33,6 +36,7 @@ import {
   isSeekerConfirmedTaskData,
 } from "../utils/seekerCompletion";
 import StarRating from "../CommanComponents/StarRating";
+import JobFlowStepper from "../CommanComponents/JobFlowStepper";
 
 // const getStatusColor = (status) => {
 //   const statusMap = {
@@ -50,7 +54,7 @@ const getStatusColor = (status) => {
   const statusMap = {
     0: "pending",
     1: "pending",
-    2: "completed",
+    2: "accepted",
     3: "cancelled",
     4: "completed",
     5: "rejected",
@@ -86,6 +90,13 @@ export default function UserBookingDetails() {
   const [seekerBookingConfirmed, setSeekerBookingConfirmed] = useState(false);
   const [seekerTaskConfirmed, setSeekerTaskConfirmed] = useState(false);
   const [jobDoneSubmitting, setJobDoneSubmitting] = useState(false);
+  const [rescheduleAcceptSubmitting, setRescheduleAcceptSubmitting] =
+    useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeTitle, setDisputeTitle] = useState("");
+  const [disputeDescription, setDisputeDescription] = useState("");
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
   const [showJobDoneConfirmModal, setShowJobDoneConfirmModal] =
     useState(false);
   const [jobDoneConfirmTarget, setJobDoneConfirmTarget] = useState(null);
@@ -95,6 +106,10 @@ export default function UserBookingDetails() {
   const handleEditOpen = (id) => {
     seteditShow(true);
     setBookingId(id);
+  };
+  const handleEditClose = () => {
+    seteditShow(false);
+    setBookingId(null);
   };
   const handlePaymentOpen = (id) => {
     setPaymentShow(true);
@@ -108,7 +123,7 @@ export default function UserBookingDetails() {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  useEffect(() => {
+  const fetchBookingDetails = useCallback(() => {
     dispatch(CustomerActions.getBookingById({ id, type })).then((res) => {
       if (res?.payload?.success && !type) {
         setBookingState(res?.payload?.data);
@@ -117,13 +132,45 @@ export default function UserBookingDetails() {
       }
       setCorporateSuggestions(res?.payload?.data?.corporateSuggestions);
     });
-  }, [id, type, editshow, show, refetchToggle]);
+  }, [dispatch, id, type]);
+
+  useEffect(() => {
+    fetchBookingDetails();
+  }, [fetchBookingDetails, editshow, show, refetchToggle]);
+
+  useEffect(() => {
+    if (type || !id?.id) return;
+    const pollingStatuses = [
+      bookingStatus.ACCEPTED,
+      bookingStatus.ON_THE_WAY,
+      bookingStatus.IN_PROGRESS,
+    ];
+    if (!pollingStatuses.includes(Number(bookingState?.status))) return;
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      fetchBookingDetails();
+    }, 15000);
+    return () => window.clearInterval(intervalId);
+  }, [type, id?.id, bookingState?.status, fetchBookingDetails]);
 
   useEffect(() => {
     paymentPromptAutoShownRef.current = false;
     setSeekerBookingConfirmed(false);
     setSeekerTaskConfirmed(false);
   }, [id?.id, type]);
+
+  useEffect(() => {
+    if (!navigator?.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      () => {}
+    );
+  }, []);
 
   useEffect(() => {
     const bookingId = !type ? bookingState?._id : null;
@@ -212,38 +259,55 @@ export default function UserBookingDetails() {
       toast.error("Please give rating and message.");
       return;
     }
-    const copIds = selectedQuotation?.corporateSuggestion?.map(
-      (item) => item?.corporateIds?._id
-    );
-    const corporateId = copIds?.[0];
-
+    const isTaskFeedback = Boolean(type);
     const isCorporate = !!corporateProfile;
+    let feedbackData = {};
 
-    const corporateFields = isCorporate
-      ? {
-          ...(corporateProfile?.taskId && {
-            task_id: corporateProfile?.taskId,
-          }),
-          ...(!corporateProfile?.taskId &&
-            corporateProfile?.bookingId && {
-              bookingId: corporateProfile?.bookingId,
-            }),
-          ...(corporateId && { corporateId }),
-        }
-      : {
-          service_id: bookingState?.serviceSubCategory?._id,
-          serviceProviderId: bookingState?.serviceProvider?._id,
-          category_id: bookingState?.serviceCategory?._id,
-        };
-
-    const feedbackData = {
-      Booking_id: bookingState?._id,
-      ...(task?._id && { task_id: task._id }),
-      message,
-      rating,
-      type: 1,
-      ...corporateFields,
-    };
+    if (isCorporate) {
+      const corporateId = corporateProfile?.corporateIds?._id;
+      if (!corporateId) {
+        toast.error("Corporate id not found.");
+        return;
+      }
+      feedbackData = {
+        Booking_id: corporateProfile?.bookingId || bookingState?._id,
+        corporateId,
+        message,
+        rating,
+        ...(corporateProfile?.taskId && { task_id: corporateProfile?.taskId }),
+      };
+    } else if (isTaskFeedback) {
+      const serviceProviderId =
+        selectedQuotation?.service_provider?._id ||
+        task?.serviceProviderId ||
+        task?.service_provider_id;
+      if (!task?._id || !serviceProviderId) {
+        toast.error("Task or provider details not found.");
+        return;
+      }
+      feedbackData = {
+        task_id: task?._id,
+        type: 2,
+        serviceProviderId,
+        message,
+        rating,
+      };
+    } else {
+      if (!bookingState?._id || !bookingState?.serviceProvider?._id) {
+        toast.error("Booking or provider details not found.");
+        return;
+      }
+      feedbackData = {
+        Booking_id: bookingState?._id,
+        category_id:
+          bookingState?.serviceProvider?.serviceCategoryId ||
+          bookingState?.serviceCategory?._id,
+        service_id: bookingState?.serviceSubCategory?._id,
+        serviceProviderId: bookingState?.serviceProvider?._id,
+        message,
+        rating,
+      };
+    }
 
     dispatch(CustomerActions.feedbackActions(feedbackData)).then((res) => {
       if (res?.payload?.success) {
@@ -451,6 +515,27 @@ export default function UserBookingDetails() {
   const selectedQuotation = quotations?.find(
     (q) => q._id === task?.quatation_id
   );
+  const selectedQuotationIdForTask =
+    task?.quatation_id ?? task?.quotation_id ?? task?.quote_id;
+  const canRaiseTaskDispute = Boolean(
+    task?.referenceId &&
+      selectedQuotationIdForTask &&
+      [
+        taskStatus.ACCEPTED,
+        taskStatus.ON_THE_WAY,
+        taskStatus.IN_PROGRESS,
+        taskStatus.COMPLETED,
+      ].includes(Number(task?.status))
+  );
+  const canRaiseBookingDispute = Boolean(
+    bookingState?.referenceId &&
+      [
+        bookingStatus.ACCEPTED,
+        bookingStatus.ON_THE_WAY,
+        bookingStatus.IN_PROGRESS,
+        bookingStatus.COMPLETED,
+      ].includes(Number(bookingState?.status))
+  );
 
   const posterTaskStepperStatus = getPosterTaskDetailStepperStatus(
     task,
@@ -460,9 +545,11 @@ export default function UserBookingDetails() {
 
   const bookingSeekerOk =
     isSeekerConfirmedBookingData(bookingState) || seekerBookingConfirmed;
+  const isReschedulePendingForUser =
+    Number(bookingState?.status) === 1 && Boolean(bookingState?.rescheduledBy);
   const bookingShowJobDoneBtn =
     bookingState &&
-    bookingState.status === 4 &&
+    [4, 6, 7].includes(Number(bookingState.status)) &&
     !["paid"].includes(bookingState.payment?.status) &&
     !bookingSeekerOk;
   const bookingShowPayBtn =
@@ -608,6 +695,113 @@ export default function UserBookingDetails() {
     }
   };
 
+  const handleAcceptRescheduledBooking = async () => {
+    if (!bookingState?._id || rescheduleAcceptSubmitting) return;
+    setRescheduleAcceptSubmitting(true);
+    try {
+      const res = await dispatch(
+        ServiceActions.updateBookingStatus({
+          booking_id: bookingState._id,
+          status: 2,
+        })
+      );
+      if (res?.payload?.success) {
+        toast.success(res?.payload?.message || "Booking accepted successfully.");
+        setRefetchToggle((prev) => !prev);
+      } else {
+        toast.error(res?.payload?.message || "Could not accept booking.");
+      }
+    } catch {
+      toast.error("Could not accept booking.");
+    } finally {
+      setRescheduleAcceptSubmitting(false);
+    }
+  };
+  const isTaskOnTheWay =
+    Number(posterTaskStepperStatus) === 4 || Number(task?.status) === 4;
+  const isBookingFlowLive = [2, 4, 6, 7].includes(Number(bookingState?.status));
+  const shouldShowOnWayMap = task ? isTaskOnTheWay : isBookingFlowLive;
+  const bookingCoordinates = Array.isArray(bookingState?.location?.coordinates)
+    ? bookingState.location.coordinates
+    : null;
+  const taskCoordinates = Array.isArray(task?.location?.coordinates)
+    ? task.location.coordinates
+    : null;
+  const providerCoordinates = Array.isArray(
+    bookingState?.serviceProvider?.location?.coordinates
+  )
+    ? bookingState.serviceProvider.location.coordinates
+    : Array.isArray(selectedQuotation?.service_provider?.location?.coordinates)
+    ? selectedQuotation.service_provider.location.coordinates
+    : null;
+  const workCoordinates = task ? taskCoordinates : bookingCoordinates;
+  const mapLat = workCoordinates?.[1] ?? providerCoordinates?.[1] ?? null;
+  const mapLng = workCoordinates?.[0] ?? providerCoordinates?.[0] ?? null;
+  const hasRouteCoordinates =
+    currentLocation?.lat != null &&
+    currentLocation?.lng != null &&
+    mapLat != null &&
+    mapLng != null;
+  const routeEmbedUrl = hasRouteCoordinates
+    ? `https://maps.google.com/maps?saddr=${currentLocation.lat},${currentLocation.lng}&daddr=${mapLat},${mapLng}&output=embed`
+    : `https://maps.google.com/maps?q=${mapLat},${mapLng}&z=14&output=embed`;
+  const routeShareUrl = hasRouteCoordinates
+    ? `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.lat},${currentLocation.lng}&destination=${mapLat},${mapLng}&travelmode=driving`
+    : `https://maps.google.com/?q=${mapLat},${mapLng}`;
+  const openMapAt = (lat, lng) => {
+    if (lat == null || lng == null) return;
+    window.open(routeShareUrl, "_blank");
+  };
+  const shareMapAt = async (lat, lng) => {
+    if (lat == null || lng == null) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Location", url: routeShareUrl });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(routeShareUrl);
+        toast.success("Location copied.");
+      }
+    } catch {}
+  };
+  const handleOpenDisputeModal = () => setShowDisputeModal(true);
+  const handleCloseDisputeModal = () => {
+    if (disputeSubmitting) return;
+    setShowDisputeModal(false);
+    setDisputeTitle("");
+    setDisputeDescription("");
+  };
+  const handleSubmitDispute = async () => {
+    if (!disputeTitle.trim() || !disputeDescription.trim()) {
+      toast.error("Please enter title and message.");
+      return;
+    }
+    const referenceId = task?.referenceId || bookingState?.referenceId;
+    if (!referenceId) {
+      toast.error("Reference ID missing for dispute.");
+      return;
+    }
+    setDisputeSubmitting(true);
+    try {
+      const res = await dispatch(
+        CustomerActions.raiseDispute({
+          referenceId,
+          reason: disputeTitle.trim(),
+          description: disputeDescription.trim(),
+        })
+      );
+      if (res?.payload?.success) {
+        toast.success(res?.payload?.message || "Dispute submitted successfully.");
+        handleCloseDisputeModal();
+      } else {
+        toast.error(res?.payload?.message || "Could not submit dispute.");
+      }
+    } catch {
+      toast.error("Could not submit dispute.");
+    } finally {
+      setDisputeSubmitting(false);
+    }
+  };
+
   return (
     <Layout>
       <section className="service-detail-sec mb-5">
@@ -696,6 +890,15 @@ export default function UserBookingDetails() {
                                   Post another task
                                 </button>
                               </div>
+                              {canRaiseTaskDispute && (
+                                <button
+                                  type="button"
+                                  className="task-dispute-link-btn"
+                                  onClick={handleOpenDisputeModal}
+                                >
+                                  Having an issue? <span>Raise Dispute</span>
+                                </button>
+                              )}
                             </>
                           )}
                         </div>
@@ -715,10 +918,7 @@ export default function UserBookingDetails() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  handleEditOpen(
-                                    bookingState?.serviceSubCategory?._id
-                                  );
-                                  setSelectedBoooking(bookingState);
+                                  navigate(`/edit-task/${task?._id}`);
                                 }}
                               >
                                 Edit
@@ -908,11 +1108,6 @@ export default function UserBookingDetails() {
                             task?.status !== null && (
                               <>
                                 <h2>Status</h2>
-                                <JobFlowStepper
-                                  mode="task"
-                                  status={posterTaskStepperStatus}
-                                  className="mb-3"
-                                />
                                 <p className="text-muted mb-2">
                                   {getSeekerTaskFlowDescription(
                                     posterTaskStepperStatus
@@ -983,8 +1178,10 @@ export default function UserBookingDetails() {
                       {/* Payment Buttons */}
                       {!["paid"].includes(bookingState.payment?.status) &&
                         ![3, 5].includes(bookingState.status) && (
-                          <div className="book-service-action-btn d-flex gap-2 mt-2">
-                            {[1].includes(bookingState.status) && (
+                          <>
+                            <div className="book-service-action-btn d-flex gap-2 mt-2">
+                            {[1].includes(bookingState.status) &&
+                              !isReschedulePendingForUser && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -997,6 +1194,17 @@ export default function UserBookingDetails() {
                                 Edit
                               </button>
                             )}
+                            {isReschedulePendingForUser && (
+                                <button
+                                  type="button"
+                                  disabled={rescheduleAcceptSubmitting}
+                                  onClick={handleAcceptRescheduledBooking}
+                                >
+                                  {rescheduleAcceptSubmitting
+                                    ? "Please wait..."
+                                    : "Accept"}
+                                </button>
+                              )}
 
                             {[2].includes(bookingState.status) && (
                               <button
@@ -1015,7 +1223,7 @@ export default function UserBookingDetails() {
                               </button>
                             )}
 
-                            {[4].includes(bookingState.status) &&
+                            {[4, 6, 7].includes(Number(bookingState.status)) &&
                               bookingShowJobDoneBtn && (
                                 <button
                                   type="button"
@@ -1045,7 +1253,10 @@ export default function UserBookingDetails() {
                             {[1, 2].includes(bookingState.status) &&
                               !bookingSeekerShouldHideCancellationActions(
                                 bookingState.status
-                              ) && (
+                              ) &&
+                              Number(bookingState.status) !== bookingStatus.ON_THE_WAY &&
+                              Number(bookingState.status) !== bookingStatus.IN_PROGRESS &&
+                              Number(bookingState.status) !== bookingStatus.COMPLETED && (
                               <button
                                 type="button"
                                 className="outline text-white"
@@ -1054,7 +1265,19 @@ export default function UserBookingDetails() {
                                 Cancel Booking
                               </button>
                             )}
-                          </div>
+                            </div>
+                            {canRaiseBookingDispute && (
+                              <div className="mt-2">
+                                <button
+                                  type="button"
+                                  className="task-dispute-link-btn"
+                                  onClick={handleOpenDisputeModal}
+                                >
+                                  Having an issue? <span>Raise Dispute</span>
+                                </button>
+                              </div>
+                            )}
+                          </>
                         )}
 
                       {/* Paid Buttons */}
@@ -1087,25 +1310,37 @@ export default function UserBookingDetails() {
 
                   {/* Booking Status */}
                   <section className="booking-status-sec mt-4">
-                    <Container>
-                      <div className="booking-status-booking">
-                        <JobFlowStepper
-                          mode="booking"
-                          status={bookingState.status}
-                          className="mb-3"
-                        />
-                        <div className="flex">
-                          Status:{" "}
-                          <h3
-                            className={`corporate_inner ${getStatusColor(
-                              bookingState.status
-                            )}`}
-                          >
-                            Booking {getStatusLabel(bookingState.status)}
-                          </h3>
-                        </div>
+                      <div className="booking-status-booking booking-status-booking--flow">
+                        {(() => {
+                          const flow = getBookingFlowStepperState(bookingState?.status);
+                          const headline = isReschedulePendingForUser
+                            ? "Booking Rescheduled"
+                            : flow.variant !== "default"
+                            ? flow.terminalLabel || "Status"
+                            : JOB_FLOW_STEP_LABELS[flow.activeStep] || "Status";
+                          return (
+                            <>
+                              <h2>Status</h2>
+                              <h3
+                                className={`booking-status-chip ${getStatusColor(
+                                  bookingState.status
+                                )}`}
+                              >
+                                {headline}
+                              </h3>
+                              {!isReschedulePendingForUser && (
+                                <JobFlowStepper
+                                  mode="booking"
+                                  status={bookingState?.status}
+                                />
+                              )}
+                            </>
+                          );
+                        })()}
                         <p>
-                          {getBookingFlowDescription(bookingState.status) ||
+                          {(isReschedulePendingForUser
+                            ? "Service provider has rescheduled your booking. Please accept the new schedule."
+                            : getBookingFlowDescription(bookingState.status)) ||
                             (bookingState.status === 3
                               ? "Service provider has canceled your booking."
                               : bookingState.payment?.status === "paid"
@@ -1161,7 +1396,6 @@ export default function UserBookingDetails() {
                           </div>
                         )}
                       </div>
-                    </Container>
                   </section>
 
                   {/* Message and Provider Info */}
@@ -1315,6 +1549,38 @@ export default function UserBookingDetails() {
                   {renderExistingFeedback()}
                 </section>
               ) : null}
+              {shouldShowOnWayMap && mapLat != null && mapLng != null && (
+                <section className="booking-status-sec mt-3">
+                  <Container>
+                    <div className="booking-status-booking">
+                      <h3 className="mb-2">Live Location</h3>
+                      <iframe
+                        title="On The Way Map"
+                        src={routeEmbedUrl}
+                        width="100%"
+                        height="260"
+                        style={{ border: 0, borderRadius: "8px" }}
+                        loading="lazy"
+                      />
+                      <div className="book-service-action-btn d-flex gap-2 mt-3">
+                        <button
+                          type="button"
+                          onClick={() => openMapAt(mapLat, mapLng)}
+                        >
+                          Open in Maps
+                        </button>
+                        <button
+                          type="button"
+                          className="booking-job-done-btn"
+                          onClick={() => shareMapAt(mapLat, mapLng)}
+                        >
+                          Share Location
+                        </button>
+                      </div>
+                    </div>
+                  </Container>
+                </section>
+              )}
             </Col>
           </Row>
         </Container>
@@ -1565,12 +1831,14 @@ export default function UserBookingDetails() {
 
       {/* Payment Successful popup end  */}
 
-      {/* <CustomerBookServiceModal
-        show={editshow}
-        setShow={handleEditClose}
-        service_id={boookingId}
-        data={selectedBoooking}
-      /> */}
+      {!type && (
+        <CustomerBookServiceModal
+          show={editshow}
+          setShow={handleEditClose}
+          service_id={boookingId}
+          data={selectedBoooking}
+        />
+      )}
 
       <Modal
         show={showJobDoneConfirmModal}
@@ -1605,6 +1873,51 @@ export default function UserBookingDetails() {
             disabled={jobDoneSubmitting}
           >
             {jobDoneSubmitting ? "Please wait…" : "Yes, job done"}
+          </button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showDisputeModal} onHide={handleCloseDisputeModal} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title>Raise Dispute</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Title</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Dispute title"
+              value={disputeTitle}
+              onChange={(e) => setDisputeTitle(e.target.value)}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Message</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              placeholder="Describe the issue..."
+              value={disputeDescription}
+              onChange={(e) => setDisputeDescription(e.target.value)}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 dispute-modal-footer">
+          <button
+            type="button"
+            className="btn btn-light border dispute-modal-btn"
+            onClick={handleCloseDisputeModal}
+            disabled={disputeSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="booking-job-done-btn dispute-modal-btn"
+            onClick={handleSubmitDispute}
+            disabled={disputeSubmitting}
+          >
+            {disputeSubmitting ? "Please wait..." : "Submit"}
           </button>
         </Modal.Footer>
       </Modal>

@@ -51,6 +51,27 @@ import CorporatePro from "../Pages/corporate/corporatePro";
 import CorporateProDetails from "../Pages/corporate/corporateProDetails";
 import CorporateBusinessPage from "../Pages/corporate/corporateBussiness";
 
+const lazyWithChunkRetry = (importer, retryKey) =>
+  lazy(async () => {
+    const alreadyRefreshed = sessionStorage.getItem(retryKey) === "1";
+    try {
+      const module = await importer();
+      sessionStorage.removeItem(retryKey);
+      return module;
+    } catch (error) {
+      const message = String(error?.message || "");
+      const isChunkLoadError =
+        message.includes("ChunkLoadError") ||
+        message.includes("Loading chunk");
+      if (isChunkLoadError && !alreadyRefreshed) {
+        sessionStorage.setItem(retryKey, "1");
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
+
 
 const Login = lazy(() => import("../Pages/Login"));
 const ResetPassword = lazy(() => import("../Pages/ResetPassword"));
@@ -64,9 +85,15 @@ const Services = lazy(() => import("../Pages/Services"));
 const SearchForService = lazy(() => import("../Pages/SearchForService"));
 const ServiceDetail = lazy(() => import("../Pages/ServiceDetail"));
 const ServiceProvider = lazy(() => import("../Pages/ServiceProvider"));
-const Bookings = lazy(() => import("../Pages/Bookings"));
+const Bookings = lazyWithChunkRetry(
+  () => import("../Pages/Bookings"),
+  "bookings_chunk_retry_once"
+);
 const BookingsDetail = lazy(() => import("../Pages/BookingsDetail"));
-const PostTask = lazy(() => import("../Pages/PostTask"));
+const PostTask = lazyWithChunkRetry(
+  () => import("../Pages/PostTask"),
+  "post_task_chunk_retry_once"
+);
 const MyTasks = lazy(() => import("../Pages/MyTasks"));
 const TaskDetail = lazy(() => import("../Pages/TaskDetail"));
 const QuotationsDetail = lazy(() => import("../Pages/QuotationsDetail"));

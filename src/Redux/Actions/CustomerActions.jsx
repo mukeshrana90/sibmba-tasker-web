@@ -139,6 +139,13 @@ const CustomerActions = {
     const response = await Api.get(`/user/getOtherProfile?${queryString}`);
     return response.data;
   }),
+  getCustomerRatingsById: createAsyncThunk(
+    "/customer/ratings",
+    async (userId) => {
+      const response = await Api.get(`/customer/ratings/${userId}`);
+      return response.data;
+    }
+  ),
 
   // MARK: - FORGOT PASSWORD
   forgotPassword: createAsyncThunk(
@@ -341,6 +348,11 @@ const CustomerActions = {
     }
   ),
 
+  raiseDispute: createAsyncThunk("customer/raise-dispute", async (payload) => {
+    const response = await Api.post("/customer/raise-dispute", payload);
+    return response.data;
+  }),
+
   // get post list user side
   getPostList: createAsyncThunk("/customer/post_task_listing", async () => {
     const response = await Api.get(`customer/post_task_listing`);
@@ -445,6 +457,14 @@ const CustomerActions = {
     "customer/Give_feedback",
     async (customerData) => {
       const response = await Api.post("/customer/Give_feedback", customerData);
+      return response.data;
+    }
+  ),
+
+  giveFeedbackToSeeker: createAsyncThunk(
+    "customer/give-feedback-to-seeker",
+    async (customerData) => {
+      const response = await Api.post("/customer/give-feedback-to-seeker", customerData);
       return response.data;
     }
   ),

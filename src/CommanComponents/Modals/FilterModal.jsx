@@ -29,7 +29,8 @@ const FilterModal = ({ show, handleClose, type }) => {
 
   const tabType = {
     'first': "tasks",
-    'third': "acceptedTasks"
+    'third': "acceptedTasks",
+    'fourth': "tasks"
   }
 
   const handleSearch = async () => {

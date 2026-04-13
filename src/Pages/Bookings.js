@@ -9,6 +9,7 @@ import BookingListCard from "../CommanComponents/BookingListCard";
 import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
 import moment from "moment";
 import imageDefault from "../Assets/Images/placeholder.jpg";
+import { getBookingFlowDescription, bookingStatus } from "../utils/jobFlowStatus";
 
 export default function Bookings() {
   const navigate = useNavigate();
@@ -81,9 +82,18 @@ export default function Bookings() {
           <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
             {/* SVG omitted for brevity */}
           </svg>
-          <h3>No {activeTab === "upcoming" ? "Upcoming" : "Past"} Bookings</h3>
+          <h3>
+            No{" "}
+            {activeTab === "upcoming"
+              ? "Upcoming"
+              : "Past"}{" "}
+            Bookings
+          </h3>
           <p>
-            You don’t have any {activeTab === "upcoming" ? "upcoming" : "past"}{" "}
+            You don’t have any{" "}
+            {activeTab === "upcoming"
+              ? "upcoming"
+              : "past"}{" "}
             booking.
             <br /> Place & Track your bookings here.
           </p>
@@ -115,25 +125,27 @@ export default function Bookings() {
     return (
       <>
         {(hasServiceBookings || hasTaskBookings) && (
-          <div className="bookings-type-toggle" role="tablist" aria-label="Booking type view">
-            <button
-              type="button"
-              className={`bookings-type-toggle-btn ${
-                selectedView === "service" ? "active" : ""
-              }`}
-              onClick={() => setBookingTypeView("service")}
-            >
-              Service Bookings
-            </button>
-            <button
-              type="button"
-              className={`bookings-type-toggle-btn ${
-                selectedView === "task" ? "active" : ""
-              }`}
-              onClick={() => setBookingTypeView("task")}
-            >
-              Task Bookings
-            </button>
+          <div className="bookings-type-toggle-row">
+            <div className="bookings-type-toggle" role="tablist" aria-label="Booking type view">
+              <button
+                type="button"
+                className={`bookings-type-toggle-btn ${
+                  selectedView === "service" ? "active" : ""
+                }`}
+                onClick={() => setBookingTypeView("service")}
+              >
+                Service Bookings
+              </button>
+              <button
+                type="button"
+                className={`bookings-type-toggle-btn ${
+                  selectedView === "task" ? "active" : ""
+                }`}
+                onClick={() => setBookingTypeView("task")}
+              >
+                Task Bookings
+              </button>
+            </div>
           </div>
         )}
 
@@ -179,7 +191,7 @@ export default function Bookings() {
                     >
                       { (
                         <img
-                          src={data.images[0]
+                          src={Array.isArray(data?.images) && data.images[0]
                               ? `${process.env.REACT_APP_API_URLL}${data.images[0]}`
                               : imageDefault
                           }
@@ -204,8 +216,7 @@ export default function Bookings() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleOpen(data?.serviceSubCategory?._id);
-                                  setSelectedBoooking(data);
+                                  navigate(`/edit-task/${data?._id}`);
                                 }}
                               >
                                 Edit

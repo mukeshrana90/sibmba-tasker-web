@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -13,11 +13,13 @@ import StarRating from "../CommanComponents/StarRating";
 import defaultImage from "../Assets/Images/placeholder.jpg";
 import { formatTaskWhenDoneDisplay } from "../utils/CommonFunction";
 import {
+  getAcceptedQuotationTaskIds,
   getQuotationPosterDecisionState,
   mergeQuotationWithOptimisticStatus,
   mergeQuotationWithParentTaskForStatus,
   resolveParentTaskForQuotationMerge,
 } from "../utils/quotationPosterDecision";
+import { taskStatus } from "../utils/jobFlowStatus";
 
 export default function MyTasks() {
   const navigate = useNavigate();
@@ -57,6 +59,23 @@ export default function MyTasks() {
     dispatch(CustomerActions.getPostList());
     dispatch(CustomerActions.getMyQuotationsList());
   }, [dispatch]);
+
+  const acceptedQuotationTaskIds = useMemo(
+    () =>
+      getAcceptedQuotationTaskIds(
+        allMyQuotations,
+        optimisticQuotationStatusById
+      ),
+    [allMyQuotations, optimisticQuotationStatusById]
+  );
+  const taskIdsWithQuotations = useMemo(() => {
+    const ids = new Set();
+    (allMyQuotations || []).forEach((q) => {
+      const taskId = q?.task_id?._id ?? q?.task_id;
+      if (taskId != null) ids.add(String(taskId));
+    });
+    return ids;
+  }, [allMyQuotations]);
 
   const handleAccept = async (data, type) => {
     const qid = data?._id;
@@ -146,7 +165,25 @@ export default function MyTasks() {
                             {allMyPosts && allMyPosts?.length > 0 ? (
                               <div className="bookings-cards">
                                 <ul>
-                                  {allMyPosts?.map((post) => (
+                                  {allMyPosts?.map((post) => {
+                                    const selectedQid =
+                                      post?.quatation_id ??
+                                      post?.quotation_id ??
+                                      post?.quote_id;
+                                    const selectedProviderId =
+                                      post?.serviceProviderId ??
+                                      post?.service_provider_id ??
+                                      post?.service_provider?._id;
+                                    const noQuotationForTask =
+                                      post?._id != null &&
+                                      !taskIdsWithQuotations.has(String(post._id));
+                                    const providerCancelledFallback =
+                                      Boolean(
+                                        selectedQid &&
+                                          selectedProviderId &&
+                                          noQuotationForTask
+                                      );
+                                    return (
                                     <li key={post._id}>
                                       <div className="bookings-card-item">
                                         <img
@@ -182,35 +219,16 @@ export default function MyTasks() {
                                             </div>
                                           </div>
                                           <div>
-                                            {/* <div className="chat-btn-card">
-                                              <button>
-                                                <svg
-                                                  xmlns="http://www.w3.org/2000/svg"
-                                                  width="32"
-                                                  height="35"
-                                                  viewBox="0 0 32 35"
-                                                  fill="none"
-                                                >
-                                                  <path
-                                                    d="M16.0001 11.084C16.8838 11.084 17.6001 10.3005 17.6001 9.33398C17.6001 8.36749 16.8838 7.58398 16.0001 7.58398C15.1165 7.58398 14.4001 8.36749 14.4001 9.33398C14.4001 10.3005 15.1165 11.084 16.0001 11.084Z"
-                                                    fill="#545454"
-                                                  />
-                                                  <path
-                                                    d="M16.0001 19.25C16.8838 19.25 17.6001 18.4665 17.6001 17.5C17.6001 16.5335 16.8838 15.75 16.0001 15.75C15.1165 15.75 14.4001 16.5335 14.4001 17.5C14.4001 18.4665 15.1165 19.25 16.0001 19.25Z"
-                                                    fill="#545454"
-                                                  />
-                                                  <path
-                                                    d="M16.0001 27.418C16.8838 27.418 17.6001 26.6345 17.6001 25.668C17.6001 24.7015 16.8838 23.918 16.0001 23.918C15.1165 23.918 14.4001 24.7015 14.4001 25.668C14.4001 26.6345 15.1165 27.418 16.0001 27.418Z"
-                                                    fill="#545454"
-                                                  />
-                                                </svg>
-                                              </button>
-                                            </div> */}
+                                            {providerCancelledFallback && (
+                                              <span className="review-status-corner-badge review-status-corner-badge--rejected">
+                                                Rejected
+                                              </span>
+                                            )}
                                           </div>
                                         </div>
                                       </div>
                                     </li>
-                                  ))}
+                                  )})}
                                 </ul>
                               </div>
                             ) : (
@@ -265,26 +283,107 @@ export default function MyTasks() {
                                     );
                                   const submittingThis =
                                     !!quotationSubmittingById[quotation._id];
+                                  const taskId =
+                                    quotation?.task_id?._id ?? quotation?.task_id;
+                                  const taskHasAcceptedQuotation =
+                                    taskId != null &&
+                                    acceptedQuotationTaskIds.has(String(taskId));
+                                  const parentSelectedQuotationId =
+                                    parentTask?.quatation_id ??
+                                    parentTask?.quotation_id ??
+                                    parentTask?.quote_id;
+                                  const parentAcceptedOtherQuotation =
+                                    Number(parentTask?.status) ===
+                                      taskStatus.ACCEPTED &&
+                                    parentSelectedQuotationId != null &&
+                                    String(parentSelectedQuotationId) !==
+                                      String(quotation?._id);
+                                  const shouldTreatAsProviderCancelled =
+                                    Number(parentTask?.status) ===
+                                      taskStatus.REJECTED &&
+                                    parentSelectedQuotationId != null &&
+                                    String(parentSelectedQuotationId) ===
+                                      String(quotation?._id) &&
+                                    allMyQuotations?.some((q) => {
+                                      const qTaskId =
+                                        q?.task_id?._id ?? q?.task_id;
+                                      if (
+                                        qTaskId == null ||
+                                        taskId == null ||
+                                        String(qTaskId) !== String(taskId)
+                                      ) {
+                                        return false;
+                                      }
+                                      if (
+                                        String(q?._id) ===
+                                        String(parentSelectedQuotationId)
+                                      ) {
+                                        return false;
+                                      }
+                                      const qParentTask =
+                                        resolveParentTaskForQuotationMerge(
+                                          q,
+                                          allMyPosts
+                                        );
+                                      const qForUi =
+                                        mergeQuotationWithParentTaskForStatus(
+                                          mergeQuotationWithOptimisticStatus(
+                                            q,
+                                            optimisticQuotationStatusById
+                                          ),
+                                          qParentTask
+                                        );
+                                      return getQuotationPosterDecisionState(
+                                        qForUi
+                                      ).showActions;
+                                    });
+                                  const isTaskLevelRejectedSelectedQuotation =
+                                    Number(parentTask?.status) ===
+                                      taskStatus.REJECTED &&
+                                    parentSelectedQuotationId != null &&
+                                    String(parentSelectedQuotationId) ===
+                                      String(quotation?._id);
+                                  const showActionButtons =
+                                    isTaskLevelRejectedSelectedQuotation
+                                      ? false
+                                      : posterState.showActions;
+                                  const disableActionButtons =
+                                    !isTaskLevelRejectedSelectedQuotation &&
+                                    posterState.showActions &&
+                                    (taskHasAcceptedQuotation ||
+                                      parentAcceptedOtherQuotation);
+                                  const baseBadge =
+                                    isTaskLevelRejectedSelectedQuotation &&
+                                    !posterState.badge
+                                      ? "rejected"
+                                      : posterState.badge;
+                                  const effectiveBadge =
+                                    baseBadge === "rejected" &&
+                                    shouldTreatAsProviderCancelled
+                                      ? "cancelled"
+                                      : baseBadge;
                                   return (
                                   <div
                                     key={quotation._id}
                                     className={`quotation-requests-wrap${
-                                      posterState.badge
+                                      effectiveBadge
                                         ? " quotation-poster-card quotation-poster-card--with-badge"
                                         : " quotation-poster-card"
-                                    }`}
+                                    }${disableActionButtons ? " quotation-poster-card--locked" : ""}`}
                                   >
-                                  {!posterState.showActions &&
-                                    posterState.badge && (
+                                  {!showActionButtons &&
+                                    effectiveBadge && (
                                       <span
                                         className={
-                                          posterState.badge === "accepted"
+                                          effectiveBadge === "accepted"
                                             ? "review-status-corner-badge review-status-corner-badge--published"
                                             : "review-status-corner-badge review-status-corner-badge--rejected"
                                         }
                                       >
-                                        {posterState.badge === "accepted"
+                                        {effectiveBadge === "accepted"
                                           ? "Accepted"
+                                          : effectiveBadge === "cancelled"
+                                          ? "Cancelled by provider"
                                           : "Rejected"}
                                       </span>
                                     )}
@@ -322,11 +421,13 @@ export default function MyTasks() {
                                         <h5>${quotation?.offer_price}</h5>
                                         <p>Offer Price</p>
                                       </div>
-                                      {posterState.showActions && (
+                                      {showActionButtons && (
                                       <div className="tasks-btn">
                                         <button
                                           type="button"
-                                          disabled={submittingThis}
+                                          disabled={
+                                            submittingThis || disableActionButtons
+                                          }
                                           onClick={() =>
                                             handleAccept(quotation, "accept")
                                           }
@@ -335,7 +436,9 @@ export default function MyTasks() {
                                         </button>
                                         <button
                                           type="button"
-                                          disabled={submittingThis}
+                                          disabled={
+                                            submittingThis || disableActionButtons
+                                          }
                                           onClick={() =>
                                             handleAccept(quotation, "reject")
                                           }
