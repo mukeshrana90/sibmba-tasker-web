@@ -95,7 +95,16 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                 data?.status === 6 ||
                 data?.status === 7) && (
                 <div className="chat-btn-card">
-                  <button className="">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const receiverId = data?.serviceProvider?._id;
+                      if (!receiverId) return;
+                      localStorage.setItem("reciverID", receiverId);
+                      navigate(`/messages?userID=${receiverId}`);
+                    }}
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="40"

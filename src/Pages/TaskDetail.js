@@ -61,6 +61,7 @@ export default function TaskDetail() {
   const [disputeTitle, setDisputeTitle] = useState("");
   const [disputeDescription, setDisputeDescription] = useState("");
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [showAllTaskDisputes, setShowAllTaskDisputes] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const previousTaskStatusRef = useRef(null);
 
@@ -123,6 +124,7 @@ export default function TaskDetail() {
     quotationSubmittingIdsRef.current = new Set();
     setQuotationSubmittingById({});
     setSeekerTaskConfirmed(false);
+    setShowAllTaskDisputes(false);
     setPaymentShow(false);
     setPaymentTaskId(null);
     dispatch(CustomerActions.getPostTaskDetail(id));
@@ -149,12 +151,59 @@ export default function TaskDetail() {
 
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
+  const taskDisputes = Array.isArray(task?.disputes) ? task.disputes : [];
+  const hasTaskDisputes = taskDisputes.length > 0;
+  const visibleTaskDisputes = showAllTaskDisputes
+    ? taskDisputes
+    : taskDisputes.slice(0, 3);
   const selectedQuotationId =
     task?.quatation_id ?? task?.quotation_id ?? task?.quote_id;
   const canRaiseTaskDispute = Boolean(task?.referenceId && selectedQuotationId);
   const selectedQuotation = quotations?.find(
     (q) => String(q?._id) === String(selectedQuotationId)
   );
+  const taskProviderName =
+    selectedQuotation?.service_provider?.full_name ||
+    quotations?.find(
+      (q) => String(q?.service_provider?._id) === String(task?.serviceProviderId)
+    )?.service_provider?.full_name ||
+    task?.serviceProvider?.full_name ||
+    "Service Provider";
+  const getTaskDisputeRaisedByName = (dispute) => {
+    if (!dispute) return "Unknown";
+    if (Number(dispute?.role) === 1) {
+      return task?.user_id?.full_name || "Customer";
+    }
+    if (Number(dispute?.role) === 2) {
+      return taskProviderName;
+    }
+    const raisedById = dispute?.raisedBy ? String(dispute.raisedBy) : "";
+    if (
+      raisedById &&
+      (raisedById === String(task?.user_id?._id) ||
+        raisedById === String(task?.user_id?.id))
+    ) {
+      return task?.user_id?.full_name || "Customer";
+    }
+    return taskProviderName;
+  };
+  const getTaskDisputeRaisedByClass = (dispute) => {
+    if (Number(dispute?.role) === 1) {
+      return "task-dispute-details-item__raisedby-badge--customer";
+    }
+    if (Number(dispute?.role) === 2) {
+      return "task-dispute-details-item__raisedby-badge--provider";
+    }
+    const raisedById = dispute?.raisedBy ? String(dispute.raisedBy) : "";
+    if (
+      raisedById &&
+      (raisedById === String(task?.user_id?._id) ||
+        raisedById === String(task?.user_id?.id))
+    ) {
+      return "task-dispute-details-item__raisedby-badge--customer";
+    }
+    return "task-dispute-details-item__raisedby-badge--provider";
+  };
   const taskCoordinates = Array.isArray(task?.location?.coordinates)
     ? task.location.coordinates
     : null;
@@ -671,6 +720,80 @@ export default function TaskDetail() {
               </div>
             </Col>
           </Row>
+          {hasTaskDisputes && (
+            <Row className="mt-3">
+              <Col lg={12}>
+                <section className="booking-status-sec task-dispute-details-card">
+                  <div className="booking-status-txt pt-0 pb-0">
+                    <div className="booking-status-left-txt">
+                      <div className="task-dispute-details-header">
+                        <h2>Dispute details</h2>
+                        {taskDisputes.length > 3 && (
+                          <button
+                            type="button"
+                            className="task-dispute-details-toggle"
+                            onClick={() =>
+                              setShowAllTaskDisputes((prev) => !prev)
+                            }
+                          >
+                            {showAllTaskDisputes
+                              ? "View less"
+                              : `View all (${taskDisputes.length})`}
+                          </button>
+                        )}
+                      </div>
+                      <ul className="task-dispute-details-list">
+                        {visibleTaskDisputes.map((dispute) => (
+                          <li
+                            key={dispute?._id || dispute?.id}
+                            className="task-dispute-details-item"
+                          >
+                            <div className="task-dispute-details-item__header">
+                              <span className="task-dispute-details-item__reason">
+                                {dispute?.reason || "Dispute"}
+                              </span>
+                              <div className="task-dispute-details-item__meta">
+                                <span className="task-dispute-details-item__status">
+                                  {dispute?.status || "open"}
+                                </span>
+                                <span
+                                  className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
+                                    dispute
+                                  )}`}
+                                >
+                                  Raised by: {getTaskDisputeRaisedByName(dispute)}
+                                </span>
+                              </div>
+                            </div>
+                            {dispute?.description ? (
+                              <div className="task-dispute-details-item__message">
+                                <span className="task-dispute-details-item__label">
+                                  Dispute message
+                                </span>
+                                <p className="task-dispute-details-item__description">
+                                  {dispute.description}
+                                </p>
+                              </div>
+                            ) : null}
+                            {dispute?.adminRemark ? (
+                              <div className="task-dispute-details-item__admin">
+                                <span className="task-dispute-details-item__label">
+                                  Admin
+                                </span>
+                                <p className="task-dispute-details-item__remark">
+                                  {dispute.adminRemark}
+                                </p>
+                              </div>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+              </Col>
+            </Row>
+          )}
           {task && (
             <Row>
               <Col lg={12}>
@@ -689,60 +812,22 @@ export default function TaskDetail() {
                           const description = shouldShowProviderCancelledState
                             ? "This task has been rejected."
                             : getSeekerTaskFlowDescription(posterStepperStatus);
+                          const showStatusDescription =
+                            !shouldShowProviderCancelledState &&
+                            flow.variant === "default" &&
+                            Boolean(description);
                           return (
                             <>
                               <h3 className={getPosterTaskStatusColor(displayStepperStatus)}>
                                 {headline}
                               </h3>
                               <JobFlowStepper mode="task" status={displayStepperStatus} />
-                              <p>{description}</p>
+                              {showStatusDescription ? <p>{description}</p> : null}
                             </>
                           );
                         })()}
                       </div>
                     </div>
-                    {shouldShowTaskMap && mapLat != null && mapLng != null ? (
-                      <div className="requests-completed-map">
-                        <h2>Live Location</h2>
-                        <iframe
-                          title="Task Map"
-                          src={routeEmbedUrl}
-                          width="100%"
-                          height="260"
-                          style={{ border: 0, borderRadius: "8px" }}
-                          loading="lazy"
-                        />
-                        <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
-                          <button
-                            type="button"
-                            className="booking-job-done-btn"
-                            onClick={() => window.open(routeShareUrl, "_blank")}
-                          >
-                            Open in Maps
-                          </button>
-                          <button
-                            type="button"
-                            className="booking-job-done-btn"
-                            onClick={async () => {
-                              if (navigator.share) {
-                                await navigator.share({
-                                  title: "Task Route",
-                                  text: "Task to provider route",
-                                  url: routeShareUrl,
-                                });
-                                return;
-                              }
-                              if (navigator.clipboard?.writeText) {
-                                await navigator.clipboard.writeText(routeShareUrl);
-                                toast.success("Location copied.");
-                              }
-                            }}
-                          >
-                            Share Location
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
                   </div>
                 </section>
               </Col>
@@ -1077,6 +1162,54 @@ export default function TaskDetail() {
           </div>
         </Container>
       </section>
+      )}
+      {task && shouldShowTaskMap && mapLat != null && mapLng != null && (
+        <section className="category-services-sec pt-0 mt-4">
+          <Container>
+            <section className="booking-status-sec task-dispute-details-card">
+              <div className="requests-completed-map">
+                <h2>Live Location</h2>
+                <iframe
+                  title="Task Map"
+                  src={routeEmbedUrl}
+                  width="100%"
+                  height="260"
+                  style={{ border: 0, borderRadius: "8px" }}
+                  loading="lazy"
+                />
+                <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
+                  <button
+                    type="button"
+                    className="booking-job-done-btn"
+                    onClick={() => window.open(routeShareUrl, "_blank")}
+                  >
+                    Open in Maps
+                  </button>
+                  <button
+                    type="button"
+                    className="booking-job-done-btn"
+                    onClick={async () => {
+                      if (navigator.share) {
+                        await navigator.share({
+                          title: "Task Route",
+                          text: "Task to provider route",
+                          url: routeShareUrl,
+                        });
+                        return;
+                      }
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(routeShareUrl);
+                        toast.success("Location copied.");
+                      }
+                    }}
+                  >
+                    Share Location
+                  </button>
+                </div>
+              </div>
+            </section>
+          </Container>
+        </section>
       )}
 
       <Modal show={show} onHide={handleClose} centered>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import Nav from "react-bootstrap/Nav";
 import Tab from "react-bootstrap/Tab";
@@ -22,8 +22,14 @@ import JobFlowStepper from "../CommanComponents/JobFlowStepper";
 import { getTaskFlowDescription, taskStatus } from "../utils/jobFlowStatus";
 export default function ServiceTasks() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState("first");
+  const searchParams = new URLSearchParams(location.search);
+  const initialTab = searchParams.get("tab");
+  const allowedTabs = new Set(["first", "second", "third", "fourth"]);
+  const [activeTab, setActiveTab] = useState(
+    allowedTabs.has(initialTab) ? initialTab : "first"
+  );
   const [showModal, setShowModal] = useState(false);
   const [isRequestModal, setIsRequestModal] = useState(false);
   const [showModalCancel, setShowModalCancel] = useState(false);
@@ -112,6 +118,13 @@ export default function ServiceTasks() {
       });
     }
   }, [postTasksList, searchQuery, activeTab]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("tab") === activeTab) return;
+    params.set("tab", activeTab);
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+  }, [activeTab, location.pathname, location.search, navigate]);
 
   // useEffect(() => {
   //   if (!postTasksList) return;
@@ -314,7 +327,9 @@ export default function ServiceTasks() {
         <img
           style={{ cursor: "pointer" }}
           onClick={() =>
-            navigate(`/servicetasksdetails/${task?._id}?status=task`)
+            navigate(
+              `/servicetasksdetails/${task?._id}?status=task&fromTab=${activeTab}`
+            )
           }
           src={
             task?.images?.length > 0
@@ -377,7 +392,7 @@ export default function ServiceTasks() {
   );
 
   const renderCompletedTaskCard = (task) => {
-    const detailUrl = `/servicetasksdetails/${task?._id}?status=task`;
+    const detailUrl = `/servicetasksdetails/${task?._id}?status=task&fromTab=${activeTab}`;
     const map = getTaskMapCoordinates(task);
     const mapUrl = map
       ? `https://maps.google.com/maps?q=${map.lat},${map.lng}&z=14&output=embed`
@@ -535,7 +550,7 @@ export default function ServiceTasks() {
                 <div className="bookings-tabs">
                   <Tab.Container
                     id="left-tabs-example"
-                    defaultActiveKey="first"
+                    activeKey={activeTab}
                     onSelect={(key) => setActiveTab(key)}
                   >
                     <Row>

@@ -96,6 +96,8 @@ export default function UserBookingDetails() {
   const [disputeTitle, setDisputeTitle] = useState("");
   const [disputeDescription, setDisputeDescription] = useState("");
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [showAllBookingDisputes, setShowAllBookingDisputes] = useState(false);
+  const [showAllTaskDisputes, setShowAllTaskDisputes] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [showJobDoneConfirmModal, setShowJobDoneConfirmModal] =
     useState(false);
@@ -157,6 +159,8 @@ export default function UserBookingDetails() {
     paymentPromptAutoShownRef.current = false;
     setSeekerBookingConfirmed(false);
     setSeekerTaskConfirmed(false);
+    setShowAllBookingDisputes(false);
+    setShowAllTaskDisputes(false);
   }, [id?.id, type]);
 
   useEffect(() => {
@@ -536,6 +540,87 @@ export default function UserBookingDetails() {
         bookingStatus.COMPLETED,
       ].includes(Number(bookingState?.status))
   );
+  const bookingDisputes = Array.isArray(bookingState?.disputes)
+    ? bookingState.disputes
+    : [];
+  const visibleBookingDisputes = showAllBookingDisputes
+    ? bookingDisputes
+    : bookingDisputes.slice(0, 3);
+  const taskDisputes = Array.isArray(task?.disputes) ? task.disputes : [];
+  const visibleTaskDisputes = showAllTaskDisputes
+    ? taskDisputes
+    : taskDisputes.slice(0, 3);
+  const taskProviderName =
+    selectedQuotation?.service_provider?.full_name ||
+    task?.serviceProvider?.full_name ||
+    task?.serviceProviderId?.full_name ||
+    "Service Provider";
+  const bookingProviderName =
+    bookingState?.serviceProvider?.full_name || "Service Provider";
+  const bookingCustomerName = bookingState?.bookBy?.full_name || "Customer";
+  const taskCustomerName = task?.user_id?.full_name || "Customer";
+  const getTaskDisputeRaisedByName = (dispute) => {
+    if (!dispute) return "Unknown";
+    if (Number(dispute?.role) === 1) return taskCustomerName;
+    if (Number(dispute?.role) === 2) return taskProviderName;
+    const raisedById = dispute?.raisedBy ? String(dispute.raisedBy) : "";
+    if (
+      raisedById &&
+      (raisedById === String(task?.user_id?._id) ||
+        raisedById === String(task?.user_id?.id))
+    ) {
+      return taskCustomerName;
+    }
+    return taskProviderName;
+  };
+  const getTaskDisputeRaisedByClass = (dispute) => {
+    if (Number(dispute?.role) === 1) {
+      return "task-dispute-details-item__raisedby-badge--customer";
+    }
+    if (Number(dispute?.role) === 2) {
+      return "task-dispute-details-item__raisedby-badge--provider";
+    }
+    const raisedById = dispute?.raisedBy ? String(dispute.raisedBy) : "";
+    if (
+      raisedById &&
+      (raisedById === String(task?.user_id?._id) ||
+        raisedById === String(task?.user_id?.id))
+    ) {
+      return "task-dispute-details-item__raisedby-badge--customer";
+    }
+    return "task-dispute-details-item__raisedby-badge--provider";
+  };
+  const getBookingDisputeRaisedByName = (dispute) => {
+    if (!dispute) return "Unknown";
+    if (Number(dispute?.role) === 1) return bookingCustomerName;
+    if (Number(dispute?.role) === 2) return bookingProviderName;
+    const raisedById = dispute?.raisedBy ? String(dispute.raisedBy) : "";
+    if (
+      raisedById &&
+      (raisedById === String(bookingState?.bookBy?._id) ||
+        raisedById === String(bookingState?.bookBy?.id))
+    ) {
+      return bookingCustomerName;
+    }
+    return bookingProviderName;
+  };
+  const getBookingDisputeRaisedByClass = (dispute) => {
+    if (Number(dispute?.role) === 1) {
+      return "task-dispute-details-item__raisedby-badge--customer";
+    }
+    if (Number(dispute?.role) === 2) {
+      return "task-dispute-details-item__raisedby-badge--provider";
+    }
+    const raisedById = dispute?.raisedBy ? String(dispute.raisedBy) : "";
+    if (
+      raisedById &&
+      (raisedById === String(bookingState?.bookBy?._id) ||
+        raisedById === String(bookingState?.bookBy?.id))
+    ) {
+      return "task-dispute-details-item__raisedby-badge--customer";
+    }
+    return "task-dispute-details-item__raisedby-badge--provider";
+  };
 
   const posterTaskStepperStatus = getPosterTaskDetailStepperStatus(
     task,
@@ -917,7 +1002,16 @@ export default function UserBookingDetails() {
                               </button>
                               <button
                                 type="button"
+                                disabled={Number(task?.status) >= taskStatus.ACCEPTED}
+                                title={
+                                  Number(task?.status) >= taskStatus.ACCEPTED
+                                    ? "Task already accepted, editing disabled"
+                                    : "Edit task"
+                                }
                                 onClick={() => {
+                                  if (Number(task?.status) >= taskStatus.ACCEPTED) {
+                                    return;
+                                  }
                                   navigate(`/edit-task/${task?._id}`);
                                 }}
                               >
@@ -1100,6 +1194,76 @@ export default function UserBookingDetails() {
                         </div>
                       </div>
                     </div>
+                    {taskDisputes.length > 0 && (
+                      <section className="booking-status-sec mt-3 task-dispute-details-card">
+                        <div className="booking-status-txt pt-0 pb-0">
+                          <div className="booking-status-left-txt">
+                            <div className="task-dispute-details-header">
+                              <h2>Dispute details</h2>
+                              {taskDisputes.length > 3 && (
+                                <button
+                                  type="button"
+                                  className="task-dispute-details-toggle"
+                                  onClick={() =>
+                                    setShowAllTaskDisputes((prev) => !prev)
+                                  }
+                                >
+                                  {showAllTaskDisputes
+                                    ? "View less"
+                                    : `View all (${taskDisputes.length})`}
+                                </button>
+                              )}
+                            </div>
+                            <ul className="task-dispute-details-list">
+                              {visibleTaskDisputes.map((dispute) => (
+                                <li
+                                  key={dispute?._id || dispute?.id}
+                                  className="task-dispute-details-item"
+                                >
+                                  <div className="task-dispute-details-item__header">
+                                    <span className="task-dispute-details-item__reason">
+                                      {dispute?.reason || "Dispute"}
+                                    </span>
+                                    <div className="task-dispute-details-item__meta">
+                                      <span className="task-dispute-details-item__status">
+                                        {dispute?.status || "open"}
+                                      </span>
+                                      <span
+                                        className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
+                                          dispute
+                                        )}`}
+                                      >
+                                        Raised by: {getTaskDisputeRaisedByName(dispute)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {dispute?.description ? (
+                                    <div className="task-dispute-details-item__message">
+                                      <span className="task-dispute-details-item__label">
+                                        Dispute message
+                                      </span>
+                                      <p className="task-dispute-details-item__description">
+                                        {dispute.description}
+                                      </p>
+                                    </div>
+                                  ) : null}
+                                  {dispute?.adminRemark ? (
+                                    <div className="task-dispute-details-item__admin">
+                                      <span className="task-dispute-details-item__label">
+                                        Admin
+                                      </span>
+                                      <p className="task-dispute-details-item__remark">
+                                        {dispute.adminRemark}
+                                      </p>
+                                    </div>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </section>
+                    )}
                     {/* Task status (seeker) — stepper + copy */}
                     <section className="booking-status-sec mt-4">
                       <div className="booking-status-txt pt-0">
@@ -1108,7 +1272,14 @@ export default function UserBookingDetails() {
                             task?.status !== null && (
                               <>
                                 <h2>Status</h2>
-                                <p className="text-muted mb-2">
+                                <p
+                                  className={`mb-2 ${
+                                    Number(posterTaskStepperStatus) ===
+                                    taskStatus.REJECTED
+                                      ? "text-danger booking-status-rejected-text"
+                                      : "text-muted"
+                                  }`}
+                                >
                                   {getSeekerTaskFlowDescription(
                                     posterTaskStepperStatus
                                   )}
@@ -1308,6 +1479,77 @@ export default function UserBookingDetails() {
                     </div>
                   </div>
 
+                  {bookingDisputes.length > 0 && (
+                    <section className="booking-status-sec mt-3 task-dispute-details-card">
+                      <div className="booking-status-txt pt-0 pb-0">
+                        <div className="booking-status-left-txt">
+                          <div className="task-dispute-details-header">
+                            <h2>Dispute details</h2>
+                            {bookingDisputes.length > 3 && (
+                              <button
+                                type="button"
+                                className="task-dispute-details-toggle"
+                                onClick={() =>
+                                  setShowAllBookingDisputes((prev) => !prev)
+                                }
+                              >
+                                {showAllBookingDisputes
+                                  ? "View less"
+                                  : `View all (${bookingDisputes.length})`}
+                              </button>
+                            )}
+                          </div>
+                          <ul className="task-dispute-details-list">
+                            {visibleBookingDisputes.map((dispute) => (
+                              <li
+                                key={dispute?._id || dispute?.id}
+                                className="task-dispute-details-item"
+                              >
+                                <div className="task-dispute-details-item__header">
+                                  <span className="task-dispute-details-item__reason">
+                                    {dispute?.reason || "Dispute"}
+                                  </span>
+                                  <div className="task-dispute-details-item__meta">
+                                    <span className="task-dispute-details-item__status">
+                                      {dispute?.status || "open"}
+                                    </span>
+                                    <span
+                                      className={`task-dispute-details-item__raisedby-badge ${getBookingDisputeRaisedByClass(
+                                        dispute
+                                      )}`}
+                                    >
+                                      Raised by: {getBookingDisputeRaisedByName(dispute)}
+                                    </span>
+                                  </div>
+                                </div>
+                                {dispute?.description ? (
+                                  <div className="task-dispute-details-item__message">
+                                    <span className="task-dispute-details-item__label">
+                                      Dispute message
+                                    </span>
+                                    <p className="task-dispute-details-item__description">
+                                      {dispute.description}
+                                    </p>
+                                  </div>
+                                ) : null}
+                                {dispute?.adminRemark ? (
+                                  <div className="task-dispute-details-item__admin">
+                                    <span className="task-dispute-details-item__label">
+                                      Admin
+                                    </span>
+                                    <p className="task-dispute-details-item__remark">
+                                      {dispute.adminRemark}
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
                   {/* Booking Status */}
                   <section className="booking-status-sec mt-4">
                       <div className="booking-status-booking booking-status-booking--flow">
@@ -1332,6 +1574,11 @@ export default function UserBookingDetails() {
                                 <JobFlowStepper
                                   mode="booking"
                                   status={bookingState?.status}
+                                  className={
+                                    Number(bookingState?.status) === bookingStatus.CANCELLED
+                                      ? "job-flow-stepper--hide-banner"
+                                      : ""
+                                  }
                                 />
                               )}
                             </>
@@ -1370,15 +1617,11 @@ export default function UserBookingDetails() {
                           {moment(bookingState.date).format("DD MMM")}
                         </p>
 
-                        {bookingState.status === 3 && bookingState.message && (
+                        {bookingState.status === 3 &&
+                          bookingState.reasonForCancel && (
                           <div className="reason-for-cancellation mt-3">
                             <h5>Reason for cancellation</h5>
-                            <p>{bookingState.message}</p>
-                            {bookingState.reasonForCancel ? (
-                              <p>{bookingState.reasonForCancel}</p>
-                            ) : (
-                              ""
-                            )}
+                            <p>{bookingState.reasonForCancel}</p>
                           </div>
                         )}
 

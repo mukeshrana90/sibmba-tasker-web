@@ -54,6 +54,7 @@ export default function ServiceTaskDetails() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const status = searchParams.get("status");
+  const fromTab = searchParams.get("fromTab");
 
   const [show, setShow] = useState(false);
   const [showQutation, setShowQuotation] = useState(false);
@@ -69,6 +70,7 @@ export default function ServiceTaskDetails() {
   const [disputeTitle, setDisputeTitle] = useState("");
   const [disputeDescription, setDisputeDescription] = useState("");
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [showAllTaskDisputes, setShowAllTaskDisputes] = useState(false);
   const [showCreatorRatingsModal, setShowCreatorRatingsModal] = useState(false);
   const [creatorRatingsLoading, setCreatorRatingsLoading] = useState(false);
   const [taskCreatorRatingsData, setTaskCreatorRatingsData] = useState(null);
@@ -129,6 +131,9 @@ export default function ServiceTaskDetails() {
     dispatch(CustomerActions.getPostTaskDetail(id));
   }, [dispatch, id]);
   useEffect(() => {
+    setShowAllTaskDisputes(false);
+  }, [id]);
+  useEffect(() => {
     if (!navigator?.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (position) =>
@@ -142,6 +147,11 @@ export default function ServiceTaskDetails() {
 
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
+  const taskDisputes = Array.isArray(task?.disputes) ? task.disputes : [];
+  const hasTaskDisputes = taskDisputes.length > 0;
+  const visibleTaskDisputes = showAllTaskDisputes
+    ? taskDisputes
+    : taskDisputes.slice(0, 3);
   const customerRatingSummary = postTaskDetails?.data?.customerRatingSummary;
   const taskCreatorAverageRatingRaw =
     customerRatingSummary?.averageRating ??
@@ -194,6 +204,48 @@ export default function ServiceTaskDetails() {
     task?.service_provider?._id ??
     acceptedQuotationForMap?.service_provider?._id ??
     acceptedQuotationForMap?.service_provider_id;
+  const taskProviderName =
+    acceptedQuotationForMap?.service_provider?.full_name ||
+    quotations?.find(
+      (q) => String(q?.service_provider?._id) === String(selectedServiceProviderId)
+    )?.service_provider?.full_name ||
+    task?.serviceProvider?.full_name ||
+    "Service Provider";
+  const getTaskDisputeRaisedByName = (dispute) => {
+    if (!dispute) return "Unknown";
+    if (Number(dispute?.role) === 1) {
+      return task?.user_id?.full_name || "Customer";
+    }
+    if (Number(dispute?.role) === 2) {
+      return taskProviderName;
+    }
+    const raisedById = dispute?.raisedBy ? String(dispute.raisedBy) : "";
+    if (
+      raisedById &&
+      (raisedById === String(task?.user_id?._id) ||
+        raisedById === String(task?.user_id?.id))
+    ) {
+      return task?.user_id?.full_name || "Customer";
+    }
+    return taskProviderName;
+  };
+  const getTaskDisputeRaisedByClass = (dispute) => {
+    if (Number(dispute?.role) === 1) {
+      return "task-dispute-details-item__raisedby-badge--customer";
+    }
+    if (Number(dispute?.role) === 2) {
+      return "task-dispute-details-item__raisedby-badge--provider";
+    }
+    const raisedById = dispute?.raisedBy ? String(dispute.raisedBy) : "";
+    if (
+      raisedById &&
+      (raisedById === String(task?.user_id?._id) ||
+        raisedById === String(task?.user_id?.id))
+    ) {
+      return "task-dispute-details-item__raisedby-badge--customer";
+    }
+    return "task-dispute-details-item__raisedby-badge--provider";
+  };
   const canRaiseTaskDispute = Boolean(
     task?.referenceId &&
       selectedQuotationId &&
@@ -299,7 +351,7 @@ export default function ServiceTaskDetails() {
           showSingleStatusToast(successMessage);
           dispatch(CustomerActions.getPostTaskDetail(id));
           if (navigateToList) {
-            navigate("/taskslist");
+            navigate(fromTab ? `/taskslist?tab=${fromTab}` : "/taskslist");
           }
         } else {
           toast.error(res?.payload?.message || "Could not update status.");
@@ -572,6 +624,80 @@ export default function ServiceTaskDetails() {
               </div>
             </Col>
           </Row>
+          {hasTaskDisputes && (
+            <Row className="mt-3">
+              <Col lg={12}>
+                <section className="booking-status-sec task-dispute-details-card">
+                  <div className="booking-status-txt pt-0 pb-0">
+                    <div className="booking-status-left-txt">
+                      <div className="task-dispute-details-header">
+                        <h2>Dispute details</h2>
+                        {taskDisputes.length > 3 && (
+                          <button
+                            type="button"
+                            className="task-dispute-details-toggle"
+                            onClick={() =>
+                              setShowAllTaskDisputes((prev) => !prev)
+                            }
+                          >
+                            {showAllTaskDisputes
+                              ? "View less"
+                              : `View all (${taskDisputes.length})`}
+                          </button>
+                        )}
+                      </div>
+                      <ul className="task-dispute-details-list">
+                        {visibleTaskDisputes.map((dispute) => (
+                          <li
+                            key={dispute?._id || dispute?.id}
+                            className="task-dispute-details-item"
+                          >
+                            <div className="task-dispute-details-item__header">
+                              <span className="task-dispute-details-item__reason">
+                                {dispute?.reason || "Dispute"}
+                              </span>
+                              <div className="task-dispute-details-item__meta">
+                                <span className="task-dispute-details-item__status">
+                                  {dispute?.status || "open"}
+                                </span>
+                                <span
+                                  className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
+                                    dispute
+                                  )}`}
+                                >
+                                  Raised by: {getTaskDisputeRaisedByName(dispute)}
+                                </span>
+                              </div>
+                            </div>
+                            {dispute?.description ? (
+                              <div className="task-dispute-details-item__message">
+                                <span className="task-dispute-details-item__label">
+                                  Dispute message
+                                </span>
+                                <p className="task-dispute-details-item__description">
+                                  {dispute.description}
+                                </p>
+                              </div>
+                            ) : null}
+                            {dispute?.adminRemark ? (
+                              <div className="task-dispute-details-item__admin">
+                                <span className="task-dispute-details-item__label">
+                                  Admin
+                                </span>
+                                <p className="task-dispute-details-item__remark">
+                                  {dispute.adminRemark}
+                                </p>
+                              </div>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+              </Col>
+            </Row>
+          )}
 
           {status === "task" && (
             <Row>

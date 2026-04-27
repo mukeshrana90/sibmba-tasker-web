@@ -351,7 +351,7 @@ export default function Home() {
             <Container>
               <div className="category-services-lists">
                 <div className="list-title">
-                  <h2>Nearby Services</h2>
+                  <h2>Nearby Providers</h2>
                   <Link to="/near-by-services">
                     Explore More
                     <svg

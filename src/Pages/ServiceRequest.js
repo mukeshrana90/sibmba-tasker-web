@@ -71,6 +71,17 @@ export default function ServiceRequest() {
   const [currentLocation, setCurrentLocation] = useState(null);
 
   const bookingReqDetail = useSelector((e) => e.service.getBookingRequestList);
+  const bookingCurrentStatus = Number(bookingReqDetail?.status);
+  const isRequestedFlow = bookingCurrentStatus === bookingStatus.REQUESTED;
+  const isApprovedFlow = [
+    bookingStatus.ACCEPTED,
+    bookingStatus.ON_THE_WAY,
+    bookingStatus.IN_PROGRESS,
+    bookingStatus.COMPLETED,
+  ].includes(bookingCurrentStatus);
+  const isRejectedFlow = [bookingStatus.CANCELLED, bookingStatus.REJECTED].includes(
+    bookingCurrentStatus
+  );
   const canRaiseBookingDispute = Boolean(
     bookingReqDetail?.referenceId &&
       [2, 4, 6, 7].includes(Number(bookingReqDetail?.status))
@@ -124,13 +135,19 @@ export default function ServiceRequest() {
     dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
   }, []);
   useEffect(() => {
-    if (!id || servicetype !== "approved") return;
+    if (!id) return;
+    const pollable = [
+      bookingStatus.ACCEPTED,
+      bookingStatus.ON_THE_WAY,
+      bookingStatus.IN_PROGRESS,
+    ];
+    if (!pollable.includes(bookingCurrentStatus)) return;
     const intervalId = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
       dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
     }, 15000);
     return () => window.clearInterval(intervalId);
-  }, [dispatch, id, servicetype]);
+  }, [dispatch, id, bookingCurrentStatus]);
   useEffect(() => {
     if (!navigator?.geolocation) return;
     navigator.geolocation.getCurrentPosition(
@@ -248,8 +265,7 @@ export default function ServiceRequest() {
   const providerCurrentStatus = Number(bookingReqDetail?.status);
   const providerNextStatus = providerNextStatusMap[providerCurrentStatus];
   const providerProgressBtnLabel = providerButtonLabelMap[providerCurrentStatus];
-  const showProviderJobDoneBtn =
-    servicetype === "approved" && Boolean(providerNextStatus);
+  const showProviderJobDoneBtn = isApprovedFlow && Boolean(providerNextStatus);
   const canProviderCancelBooking = [bookingStatus.REQUESTED, bookingStatus.ACCEPTED].includes(
     providerCurrentStatus
   );
@@ -352,9 +368,9 @@ export default function ServiceRequest() {
           <Row>
             <Col lg={12}>
               <div className="heading">
-                {servicetype === "approved" ? (
+                {isApprovedFlow ? (
                   <h2>Service Approved</h2>
-                ) : servicetype === "reject" ? (
+                ) : servicetype === "reject" || isRejectedFlow ? (
                   <h2>Cancel Request</h2>
                 ) : (
                   <h2>Request Detail</h2>
@@ -468,7 +484,7 @@ export default function ServiceRequest() {
                     {bookingReqDetail?.desc}
                     <span>{bookingReqDetail?.address}</span>
                   </p>
-                  {servicetype === "approved" && showProviderJobDoneBtn && (
+                  {showProviderJobDoneBtn && (
                     <div className="book-service-action book-service-action--single mt-3">
                       <button
                         disabled={jobDoneSubmitting}
@@ -503,7 +519,7 @@ export default function ServiceRequest() {
               </div>
             </Col>
             <Col lg={12}>
-             {(bookingReqDetail?.corporateSuggestions.length > 0 && servicetype !== "approved") ||(servicetype !== "reject" && (
+             {(bookingReqDetail?.corporateSuggestions.length > 0 && !isApprovedFlow) ||(servicetype !== "reject" && (
                <div className="d-block">
                 <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
                   Suggest Corporate
@@ -600,7 +616,7 @@ export default function ServiceRequest() {
             </>
               ) : (
                 <>
-                  {servicetype !== "approved" && servicetype !== "reject" ? (
+                  {isRequestedFlow && servicetype !== "reject" ? (
                     <div className="text-center mt-5 mb-5">
                       <button
                         type="button"
@@ -626,11 +642,11 @@ export default function ServiceRequest() {
             <Col>
               <div
                 className={`requestBookingBtn ${
-                  servicetype === "approved" ? "requestBookingBtn--approved" : ""
+                  isApprovedFlow ? "requestBookingBtn--approved" : ""
                 }`}
               >
                 {servicetype !== "reject" ? (
-                  servicetype === "approved" ? null : (
+                  !isRequestedFlow ? null : (
                     <div className="book-service-action-btnn">
                       <button onClick={handleShowReschedule}>Reschedule</button>
                       <button onClick={handleAccept}>Accept</button>
@@ -703,7 +719,7 @@ export default function ServiceRequest() {
                 </div>
               </Col>
             )}
-            {servicetype === "approved" && (
+            {isApprovedFlow && (
               <section className="booking-status-sec ">
                 <div className="requests-completed-main task-detail-map-container">
                   <div className="booking-status-txt pt-0 pb-0">

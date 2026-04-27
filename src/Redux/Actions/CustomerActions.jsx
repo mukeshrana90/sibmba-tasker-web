@@ -86,12 +86,14 @@ const CustomerActions = {
     }
   ),
 
-  // MARK: - Near By Services
+  // MARK: - Near By Services (Providers)
   getNearByServices: createAsyncThunk(
-    "/customer/NearByServices",
+    "/customer/get-nearby-service-provider-categories",
     async (payload) => {
       const queryString = constructQueryString(payload);
-      const response = await Api.get(`/customer/NearByServices?${queryString}`);
+      const response = await Api.get(
+        `/customer/get-nearby-service-provider-categories?${queryString}`
+      );
       return response.data;
     }
   ),

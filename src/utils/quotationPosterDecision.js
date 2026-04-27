@@ -424,13 +424,19 @@ export function getPosterTaskDetailStepperStatus(
     return hasAcceptedQuotation ? taskStatus.ACCEPTED : taskStatus.PENDING;
   }
 
-  const coerced = coerceSeekerTaskStatusForStepper(task.status);
-  let s =
-    typeof coerced === "number" && !Number.isNaN(coerced)
-      ? coerced
-      : Number(coerced);
+  const rawTaskStatus = Number(task.status);
+  let s = rawTaskStatus;
+
+  /**
+   * Prefer canonical backend task status first.
+   * Only fall back to legacy seeker coercion when status is missing/non-numeric.
+   */
   if (Number.isNaN(s)) {
-    s = Number(task.status);
+    const coerced = coerceSeekerTaskStatusForStepper(task.status);
+    s =
+      typeof coerced === "number" && !Number.isNaN(coerced)
+        ? coerced
+        : Number(coerced);
   }
   if (Number.isNaN(s)) {
     return hasAcceptedQuotation ? taskStatus.ACCEPTED : taskStatus.PENDING;

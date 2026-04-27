@@ -9,7 +9,11 @@ import BookingListCard from "../CommanComponents/BookingListCard";
 import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
 import moment from "moment";
 import imageDefault from "../Assets/Images/placeholder.jpg";
-import { getBookingFlowDescription, bookingStatus } from "../utils/jobFlowStatus";
+import {
+  getBookingFlowDescription,
+  bookingStatus,
+  taskStatus,
+} from "../utils/jobFlowStatus";
 
 export default function Bookings() {
   const navigate = useNavigate();
@@ -178,6 +182,11 @@ export default function Bookings() {
                 const provider =
                   data.serviceProvider || data.serviceProviderId || {};
                 const imgBase = process.env.REACT_APP_API_URL || "";
+                const taskNumericStatus = Number(data?.status);
+                const showTaskEditButton =
+                  taskNumericStatus === taskStatus.PENDING ||
+                  taskNumericStatus === taskStatus.ACCEPTED;
+                const isTaskEditable = taskNumericStatus === taskStatus.PENDING;
 
                 return (
                   <li key={data._id} className="task-card">
@@ -209,13 +218,20 @@ export default function Bookings() {
                               )}`}
                             </p>
                           </div>
-                          {/* Pending */}
-                          {data?.status === 1 && (
+                          {/* Pending/Accepted: accepted shows disabled edit */}
+                          {showTaskEditButton && (
                             <div className="bookings-card-edit">
                               <button
                                 type="button"
+                                disabled={!isTaskEditable}
+                                title={
+                                  isTaskEditable
+                                    ? "Edit task"
+                                    : "Task already accepted, editing disabled"
+                                }
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (!isTaskEditable) return;
                                   navigate(`/edit-task/${data?._id}`);
                                 }}
                               >
@@ -250,7 +266,18 @@ export default function Bookings() {
 
                         {(data?.status === 2 || data?.status === 3) && (
                           <div className="chat-btn-card mt-2">
-                            <button className="" >
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const receiverId =
+                                  data?.serviceProvider?._id ||
+                                  data?.serviceProviderId?._id;
+                                if (!receiverId) return;
+                                localStorage.setItem("reciverID", receiverId);
+                                navigate(`/messages?userID=${receiverId}`);
+                              }}
+                            >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="40"
