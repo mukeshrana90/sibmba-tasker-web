@@ -1,163 +1,164 @@
 import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
-import ReadMore from "../CommanComponents/ReadMore";
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function NearByServices() {
   const dispatch = useDispatch();
   const Navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const limit = 20;
   const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const nearByServices = useSelector((e) => e.UserSlice.nearByServices);
 
   const lat = localStorage.getItem("latitude");
   const long = localStorage.getItem("longitude");
 
   useEffect(() => {
-   if(lat && long){
-     const fetchCategoryAndServices = async () => {
-      setLoading(true);
-      try {
-        const [NearByServicesResponse] = await Promise.all([
-          dispatch(
-            CustomerActions.getNearByServices({ lat, long, page, limit })
-          ),
-        ]);
-      } catch (error) {
-        console.error("Error fetching category and services:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCategoryAndServices();
-   }
+    if (lat && long) {
+      const fetchServices = async () => {
+        setLoading(true);
+        try {
+          await dispatch(CustomerActions.getNearByServices({ lat, long, page, limit }));
+        } catch (error) {
+          console.error("Error fetching nearby services:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchServices();
+    }
   }, [dispatch, lat, long, page]);
 
-  const handleProfiles = (type, id) => {
+  const handleCategoryClick = (id) => {
     if (token) {
-      if (type == "services") {
-        Navigate(`/customer-service-detail?service_id=${id}`);
-      } else {
-        Navigate("/category");
-      }
+      Navigate(`/customer-category-detail?categoryId=${id}`);
     } else {
       Navigate("/login");
     }
   };
 
+  const allCats = Array.isArray(nearByServices?.data) ? nearByServices.data : [];
+
+  const filtered = search.trim()
+    ? allCats.filter((ele) => {
+        const name = ele?.service_category_name || ele?.name || "";
+        return name.toLowerCase().includes(search.toLowerCase());
+      })
+    : allCats;
+
+  const totalCount = nearByServices?.total ?? allCats.length;
+
   return (
     <Layout>
       <section className="breadcrumb-nav">
         <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="breadcrumb-nav-contain">
-                <h2>Nearby Services</h2>
-                <p>
-                  <span
-                    style={{
-                      color: "#038654",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => Navigate("/")}
-                  >
-                    Home
-                  </span>{" "}
-                  / Services
-                </p>
-              </div>
-            </Col>
-          </Row>
+          <div className="breadcrumb-nav-contain">
+            <h2>Nearby Providers</h2>
+            <p>
+              <span
+                style={{ color: "#038654", cursor: "pointer" }}
+                onClick={() => Navigate("/")}
+              >
+                Home
+              </span>{" "}
+              / Nearby Providers
+            </p>
+          </div>
         </Container>
       </section>
 
-      <section className="category-services-sec pt-0 mt-5">
+      <section className="nearby-providers-page">
         <Container>
-          <div className="category-services-lists">
-            <div className="sort-by-filter">
-              <button>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="17"
-                  viewBox="0 0 16 17"
-                  fill="none"
-                >
-                  <path
-                    d="M6.33854 15.1654C5.93854 15.1654 5.67188 14.8987 5.67188 14.4987V2.4987C5.67188 2.0987 5.93854 1.83203 6.33854 1.83203C6.73854 1.83203 7.00521 2.0987 7.00521 2.4987V14.4987C7.00521 14.8987 6.73854 15.1654 6.33854 15.1654Z"
-                    fill="#252525"
-                  />
-                  <path
-                    d="M2.33854 7.16536C2.13854 7.16536 2.00521 7.0987 1.87188 6.96536C1.60521 6.6987 1.60521 6.2987 1.87188 6.03203L5.87188 2.03203C6.13854 1.76536 6.53854 1.76536 6.80521 2.03203C7.07188 2.2987 7.07188 2.6987 6.80521 2.96536L2.80521 6.96536C2.67187 7.0987 2.53854 7.16536 2.33854 7.16536ZM9.67188 15.1654C9.27188 15.1654 9.00521 14.8987 9.00521 14.4987V2.4987C9.00521 2.0987 9.27188 1.83203 9.67188 1.83203C10.0719 1.83203 10.3385 2.0987 10.3385 2.4987V14.4987C10.3385 14.8987 10.0719 15.1654 9.67188 15.1654Z"
-                    fill="#252525"
-                  />
-                  <path
-                    d="M9.67448 15.1654C9.47448 15.1654 9.34115 15.0987 9.20781 14.9654C8.94115 14.6987 8.94115 14.2987 9.20781 14.032L13.2078 10.032C13.4745 9.76536 13.8745 9.76536 14.1411 10.032C14.4078 10.2987 14.4078 10.6987 14.1411 10.9654L10.1411 14.9654C10.0078 15.1654 9.87448 15.1654 9.67448 15.1654Z"
-                    fill="#252525"
-                  />
-                </svg>
-                Sort by
-              </button>
+          {/* Search bar */}
+          <div className="nearby-search-bar">
+            <span className="nearby-search-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#038654"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search nearby categories"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Result count */}
+          <div className="nearby-result-count">{totalCount} Results</div>
+
+          {/* Card list */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <p>Loading...</p>
             </div>
-
-            {Array.isArray(nearByServices?.allCat) &&
-            nearByServices?.allCat.length > 0 ? (
-              <>
-                <div className="services-list">
-                  {Array.isArray(nearByServices?.allCat) &&
-                    nearByServices?.allCat.length > 0 &&
-                    nearByServices?.allCat.map((ele, index) => {
-                      return (
-                        <div key={index}>
-                          {Array.isArray(ele?.images) &&
-                            ele.images.length > 0 && (
-                              <img
-                                onClick={() =>
-                                  handleProfiles("services", ele?._id)
-                                }
-                                className="point-cursor"
-                                src={`${process.env.REACT_APP_API_URL}/user/${ele?.images[0]}`}
-                                alt="categories-img"
-                              />
-                            )}
-                          <h3>{ele?.serviceSubCategoryName}</h3>
-                          {/* <p>{ele?.desc}</p> */}
-                          <ReadMore desc={ele?.desc} />
-                        </div>
-                      );
-                    })}
-                </div>
-
-                {Array.isArray(nearByServices?.allCat) &&
-                  nearByServices?.totalCount > 10 && (
-                    <div className="pagination-flexs">
-                      <div></div>
-                      <div className="mt-5">
-                        <PaginationComponent
-                          page={page}
-                          setPage={setPage}
-                          totalPages={nearByServices?.totalPages}
-                        />
+          ) : filtered.length > 0 ? (
+            <>
+              <div className="nearby-provider-list">
+                {filtered.map((ele, index) => {
+                  const imgSrc = ele?.image
+                    ? `${process.env.REACT_APP_API_URL}${ele.image}`
+                    : Array.isArray(ele?.images) && ele.images.length > 0
+                    ? `${process.env.REACT_APP_API_URL}/user/${ele.images[0]}`
+                    : defaultImage;
+                  const name =
+                    ele?.service_category_name ||
+                    ele?.serviceSubCategoryName ||
+                    ele?.name;
+                  const count = ele?.providerNearbyCount ?? null;
+                  return (
+                    <div
+                      key={ele?._id || index}
+                      className="nearby-provider-card"
+                      onClick={() => handleCategoryClick(ele._id)}
+                    >
+                      <img src={imgSrc} alt={name} />
+                      <div className="nearby-provider-card-info">
+                        <h4>
+                          {count !== null ? `${count} ` : ""}
+                          {name}
+                        </h4>
+                        <p>near you</p>
                       </div>
                     </div>
-                  )}
-              </>
-            ) : (
-              <>
-                <div style={{ height: "300px" }}>
-                  <h3 className="text-center mt-5"> No Data Found </h3>
+                  );
+                })}
+              </div>
+
+              {nearByServices?.total > limit && (
+                <div className="pagination-flexs mt-5">
+                  <div></div>
+                  <PaginationComponent
+                    page={page}
+                    setPage={setPage}
+                    totalPages={nearByServices?.totalPages}
+                  />
                 </div>
-              </>
-            )}
-          </div>
+              )}
+            </>
+          ) : (
+            <div style={{ height: "300px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <h3 className="text-center">No providers found near you</h3>
+            </div>
+          )}
         </Container>
       </section>
     </Layout>

@@ -345,60 +345,79 @@ export default function Home() {
           </Container>
         </section>
       )}
-      {Array.isArray(nearByServices?.allCat) &&
-        nearByServices?.allCat.length > 0 && (
-          <section className="category-services-sec pt-0">
-            <Container>
-              <div className="category-services-lists">
-                <div className="list-title">
-                  <h2>Nearby Providers</h2>
-                  <Link to="/near-by-services">
-                    Explore More
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="21"
-                      viewBox="0 0 20 21"
-                      fill="none"
-                    >
-                      <path
-                        d="M7.5 15.5L12.5 10.5L7.5 5.5"
-                        stroke="#545454"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
+      <section className="category-services-sec pt-0">
+        <Container>
+          <div className="category-services-lists">
+            <div className="list-title">
+              <h2>Providers Near You</h2>
+              <Link to="/near-by-services">
+                View All
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="21"
+                  viewBox="0 0 20 21"
+                  fill="none"
+                >
+                  <path
+                    d="M7.5 15.5L12.5 10.5L7.5 5.5"
+                    stroke="#545454"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </Link>
+            </div>
+            {Array.isArray(nearByServices?.data) && nearByServices.data.length > 0 ? (
+              <div className="services-list">
+                {nearByServices.data.slice(0, 5).map((ele, index) => {
+                  const imgSrc = ele?.image
+                    ? `${process.env.REACT_APP_API_URL}${ele.image}`
+                    : Array.isArray(ele?.images) && ele.images.length > 0
+                    ? `${process.env.REACT_APP_API_URL}/user/${ele.images[0]}`
+                    : defaultImage;
+                  const name =
+                    ele?.service_category_name ||
+                    ele?.serviceSubCategoryName ||
+                    ele?.name;
+                  const count = ele?.providerNearbyCount ?? null;
+                  return (
+                    <div key={ele?._id || index}>
+                      <img
+                        onClick={() => handleProfiles("category", ele._id)}
+                        className="point-cursor"
+                        src={imgSrc}
+                        alt="categories-img"
                       />
-                    </svg>
-                  </Link>
-                </div>
-                <div className="services-list">
-                  {Array.isArray(nearByServices?.allCat) &&
-                    nearByServices?.allCat.length > 0 &&
-                    nearByServices?.allCat.slice(0, 5).map((ele, index) => {
-                      return (
-                        <div key={index}>
-                          {Array.isArray(ele?.images) &&
-                            ele.images.length > 0 && (
-                              <img
-                                onClick={() =>
-                                  handleProfiles("services", ele._id)
-                                }
-                                className="point-cursor"
-                                src={`${process.env.REACT_APP_API_URL}/user/${ele?.images[0]}`}
-                                alt="categories-img"
-                              />
-                            )}
-                          <h3>{ele?.serviceSubCategoryName}</h3>
-                          {/* <p>{ele?.desc}</p> */}
-                          <ReadMore desc={ele?.desc} />
-                        </div>
-                      );
-                    })}
-                </div>
+                      <h3>{count !== null ? `${count} ` : ""}{name}</h3>
+                      <p>near you</p>
+                    </div>
+                  );
+                })}
               </div>
-            </Container>
-          </section>
-        )}
+            ) : (
+              <div className="nearby-empty-msg">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#ccc"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <p>No nearby providers found</p>
+              </div>
+            )}
+          </div>
+        </Container>
+      </section>
 
       {/* NearBy Corporate category Start */}
       {nearbyCorporateSuggestion?.length > 0 && (

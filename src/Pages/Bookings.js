@@ -27,14 +27,14 @@ export default function Bookings() {
   const [selectedBoooking, setSelectedBoooking] = useState(null);
   const getStatusColor = (status) => {
     const statusMap = {
-      1: "pending",
-      2: "cancelled",
-      3: "completed",
-      4: "in-progress",
-      5: "cancelled",
+      [taskStatus.PENDING]: "pending",
+      [taskStatus.ACCEPTED]: "in-progress",
+      [taskStatus.REJECTED]: "cancelled",
+      [taskStatus.COMPLETED]: "completed",
+      [taskStatus.ON_THE_WAY]: "in-progress",
+      [taskStatus.IN_PROGRESS]: "in-progress",
     };
-
-    return statusMap[status] || "N/A";
+    return statusMap[Number(status)] || "pending";
   };
   useEffect(() => {
     const status = activeTab === "past" ? 4 : null;
@@ -62,19 +62,14 @@ export default function Bookings() {
     setSelectedBoooking(null);
   };
   const getStatusLabel = (status) => {
-    switch (status) {
-      case 1:
-        return "Pending";
-      case 2:
-        return "Cancelled";
-      case 3:
-        return "Completed";
-      case 4:
-        return "In Progress";
-      case 5:
-        return "Cancelled";
-      default:
-        return "Unknown";
+    switch (Number(status)) {
+      case taskStatus.PENDING:    return "Pending";
+      case taskStatus.ACCEPTED:   return "Accepted";
+      case taskStatus.REJECTED:   return "Rejected";
+      case taskStatus.COMPLETED:  return "Completed";
+      case taskStatus.ON_THE_WAY: return "On the Way";
+      case taskStatus.IN_PROGRESS:return "In Progress";
+      default:                    return "Unknown";
     }
   };
 

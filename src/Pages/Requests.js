@@ -51,6 +51,12 @@ export default function Requests() {
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
 
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeRequest, setDisputeRequest] = useState(null);
+  const [disputeTitle, setDisputeTitle] = useState("");
+  const [disputeDescription, setDisputeDescription] = useState("");
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+
   const serviceRequestList = useSelector(
     (e) => e.service.getServiceRequestList
   );
@@ -191,6 +197,52 @@ export default function Requests() {
       toast.error("Could not submit feedback.");
     } finally {
       setFeedbackSubmitting(false);
+    }
+  };
+
+  const handleOpenDispute = (request) => {
+    setDisputeRequest(request);
+    setDisputeTitle("");
+    setDisputeDescription("");
+    setShowDisputeModal(true);
+  };
+
+  const handleCloseDispute = () => {
+    if (disputeSubmitting) return;
+    setShowDisputeModal(false);
+    setDisputeRequest(null);
+    setDisputeTitle("");
+    setDisputeDescription("");
+  };
+
+  const handleSubmitDispute = async () => {
+    if (!disputeTitle.trim() || !disputeDescription.trim()) {
+      toast.error("Please enter title and message.");
+      return;
+    }
+    if (!disputeRequest?.referenceId) {
+      toast.error("Booking reference not found.");
+      return;
+    }
+    setDisputeSubmitting(true);
+    try {
+      const res = await dispatch(
+        CustomerActions.raiseDispute({
+          referenceId: disputeRequest.referenceId,
+          reason: disputeTitle.trim(),
+          description: disputeDescription.trim(),
+        })
+      );
+      if (res?.payload?.success) {
+        toast.success(res?.payload?.message || "Dispute submitted successfully.");
+        handleCloseDispute();
+      } else {
+        toast.error(res?.payload?.message || "Could not submit dispute.");
+      }
+    } catch {
+      toast.error("Could not submit dispute.");
+    } finally {
+      setDisputeSubmitting(false);
     }
   };
 
@@ -623,9 +675,7 @@ export default function Requests() {
                                         <button
                                           type="button"
                                           className="task-dispute-link-btn"
-                                          onClick={() =>
-                                            Navigate(`/requestdetail/${request?._id}?service=completed`)
-                                          }
+                                          onClick={() => handleOpenDispute(request)}
                                         >
                                           Having an issue? <span>Raise Dispute</span>
                                         </button>
@@ -773,6 +823,58 @@ export default function Requests() {
             disabled={feedbackSubmitting}
           >
             {feedbackSubmitting ? "Please wait..." : "Submit"}
+          </button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={showDisputeModal}
+        onHide={handleCloseDispute}
+        centered
+        backdrop={disputeSubmitting ? "static" : true}
+      >
+        <Modal.Header closeButton={!disputeSubmitting}>
+          <Modal.Title>Raise Dispute</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Title</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Dispute title"
+              value={disputeTitle}
+              onChange={(e) => setDisputeTitle(e.target.value)}
+              disabled={disputeSubmitting}
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Message</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              placeholder="Describe the issue..."
+              value={disputeDescription}
+              onChange={(e) => setDisputeDescription(e.target.value)}
+              disabled={disputeSubmitting}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 dispute-modal-footer">
+          <button
+            type="button"
+            className="btn btn-light border rate-customer-modal-btn"
+            onClick={handleCloseDispute}
+            disabled={disputeSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="booking-job-done-btn rate-customer-modal-btn"
+            onClick={handleSubmitDispute}
+            disabled={disputeSubmitting}
+          >
+            {disputeSubmitting ? "Please wait..." : "Submit"}
           </button>
         </Modal.Footer>
       </Modal>

@@ -248,8 +248,8 @@ export default function ServiceTaskDetails() {
   };
   const canRaiseTaskDispute = Boolean(
     task?.referenceId &&
-      selectedQuotationId &&
       [
+        taskStatus.ACCEPTED,
         taskStatus.ON_THE_WAY,
         taskStatus.IN_PROGRESS,
         taskStatus.COMPLETED,
@@ -410,7 +410,12 @@ export default function ServiceTaskDetails() {
       toast.error("Please enter title and message.");
       return;
     }
-    if (!task?.referenceId) {
+    const disputeRefId =
+      task?.referenceId ??
+      acceptedQuotationForMap?.referenceId ??
+      task?.reference_id ??
+      null;
+    if (!disputeRefId) {
       toast.error("Task reference not found.");
       return;
     }
@@ -418,7 +423,7 @@ export default function ServiceTaskDetails() {
     try {
       const res = await dispatch(
         CustomerActions.raiseDispute({
-          referenceId: task.referenceId,
+          referenceId: disputeRefId,
           reason: disputeTitle.trim(),
           description: disputeDescription.trim(),
         })
@@ -617,7 +622,7 @@ export default function ServiceTaskDetails() {
                       className="task-dispute-link-btn"
                       onClick={handleOpenDisputeModal}
                     >
-                      Having an issue? <span>Raise Dispute</span>
+                      Having any issue? <span>Raise Dispute</span>
                     </button>
                   )}
                 </div>
@@ -795,7 +800,6 @@ export default function ServiceTaskDetails() {
         </Container>
       </section>
 
-      {status !== "task" && (
       <section className="category-services-sec pt-0 mt-5">
         <Container>
           <div className="category-services-lists">
@@ -1279,7 +1283,6 @@ export default function ServiceTaskDetails() {
           </div>
         </Container>
       </section>
-      )}
 
       <AddQuotationModal
         show={showQutation}

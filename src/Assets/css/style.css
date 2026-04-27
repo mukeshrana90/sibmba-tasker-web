@@ -2734,9 +2734,8 @@ button.booking-job-done-btn:disabled {
 
 .book-service-action {
   /* margin-top: 20px; */
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  display: flex;
+  gap: 12px;
 }
 
 .bookings-tabs {
@@ -2744,13 +2743,14 @@ button.booking-job-done-btn:disabled {
 }
 
 .book-service-action button {
-  padding: 12px;
+  padding: 12px 24px;
   border-radius: 10px;
   text-align: center;
   font-family: "Open Sans";
   font-size: 14px;
   font-weight: 600;
   line-height: normal;
+  min-width: 120px;
 }
 
 .book-service-action button:first-child {
@@ -7146,4 +7146,134 @@ section.page-mt {
   color: #333 !important;
   border-radius: 16px !important;
   padding: 10px 20px !important;
+}
+
+/* ===== Providers Near You — Home landing section ===== */
+.nearby-cat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.nearby-cat-name {
+  color: #252525;
+  font-family: "Open Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 6px 0 2px;
+}
+
+.nearby-cat-subtitle {
+  color: #888;
+  font-family: "Open Sans", sans-serif;
+  font-size: 12px;
+}
+
+.nearby-empty-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px 0;
+  color: #aaa;
+}
+
+.nearby-empty-msg p {
+  font-family: "Open Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #aaa;
+  margin: 0;
+}
+
+/* ===== Nearby Providers Page ===== */
+.nearby-providers-page {
+  padding: 30px 0 60px;
+  background: #f2f4f3;
+  min-height: 60vh;
+}
+
+.nearby-search-bar {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.nearby-search-bar input {
+  width: 100%;
+  padding: 13px 16px 13px 48px;
+  border-radius: 12px;
+  border: 1.5px solid #e5e5e5;
+  font-family: "Open Sans", sans-serif;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+  color: #252525;
+}
+
+.nearby-search-bar input::placeholder {
+  color: #aaa;
+}
+
+.nearby-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.nearby-result-count {
+  text-align: right;
+  font-family: "Open Sans", sans-serif;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.nearby-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nearby-provider-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+}
+
+.nearby-provider-card:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.nearby-provider-card img {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f0f0f0;
+}
+
+.nearby-provider-card-info h4 {
+  font-family: "Open Sans", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #252525;
+  margin: 0 0 4px;
+}
+
+.nearby-provider-card-info p {
+  font-family: "Open Sans", sans-serif;
+  font-size: 13px;
+  color: #888;
+  margin: 0;
 }

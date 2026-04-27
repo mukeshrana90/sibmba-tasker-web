@@ -7,6 +7,7 @@ import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
+import defaultImage from "../Assets/Images/placeholder.jpg";
 
 export default function BrowseCategory() {
   const dispatch = useDispatch();
@@ -14,16 +15,25 @@ export default function BrowseCategory() {
   const [limit, setLimit] = useState(10);
   const Navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const lat = localStorage.getItem("latitude");
+  const long = localStorage.getItem("longitude");
   const [loading, setLoading] = useState(true);
   const categories = useSelector((e) => e.UserSlice.categories);
+  const nearByServices = useSelector((e) => e.UserSlice.nearByServices);
 
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
       setLoading(true);
       try {
-        const [categoryResponse] = await Promise.all([
+        const promises = [
           dispatch(CustomerActions.getCategories({ page, limit })),
-        ]);
+        ];
+        if (lat && long) {
+          promises.push(
+            dispatch(CustomerActions.getNearByServices({ lat, long, page, limit }))
+          );
+        }
+        await Promise.all(promises);
       } catch (error) {
         console.error("Error fetching category and services:", error);
       } finally {
@@ -32,19 +42,7 @@ export default function BrowseCategory() {
     };
 
     fetchCategoryAndServices();
-  }, [dispatch, page]);
-
-  // const handleProfiles = (type) => {
-  //   if (token) {
-  //     if (type == "services") {
-  //       Navigate("/services");
-  //     } else {
-  //       Navigate("/category");
-  //     }
-  //   } else {
-  //     Navigate("/login");
-  //   }
-  // };
+  }, [dispatch, page, lat, long]);
 
   const handleProfiles = (type, id) => {
     if (token) {
@@ -91,40 +89,36 @@ export default function BrowseCategory() {
             categories?.allCat.length > 0 ? (
               <>
                 <div className="services-list-browse">
-                  {Array.isArray(categories?.allCat) &&
-                    categories?.allCat?.length > 0 &&
-                    categories?.allCat.map((ele, index) => {
-                      return (
-                        <div key={index}>
-                          <>
-                            <img
-                              onClick={() =>
-                                handleProfiles("category", ele?._id)
-                              }
-                              className="point-cursor"
-                              src={`${process.env.REACT_APP_API_URL}${ele?.image}`}
-                              alt="categories-img"
-                            />
-                          </>
-                          <h3>{ele?.service_category_name}</h3>
-                          {/* <p>{ele?.desc}</p> */}
-                        </div>
-                      );
-                    })}
-                </div>
-                {Array.isArray(categories?.allCat) &&
-                  categories?.totalCount > 10 && (
-                    <div className="pagination-flexs">
-                      <div></div>
-                      <div className="mt-5">
-                        <PaginationComponent
-                          page={page}
-                          setPage={setPage}
-                          totalPages={categories?.totalPages}
-                        />
+                  {categories?.allCat.map((ele, index) => {
+                    return (
+                      <div key={index}>
+                        <>
+                          <img
+                            onClick={() =>
+                              handleProfiles("category", ele?._id)
+                            }
+                            className="point-cursor"
+                            src={`${process.env.REACT_APP_API_URL}${ele?.image}`}
+                            alt="categories-img"
+                          />
+                        </>
+                        <h3>{ele?.service_category_name}</h3>
                       </div>
+                    );
+                  })}
+                </div>
+                {categories?.totalCount > 10 && (
+                  <div className="pagination-flexs">
+                    <div></div>
+                    <div className="mt-5">
+                      <PaginationComponent
+                        page={page}
+                        setPage={setPage}
+                        totalPages={categories?.totalPages}
+                      />
                     </div>
-                  )}
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -136,6 +130,39 @@ export default function BrowseCategory() {
           </div>
         </Container>
       </section>
+
+      {Array.isArray(nearByServices?.data) &&
+        nearByServices?.data.length > 0 && (
+          <section className="category-services-sec pt-0">
+            <Container>
+              <div className="category-services-lists">
+                <div className="list-title">
+                  <h2>Nearby Providers</h2>
+                </div>
+                <div className="services-list">
+                  {nearByServices.data.map((ele, index) => {
+                    const imgSrc = ele?.image
+                      ? `${process.env.REACT_APP_API_URL}${ele.image}`
+                      : defaultImage;
+                    const count = ele?.providerNearbyCount ?? null;
+                    return (
+                      <div key={ele?._id || index}>
+                        <img
+                          onClick={() => handleProfiles("category", ele._id)}
+                          className="point-cursor"
+                          src={imgSrc}
+                          alt="categories-img"
+                        />
+                        <h3>{count !== null ? `${count} ` : ""}{ele?.service_category_name}</h3>
+                        <p>near you</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Container>
+          </section>
+        )}
     </Layout>
   );
 }

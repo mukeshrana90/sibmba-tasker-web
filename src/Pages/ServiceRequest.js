@@ -63,6 +63,7 @@ export default function ServiceRequest() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelNotes, setCancelNotes] = useState("");
   const [jobDoneSubmitting, setJobDoneSubmitting] = useState(false);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [showJobDoneConfirmModal, setShowJobDoneConfirmModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeTitle, setDisputeTitle] = useState("");
@@ -252,6 +253,26 @@ export default function ServiceRequest() {
       setJobDoneSubmitting(false);
     });
   };
+  const handleCancelBooking = () => {
+    if (cancelSubmitting) return;
+    setCancelSubmitting(true);
+    dispatch(
+      ServiceActions.updateBookingStatus({
+        booking_id: id,
+        status: bookingStatus.CANCELLED,
+      })
+    ).then((res) => {
+      if (res?.payload?.success) {
+        showSingleStatusToast("Booking cancelled successfully.");
+        dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
+      } else {
+        toast.error(res?.payload?.message || "Could not cancel booking.");
+      }
+    }).finally(() => {
+      setCancelSubmitting(false);
+    });
+  };
+
   const providerNextStatusMap = {
     [bookingStatus.ACCEPTED]: bookingStatus.ON_THE_WAY,
     [bookingStatus.ON_THE_WAY]: bookingStatus.IN_PROGRESS,
@@ -485,9 +506,19 @@ export default function ServiceRequest() {
                     <span>{bookingReqDetail?.address}</span>
                   </p>
                   {showProviderJobDoneBtn && (
-                    <div className="book-service-action book-service-action--single mt-3">
+                    <div className="book-service-action mt-3">
+                      {canProviderCancelBooking && (
+                        <button
+                          type="button"
+                          className="task-flow-btn task-flow-btn--outline"
+                          disabled={cancelSubmitting || jobDoneSubmitting}
+                          onClick={handleCancelBooking}
+                        >
+                          {cancelSubmitting ? "Cancelling..." : "Cancel"}
+                        </button>
+                      )}
                       <button
-                        disabled={jobDoneSubmitting}
+                        disabled={jobDoneSubmitting || cancelSubmitting}
                         onClick={() => {
                           if (providerNextStatus === bookingStatus.COMPLETED) {
                             handleOpenJobDoneConfirm();
