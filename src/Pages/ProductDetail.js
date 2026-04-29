@@ -91,8 +91,8 @@ export default function ProductDetail() {
   };
 
   const handleSubmitFeedback = () => {
-    if (!rating || !message) {
-      toast.error("Please give rating and message.");
+    if (!rating) {
+      toast.error("Please give rating.");
       return;
     }
     const feedbackData = {

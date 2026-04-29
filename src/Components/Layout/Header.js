@@ -76,7 +76,9 @@ export default function Header() {
   }, [token]);
 
   useEffect(() => {
-    dispatch(CustomerActions.notificationListing());
+    if (token) {
+      dispatch(CustomerActions.notificationListing());
+    }
   }, []);
 
   const formatTime = (dateString) => {

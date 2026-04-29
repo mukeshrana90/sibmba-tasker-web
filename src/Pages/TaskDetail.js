@@ -756,20 +756,22 @@ export default function TaskDetail() {
                                 <span className="task-dispute-details-item__status">
                                   {dispute?.status || "open"}
                                 </span>
-                                <span
-                                  className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
-                                    dispute
-                                  )}`}
-                                >
-                                  Raised by: {getTaskDisputeRaisedByName(dispute)}
-                                </span>
                               </div>
                             </div>
                             {dispute?.description ? (
                               <div className="task-dispute-details-item__message">
-                                <span className="task-dispute-details-item__label">
-                                  Dispute message
-                                </span>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                                  <span className="task-dispute-details-item__label">
+                                    Dispute message
+                                  </span>
+                                  <span
+                                    className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
+                                      dispute
+                                    )}`}
+                                  >
+                                    Raised by: {getTaskDisputeRaisedByName(dispute)}
+                                  </span>
+                                </div>
                                 <p className="task-dispute-details-item__description">
                                   {dispute.description}
                                 </p>

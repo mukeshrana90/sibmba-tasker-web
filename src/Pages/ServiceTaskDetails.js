@@ -665,6 +665,13 @@ export default function ServiceTaskDetails() {
                                 <span className="task-dispute-details-item__status">
                                   {dispute?.status || "open"}
                                 </span>
+                              </div>
+                            </div>
+                            <div className="task-dispute-details-item__message">
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                                <span className="task-dispute-details-item__label">
+                                  Dispute message
+                                </span>
                                 <span
                                   className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
                                     dispute
@@ -673,17 +680,12 @@ export default function ServiceTaskDetails() {
                                   Raised by: {getTaskDisputeRaisedByName(dispute)}
                                 </span>
                               </div>
-                            </div>
-                            {dispute?.description ? (
-                              <div className="task-dispute-details-item__message">
-                                <span className="task-dispute-details-item__label">
-                                  Dispute message
-                                </span>
+                              {dispute?.description ? (
                                 <p className="task-dispute-details-item__description">
                                   {dispute.description}
                                 </p>
-                              </div>
-                            ) : null}
+                              ) : null}
+                            </div>
                             {dispute?.adminRemark ? (
                               <div className="task-dispute-details-item__admin">
                                 <span className="task-dispute-details-item__label">
@@ -703,7 +705,6 @@ export default function ServiceTaskDetails() {
               </Col>
             </Row>
           )}
-
           {status === "task" && (
             <Row>
               <Col lg={12}>
@@ -738,60 +739,6 @@ export default function ServiceTaskDetails() {
                         })()}
                       </div>
                     </div>
-                    {(() => {
-                      const s = Number(task?.status);
-                      const shouldShowMap =
-                        mapLat != null &&
-                        mapLng != null &&
-                        (s === taskStatus.ON_THE_WAY ||
-                          s === taskStatus.IN_PROGRESS ||
-                          s === taskStatus.COMPLETED);
-                      if (!shouldShowMap) return null;
-                      return (
-                        <div className="requests-completed-map">
-                          <h2>Live Location</h2>
-                          <iframe
-                            title="Provider Task Map"
-                            src={routeEmbedUrl}
-                            width="100%"
-                            height="260"
-                            style={{ border: 0, borderRadius: "8px" }}
-                            loading="lazy"
-                          />
-                          <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
-                            <button
-                              type="button"
-                              className="booking-job-done-btn"
-                              onClick={() => window.open(routeShareUrl, "_blank")}
-                            >
-                              Open in Maps
-                            </button>
-                            <button
-                              type="button"
-                              className="booking-job-done-btn"
-                              onClick={async () => {
-                                if (navigator.share) {
-                                  await navigator.share({
-                                    title: "Task Route",
-                                    text: "Task to provider route",
-                                    url: routeShareUrl,
-                                  });
-                                  return;
-                                }
-                                if (navigator.clipboard?.writeText) {
-                                  await navigator.clipboard.writeText(
-                                    routeShareUrl
-                                  );
-                                  toast.success("Location copied.");
-                                }
-                              }}
-                            >
-                              Share Location
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })()}
                   </div>
                 </section>
               </Col>
@@ -1283,6 +1230,69 @@ export default function ServiceTaskDetails() {
           </div>
         </Container>
       </section>
+
+      {status === "task" && (() => {
+        const s = Number(task?.status);
+        const shouldShowMap =
+          mapLat != null &&
+          mapLng != null &&
+          (s === taskStatus.ON_THE_WAY ||
+            s === taskStatus.IN_PROGRESS ||
+            s === taskStatus.COMPLETED);
+        if (!shouldShowMap) return null;
+        return (
+          <section className="service-detail-sec">
+            <Container>
+              <Row>
+                <Col lg={12}>
+                  <div className="requests-completed-map">
+                    <h2>Live Location</h2>
+                    <iframe
+                      title="Provider Task Map"
+                      src={routeEmbedUrl}
+                      width="100%"
+                      height="260"
+                      style={{ border: 0, borderRadius: "8px" }}
+                      loading="lazy"
+                    />
+                    <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
+                      <button
+                        type="button"
+                        className="booking-job-done-btn"
+                        onClick={() => window.open(routeShareUrl, "_blank")}
+                      >
+                        Open in Maps
+                      </button>
+                      <button
+                        type="button"
+                        className="booking-job-done-btn"
+                        onClick={async () => {
+                          if (navigator.share) {
+                            await navigator.share({
+                              title: "Task Route",
+                              text: "Task to provider route",
+                              url: routeShareUrl,
+                            });
+                            return;
+                          }
+                          if (navigator.clipboard?.writeText) {
+                            await navigator.clipboard.writeText(
+                              routeShareUrl
+                            );
+                            toast.success("Location copied.");
+                          }
+                        }}
+                      >
+                        Share Location
+                      </button>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+            </Container>
+          </section>
+        );
+      })()}
 
       <AddQuotationModal
         show={showQutation}

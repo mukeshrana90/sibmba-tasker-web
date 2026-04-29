@@ -6,12 +6,14 @@ const Api = axios.create({
 });
 
 const redirectToLoginOnAuthFailure = (message) => {
+  const hadSession =
+    localStorage.getItem("token") || localStorage.getItem("temptoken");
   localStorage.removeItem("token");
   localStorage.removeItem("temptoken");
   localStorage.removeItem("userId");
   localStorage.removeItem("role");
   localStorage.removeItem("expiresAt");
-  if (message) {
+  if (message && hadSession) {
     toast.error(message);
   }
   window.location.href = "/login";

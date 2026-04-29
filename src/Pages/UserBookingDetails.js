@@ -259,8 +259,8 @@ export default function UserBookingDetails() {
   };
 
   const handleSubmitFeedback = () => {
-    if (!rating || !message) {
-      toast.error("Please give rating and message.");
+    if (!rating) {
+      toast.error("Please give rating.");
       return;
     }
     const isTaskFeedback = Boolean(type);
@@ -1228,20 +1228,22 @@ export default function UserBookingDetails() {
                                       <span className="task-dispute-details-item__status">
                                         {dispute?.status || "open"}
                                       </span>
-                                      <span
-                                        className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
-                                          dispute
-                                        )}`}
-                                      >
-                                        Raised by: {getTaskDisputeRaisedByName(dispute)}
-                                      </span>
                                     </div>
                                   </div>
                                   {dispute?.description ? (
                                     <div className="task-dispute-details-item__message">
-                                      <span className="task-dispute-details-item__label">
-                                        Dispute message
-                                      </span>
+                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                                        <span className="task-dispute-details-item__label">
+                                          Dispute message
+                                        </span>
+                                        <span
+                                          className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
+                                            dispute
+                                          )}`}
+                                        >
+                                          Raised by: {getTaskDisputeRaisedByName(dispute)}
+                                        </span>
+                                      </div>
                                       <p className="task-dispute-details-item__description">
                                         {dispute.description}
                                       </p>
@@ -1513,20 +1515,22 @@ export default function UserBookingDetails() {
                                     <span className="task-dispute-details-item__status">
                                       {dispute?.status || "open"}
                                     </span>
-                                    <span
-                                      className={`task-dispute-details-item__raisedby-badge ${getBookingDisputeRaisedByClass(
-                                        dispute
-                                      )}`}
-                                    >
-                                      Raised by: {getBookingDisputeRaisedByName(dispute)}
-                                    </span>
                                   </div>
                                 </div>
                                 {dispute?.description ? (
                                   <div className="task-dispute-details-item__message">
-                                    <span className="task-dispute-details-item__label">
-                                      Dispute message
-                                    </span>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                                      <span className="task-dispute-details-item__label">
+                                        Dispute message
+                                      </span>
+                                      <span
+                                        className={`task-dispute-details-item__raisedby-badge ${getBookingDisputeRaisedByClass(
+                                          dispute
+                                        )}`}
+                                      >
+                                        Raised by: {getBookingDisputeRaisedByName(dispute)}
+                                      </span>
+                                    </div>
                                     <p className="task-dispute-details-item__description">
                                       {dispute.description}
                                     </p>

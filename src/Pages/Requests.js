@@ -171,8 +171,8 @@ export default function Requests() {
 
   const handleSubmitFeedback = async () => {
     if (!selectedRequest?._id) return;
-    if (!feedbackRating || !feedbackMessage.trim()) {
-      toast.error("Please give rating and message.");
+    if (!feedbackRating) {
+      toast.error("Please give rating.");
       return;
     }
     setFeedbackSubmitting(true);
