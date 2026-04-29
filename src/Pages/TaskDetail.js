@@ -1191,18 +1191,20 @@ export default function TaskDetail() {
                     type="button"
                     className="booking-job-done-btn"
                     onClick={async () => {
-                      if (navigator.share) {
-                        await navigator.share({
-                          title: "Task Route",
-                          text: "Task to provider route",
-                          url: routeShareUrl,
-                        });
-                        return;
-                      }
-                      if (navigator.clipboard?.writeText) {
-                        await navigator.clipboard.writeText(routeShareUrl);
-                        toast.success("Location copied.");
-                      }
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({
+                            title: "Task Route",
+                            text: "Task to provider route",
+                            url: routeShareUrl,
+                          });
+                          return;
+                        }
+                        if (navigator.clipboard?.writeText) {
+                          await navigator.clipboard.writeText(routeShareUrl);
+                          toast.success("Location copied.");
+                        }
+                      } catch {}
                     }}
                   >
                     Share Location

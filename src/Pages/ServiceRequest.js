@@ -806,14 +806,16 @@ export default function ServiceRequest() {
                             type="button"
                             className="booking-job-done-btn"
                             onClick={async () => {
-                              if (navigator.share) {
-                                await navigator.share({ title: "Location", url: routeShareUrl });
-                                return;
-                              }
-                              if (navigator.clipboard?.writeText) {
-                                await navigator.clipboard.writeText(routeShareUrl);
-                                toast.success("Location copied.");
-                              }
+                              try {
+                                if (navigator.share) {
+                                  await navigator.share({ title: "Location", url: routeShareUrl });
+                                  return;
+                                }
+                                if (navigator.clipboard?.writeText) {
+                                  await navigator.clipboard.writeText(routeShareUrl);
+                                  toast.success("Location copied.");
+                                }
+                              } catch {}
                             }}
                           >
                             Share Location
