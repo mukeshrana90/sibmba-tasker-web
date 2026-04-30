@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
@@ -10,6 +10,7 @@ import defaultImage from "../Assets/Images/placeholder.jpg";
 export default function NearByServices() {
   const dispatch = useDispatch();
   const Navigate = useNavigate();
+  const location = useLocation();
   const [page, setPage] = useState(1);
   const limit = 20;
   const token = localStorage.getItem("token");
@@ -20,12 +21,16 @@ export default function NearByServices() {
   const lat = localStorage.getItem("latitude");
   const long = localStorage.getItem("longitude");
 
+  const categoryId = new URLSearchParams(location.search).get("categoryId");
+
   useEffect(() => {
     if (lat && long) {
       const fetchServices = async () => {
         setLoading(true);
         try {
-          await dispatch(CustomerActions.getNearByServices({ lat, long, page, limit }));
+          const payload = { lat, long, page, limit };
+          if (categoryId) payload.categoryId = categoryId;
+          await dispatch(CustomerActions.getNearByServices(payload));
         } catch (error) {
           console.error("Error fetching nearby services:", error);
         } finally {
@@ -34,14 +39,14 @@ export default function NearByServices() {
       };
       fetchServices();
     }
-  }, [dispatch, lat, long, page]);
+  }, [dispatch, lat, long, page, categoryId]);
 
   const handleCategoryClick = (id) => {
-    if (token) {
-      Navigate(`/customer-category-detail?categoryId=${id}`);
-    } else {
+    if (!token) {
       Navigate("/login");
+      return;
     }
+    Navigate(`/near-by-service-provider?categoryId=${id}`);
   };
 
   const allCats = Array.isArray(nearByServices?.data) ? nearByServices.data : [];

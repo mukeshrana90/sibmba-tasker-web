@@ -89,10 +89,12 @@ export default function ServiceProvider() {
       ? provider.company_name
       : provider?.full_name || "-";
 
+  const safeVal = (v) => (!v || v === "undefined" ? null : v);
+
   const street =
-    provider?.street_address && provider.street_address !== "undefined"
-      ? provider.street_address
-      : null;
+    safeVal(provider?.street_address) ||
+    safeVal(provider?.suburbs) ||
+    null;
 
   if (loading && !profile) {
     return (
@@ -120,6 +122,23 @@ export default function ServiceProvider() {
 
   return (
     <Layout>
+      <section className="breadcrumb-nav">
+        <Container>
+          <div className="breadcrumb-nav-contain">
+            <h2>Service Provider</h2>
+            <p>
+              <span
+                style={{ color: "#038654", cursor: "pointer" }}
+                onClick={() => navigate("/near-by-services")}
+              >
+                Nearby Services
+              </span>{" "}
+              / Service Provider
+            </p>
+          </div>
+        </Container>
+      </section>
+
       <section className="service-detail-sec">
         <Container>
           <Row>
@@ -141,7 +160,7 @@ export default function ServiceProvider() {
                           <h5>{displayName}</h5>
                           <p className="provider-pro-view__location">
                             {street ||
-                              provider?.suburbs ||
+                              safeVal(provider?.suburbs) ||
                               "Service Provider"}
                           </p>
                           <div className="provider-stats-row">

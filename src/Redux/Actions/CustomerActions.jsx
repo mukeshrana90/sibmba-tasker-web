@@ -97,6 +97,18 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
+  // MARK: - Near By Service Providers by Category
+  getNearbyServiceProvider: createAsyncThunk(
+    "/customer/get-nearby-service-provider",
+    async (payload) => {
+      const queryString = constructQueryString(payload);
+      const response = await Api.get(
+        `/customer/get-nearby-service-provider?${queryString}`
+      );
+      return response.data;
+    }
+  ),
   // MARK: - RESEND OTP
   resendOtp: createAsyncThunk(
     "/customer/auth/resendOtp",

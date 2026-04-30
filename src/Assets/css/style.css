@@ -7277,3 +7277,7 @@ section.page-mt {
   color: #888;
   margin: 0;
 }
+.provider-stats-row.mb-2 {
+  display: grid;
+  gap: 12px;
+}

@@ -331,67 +331,42 @@ export default function CustomerServiceDetail() {
                 alt={serviceDetail?.serviceProviderId?.company_name  !== "undefined" ? serviceDetail?.serviceProviderId?.company_name : '-'}
               />
               <div>
-                <h5>{serviceDetail?.serviceProviderId?.company_name  !== "undefined" ? serviceDetail?.serviceProviderId?.company_name : '-'}</h5>
-                <p>{serviceDetail?.serviceProviderId?.street_address !== "undefined" ? serviceDetail?.serviceProviderId?.street_address : "-"}</p>
-                 <p>{serviceDetail?.serviceProviderId?.suburbs !== "undefined" ? serviceDetail?.serviceProviderId?.suburbs : "-"}</p>
-                 <div className="social-links d-flex gap-2 align-items-center justify-content-start mt-2">
-                    {/* Facebook */}
-                    {serviceDetail?.serviceProviderId?.facebook_link && (
-                      <a
-                        href={
-                          serviceDetail?.serviceProviderId?.facebook_link?.startsWith('http://') || 
-                          serviceDetail?.serviceProviderId?.facebook_link?.startsWith('https://')
-                            ? serviceDetail?.serviceProviderId?.facebook_link
-                            : `https://${serviceDetail?.serviceProviderId?.facebook_link}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img
-                          src={facebookLogo}
-                          alt=""
-                        />
-                      </a>
-                    )}
-
-                    {/* Instagram */}
-                    {serviceDetail?.serviceProviderId?.instagram_link && (
-                      <a
-                        href={
-                          serviceDetail?.serviceProviderId?.instagram_link?.startsWith('http://') || 
-                          serviceDetail?.serviceProviderId?.instagram_link?.startsWith('https://')
-                            ? serviceDetail?.serviceProviderId?.instagram_link
-                            : `https://${serviceDetail?.serviceProviderId?.instagram_link}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img
-                          src={instagramLogo}
-                          alt=""
-                        />
-                      </a>
-                    )}
-
-                    {/* Website */}
-                    {serviceDetail?.serviceProviderId?.website_link && (
-                      <a
-                        href={
-                          serviceDetail?.serviceProviderId?.website_link?.startsWith('http://') || 
-                          serviceDetail?.serviceProviderId?.website_link?.startsWith('https://')
-                            ? serviceDetail?.serviceProviderId?.website_link
-                            : `https://${serviceDetail?.serviceProviderId?.website_link}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img
-                          src={link}
-                          alt="website"
-                        />
-                      </a>
-                    )}
-                  </div>
+                <h5>{serviceDetail?.serviceProviderId?.company_name !== "undefined" ? serviceDetail?.serviceProviderId?.company_name : ""}</h5>
+                {serviceDetail?.serviceProviderId?.street_address &&
+                  serviceDetail.serviceProviderId.street_address !== "undefined" && (
+                  <p>{serviceDetail.serviceProviderId.street_address}</p>
+                )}
+                {serviceDetail?.serviceProviderId?.suburbs &&
+                  serviceDetail.serviceProviderId.suburbs !== "undefined" && (
+                  <p>{serviceDetail.serviceProviderId.suburbs}</p>
+                )}
+                {(() => {
+                  const sp = serviceDetail?.serviceProviderId;
+                  const validLink = (v) => v && v !== "undefined";
+                  const hasSocial = validLink(sp?.facebook_link) || validLink(sp?.instagram_link) || validLink(sp?.website_link);
+                  if (!hasSocial) return null;
+                  const toHref = (v) =>
+                    v.startsWith("http://") || v.startsWith("https://") ? v : `https://${v}`;
+                  return (
+                    <div className="social-links d-flex gap-2 align-items-center justify-content-start mt-2">
+                      {validLink(sp?.facebook_link) && (
+                        <a href={toHref(sp.facebook_link)} target="_blank" rel="noopener noreferrer">
+                          <img src={facebookLogo} alt="" />
+                        </a>
+                      )}
+                      {validLink(sp?.instagram_link) && (
+                        <a href={toHref(sp.instagram_link)} target="_blank" rel="noopener noreferrer">
+                          <img src={instagramLogo} alt="" />
+                        </a>
+                      )}
+                      {validLink(sp?.website_link) && (
+                        <a href={toHref(sp.website_link)} target="_blank" rel="noopener noreferrer">
+                          <img src={link} alt="website" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

@@ -44,6 +44,7 @@ import CorporateCategoryDetail from "../Pages/corporateCategoryDetail";
 import BrowseCorporateCategory from "../Pages/BrowseCorporatecategory";
 import ProductHistory from "../Pages/ProductHistory";
 import NearByCorporate from "../Pages/NearByCorporate";
+import NearByServiceProviderDetail from "../Pages/NearByServiceProviderDetail";
 import SubscriptionPlan from "../Pages/corporate/SubscriptionPlan";
 import SubscriptionCancel from "../Pages/corporate/SubscriptionCancel";
 import SubscriptionSuccess from "../Pages/corporate/SubscriptionSuccess";
@@ -134,6 +135,7 @@ const RoutesPage = () => {
           <Route path="/browse-category" element={<BrowseCategory />} />
           <Route path="/browse-corporate-category" element={<BrowseCorporateCategory />} />
           <Route path="/near-by-corporate" element={<NearByCorporate />} />
+          <Route path="/near-by-service-provider" element={<NearByServiceProviderDetail />} />
 
           <Route element={<ProtectHome />}>
             <Route path="/" element={<Home />} />

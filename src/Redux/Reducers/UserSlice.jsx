@@ -11,6 +11,7 @@ const UserSlice = createSlice({
     categories: null,
     bestservices: null,
     nearByServices: null,
+    nearByServiceProviders: null,
     payBookingStatus: false,
     serviceDetail: null,
     categoriesDetail: null,
@@ -166,7 +167,6 @@ const UserSlice = createSlice({
 
     ////////////////////////////////// get near by service //////////
 
-
     builder.addCase(CustomerActions.getNearByServices.pending, (state) => {
       state.loading = true;
     });
@@ -185,6 +185,27 @@ const UserSlice = createSlice({
       }
     );
 
+    ////////////////////////////////// get nearby service providers by category //////////
+
+    builder.addCase(CustomerActions.getNearbyServiceProvider.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(
+      CustomerActions.getNearbyServiceProvider.fulfilled,
+      (state, action) => {
+        state.loading = false;
+        state.nearByServiceProviders = action.payload?.data?.data
+          ? action.payload.data
+          : action.payload?.data;
+      }
+    );
+    builder.addCase(
+      CustomerActions.getNearbyServiceProvider.rejected,
+      (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      }
+    );
 
 
 

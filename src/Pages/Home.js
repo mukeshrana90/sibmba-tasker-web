@@ -90,8 +90,9 @@ export default function Home() {
         Navigate(`/customer-service-detail?service_id=${id}`);
       } else if(type == "corporate"){
         Navigate(`get-corporate/${id}`)
-      }
-      else {
+      } else if (type == "nearbyCategory") {
+        Navigate(`/near-by-service-provider?categoryId=${id}`);
+      } else {
         Navigate(`/customer-category-detail?categoryId=${id}`);
       }
     } else {
@@ -326,7 +327,7 @@ export default function Home() {
                       <div key={ele._id}>
                         <>
                           <img
-                            onClick={() => handleProfiles("category", ele._id)}
+                            onClick={() => handleProfiles("nearbyCategory", ele._id)}
                             className="point-cursor"
                             src={
                               ele?.image
@@ -385,7 +386,7 @@ export default function Home() {
                   return (
                     <div key={ele?._id || index}>
                       <img
-                        onClick={() => handleProfiles("category", ele._id)}
+                        onClick={() => handleProfiles("nearbyCategory", ele._id)}
                         className="point-cursor"
                         src={imgSrc}
                         alt="categories-img"
