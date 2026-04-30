@@ -43,10 +43,15 @@ export default function CustomerServiceDetail() {
 
   const buildWhatsAppUrl = () => {
     const sp = serviceDetail?.serviceProviderId;
-    const providerName =
+    const toTitleCase = (str) =>
+      str
+        ? str.replace(/\b\w/g, (c) => c.toUpperCase())
+        : str;
+    const rawName =
       (sp?.company_name && sp.company_name !== "undefined" ? sp.company_name : null) ||
       sp?.full_name ||
       "Provider";
+    const providerName = toTitleCase(rawName);
     const categoryName =
       serviceDetail?.serviceSubCategoryName ||
       serviceDetail?.serviceCategoryId?.service_category_name ||
