@@ -1,13 +1,15 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
+import Modal from "react-bootstrap/Modal";
 import Layout from "../Components/Layout/Layout";
 import Slider from "react-slick";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import StarRating from "../CommanComponents/StarRating";
+import MapComponent from "../CommanComponents/MapComponent";
 import { formatDate } from "fullcalendar/index.js";
 import { chunk } from "lodash";
 import defaultImage from "../Assets/Images/placeholder.jpg";
@@ -27,6 +29,8 @@ export default function ServiceProvider() {
 
   const profile = useSelector((e) => e.UserSlice.serviceProviderProfile);
   const loading = useSelector((e) => e.UserSlice.loading);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [mapData, setMapData] = useState({ coordinates: null, address: "" });
 
   const provider = profile?.provider;
   const services = profile?.services || [];
@@ -150,66 +154,82 @@ export default function ServiceProvider() {
                       <h2>Service Provider</h2>
                     </div>
                     <div className="provider-pro-view provider-pro-view--profile">
-                      <div className="provider-pro-view__main">
-                        <img
-                          className="provider-pro-view__photo"
-                          src={profileImageSrc}
-                          alt={displayName}
-                        />
-                        <div className="provider-pro-view__info">
-                          <h5>{displayName}</h5>
-                          <p className="provider-pro-view__location">
-                            {street ||
-                              safeVal(provider?.suburbs) ||
-                              "Service Provider"}
-                          </p>
-                          <div className="provider-stats-row">
-                            <span className="provider-stat-pill">
-                              <strong>{completedJobsCount}</strong> completed
-                              jobs
-                            </span>
-                            {distanceKm != null && (
+                      <div className="provider-pro-view__top">
+                        <div className="provider-pro-view__main">
+                          <img
+                            className="provider-pro-view__photo"
+                            src={profileImageSrc}
+                            alt={displayName}
+                          />
+                          <div className="provider-pro-view__info">
+                            <h5>{displayName}</h5>
+                            <p className="provider-pro-view__location">
+                              {street ||
+                                safeVal(provider?.suburbs) ||
+                                "Service Provider"}
+                            </p>
+                            <div className="provider-stats-row">
                               <span className="provider-stat-pill">
-                                <strong>{distanceKm} km</strong> from you
+                                <strong>{completedJobsCount}</strong> completed
+                                jobs
                               </span>
-                            )}
-                          </div>
-                          <div className="provider-rating-row">
-                            <StarRating
-                              averageRating={averageRating}
-                              reviewCount={feedbackCount}
-                            />
+                              {distanceKm != null && (
+                                <span className="provider-stat-pill">
+                                  <strong>{distanceKm} km</strong> from you
+                                </span>
+                              )}
+                            </div>
+                            <div className="provider-rating-row">
+                              <StarRating
+                                averageRating={averageRating}
+                                reviewCount={feedbackCount}
+                              />
+                            </div>
                           </div>
                         </div>
+                        {provider?._id && (
+                          <div className="provider-pro-view__icon-btns">
+                            {/* Chat */}
+                            <button
+                              type="button"
+                              title="Send message"
+                              onClick={() => {
+                                navigate(`/messages?userID=${provider._id}`);
+                                localStorage.setItem("reciverID", provider._id);
+                              }}
+                            >
+                              <svg width="44" height="45" viewBox="0 0 44 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="0.5" y="1" width="43" height="43" rx="21.5" stroke="#E5E5E5"/>
+                                <path d="M31.25 12H13.25C12.0095 12 11 13.0095 11 14.25V26.25C11 27.4905 12.0095 28.5 13.25 28.5H15.5V32.25C15.5002 32.3912 15.5403 32.5295 15.6156 32.6489C15.6908 32.7684 15.7983 32.8642 15.9255 32.9254C16.0528 32.9865 16.1947 33.0106 16.335 32.9947C16.4754 32.9789 16.6083 32.9238 16.7188 32.8358L22.1383 28.5H31.25C32.4905 28.5 33.5 27.4905 33.5 26.25V14.25C33.5 13.0095 32.4905 12 31.25 12ZM22.25 22.5H16.25C16.0511 22.5 15.8603 22.421 15.7197 22.2803C15.579 22.1397 15.5 21.9489 15.5 21.75C15.5 21.5511 15.579 21.3603 15.7197 21.2197C15.8603 21.079 16.0511 21 16.25 21H22.25C22.4489 21 22.6397 21.079 22.7803 21.2197C22.921 21.3603 23 21.5511 23 21.75C23 21.9489 22.921 22.1397 22.7803 22.2803C22.6397 22.421 22.4489 22.5 22.25 22.5ZM28.25 19.5H16.25C16.0511 19.5 15.8603 19.421 15.7197 19.2803C15.579 19.1397 15.5 18.9489 15.5 18.75C15.5 18.5511 15.579 18.3603 15.7197 18.2197C15.8603 18.079 16.0511 18 16.25 18H28.25C28.4489 18 28.6397 18.079 28.7803 18.2197C28.921 18.3603 29 18.7511 29 18.75C29 18.9489 28.921 19.1397 28.7803 19.2803C28.6397 19.421 28.4489 19.5 28.25 19.5Z" fill="#252525"/>
+                              </svg>
+                            </button>
+                            {/* Map */}
+                            {provider?.location?.coordinates && (
+                              <button
+                                type="button"
+                                title="View on map"
+                                onClick={() => {
+                                  setMapData({
+                                    coordinates: provider.location.coordinates,
+                                    address: street || displayName,
+                                  });
+                                  setShowMapModal(true);
+                                }}
+                              >
+                                <svg width="44" height="45" viewBox="0 0 44 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <rect x="0.5" y="1" width="43" height="43" rx="21.5" stroke="#E5E5E5"/>
+                                  <path d="M10 33.6088C10.1242 33.3324 10.2421 33.0529 10.3787 32.7858C10.4284 32.6896 10.5122 32.5902 10.6053 32.5436C12.5516 31.5406 14.5041 30.5469 16.4535 29.55C16.5529 29.5004 16.6367 29.4258 16.7577 29.55C18.3005 31.0996 19.8464 32.643 21.3922 34.1864C21.414 34.2081 21.4295 34.2329 21.4543 34.2671C21.3333 34.3478 21.2215 34.4224 21.1098 34.5C17.5772 34.5 14.0447 34.5 10.5153 34.5C10.2825 34.3882 10.1117 34.2143 10 33.9845C10 33.8603 10 33.7361 10 33.6088Z" fill="#252525"/>
+                                  <path d="M24.158 34.5C24.6795 34.2205 25.1948 33.9379 25.7194 33.6647C27.8986 32.5343 30.0777 31.4039 32.2568 30.2767C32.3313 30.2394 32.4089 30.2022 32.502 30.1556C32.7317 30.6897 32.9552 31.2114 33.1787 31.7331C33.4053 32.2641 33.635 32.792 33.8616 33.3231C34.1162 33.9193 34.0355 34.1708 33.486 34.5C30.3788 34.5 27.2684 34.5 24.158 34.5Z" fill="#252525"/>
+                                  <path d="M15.6371 17.2807C15.6713 15.8554 15.9507 14.4921 16.7515 13.2934C18.1298 11.2284 20.1071 10.3402 22.5501 10.5234C25.3563 10.7346 27.7309 12.7531 28.2493 15.992C28.5411 17.8024 28.1438 19.4793 27.4174 21.1159C26.4737 23.243 25.1979 25.1653 23.7918 27.0067C23.3944 27.5284 22.9785 28.0377 22.5563 28.5377C22.2428 28.9103 21.7647 28.9228 21.4574 28.5594C19.5887 26.3329 17.9063 23.9821 16.677 21.3301C16.2052 20.3147 15.8358 19.2619 15.6961 18.144C15.662 17.8583 15.6558 17.5695 15.6371 17.2807ZM22.0007 18.9452C23.1709 18.9452 24.1146 18.0043 24.1146 16.8367C24.1146 15.669 23.1678 14.7219 22.0007 14.7188C20.8366 14.7188 19.8867 15.669 19.8867 16.8335C19.8867 18.0043 20.8304 18.9421 22.0007 18.9452Z" fill="#252525"/>
+                                  <path d="M17.9839 28.7706C18.4216 28.547 18.8313 28.3389 19.2411 28.1309C19.598 28.5656 19.9395 28.9911 20.2903 29.4103C21.2557 30.5717 22.7488 30.5686 23.7204 29.4103C25.2942 27.5315 26.7097 25.5441 27.8923 23.3952C27.9544 23.2803 28.0227 23.2213 28.1624 23.2244C28.4666 23.2368 28.7708 23.2275 29.075 23.2337C29.3792 23.2399 29.5965 23.3921 29.7145 23.6685C30.4564 25.3888 31.1921 27.1092 31.9402 28.8451C31.8719 28.8855 31.8067 28.929 31.7415 28.9631C28.8267 30.4754 25.9119 31.9878 22.9971 33.5001C22.8791 33.5622 22.7953 33.5994 22.6743 33.4752C21.1532 31.9474 19.626 30.4258 18.0987 28.901C18.0646 28.8669 18.0367 28.8296 17.9839 28.7706Z" fill="#252525"/>
+                                  <path d="M18.3781 26.985C16.0407 28.1806 13.7126 29.3699 11.3317 30.5841C11.3782 30.4599 11.4 30.3885 11.431 30.3202C12.3623 28.1495 13.2997 25.9789 14.2217 23.8051C14.3924 23.3983 14.6593 23.1996 15.1001 23.2213C15.3485 23.2337 15.5999 23.212 15.8482 23.2306C15.932 23.2368 16.0407 23.2927 16.0841 23.361C16.8385 24.5349 17.5834 25.718 18.3284 26.8949C18.344 26.9136 18.3533 26.9353 18.3781 26.985Z" fill="#252525"/>
+                                  <path d="M22.0038 17.5323C21.6157 17.5323 21.3022 17.2248 21.2991 16.8398C21.296 16.4516 21.6251 16.1193 22.0131 16.1255C22.3918 16.1317 22.7084 16.4547 22.7084 16.8367C22.7022 17.2248 22.3918 17.5323 22.0038 17.5323Z" fill="#252525"/>
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      {provider?._id && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigate(`/messages?userID=${provider._id}`);
-                            localStorage.setItem("reciverID", provider._id);
-                          }}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="25"
-                            viewBox="0 0 24 25"
-                            fill="none"
-                          >
-                            <path
-                              d="M21.4859 11.0015C21.8494 10.9788 22.1767 11.2207 22.2617 11.5749C22.3659 12.0084 22.4344 12.4557 22.4643 12.9134C22.512 13.645 22.512 14.4016 22.4643 15.1333C22.3682 16.6066 21.7212 17.9294 21.0096 18.9949C20.8323 19.3418 20.9143 19.8954 21.3068 20.6324L21.3272 20.6705C21.4584 20.9167 21.5926 21.1686 21.6709 21.3857C21.7545 21.6176 21.8516 22.0142 21.6178 22.409C21.4051 22.7683 21.0669 22.8957 20.8084 22.9453C20.5968 22.9858 20.3401 22.9919 20.1105 22.9973L20.0686 22.9983C18.8373 23.028 17.9638 22.6749 17.2713 22.169C17.165 22.0914 17.0866 22.0343 17.0256 21.9913C16.9331 22.0265 16.811 22.0762 16.641 22.1455C16.1692 22.338 15.635 22.4528 15.1444 22.4851C13.901 22.567 12.6017 22.5672 11.3558 22.4851C9.85327 22.3862 8.46648 21.8651 7.31325 21.0388C7.02544 20.8326 6.92104 20.4532 7.06284 20.1287C7.20464 19.8043 7.55401 19.6233 7.90084 19.6944C9.79994 20.0842 12.8355 20.1543 15.4813 19.0777C18.0693 18.0247 20.3172 15.8699 20.7871 11.6667C20.8276 11.3047 21.1223 11.0241 21.4859 11.0015Z"
-                              fill="#252525"
-                            />
-                            <path
-                              fillRule="evenodd"
-                              clipRule="evenodd"
-                              d="M12.1443 1.56147C10.8984 1.47942 9.59906 1.4796 8.35571 1.56147C4.42185 1.82054 1.29316 4.96804 1.03579 8.91335C0.98807 9.64497 0.98807 10.4016 1.03579 11.1333C1.13191 12.6066 1.77884 13.9294 2.49047 14.9949C2.66772 15.3418 2.58576 15.8954 2.19322 16.6324L2.17291 16.6705C2.04166 16.9167 1.90744 17.1685 1.82916 17.3857C1.74552 17.6176 1.64847 18.0142 1.88225 18.409C1.96127 18.5425 2.07112 18.6704 2.22404 18.7719C2.37081 18.8692 2.52248 18.9189 2.65415 18.947C2.88549 18.9964 3.16753 18.9984 3.44071 18.9985C4.6671 19.0262 5.53802 18.6736 6.22877 18.169C6.33506 18.0913 6.41347 18.0342 6.47449 17.9913C6.56698 18.0265 6.68915 18.0762 6.85908 18.1455C7.33095 18.338 7.86507 18.4528 8.35571 18.4851C9.59905 18.567 10.8984 18.5672 12.1443 18.4851C16.0781 18.2261 19.2069 15.0785 19.4642 11.1332C19.5119 10.4016 19.5119 9.64493 19.4642 8.91334C19.2068 4.96803 16.0781 1.82054 12.1443 1.56147ZM6.75 7.5C6.33579 7.5 6 7.83579 6 8.25C6 8.66421 6.33579 9 6.75 9H10.75C11.1642 9 11.5 8.66421 11.5 8.25C11.5 7.83579 11.1642 7.5 10.75 7.5H6.75ZM6.75 13H13.75C14.1642 13 14.5 12.6642 14.5 12.25C14.5 11.8358 14.1642 11.5 13.75 11.5H6.75C6.33579 11.5 6 11.8358 6 12.25C6 12.6642 6.33579 13 6.75 13Z"
-                              fill="#252525"
-                            />
-                          </svg>
-                        </button>
-                      )}
                     </div>
                   </div>
                 </Container>
@@ -367,6 +387,17 @@ export default function ServiceProvider() {
           </div>
         </Container>
       </section>
+
+      <Modal show={showMapModal} onHide={() => setShowMapModal(false)} centered size="lg">
+        <Modal.Header closeButton className="border-none pb-0">
+          <Modal.Title>Provider Location</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="comman-small-pop text-center">
+            <MapComponent coordinates={mapData.coordinates} address={mapData.address} />
+          </div>
+        </Modal.Body>
+      </Modal>
     </Layout>
   );
 }

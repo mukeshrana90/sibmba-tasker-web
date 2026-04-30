@@ -2082,6 +2082,75 @@ input[type="checkbox"]:checked::before {
   align-items: center;
 }
 
+.service-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.service-detail-info h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #252525;
+}
+
+.service-detail-desc {
+  margin: 0;
+  color: #545454;
+  font-size: 15px;
+}
+
+.service-detail-price {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #252525;
+}
+
+.service-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.whatsapp-quote-btn--inline {
+  width: auto !important;
+  display: inline-flex !important;
+  background: #038654 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 34px !important;
+}
+
+.whatsapp-quote-btn--inline:hover {
+  background: #026b43 !important;
+  color: #fff !important;
+}
+
+.book-service-btn {
+  color: #fff !important;
+  background: #038654 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 34px !important;
+  font-family: "Open Sans", sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  display: inline-block;
+  transition: background 0.2s;
+}
+
+.book-service-btn:hover {
+  background: #026b43 !important;
+}
+
 .book-service-action-btn button {
   color: #fff;
   text-align: center;
@@ -2467,6 +2536,59 @@ button.booking-job-done-btn:disabled {
   background: transparent;
   width: 50px;
   height: 50px;
+}
+
+.provider-pro-view--profile {
+  flex-direction: column !important;
+  align-items: stretch !important;
+}
+
+.provider-pro-view__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.provider-pro-view__icon-btns {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.provider-pro-view__icon-btns button {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.whatsapp-quote-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 33%;
+  padding: 12px 20px;
+  border-radius: 38px;
+  border: 1.5px solid #038654;
+  background: transparent;
+  color: #038654;
+  font-family: "Open Sans", sans-serif;
+  font-size: 15px;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.whatsapp-quote-btn:hover {
+  background: #038654;
+  color: #fff;
 }
 
 /* —— Service provider profile (web) —— */

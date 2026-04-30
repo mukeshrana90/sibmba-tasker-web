@@ -80,6 +80,15 @@ export default function NearByServiceProviderDetail() {
   const goToProvider = (providerId) => {
     if (!providerId) return;
     if (token) {
+      if (categoryId) {
+        dispatch(
+          CustomerActions.logProviderEvent({
+            provider_id: providerId,
+            serviceCategoryId: categoryId,
+            source: "profile",
+          })
+        ).catch(() => {});
+      }
       Navigate(`/service-provider/${providerId}`);
     } else {
       Navigate("/login");

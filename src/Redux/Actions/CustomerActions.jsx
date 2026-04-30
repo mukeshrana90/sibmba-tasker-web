@@ -647,6 +647,15 @@ const CustomerActions = {
     const response = await Api.post("/customer/auth/logOut");
     return response.data;
   }),
+
+  // MARK: - Log Provider Event
+  logProviderEvent: createAsyncThunk(
+    "/customer/log-provider-event",
+    async (payload) => {
+      const response = await Api.post("/customer/log-provider-event", payload);
+      return response.data;
+    }
+  ),
 };
 
 export default CustomerActions;
