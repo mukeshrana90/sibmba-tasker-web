@@ -1,145 +1,176 @@
-import React, { useEffect, useState } from "react";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import PaginationComponent from "../CommanComponents/PaginationComponent";
-import ReadMore from "../CommanComponents/ReadMore";
+import Loader from "../CommanComponents/Loader";
+import SimbaPager from "../CommanComponents/SimbaPager";
+import SimbaPageBanner from "../CommanComponents/SimbaPageBanner";
+import {
+  categoryImageUrl,
+  defaultImage,
+  formatDisplayTitle,
+} from "../utils/landingUtils";
 
 export default function Services() {
   const dispatch = useDispatch();
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
+
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit] = useState(10);
   const [loading, setLoading] = useState(true);
-  const AllUserServices = useSelector((e) => e.UserSlice.AllUserServices);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const fetchCategoryAndServices = async () => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
       setLoading(true);
       try {
-        const [getAllServices] = await Promise.all([
-          dispatch(CustomerActions.getAllServices({ page, limit })),
-        ]);
+        const result = await dispatch(
+          CustomerActions.getCategories({
+            page,
+            limit,
+            search: debouncedSearch.trim() || undefined,
+          })
+        ).unwrap();
+        const data = result?.data || result;
+        setCategories(data?.allCat || []);
+        setTotalPages(data?.totalPages || 1);
       } catch (error) {
-        console.error("Error fetching category and services:", error);
+        console.error("Error fetching service categories:", error);
+        setCategories([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategoryAndServices();
-  }, [dispatch, page]);
+    fetchCategories();
+  }, [dispatch, page, limit, debouncedSearch]);
 
-  const handleProfiles = (type, id) => {
-    if (token) {
-      if (type == "services") {
-        Navigate(`/customer-service-detail?service_id=${id}`);
-      } else {
-        Navigate("/category");
-      }
-    } else {
-      Navigate("/login");
+  const handleCategoryClick = (categoryId, categoryName) => {
+    if (!token) {
+      navigate("/login");
+      return;
     }
+    navigate(`/customer-category-detail?categoryId=${categoryId}`, {
+      state: { categoryName },
+    });
   };
 
-  return (
-    <Layout>
-      <section className="breadcrumb-nav">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="breadcrumb-nav-contain">
-                <h2>All Services</h2>
-                <p>Home / Services</p>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+  const emptyMessage = useMemo(() => {
+    if (debouncedSearch.trim()) {
+      return `No categories match "${debouncedSearch.trim()}".`;
+    }
+    return "No service categories available yet.";
+  }, [debouncedSearch]);
 
-      <section className="category-services-sec pt-0 mt-5">
-        <Container>
-          <div className="category-services-lists">
-            <div className="sort-by-filter">
-              <button>
+  return (
+    <Layout footerVariant="marketing">
+      <div className="simba-page p-serviceproviders">
+        <SimbaPageBanner
+          title="Browse Services By Category"
+          crumbLabel="Service Category"
+        />
+
+        <main className="page">
+          <div className="wrap">
+            <div className="svc-search-row">
+              <div className="svc-search">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="17"
-                  viewBox="0 0 16 17"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
                   fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
                 >
-                  <path
-                    d="M6.33854 15.1654C5.93854 15.1654 5.67188 14.8987 5.67188 14.4987V2.4987C5.67188 2.0987 5.93854 1.83203 6.33854 1.83203C6.73854 1.83203 7.00521 2.0987 7.00521 2.4987V14.4987C7.00521 14.8987 6.73854 15.1654 6.33854 15.1654Z"
-                    fill="#252525"
-                  />
-                  <path
-                    d="M2.33854 7.16536C2.13854 7.16536 2.00521 7.0987 1.87188 6.96536C1.60521 6.6987 1.60521 6.2987 1.87188 6.03203L5.87188 2.03203C6.13854 1.76536 6.53854 1.76536 6.80521 2.03203C7.07188 2.2987 7.07188 2.6987 6.80521 2.96536L2.80521 6.96536C2.67187 7.0987 2.53854 7.16536 2.33854 7.16536ZM9.67188 15.1654C9.27188 15.1654 9.00521 14.8987 9.00521 14.4987V2.4987C9.00521 2.0987 9.27188 1.83203 9.67188 1.83203C10.0719 1.83203 10.3385 2.0987 10.3385 2.4987V14.4987C10.3385 14.8987 10.0719 15.1654 9.67188 15.1654Z"
-                    fill="#252525"
-                  />
-                  <path
-                    d="M9.67448 15.1654C9.47448 15.1654 9.34115 15.0987 9.20781 14.9654C8.94115 14.6987 8.94115 14.2987 9.20781 14.032L13.2078 10.032C13.4745 9.76536 13.8745 9.76536 14.1411 10.032C14.4078 10.2987 14.4078 10.6987 14.1411 10.9654L10.1411 14.9654C10.0078 15.1654 9.87448 15.1654 9.67448 15.1654Z"
-                    fill="#252525"
-                  />
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4-4" strokeLinecap="round" />
                 </svg>
-                Sort by
-              </button>
+                <input
+                  type="text"
+                  placeholder="Search service category..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
+              </div>
             </div>
 
-            {Array.isArray(AllUserServices?.allCat) &&
-            AllUserServices?.allCat.length > 0 ? (
-              <div>
-                <div className="services-list">
-                  {Array.isArray(AllUserServices?.allCat) &&
-                    AllUserServices?.allCat.length > 0 &&
-                    AllUserServices?.allCat.map((ele, index) => {
-                      return (
-                        <div key={index}>
-                          {Array.isArray(ele?.images) &&
-                            ele.images.length > 0 && (
-                              <img
-                                onClick={() =>
-                                  handleProfiles("services", ele?._id)
-                                }
-                                className="point-cursor"
-                                src={`${process.env.REACT_APP_API_URL}/user/${ele?.images[0]}`}
-                                alt="categories-img"
-                              />
-                            )}
-                          <h3>{ele?.serviceSubCategoryName}</h3>
-                          {/* <p>{ele?.desc}</p> */}
-                          <ReadMore desc={ele?.desc} />
-                        </div>
-                      );
-                    })}
-                </div>
-                {Array.isArray(AllUserServices?.allCat) &&
-                  AllUserServices?.totalCount > 10 && (
-                    <div className="pagination-flexs">
-                      <div></div>
-                      <div className="mt-5">
-                        <PaginationComponent
-                          page={page}
-                          setPage={setPage}
-                          totalPages={AllUserServices?.totalPages}
-                        />
-                      </div>
-                    </div>
-                  )}
+            {loading ? (
+              <div className="svc-loading">
+                <Loader />
               </div>
+            ) : categories.length === 0 ? (
+              <p className="svc-empty">{emptyMessage}</p>
             ) : (
               <>
-                <h1> No Data Found </h1>
+                <div className="cat-grid">
+                  {categories.map((category) => (
+                    <button
+                      key={category._id}
+                      type="button"
+                      className="cat-tile"
+                      onClick={() =>
+                        handleCategoryClick(
+                          category._id,
+                          category.service_category_name
+                        )
+                      }
+                    >
+                      <div className="cat-thumb">
+                        <img
+                          src={categoryImageUrl(category)}
+                          alt={category.service_category_name || "Category"}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = defaultImage;
+                          }}
+                        />
+                        <div className="ov">
+                          <span>
+                            View providers
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.6"
+                              strokeLinecap="round"
+                            >
+                              <path d="M5 12h14M13 6l6 6-6 6" />
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                      <div className="cat-name">
+                        {formatDisplayTitle(category.service_category_name)}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <SimbaPager
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
               </>
             )}
           </div>
-        </Container>
-      </section>
+        </main>
+      </div>
     </Layout>
   );
 }

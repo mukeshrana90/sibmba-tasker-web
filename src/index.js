@@ -5,6 +5,7 @@ import "./Assets/css/responsive.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./Assets/css/simba-marketing.css";
 
 // Import css files
 import "slick-carousel/slick/slick.css";

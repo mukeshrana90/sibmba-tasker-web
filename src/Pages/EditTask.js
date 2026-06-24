@@ -13,6 +13,7 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import AddressAutocomplete from "../CommanComponents/AddressAutocomplete";
 import moment from "moment";
+import { taskImageUrl } from "../utils/landingUtils";
 
 const validationSchema = Yup.object({
   need_done: Yup.string().required("Task description is required"),
@@ -51,7 +52,7 @@ export default function EditTask() {
   useEffect(() => {
     if (postTaskDetails?.data?.task?.images) {
       const imagePreviews = postTaskDetails.data.task.images.map(
-        (image) => `${process.env.REACT_APP_API_URLL}${image}`
+        (image) => taskImageUrl(image)
       );
       setPreviews(imagePreviews);
     }

@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { Container, Row, Col, Tab, Nav, Modal } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import Layout from "../../../Components/Layout/Layout";
+import CorporatePageShell from "../../../CommanComponents/CorporatePageShell";
 import ProductActions, {
   removeProduct,
 } from "../../../Redux/Actions/ProductActions";
 import { toast } from "react-toastify";
 import * as bootstrap from "bootstrap";
+import {
+  handleCategoryImageError,
+  productImageUrl,
+} from "../../../utils/landingUtils";
 
 export default function CorporateProducts() {
   const navigate = useNavigate();
@@ -88,16 +92,13 @@ export default function CorporateProducts() {
       });
   };
   return (
-    <Layout>
-      <section className="search-results-sec">
-        <Container>
-          <Row>
-            <Col lg={12}>
+    <>
+    <CorporatePageShell title="Products" crumbLabel="Products">
               <div className="search-results-contain">
-                <div className="services-secs d-flex justify-content-between align-items-center mb-3 px-1">
-                  <h2 className="mb-1">Products</h2>
+                <div className="corp-portal-toolbar">
                   <button
-                    className="service-btn mt-5"
+                    type="button"
+                    className="btn btn-primary"
                     onClick={handleAddService}
                   >
                     + Add Product
@@ -145,10 +146,11 @@ export default function CorporateProducts() {
                                         <img
                                           src={
                                             item?.images?.length
-                                              ? `${process.env.REACT_APP_API_URL}/products/${item?.images[0]}`
+                                              ? productImageUrl(item?.images[0])
                                               : ""
                                           }
                                           alt={""}
+                                          onError={handleCategoryImageError}
                                           onClick={() =>
                                             handleProviderClick(item?._id)
                                           }
@@ -284,10 +286,7 @@ export default function CorporateProducts() {
                   </Tab.Container>
                 </div>
               </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+    </CorporatePageShell>
       <div
         className="modal fade deleteConfirmModal"
         id="deleteConfirmModal"
@@ -363,6 +362,6 @@ export default function CorporateProducts() {
         </div>
       </Modal.Body>
     </Modal>
-    </Layout>
+    </>
   );
 }

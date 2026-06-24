@@ -16,10 +16,16 @@ import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirma
 import BookingCancelled from "../CommanComponents/Modals/BookingCancelled";
 import SuggestCorporateModal from "../CommanComponents/Modals/SuggestCorporateModal";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import defaultImage from "../Assets/Images/placeholder.jpg";
 import JobFlowStepper from "../CommanComponents/JobFlowStepper";
 import {
+  handleCategoryImageError,
+  handleUserImageError,
+  serviceImageUrl,
+  userImageUrl,
+} from "../utils/landingUtils";
+import {
   bookingStatus,
+  canMessageOnActiveBooking,
   getBookingFlowStepperState,
   getBookingFlowDescription,
   JOB_FLOW_STEP_LABELS,
@@ -326,6 +332,23 @@ export default function ServiceRequest() {
   const bookingCoordinates = Array.isArray(bookingReqDetail?.location?.coordinates)
     ? bookingReqDetail.location.coordinates
     : null;
+  const customer = bookingReqDetail?.bookBy;
+  const customerId = customer?._id;
+  const customerName = customer?.full_name || "Customer";
+  const customerEmail = customer?.email || "";
+  const customerAddress =
+    bookingReqDetail?.address ||
+    [customer?.street_address, customer?.suburbs, customer?.city]
+      .filter(Boolean)
+      .join(", ") ||
+    "";
+  const canMessageCustomer =
+    Boolean(customerId) && canMessageOnActiveBooking(bookingCurrentStatus);
+  const handleMessageCustomer = () => {
+    if (!customerId) return;
+    localStorage.setItem("reciverID", customerId);
+    Navigate(`/messages?userID=${customerId}`);
+  };
   const customerCoordinates = Array.isArray(
     bookingReqDetail?.bookBy?.location?.coordinates
   )
@@ -404,8 +427,9 @@ export default function ServiceRequest() {
                       (image, index) => (
                         <div className="card-box">
                           <img
-                            src={`${process.env.REACT_APP_API_URL}/user/${image}`}
+                            src={serviceImageUrl(image)}
                             alt={``}
+                            onError={handleCategoryImageError}
                           />
                         </div>
                       )
@@ -537,7 +561,48 @@ export default function ServiceRequest() {
               </div>
             </Col>
 
-            <Col lg={12}>
+            {customer && (
+              <Col lg={12}>
+                <div className="booking-customer-card">
+                  <div className="booking-customer-card__head">
+                    <h4>Customer details</h4>
+                    {canMessageCustomer && (
+                      <button
+                        type="button"
+                        className="booking-customer-card__msg-btn"
+                        onClick={handleMessageCustomer}
+                      >
+                        Message customer
+                      </button>
+                    )}
+                  </div>
+                  <div className="booking-customer-card__body">
+                    <img
+                      className="booking-customer-card__avatar"
+                      src={userImageUrl(customer)}
+                      onError={handleUserImageError}
+                      alt={customerName}
+                    />
+                    <div className="booking-customer-card__info">
+                      <div className="booking-customer-card__name">{customerName}</div>
+                      {customerEmail ? (
+                        <div className="booking-customer-card__meta">{customerEmail}</div>
+                      ) : null}
+                      {customerAddress ? (
+                        <div className="booking-customer-card__meta">{customerAddress}</div>
+                      ) : null}
+                      {bookingReqDetail?.referenceId ? (
+                        <div className="booking-customer-card__meta">
+                          Booking ref: {bookingReqDetail.referenceId}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </Col>
+            )}
+
+            <Col lg={12} className="booking-message-section">
               <div>
                 <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
                   Message
@@ -571,11 +636,8 @@ export default function ServiceRequest() {
                 >
                   <div className="d-flex align-items-center">
                     <img
-                      src={
-                        corp.profile_image
-                          ? `${process.env.REACT_APP_API_URL}/${corp.profile_image}`
-                          : defaultImage
-                      }
+                      src={userImageUrl(corp)}
+                      onError={handleUserImageError}
                       alt={corp.full_name}
                       width={40}
                       height={40}
@@ -612,9 +674,10 @@ export default function ServiceRequest() {
                 <div className="d-flex align-items-center">
                   {corp.profile_image ? (
                     <img
-                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}` || defaultImage}
+                      src={userImageUrl(corp)}
                       alt={corp.full_name}
                       width={40}
+                      onError={handleUserImageError}
                       height={40}
                       className="rounded-circle me-2"
                     />
@@ -668,6 +731,12 @@ export default function ServiceRequest() {
                   setShowSuggestModal(false);
                 }}
                 customerData={bookingReqDetail}
+                fallbackCoords={
+                  currentLocation ||
+                  (mapLat != null && mapLng != null
+                    ? { lat: mapLat, lng: mapLng }
+                    : null)
+                }
               />
             </Col>
             <Col>

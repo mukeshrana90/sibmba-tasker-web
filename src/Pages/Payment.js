@@ -2,19 +2,18 @@ import React, { useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import Layout from "../Components/Layout/Layout";
+import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import cleaningImage from "../Assets/Images/paymentpic.svg"
 
 export default function Payment() {
     const [isActive, setIsActive] = useState(false);
 
     return (
-        <Layout>
-            <section className="head mb-5">
-                <Container>
-                    <div className="bookings-details-title">
-                        <h2 className="mt-5">Payments / Subscription</h2>
-                    </div>
+        <CorporatePageShell
+            title="Payments / Subscription"
+            pageClass="p-payments"
+            showBanner={false}
+        >
                     <Row>
                         <Col lg={6}>
                             <div className="payment-image mt-3">
@@ -114,8 +113,6 @@ export default function Payment() {
                             </div>
                         </Col>
                     </Row>
-                </Container>
-            </section>
-        </Layout>
+        </CorporatePageShell>
     );
 }

@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import AddressAutocomplete from "../CommanComponents/AddressAutocomplete";
 import defaultSilhouette from "../Assets/Images/silhotte.svg";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
+import { consumeAuthReturnUrl } from "../utils/authRedirect";
 
 export default function CompleteProfile() {
   const dispatch = useDispatch();
@@ -101,7 +102,7 @@ export default function CompleteProfile() {
         localStorage.setItem("token", temptokenVal);
         localStorage.setItem("role", 1);        // changed
         localStorage.removeItem("temptoken");
-        navigate(`/`, { replace: true });
+        navigate(consumeAuthReturnUrl() || "/", { replace: true });
       } else {
         toast.error(apiRes?.payload?.message);
       }
@@ -233,7 +234,7 @@ export default function CompleteProfile() {
                             position: "absolute",
                             bottom: "5px",
                             right: "5px",
-                            background: "#038654",
+                            background: "#0f5c4c",
                             borderRadius: "50%",
                             width: "30px",
                             height: "30px",
@@ -273,7 +274,7 @@ export default function CompleteProfile() {
                             position: "absolute",
                             bottom: "5px",
                             right: "5px",
-                            background: "#038654",
+                            background: "#0f5c4c",
                             borderRadius: "50%",
                             width: "30px",
                             height: "30px",
@@ -342,7 +343,7 @@ export default function CompleteProfile() {
                             position: "absolute",
                             bottom: "5px",
                             right: "5px",
-                            background: "#038654",
+                            background: "#0f5c4c",
                             borderRadius: "50%",
                             width: "30px",
                             height: "30px",
@@ -382,7 +383,7 @@ export default function CompleteProfile() {
                             position: "absolute",
                             bottom: "5px",
                             right: "5px",
-                            background: "#038654",
+                            background: "#0f5c4c",
                             borderRadius: "50%",
                             width: "30px",
                             height: "30px",

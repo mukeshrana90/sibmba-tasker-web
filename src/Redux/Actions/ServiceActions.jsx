@@ -34,9 +34,11 @@ const ServiceActions = {
 
   getCorporateCategoryList: createAsyncThunk(
     "service/corporate-category",
-    async ({ page = 1, limit = 1000 } = {}) => {
+    async ({ page = 1, limit = 10, search } = {}) => {
+      const params = { page, limit };
+      if (search) params.search = search;
       const response = await Api.get("service/corporate-category", {
-        params: { page, limit },
+        params,
       });
       return response.data;
     }
@@ -157,6 +159,8 @@ const ServiceActions = {
           when_done: data.date,
           task_time: data.time,
           type: data.type,
+          page: data.page,
+          limit: data.limit,
         },
       });
       return response.data;
@@ -305,6 +309,7 @@ getNearbyCorporateUser: createAsyncThunk(
         if (data?.page) params.page = data.page;
         if (data?.limit) params.limit = data.limit;
         if (data?.category_id) params.category_id = data.category_id;
+        if (data?.search) params.search = data.search;
 
         const response = await Api.get(
           "/service/getNearbyCorporateWithCategory",

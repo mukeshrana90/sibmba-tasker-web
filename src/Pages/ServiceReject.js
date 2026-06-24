@@ -15,6 +15,10 @@ import moment from "moment";
 import ServiceRescheduleModal from "../CommanComponents/Modals/ServiceRescheduleModal";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
 import StarRating from "../CommanComponents/StarRating";
+import {
+  handleCategoryImageError,
+  serviceImageUrl,
+} from "../utils/landingUtils";
 
 export default function ServiceReject() {
 
@@ -179,7 +183,8 @@ export default function ServiceReject() {
                                         bookingReqDetail?.serviceSubCategory?.images?.map((image, index) => (
                                             <div className="card-box">
                                                 <img
-                                                    src={`${process.env.REACT_APP_API_URL}/user/${image}`}
+                                                    src={serviceImageUrl(image)}
+                                                    onError={handleCategoryImageError}
                                                     alt={``}
                                                 // style={{ cursor: "pointer", maxWidth: "200px", margin: "0 auto" }}
                                                 />

@@ -242,6 +242,10 @@ import Slider from "react-slick";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { chunk } from "lodash";
+import {
+  handleCategoryImageError,
+  serviceImageUrl,
+} from "../utils/landingUtils";
 
 var settings = {
     dots: false,
@@ -372,7 +376,8 @@ export default function ServiceProCategoryDetail() {
                       categoryDetail?.images?.map((image, index) => (
                         <div key={index} className="card-box">
                           <img
-                            src={`${process.env.REACT_APP_API_URL}/user/${image}`}
+                            src={serviceImageUrl(image)}
+                            onError={handleCategoryImageError}
                             alt={``}
                           />
                         </div>

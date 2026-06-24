@@ -13,6 +13,7 @@ import { Container, Button } from "react-bootstrap";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "../utils/CommonFunction";
+import { serviceImageUrl } from "../utils/landingUtils";
 
 const validationSchema = Yup.object({
     images: Yup.array()
@@ -74,7 +75,7 @@ const AddService = () => {
     useEffect(() => {
         if (searchValFromUrl && serviceDetail?.images?.length > 0) {
             const imagePreviews = serviceDetail.images.map(
-                (image) => `${process.env.REACT_APP_API_URL}/user/${image}`
+                (image) => serviceImageUrl(image)
             );
             setExistingImages(imagePreviews);
             setPreviews(imagePreviews);
@@ -223,7 +224,7 @@ const AddService = () => {
                                             formData.append("service_id", searchValFromUrl);
                                             // Send deleted images to backend
                                             const originalImages = serviceDetail.images.map(
-                                                (img) => `${process.env.REACT_APP_API_URL}/user/${img}`
+                                                (img) => serviceImageUrl(img)
                                             );
                                             const deletedImages = originalImages.filter(
                                                 (img) => !existingImages.includes(img)
@@ -327,7 +328,7 @@ const AddService = () => {
                                                                         position: "absolute",
                                                                         top: "5px",
                                                                         right: "5px",
-                                                                        background: "#038654",
+                                                                        background: "#0f5c4c",
                                                                         borderRadius: "50%",
                                                                         width: "30px",
                                                                         height: "30px",

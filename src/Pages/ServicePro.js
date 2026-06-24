@@ -1,116 +1,151 @@
-import  { useEffect, useState } from "react";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Layout from "../Components/Layout/Layout";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import Loader from "../CommanComponents/Loader";
+import SimbaPager from "../CommanComponents/SimbaPager";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import PaginationComponent from "../CommanComponents/PaginationComponent";
-
+import {
+  categoryImageUrl,
+  defaultImage,
+  formatDisplayTitle,
+} from "../utils/landingUtils";
 
 export default function ServicePro() {
-    const Navigate = useNavigate();
-    const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(10);
-    const [loading, setLoading] = useState(true);
-    const token = localStorage.getItem("token");
-    const postTasksList = useSelector(
-        (state) => state.service.getPostTaskService
-    );
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-    const categories = useSelector((e) => e.UserSlice.categories);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoading(true);
+      try {
+        const result = await dispatch(
+          CustomerActions.getCategories({
+            page,
+            limit,
+            search: debouncedSearch.trim() || undefined,
+          })
+        ).unwrap();
 
-    useEffect(() => {
-        const fetchCategoryAndServices = async () => {
-            setLoading(true);
-            try {
-                const [categoryResponse] = await Promise.all([
-                    dispatch(CustomerActions.getCategories({ page, limit })),
-                ]);
-            } catch (error) {
-                console.error("Error fetching category and services:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+        const data = result?.data || result;
+        setCategories(data?.allCat || []);
+        setTotalPages(data?.totalPages || 1);
+      } catch (error) {
+        console.error("Error fetching service categories:", error);
+        setCategories([]);
+        setTotalPages(1);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        fetchCategoryAndServices();
-    }, [dispatch, page]);
+    fetchCategories();
+  }, [dispatch, page, limit, debouncedSearch]);
 
+  const emptyMessage = useMemo(() => {
+    if (debouncedSearch.trim()) {
+      return `No categories match "${debouncedSearch.trim()}".`;
+    }
+    return "No service categories available yet.";
+  }, [debouncedSearch]);
 
-    return (
-        <Layout>
-            <section className="search-results-sec">
-                <Container>
-                    <Row>
-                        <Col lg={12}>
-                            <div className="headings">
-                                <div className="taskk ml-3" >
-                                    <div>
-                                        <h2 className="ml-3">Service Providers</h2>
-                                    </div>
-                                </div>
-                                <section className="category-services-sec pt-0 mt-3">
-                                    <Container>
-                                        <div className="category-services-lists">
-                                            {loading ? ( <Loader />) : Array.isArray(categories?.allCat) &&
-                                                categories?.allCat.length > 0 ? (
-                                                <>
-                                                    <div className="services-list-browse">
-                                                        {Array.isArray(categories?.allCat) &&
-                                                            categories?.allCat?.length > 0 &&
-                                                            categories?.allCat.map((ele, index) => {
-                                                                return (
-                                                                    <div key={index}>
-                                                                        <>
-                                                                            <img
-                                                                                onClick={() => Navigate(`/serviceprocategory/${ele?._id}`)}
-                                                                                className="point-cursor"
-                                                                                src={`${process.env.REACT_APP_API_URL}${ele?.image}`}
-                                                                                alt="categories-img"
-                                                                            />
-                                                                        </>
-                                                                        <h3>{ele?.service_category_name}</h3>
-                                                                        {/* <p>{ele?.desc}</p> */}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                    </div>
-                                                    {Array.isArray(categories?.allCat) &&
-                                                        categories?.totalCount > 10 && (
-                                                            <div className="pagination-flexs">
-                                                                <div></div>
-                                                                <div className="mt-5">
-                                                                    <PaginationComponent
-                                                                        page={page}
-                                                                        setPage={setPage}
-                                                                        totalPages={categories?.totalPages}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div style={{ height: "300px" }}>
-                                                        <h3 className="text-center mt-5"> No Data Found </h3>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    </Container>
-                                </section>
-                            </div>
-                        </Col>
-                    </Row>
-                </Container>
+  return (
+    <CorporatePageShell
+      title="Service Pro"
+      crumbLabel="Service Providers"
+      pageClass="p-corporate-portal p-serviceproviders"
+    >
+      <div className="svc-search-row">
+        <div className="svc-search">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4-4" strokeLinecap="round" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search service category..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+      </div>
 
-            </section>
-        </Layout>
-    );
+      {loading ? (
+        <div className="svc-loading">
+          <Loader />
+        </div>
+      ) : categories.length === 0 ? (
+        <p className="svc-empty">{emptyMessage}</p>
+      ) : (
+        <>
+          <div className="cat-grid">
+            {categories.map((category) => (
+              <button
+                key={category._id}
+                type="button"
+                className="cat-tile"
+                onClick={() => navigate(`/serviceprocategory/${category._id}`)}
+              >
+                <div className="cat-thumb">
+                  <img
+                    src={categoryImageUrl(category)}
+                    alt={category.service_category_name || "Category"}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = defaultImage;
+                    }}
+                  />
+                  <div className="ov">
+                    <span>
+                      View providers
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.6"
+                        strokeLinecap="round"
+                      >
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+                <div className="cat-name">{formatDisplayTitle(category.service_category_name)}</div>
+              </button>
+            ))}
+          </div>
+          <SimbaPager
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </>
+      )}
+    </CorporatePageShell>
+  );
 }

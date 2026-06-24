@@ -265,3 +265,27 @@ export function getTaskFlowDescription(status) {
   }
   return "Track your task progress below.";
 }
+
+/** Chat is available once a task is accepted through completion. */
+export function canMessageOnActiveTask(status) {
+  const s = Number(status);
+  if (Number.isNaN(s)) return false;
+  return [
+    taskStatus.ACCEPTED,
+    taskStatus.ON_THE_WAY,
+    taskStatus.IN_PROGRESS,
+    taskStatus.COMPLETED,
+  ].includes(s);
+}
+
+/** Chat is available once a booking is accepted through completion. */
+export function canMessageOnActiveBooking(status) {
+  const s = Number(status);
+  if (Number.isNaN(s)) return false;
+  return [
+    bookingStatus.ACCEPTED,
+    bookingStatus.ON_THE_WAY,
+    bookingStatus.IN_PROGRESS,
+    bookingStatus.COMPLETED,
+  ].includes(s);
+}

@@ -15,6 +15,7 @@ import ButtonLoader from "../CommanComponents/ButtonLoader";
 import Layout from "../Components/Layout/Layout";
 import { setCustomer } from "../Redux/Reducers/LoginSlice";
 import { ImagePathCustomer } from "../utils/ImagePath";
+import { handleUserImageError } from "../utils/landingUtils";
 
 export default function EditProfileUser() {
   const token = localStorage.getItem("token");
@@ -229,7 +230,7 @@ export default function EditProfileUser() {
                               position: "absolute",
                               bottom: "5px",
                               right: "5px",
-                              background: "#038654",
+                              background: "#0f5c4c",
                               borderRadius: "50%",
                               width: "30px",
                               height: "30px",
@@ -263,6 +264,7 @@ export default function EditProfileUser() {
                                 : defaultSilhouette
                             }
                             alt="Default Profile"
+                            onError={handleUserImageError}
                             style={{
                               width: "150px",
                               height: "150px",
@@ -275,7 +277,7 @@ export default function EditProfileUser() {
                               position: "absolute",
                               bottom: "5px",
                               right: "5px",
-                              background: "#038654",
+                              background: "#0f5c4c",
                               borderRadius: "50%",
                               width: "30px",
                               height: "30px",
@@ -333,7 +335,7 @@ export default function EditProfileUser() {
                               position: 'absolute',
                               bottom: '5px',
                               right: '5px',
-                              background: '#038654',
+                              background: '#0f5c4c',
                               borderRadius: '50%',
                               width: '30px',
                               height: '30px',
@@ -359,6 +361,7 @@ export default function EditProfileUser() {
                                 : defaultSilhouette
                             }
                             alt="Default Profile"
+                            onError={handleUserImageError}
                             style={{
                               width: '110px',
                               height: '110px',
@@ -373,7 +376,7 @@ export default function EditProfileUser() {
                               position: 'absolute',
                               bottom: '5px',
                               right: '5px',
-                              background: '#038654',
+                              background: '#0f5c4c',
                               borderRadius: '50%',
                               width: '30px',
                               height: '30px',

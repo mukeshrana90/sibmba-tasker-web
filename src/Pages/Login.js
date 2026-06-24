@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import Container from "react-bootstrap/Container";
-import Col from "react-bootstrap/Col";
-import Form from "react-bootstrap/Form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  consumeAuthReturnUrl,
+  resolvePostAuthPath,
+  setAuthReturnUrl,
+} from "../utils/authRedirect";
 import { useDispatch } from "react-redux";
-import eyeOpenIcon from "../Assets/Images/eye-fill.svg";
-import eyeClosedIcon from "../Assets/Images/eye-off-fill.svg";
 import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
@@ -14,39 +14,102 @@ import { getFirebaseToken } from "../utils/fireBaseConfig";
 import { expiresAt } from "../utils/CommonFunction";
 import { Roles } from "../utils/Roles";
 
+const AUTH_VISUAL_IMG =
+  "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
+
+function EyeOpenIcon() {
+  return (
+    <svg
+      width="19"
+      height="19"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeClosedIcon() {
+  return (
+    <svg
+      width="19"
+      height="19"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9.9 4.2A9.5 9.5 0 0 1 12 4c6.5 0 10 7 10 7a13 13 0 0 1-2.2 3M6.6 6.6A13 13 0 0 0 2 11s3.5 7 10 7a9.5 9.5 0 0 0 4.2-.9M3 3l18 18M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </svg>
+  );
+}
+
+function isTokenValid() {
+  const token = localStorage.getItem("token");
+  const tokenExpiresAt = localStorage.getItem("expiresAt");
+  if (!token || !tokenExpiresAt) return false;
+  if (Date.now() > parseInt(tokenExpiresAt, 10)) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("role");
+    localStorage.removeItem("expiresAt");
+    return false;
+  }
+  return true;
+}
+
 export default function Login() {
   const [fcmToken, setFcmToken] = useState(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  const returnUrl = resolvePostAuthPath(searchParams.get("returnUrl"));
   const [localLoading, setLocalLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    webPage:false
+    webPage: false,
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  const signUpPath = returnUrl
+    ? `/sign-up?returnUrl=${encodeURIComponent(returnUrl)}`
+    : "/sign-up";
+
   useEffect(() => {
     const handleGetFirebaseToken = async () => {
       try {
         const token = await getFirebaseToken();
         setFcmToken(token);
-        if (token) {
-          localStorage.setItem("device_token", token);
-        }
+        if (token) localStorage.setItem("device_token", token);
       } catch (error) {
-        console.error("An error occurred while retrieving the Firebase token: ", error);
+        console.error("Firebase token error:", error);
       }
     };
-
     handleGetFirebaseToken();
   }, []);
 
+  useEffect(() => {
+    if (returnUrl) setAuthReturnUrl(returnUrl);
+  }, [returnUrl]);
+
+  useEffect(() => {
+    if (isTokenValid()) {
+      navigate(returnUrl || "/", { replace: true });
+    }
+  }, [navigate, returnUrl]);
+
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const validateForm = () => {
@@ -61,96 +124,51 @@ export default function Login() {
     return true;
   };
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   if (!validateForm()) return;
-
-  //   let payload = formData;
-  //   if (fcmToken) {
-  //     payload = { ...payload, device_token: fcmToken };
-  //   }
-  //   setLocalLoading(true);
-  //   const response = await dispatch(CustomerActions.loginCustomer(payload));
-  //   if (response?.payload?.status_code === 200) {
-  //     if (response?.payload?.data?.email_verified == 0) {
-  //       navigate(`/otp-verification?userId=${response?.payload?.data?._id}`, { replace: true });
-  //       toast.success(response?.payload?.message);
-  //     } else if (response?.payload?.data?.is_completeProfile == 0 && response?.payload?.data?.role == 1) {
-  //       localStorage.setItem("temptoken", response?.payload?.data?.token);
-  //       localStorage.setItem("userId", response?.payload?.data?._id);
-  //       navigate("/complete-profile", { replace: true });
-  //       toast.success("Please Complete Your Profile.");
-  //     } else if (response?.payload?.data?.is_completeProfile == 0 && response?.payload?.data?.role == 2) {
-  //       localStorage.setItem("temptoken", response?.payload?.data?.token);
-  //       localStorage.setItem("userId", response?.payload?.data?._id);
-  //       navigate("/provider", { replace: true });
-  //       toast.success("Please Complete Your Profile.");
-  //     } else {
-  //       localStorage.removeItem("temptoken");
-  //       localStorage.setItem("token", response?.payload?.data?.token);
-  //       localStorage.setItem("userId", response?.payload?.data?._id);
-  //       localStorage.setItem("role", response?.payload?.data?.role);
-  //       if (response?.payload?.data?.role == 1) {
-  //         emit('new_user_connect', { userid: response?.payload?.data?._id });
-  //         navigate("/");
-  //       } else {
-  //         navigate("/requests");
-  //         emit('new_user_connect', { userid: response?.payload?.data?._id });
-  //       }
-  //       toast.success(response?.payload?.message);
-  //     }
-  //   } else {
-  //     toast.error(response?.payload?.message);
-  //   }
-  //   setLocalLoading(false);
-  // };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-  
+
     const deviceToken = fcmToken || localStorage.getItem("device_token");
-    const payload = {
-      ...formData,
-      device_type: "web",
-    };
-    if (deviceToken) {
-      payload.device_token = deviceToken;
-    }
+    const payload = { ...formData, device_type: "web" };
+    if (deviceToken) payload.device_token = deviceToken;
+
     setLocalLoading(true);
     const response = await dispatch(CustomerActions.loginCustomer(payload));
-  
+
     if (response?.payload?.status_code === 200) {
       const token = response?.payload?.data?.token;
       const userId = response?.payload?.data?._id;
       const role = response?.payload?.data?.role;
-  
+
       localStorage.setItem("token", token);
       localStorage.setItem("userId", userId);
       localStorage.setItem("role", role);
       localStorage.setItem("expiresAt", expiresAt);
-  
+
       if (response?.payload?.data?.email_verified == 0) {
         navigate(`/otp-varification?userId=${userId}`, { replace: true });
         toast.success(response?.payload?.message);
-      } else if (response?.payload?.data?.is_completeProfile == 0 && role == Roles.CUSTOMER) {
+      } else if (
+        response?.payload?.data?.is_completeProfile == 0 &&
+        role == Roles.CUSTOMER
+      ) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         navigate("/complete-profile", { replace: true });
         toast.success("Please Complete Your Profile.");
       } else if (response?.payload?.data?.is_completeProfile === 0) {
-        if(role == Roles.SERVICE_PROVIDER || role == Roles.CORPORATE ){
-        localStorage.setItem("temptoken", token);
-        localStorage.setItem("userId", userId);
-        navigate(`/provider?role=${role}`, { replace: true });
-        toast.success("Please Complete Your Profile.");
+        if (role == Roles.SERVICE_PROVIDER || role == Roles.CORPORATE) {
+          localStorage.setItem("temptoken", token);
+          localStorage.setItem("userId", userId);
+          navigate(`/provider?role=${role}`, { replace: true });
+          toast.success("Please Complete Your Profile.");
         }
-      }  else {
+      } else {
         localStorage.removeItem("temptoken");
         if (role == Roles.CUSTOMER) {
           emit("new_user_connect", { userid: userId });
-          navigate("/");
-        } else if (role ==  Roles.SERVICE_PROVIDER) {
+          navigate(consumeAuthReturnUrl() || returnUrl || "/");
+        } else if (role == Roles.SERVICE_PROVIDER) {
           navigate("/requests");
           emit("new_user_connect", { userid: userId });
         } else if (role == Roles.CORPORATE) {
@@ -164,170 +182,174 @@ export default function Login() {
     }
     setLocalLoading(false);
   };
-  
-
-const isTokenValid = () => {
-  const token = localStorage.getItem("token");
-  const expiresAt = localStorage.getItem("expiresAt");
-
-  if (!token || !expiresAt) {
-    return false;
-  }
-
-  if (Date.now() > parseInt(expiresAt)) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("role");
-    localStorage.removeItem("expiresAt");
-    return false;
-  }
-
-  return true;
-};
-
-useEffect(() => {
-  if (!isTokenValid()) {
-    navigate("/login");
-  }
-}, []);
-
 
   return (
-    <div className="p-3">
-      {/* <Container fluid>
-        <Row>
-          <Col lg={12}>
-            <div className="logo">
-              <img src={require("../Assets/Images/Logo.svg").default} />
-            </div>
-          </Col>
-        </Row>
-      </Container> */}
-      <Container fluid className="">
-        <div className="row  sign-banner-part">
-          <Col lg={6} className="p-0">
-            <div className="left-banner-img"></div>
-          </Col>
-          <Col lg={6}>
-            <div className="right-banner-part">
-              <div className="login-cmn-box">
-                <div className="login-box-inner-wrap">
-                  <div className="login-logo cursor-pointer"  onClick={() => navigate("/")}>
-                    {" "}
-                    <img src={require("../Assets/Images/dark-logo.png")} />
+    <div className="simba-marketing-layout">
+      <div className="simba-page p-signup p-login">
+        <div className="auth">
+          <div className="auth-visual">
+            <img src={AUTH_VISUAL_IMG} alt="Trusted service provider at work" />
+            <div className="av-grain" />
+            <div className="av-content">
+              <div className="av-top" />
+              <div className="av-bottom">
+                <h2>
+                  Welcome back to <span className="hl">Simba Tasker</span>
+                </h2>
+                <p>
+                  Sign in to manage bookings, post tasks, and connect with
+                  trusted professionals across Zimbabwe.
+                </p>
+                <div className="av-stats">
+                  <div>
+                    <b>2,400+</b>
+                    <span>Verified providers</span>
                   </div>
-                  <h2>Welcome back!</h2>
-                  <p>Login to pick up exactly where you left off.</p>
-                  <Form onSubmit={handleSubmit}>
-                    <div className="form-set">
-                      <Form.Group className="mb-3" controlId="formBasicEmail">
-                        <Form.Label>Email ID</Form.Label>
-                        <Form.Control
-                          type="email"
-                          placeholder="Email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                        // autoComplete="off"
-                        // readOnly={isReadOnly}
-                        // onFocus={() => setReadOnly(false)}
-                        />
-                      </Form.Group>
-
-                      <Form.Group
-                        className="mb-3 pass-eys"
-                        controlId="formBasicPassword"
-                      >
-                        <Form.Label>Password</Form.Label>
-                        <Form.Control
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Password"
-                          name="password"
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          className="password-input"
-                        />
-                        <img
-                          src={showPassword ? eyeClosedIcon : eyeOpenIcon}
-                          alt="Toggle password visibility"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="password-toggle-icon"
-                        />
-                        {/* <img
-                          src={require("../Assets/Images/eye.svg").default}
-                        /> */}
-                      </Form.Group>
-                    </div>
-                    <div className="pass-rember-line">
-                      <Link to="/forgot-password" className="forgot">
-                        Forgot Password?
-                      </Link>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="submit"
-                      disabled={localLoading}
-                    >
-                      {localLoading ? <ButtonLoader /> : "Login"}
-                    </button>
-                    {/* <Link
-                      to="/otp-varification"
-                      variant="primary"
-                      type="submit"
-                      className="submit"
-                    >
-                    </Link> */}
-                    {/* <div className="or-divider">
-                      <p>or</p>
-                    </div>
-                    <div className="sign-social-links">
-                      <button>
-                        <img
-                          src={
-                            require("../Assets/Images/android-icon.svg").default
-                          }
-                        />
-                        Continue with Google
-                      </button>
-                      <button>
-                        {" "}
-                        <img
-                          src={require("../Assets/Images/ios-icon.svg").default}
-                        />
-                        Continue with Apple
-                      </button>
-                    </div> */}
-                    <div className="alreadyac-txt-line">
-                      <p>
-                        Don't have an account?{" "}
-                        <Link to="/sign-up" className="login-link-txt">
-                          Sign Up{" "}
-                        </Link>
-                      </p>
-                    </div>
-
-                    <div className="alreadyac-txt-line">
-                      <p className="mt-0">
-                       Are you a business? {""}
-                        <Link to="/sign-up?role=3" className="login-link-txt">
-                          Register as a Corporate
-                        </Link>
-                      </p>
-                      <p>
-                        Want to offer your services?  {""}
-                        <Link to="/sign-up?role=2" className="login-link-txt">
-                          Become a provider
-                        </Link>
-                      </p>
-                    </div>
-                  </Form>
+                  <div>
+                    <b>15k+</b>
+                    <span>Jobs completed</span>
+                  </div>
+                  <div>
+                    <b>4.8★</b>
+                    <span>Average rating</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </Col>
+          </div>
+
+          <div className="auth-form">
+            <div className="fcard">
+              <Link to="/" className="brand">
+                <img
+                  src={require("../Assets/Images/dark-logo.png")}
+                  alt="Simba Tasker"
+                />
+              </Link>
+
+              <div className="form-head">
+                <h1>Welcome back!</h1>
+                <p>Log in to pick up exactly where you left off.</p>
+              </div>
+
+              <form onSubmit={handleSubmit} noValidate>
+                <div className="field">
+                  <label htmlFor="email">Email ID</label>
+                  <div className="input-shell">
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="2" y="4" width="20" height="16" rx="2" />
+                      <path d="m2 7 10 6 10-6" />
+                    </svg>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="password">Password</label>
+                  <div className="input-shell">
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="toggle-eye"
+                      aria-label="Toggle password visibility"
+                      onClick={() => setShowPassword((v) => !v)}
+                    >
+                      {showPassword ? <EyeClosedIcon /> : <EyeOpenIcon />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="field-actions">
+                  <Link to="/forgot-password" className="link-gold">
+                    Forgot password?
+                  </Link>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-block"
+                  disabled={localLoading}
+                >
+                  {localLoading ? <ButtonLoader /> : "Log in"}
+                  {!localLoading && (
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                    >
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  )}
+                </button>
+              </form>
+
+              <p className="alt">
+                Don&apos;t have an account?{" "}
+                <Link to={signUpPath} className="link-gold">
+                  Sign up
+                </Link>
+              </p>
+
+              <div className="signup-links">
+                <p>
+                  Are you a business?{" "}
+                  <Link to="/sign-up?role=3" className="link-gold">
+                    Register as Corporate
+                  </Link>
+                </p>
+                <p>
+                  Want to offer your services?{" "}
+                  <Link to="/sign-up?role=2" className="link-gold">
+                    Become a provider
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      </Container>
+      </div>
     </div>
   );
 }

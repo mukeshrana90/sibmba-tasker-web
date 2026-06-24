@@ -1,9 +1,6 @@
-import React, { useEffect } from "react";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Layout from "../Components/Layout/Layout";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 
 export default function Wallet() {
@@ -14,62 +11,43 @@ export default function Wallet() {
     dispatch(ServiceActions.getMyWallets());
   }, [dispatch]);
 
-  return (
-    <Layout>
-      <section className="breadcrumb-nav">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="breadcrumb-nav-contain">
-                <h2>Wallet</h2>
-                <p>Home / Wallet</p>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+  const balance = walletLists?.totalBalance ?? 0;
+  const transactions = walletLists?.transactions ?? [];
 
-      <section className="pt-0 mt-5">
-        <Container>
-          <Row>
-            <Col lg={8} className="mx-auto">
-              <div className="my-balance-card">
-                <div>
-                  <p>My balance</p>
-                  <h2>
-                    ${walletLists?.totalBalance?.toLocaleString() || "0"}
-                  </h2>
+  return (
+    <CorporatePageShell
+      title="Wallet"
+      crumbLabel="Wallet"
+      pageClass="p-wallet"
+    >
+      <div className="balance-card">
+        <div className="bal-label">My balance</div>
+        <div className="bal-amt">${balance.toLocaleString()}</div>
+      </div>
+
+      <h2 className="history-head">Payment History</h2>
+      <div className="txn-list">
+        {transactions.length > 0 ? (
+          transactions.map((transaction) => (
+            <div key={transaction._id} className="txn">
+              <div className="txn-l">
+                <div className="txn-ico credit">+</div>
+                <div className="txn-meta">
+                  <b>Payment Received</b>
+                  {transaction.bookingId ? (
+                    <small>Order ID: {transaction.bookingId}</small>
+                  ) : null}
                 </div>
-                {/* <button>Withdraw</button> */}
               </div>
-              <div className="payment-history-list">
-                <h2>Payment History</h2>
-                <ul>
-                  {walletLists?.transactions?.length > 0 ? (
-                    walletLists.transactions.map((transaction) => (
-                      <li key={transaction._id}>
-                        <div className="payment-pro">
-                          {/* <img
-                            src={require("../Assets/Images/user-next.png")}
-                            alt="user"
-                          /> */}
-                          <div>
-                            <h3>Payment Received</h3>
-                            {/* <p>Order ID: {transaction.bookingId}</p> */}
-                          </div>
-                        </div>
-                        <span>+ £{transaction.amount.toLocaleString()}</span>
-                      </li>
-                    ))
-                  ) : (
-                    <li>No transactions available</li>
-                  )}
-                </ul>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
-    </Layout>
+              <span className="amt credit">
+                + ${transaction.amount.toLocaleString()}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div className="empty">No transactions available</div>
+        )}
+      </div>
+    </CorporatePageShell>
   );
 }

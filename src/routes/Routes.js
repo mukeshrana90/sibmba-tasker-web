@@ -109,6 +109,7 @@ const TrainingMaterial = lazy(() => import("../Pages/TrainingMaterial"));
 const MyStats = lazy(() => import("../Pages/MyStats"));
 const MySubscription = lazy(() => import("../Pages/MySubscription"));
 const MyServices = lazy(() => import("../Pages/MyServices"));
+const SearchProvidersPage = lazy(() => import("../Pages/SearchProvidersPage"));
 
 const RoutesPage = () => {
   return (
@@ -136,6 +137,16 @@ const RoutesPage = () => {
           <Route path="/browse-corporate-category" element={<BrowseCorporateCategory />} />
           <Route path="/near-by-corporate" element={<NearByCorporate />} />
           <Route path="/near-by-service-provider" element={<NearByServiceProviderDetail />} />
+          <Route path="/service-provider/:id" element={<ServiceProvider />} />
+          <Route
+            path="/customer-service-detail"
+            element={<CustomerServiceDetail />}
+          />
+          <Route path="/post-task" element={<PostTask />} />
+          <Route
+            path="/search-providers"
+            element={<SearchProvidersPage variant="visitor" />}
+          />
 
           <Route element={<ProtectHome />}>
             <Route path="/" element={<Home />} />
@@ -176,6 +187,10 @@ const RoutesPage = () => {
 
             <Route path="/allmyservices" element={<MyServices />} />
             <Route path="/search-for-service" element={<SearchForService />} />
+            <Route
+              path="/customer-search-providers"
+              element={<SearchProvidersPage variant="customer" />}
+            />
             <Route path="/service/:type" element={<AddServices />} />
             <Route
               path="/customer-service-detail"
@@ -196,14 +211,12 @@ const RoutesPage = () => {
             <Route path="/service-details/:id" element={<ServiceDetails />} />
 
             <Route path="/service-detail" element={<ServiceDetail />} />
-            <Route path="/service-provider/:id" element={<ServiceProvider />} />
             <Route path="/bookings" element={<Bookings />} />
             <Route path="/booking-detail" element={<BookingsDetail />} />
             <Route
               path="/user-booking-detail/:id"
               element={<UserBookingDetails />}
             />
-            <Route path="/post-task" element={<PostTask />} />
             <Route path="/my-task" element={<MyTasks />} />
             <Route path="/edit-task/:id" element={<EditTask />} />
             <Route path="/task-detail/:id" element={<TaskDetail />} />

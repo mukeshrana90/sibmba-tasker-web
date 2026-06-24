@@ -307,7 +307,7 @@ const serviceSlice = createSlice({
       CustomerActions.corpoInfoProductListUser.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.getCorporateList = action.payload.data;
+        state.getCorporateList = action.payload;
       }
     );
     builder.addCase(

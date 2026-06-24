@@ -1,128 +1,220 @@
-import React, { useEffect, useState } from "react";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import PaginationComponent from "../CommanComponents/PaginationComponent";
+import Loader from "../CommanComponents/Loader";
+import SimbaPager from "../CommanComponents/SimbaPager";
+import {
+  handleCategoryImageError,
+  formatDisplayTitle,
+  serviceImageUrl,
+} from "../utils/landingUtils";
+
+function PlaceholderIcon() {
+  return (
+    <svg
+      className="ph"
+      width="48"
+      height="48"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.5-3.5L9 20" />
+    </svg>
+  );
+}
 
 export default function CustomerCategoryDetail() {
   const dispatch = useDispatch();
-  const Navigate = useNavigate();
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const token = localStorage.getItem("token");
-  const [loading, setLoading] = useState(true);
-
+  const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const categoryId = searchParams.get("categoryId");
 
-  const categoriesDetail = useSelector((e) => e.UserSlice.categoriesDetail);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [categoryName, setCategoryName] = useState(
+    location.state?.categoryName || ""
+  );
+  const [services, setServices] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const fetchCategoryAndServices = async () => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    if (!categoryId) return;
+
+    const fetchServices = async () => {
       setLoading(true);
       try {
-        const [getSubCategoryById] = await Promise.all([
-          dispatch(CustomerActions.getSubCategoryById({ categoryId })),
-        ]);
+        const result = await dispatch(
+          CustomerActions.getSubCategoryById({
+            categoryId,
+            page,
+            limit,
+            search: debouncedSearch.trim() || undefined,
+          })
+        ).unwrap();
+
+        const data = result?.data || result;
+        setServices(data?.subcategories || []);
+        setTotalPages(data?.totalPages || 1);
+        if (data?.category?.service_category_name) {
+          setCategoryName(data.category.service_category_name);
+        }
       } catch (error) {
-        console.error("Error fetching category and services:", error);
+        console.error("Error fetching category services:", error);
+        setServices([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategoryAndServices();
-  }, [dispatch, page]);
+    fetchServices();
+  }, [dispatch, categoryId, page, limit, debouncedSearch]);
 
-  const handleProfiles = (type, id) => {
-    if (token) {
-      if (type == "services") {
-        Navigate(`/customer-service-detail?service_id=${id}`);
-      } else {
-      }
-    } else {
-      Navigate("/login");
+  const displayName = formatDisplayTitle(categoryName, "Services");
+
+  const emptyMessage = useMemo(() => {
+    if (debouncedSearch.trim()) {
+      return `No services match "${debouncedSearch.trim()}" in this category.`;
     }
+    return "No services found in this category yet.";
+  }, [debouncedSearch]);
+
+  const handleServiceClick = (serviceId) => {
+    navigate(`/customer-service-detail?service_id=${serviceId}`);
   };
 
   return (
-    <Layout>
-      <section className="breadcrumb-nav">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="breadcrumb-nav-contain">
-                <h2>{categoriesDetail?.category?.service_category_name}</h2>
-                 <p>
-                  <span
-                    style={{
-                      color: "#038654",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => Navigate("/")}
-                  >
-                    Home
-                  </span>{" "}
-                  / Customer Category
-                </p>
+    <Layout footerVariant="marketing">
+      <div className="simba-page p-serviceproviders p-servicecategory">
+        <main className="page">
+          <div className="wrap">
+            <div className="svc-cat-head">
+              <h1>{displayName}</h1>
+              <div className="crumbs">
+                <Link to="/">Home</Link>
+                <span>/</span>
+                <Link to="/services">Services</Link>
+                <span>/</span>
+                <span className="here">{displayName}</span>
               </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+            </div>
 
-      <section className="category-services-sec pt-0 mt-5">
-        <Container>
-          <div className="category-services-lists">
-            {Array.isArray(categoriesDetail?.subcategories) &&
-            categoriesDetail?.subcategories.length > 0 ? (
-              <div>
-                <div className="services-list">
-                  {Array.isArray(categoriesDetail?.subcategories) &&
-                    categoriesDetail?.subcategories.length > 0 &&
-                    categoriesDetail?.subcategories.map((ele, index) => {
-                      return (
-                        <div key={index}>
-                          {Array.isArray(ele?.images) &&
-                            ele.images.length > 0 && (
-                              <img
-                                onClick={() =>
-                                  handleProfiles("services", ele?._id)
-                                }
-                                className="point-cursor"
-                                src={`${process.env.REACT_APP_API_URL}/user/${ele?.images[0]}`}
-                                alt="categories-img"
-                              />
-                            )}
-                          <h3>{ele?.serviceSubCategoryName}</h3>
-                          <p>{ele?.desc}</p>
-                        </div>
-                      );
-                    })}
-                </div>
-                {Array.isArray(categoriesDetail?.subcategories) &&
-                  categoriesDetail?.totalCount > 10 && (
-                    <div className="pagination-flexs">
-                      <div></div>
-                      <div className="mt-5">
-                        {/* <PaginationComponent page={page} setPage={setPage} totalPages={allUserCategories?.totalPages} /> */}
-                      </div>
-                    </div>
-                  )}
+            <div className="svc-search-row">
+              <div className="svc-search">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4-4" strokeLinecap="round" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search services..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
               </div>
+            </div>
+
+            {loading ? (
+              <div className="svc-loading">
+                <Loader />
+              </div>
+            ) : services.length === 0 ? (
+              <p className="svc-empty">{emptyMessage}</p>
             ) : (
               <>
-                <h1> No Data Found </h1>
+                <div className="svc-grid">
+                  {services.map((service) => {
+                    const thumb =
+                      Array.isArray(service?.images) && service.images[0]
+                        ? serviceImageUrl(service.images[0])
+                        : null;
+
+                    return (
+                      <button
+                        key={service._id}
+                        type="button"
+                        className="svc-tile"
+                        onClick={() => handleServiceClick(service._id)}
+                      >
+                        <div className="svc-thumb">
+                          {thumb ? (
+                            <img
+                              src={thumb}
+                              alt={service.serviceSubCategoryName || "Service"}
+                              onError={handleCategoryImageError}
+                            />
+                          ) : (
+                            <PlaceholderIcon />
+                          )}
+                          <div className="ov">
+                            <span>
+                              View service
+                              <svg
+                                width="13"
+                                height="13"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.6"
+                                strokeLinecap="round"
+                              >
+                                <path d="M5 12h14M13 6l6 6-6 6" />
+                              </svg>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="svc-name">
+                          {formatDisplayTitle(service.serviceSubCategoryName)}
+                        </div>
+                        {service.desc && service.desc !== "N/A" && (
+                          <div className="svc-desc">{service.desc}</div>
+                        )}
+                        {service.averageRating > 0 && (
+                          <div className="svc-rating">
+                            {Number(service.averageRating).toFixed(1)} ★
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <SimbaPager
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
               </>
             )}
           </div>
-        </Container>
-      </section>
+        </main>
+      </div>
     </Layout>
   );
 }

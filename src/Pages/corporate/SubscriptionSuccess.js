@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import {  useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
-import { Card, Col, Container, Row } from "react-bootstrap";
+import { Card, Col, Row } from "react-bootstrap";
+import Layout from "../../Components/Layout/Layout";
 import successLogo from "../../Assets/Images/dark-logo.png";
 
 const SubscriptionSuccess = () => {
@@ -30,9 +31,10 @@ const SubscriptionSuccess = () => {
   };
 
   return (
-    <section className="payment-success-section py-5">
-      <Container>
-        <Row className="justify-content-center">
+    <Layout footerVariant="marketing">
+      <div className="simba-page p-corporate-portal">
+        <section className="payment-success-section py-5">
+          <Row className="justify-content-center">
           <Col md={6} lg={5}>
             <Card className="text-center shadow-sm p-4 success-card">
               <div className="success-icon-wrap mb-3">
@@ -69,9 +71,10 @@ const SubscriptionSuccess = () => {
               </p>
             </Card>
           </Col>
-        </Row>
-      </Container>
-    </section>
+          </Row>
+        </section>
+      </div>
+    </Layout>
   );
 };
 

@@ -28,6 +28,10 @@ const UserSlice = createSlice({
     notificationData: null,
     detailService: null,
     serviceProviderProfile: null,
+    customerSearchResults: null,
+    topRatedServices: null,
+    searchProvidersResults: null,
+    searchProvidersLoading: false,
     loading: false,
     error: null,
   },
@@ -304,7 +308,12 @@ const UserSlice = createSlice({
       CustomerActions.getMyQuotationsList.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.myQuotations = action.payload.data;
+        const data = action.payload?.data;
+        state.myQuotations = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.quotations)
+            ? data.quotations
+            : [];
       }
     );
     builder.addCase(
@@ -489,6 +498,51 @@ const UserSlice = createSlice({
         state.serviceProviderProfile = null;
       }
     );
+
+    builder.addCase(CustomerActions.customerSearch.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(CustomerActions.customerSearch.fulfilled, (state, action) => {
+      state.loading = false;
+      state.customerSearchResults = action.payload?.data;
+    });
+    builder.addCase(CustomerActions.customerSearch.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+
+    builder.addCase(CustomerActions.getTopRatedServices.pending, (state) => {
+      state.loading = true;
+    });
+    builder.addCase(
+      CustomerActions.getTopRatedServices.fulfilled,
+      (state, action) => {
+        state.loading = false;
+        state.topRatedServices = action.payload?.data;
+      }
+    );
+    builder.addCase(
+      CustomerActions.getTopRatedServices.rejected,
+      (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      }
+    );
+
+    builder.addCase(CustomerActions.searchProviders.pending, (state) => {
+      state.searchProvidersLoading = true;
+    });
+    builder.addCase(
+      CustomerActions.searchProviders.fulfilled,
+      (state, action) => {
+        state.searchProvidersLoading = false;
+        state.searchProvidersResults = action.payload?.data;
+      }
+    );
+    builder.addCase(CustomerActions.searchProviders.rejected, (state, action) => {
+      state.searchProvidersLoading = false;
+      state.error = action.payload;
+    });
   },
 
 });

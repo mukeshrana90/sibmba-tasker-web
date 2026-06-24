@@ -4,12 +4,7 @@ import Slider from 'rc-slider';
 import DatePicker from 'react-datepicker';
 import 'rc-slider/assets/index.css';
 import 'react-datepicker/dist/react-datepicker.css';
-import { useDispatch } from 'react-redux';
-import CustomerActions from '../../Redux/Actions/CustomerActions';
-import ServiceActions from '../../Redux/Actions/ServiceActions';
-
-const FilterModal = ({ show, handleClose, type }) => {
-  const dispatch = useDispatch()
+const FilterModal = ({ show, handleClose, type, onFiltersApplied }) => {
   const [service, setService] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState('10-11 AM');
@@ -27,25 +22,15 @@ const FilterModal = ({ show, handleClose, type }) => {
     return `${day}-${month}-${year}`;
   };
 
-  const tabType = {
-    'first': "tasks",
-    'third': "acceptedTasks",
-    'fourth': "tasks"
-  }
-
   const handleSearch = async () => {
-    const rawParams = {
+    const filters = {
       need_done: service,
-       budget: budgetRange[1].toString(),
-      when_done: formatDate(selectedDate),
-      task_time: selectedTime,
-      type: tabType[type]
+      budget: budgetRange[1].toString(),
+      date: formatDate(selectedDate),
+      time: selectedTime,
     };
-    const params = Object.fromEntries(
-      Object.entries(rawParams).filter(([_, value]) => value != null && value !== "")
-    );
 
-    dispatch(ServiceActions.getPostTaskList(params));
+    onFiltersApplied?.(filters);
     handleClose();
   };
 

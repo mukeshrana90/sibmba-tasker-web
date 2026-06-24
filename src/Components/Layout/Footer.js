@@ -90,7 +90,7 @@ export default function Footer({ isActive, setIsActive, setShow, show }) {
         </div>
 
         <div className="copyright-text">
-          <p>© Copyright 2025, All Rights Reserved by SimbaTasker</p>
+          <p>© Copyright {new Date().getFullYear()}, All Rights Reserved by SimbaTasker</p>
         </div>
       </Container>
     </section>

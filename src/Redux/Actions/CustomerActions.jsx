@@ -596,11 +596,11 @@ const CustomerActions = {
         const response = await Api.get(
           `/customer/list-product/${customerData?.productId}`
         );
-        return response;
+        return response.data;
       } else {
         const queryParams = new URLSearchParams(customerData).toString();
         const response = await Api.get(`/customer/list-product?${queryParams}`);
-        return response;
+        return response.data;
       }
     }
   ),
@@ -653,6 +653,37 @@ const CustomerActions = {
     "/customer/log-provider-event",
     async (payload) => {
       const response = await Api.post("/customer/log-provider-event", payload);
+      return response.data;
+    }
+  ),
+
+  customerSearch: createAsyncThunk(
+    "/customer/search",
+    async (payload) => {
+      const queryString = constructQueryString(payload);
+      const response = await Api.get(`/customer/search?${queryString}`);
+      return response.data;
+    }
+  ),
+
+  getTopRatedServices: createAsyncThunk(
+    "/customer/top-rated-services",
+    async (payload) => {
+      const queryString = constructQueryString(payload);
+      const response = await Api.get(
+        `/customer/top-rated-services?${queryString}`
+      );
+      return response.data;
+    }
+  ),
+
+  searchProviders: createAsyncThunk(
+    "/customer/search-providers",
+    async (payload) => {
+      const queryString = constructQueryString(payload);
+      const response = await Api.get(
+        `/customer/search-providers?${queryString}`
+      );
       return response.data;
     }
   ),

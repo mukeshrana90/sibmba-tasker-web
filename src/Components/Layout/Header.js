@@ -8,10 +8,15 @@ import Dropdown from "react-bootstrap/Dropdown";
 import DeleteAccountModal from "../../CommanComponents/Modals/DeleteAccountModal";
 import { toast } from "react-toastify";
 import Search from "../../CommanComponents/Search";
+import LandingGuestHeader from "../../CommanComponents/Landing/LandingGuestHeader";
+import CustomerAppNav from "./CustomerAppNav";
+import CorporateAppNav from "./CorporateAppNav";
+import ServiceProviderAppNav from "./ServiceProviderAppNav";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { setCustomer } from "../../Redux/Reducers/LoginSlice";
 import { ImagePathCustomer } from "../../utils/ImagePath";
+import { handleUserImageError } from "../../utils/landingUtils";
 import { Modal } from "react-bootstrap";
 import { Roles } from "../../utils/Roles";
 
@@ -37,7 +42,7 @@ const clientRoutes = [
   { label: "Bookings", path: "/bookings" },
   { label: "My Tasks", path: "/my-task" },
 ];
-export default function Header() {
+export default function Header({ isGuestLanding = false }) {
   const dispatch = useDispatch();
   const location = useLocation();
   const token = localStorage.getItem("token");
@@ -207,6 +212,36 @@ export default function Header() {
   };
   return (
     <>
+      {isGuestLanding && !token ? (
+        <LandingGuestHeader />
+      ) : token && role == Roles.CUSTOMER ? (
+        <CustomerAppNav
+          customerDetails={customerDetails}
+          notificationDetail={notificationDetail}
+          onDeleteAccount={() => setIsDeleteModal(true)}
+          onLogout={() => setShowLogoutModal(true)}
+        />
+      ) : token && role == Roles.CORPORATE ? (
+        <CorporateAppNav
+          customerDetails={customerDetails}
+          notificationDetail={notificationDetail}
+          onDeleteAccount={() => setIsDeleteModal(true)}
+          onLogout={() => setShowLogoutModal(true)}
+        />
+      ) : token && role == Roles.SERVICE_PROVIDER ? (
+        <ServiceProviderAppNav
+          customerDetails={customerDetails}
+          notificationDetail={notificationDetail}
+          isNotificationsEnabled={isNotificationsEnabled}
+          onNotificationToggle={() =>
+            handleToggleChange({
+              target: { checked: !isNotificationsEnabled },
+            })
+          }
+          onDeleteAccount={() => setIsDeleteModal(true)}
+          onLogout={() => setShowLogoutModal(true)}
+        />
+      ) : (
       <div className="header-commn">
         <Container>
           <Navbar expand="lg">
@@ -384,6 +419,7 @@ export default function Header() {
                                       : require("../../Assets/Images/my-profile.svg")
                                           .default
                                   }
+                                  onError={handleUserImageError}
                                 />
                               </div>
                             </Dropdown.Toggle>
@@ -399,6 +435,7 @@ export default function Header() {
                                       : require("../../Assets/Images/my-profile.svg")
                                           .default
                                   }
+                                  onError={handleUserImageError}
                                 />
                                 <div>
                                   <h2>{customerDetails?.full_name || "N/A"}</h2>
@@ -706,6 +743,7 @@ export default function Header() {
           </Navbar>
         </Container>
       </div>
+      )}
 
       {/* Delete Account start  */}
 

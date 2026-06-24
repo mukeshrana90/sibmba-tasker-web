@@ -1,47 +1,135 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import Modal from "react-bootstrap/Modal";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import { Tab, Nav, Container, Row, Col, Modal } from "react-bootstrap";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import { useParams } from "react-router-dom";
-import PaginationComponent from "../CommanComponents/PaginationComponent";
-import StarRating from "../CommanComponents/StarRating";
-import ChatIcon from "../Assets/Images/chat.svg";
-import { formatDate } from "fullcalendar/index.js";
+import SimbaPager from "../CommanComponents/SimbaPager";
 import Loader from "../CommanComponents/Loader";
-import mapIcon from "../Assets/Images/map.svg";
 import MapComponent from "../CommanComponents/MapComponent";
-import defaultImage from "../Assets/Images/placeholder.jpg";
 import { setCustomer } from "../Redux/Reducers/LoginSlice";
+import {
+  avatarColor,
+  handleCategoryImageError,
+  handleUserImageError,
+  productImageUrl,
+  providerInitials,
+  userImageUrl,
+} from "../utils/landingUtils";
+
+const TABS = [
+  { key: "business-details", label: "Business Details" },
+  { key: "products", label: "Products" },
+  { key: "reviews", label: "Customer Reviews" },
+];
+
+function safeVal(value) {
+  if (value == null || value === "" || value === "undefined" || value === "null") {
+    return null;
+  }
+  return String(value).trim() || null;
+}
+
+function starsText(rating) {
+  const filled = Math.round(Number(rating) || 0);
+  return "★★★★★".slice(0, filled) + "☆☆☆☆☆".slice(0, 5 - filled);
+}
+
+function formatReviewDate(dateStr) {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getRatingBars(feedbacks) {
+  const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  feedbacks.forEach((item) => {
+    const rating = Math.round(Number(item.rating) || 0);
+    if (rating >= 1 && rating <= 5) counts[rating] += 1;
+  });
+  const total = feedbacks.length || 1;
+  return [5, 4, 3, 2, 1].map((star) => ({
+    star,
+    pct: Math.round((counts[star] / total) * 100),
+  }));
+}
+
+function corporateStreet(corp) {
+  const parts = [safeVal(corp?.house_number), safeVal(corp?.street_address)].filter(
+    Boolean
+  );
+  return parts.join(", ") || null;
+}
+
+function corporateMapAddress(corp, street, companyAddress, displayName) {
+  return (
+    street ||
+    companyAddress ||
+    safeVal(corp?.street_address) ||
+    safeVal(corp?.address) ||
+    displayName
+  );
+}
+
+function corporateMapCoordinates(corp) {
+  const coords =
+    corp?.location?.coordinates || corp?._doc?.location?.coordinates || null;
+  return coords;
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div className="corp-info-row">
+      <span>{label}</span>
+      <b>{value || "N/A"}</b>
+    </div>
+  );
+}
 
 export default function SuggestedCorporatePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { id: userId } = useParams();
+  const [searchParams] = useSearchParams();
+
   const [showMapModal, setShowMapModal] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [leadFilter, setLeadFilter] = useState("all");
-  const [searchText, setSearchText] = useState("");
-  const [searchParams] = useSearchParams();
-  const { id: userId } = useParams();
-
+  const [leadFilter] = useState("all");
+  const [searchText] = useState("");
   const [activeTab, setActiveTab] = useState(
     searchParams.get("page") || "business-details"
   );
 
   const [corpoProfile, setCorpoProfile] = useState(null);
   const [productList, setProductList] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [totalPages, setTotalPages] = useState(false);
-  const [getreview, setReview] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [reviews, setReviews] = useState([]);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [packageDetails, setPackageDetails] = useState("");
   const [role, setRole] = useState("");
 
-  const data = useSelector((state) => state.service?.getCorporateList);
+  const visibleTabs = useMemo(
+    () =>
+      String(role) === "2"
+        ? TABS.filter((tab) => tab.key !== "products")
+        : TABS,
+    [role]
+  );
+
+  useEffect(() => {
+    if (!visibleTabs.some((tab) => tab.key === activeTab)) {
+      setActiveTab(visibleTabs[0]?.key || "business-details");
+    }
+  }, [visibleTabs, activeTab]);
+
   useEffect(() => {
     const fetchCorporateInfo = async () => {
+      if (!userId) return;
       setLoading(true);
       const customerId = localStorage.getItem("userId");
       try {
@@ -52,559 +140,499 @@ export default function SuggestedCorporatePage() {
             limit,
             status: leadFilter,
             search: searchText,
-            customerId: customerId,
+            customerId,
           })
         );
 
-        if (response?.payload) {
-          setCorpoProfile(response.payload?.data?.corporateUser);
-          setProductList(response.payload?.data?.data || []);
-          setReview(response.payload?.data?.feedback || []);
-          setTotalPages(response?.payload.data);
-        }
+        const payload = response?.payload;
+        setCorpoProfile(payload?.corporateUser || null);
+        setProductList(Array.isArray(payload?.data) ? payload.data : []);
+        setReviews(payload?.feedback || []);
+        setTotalPages(
+          Number(payload?.totalPages) ||
+            Math.max(
+              1,
+              Math.ceil((payload?.totalItems || payload?.data?.length || 0) / limit)
+            )
+        );
       } catch (err) {
         console.error("Fetch error:", err);
+        setCorpoProfile(null);
+        setProductList([]);
+        setReviews([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
-    if (userId) {
-      fetchCorporateInfo();
-    }
+    fetchCorporateInfo();
     getProfileApiCall();
   }, [dispatch, userId, page, limit, leadFilter, searchText]);
 
   const getProfileApiCall = async () => {
     try {
-      const apiRes = await dispatch(
-        CustomerActions.getProfileWithSuscription()
-      );
+      const apiRes = await dispatch(CustomerActions.getProfileWithSuscription());
       if (apiRes?.payload?.success) {
         dispatch(setCustomer(apiRes?.payload?.data.user));
       }
       const isSubscribed = apiRes?.payload?.data?.user?.isSubscribed;
-      const corporateUser = isSubscribed === 1; // true if subscribed (1), false if not (0)
-      setRole(apiRes?.payload?.data.user?.role);
-      setPackageDetails(corporateUser);
+      setRole(apiRes?.payload?.data?.user?.role ?? "");
+      setPackageDetails(isSubscribed === 1);
     } catch (error) {
       console.error("Subscription check failed:", error);
     }
   };
-  const isSubscriptionExpiredOld = (packageDetails) => {
-    if (!packageDetails || Object.keys(packageDetails).length === 0) {
-      return true;
+
+  const isSubscriptionExpired = () => !packageDetails;
+
+  const guardSpAction = (action) => {
+    if (String(role) === "2" && isSubscriptionExpired()) {
+      setShowPlanModal(true);
+      return;
     }
-
-    const endDate = new Date(packageDetails.endDate);
-    const today = new Date();
-
-    if (packageDetails.status === "inactive") {
-      return true;
-    }
-
-    if (endDate < today) {
-      return true;
-    }
-
-    return false;
+    action();
   };
-  const isSubscriptionExpired = (packageDetails) => {
-    return !packageDetails;
+
+  const displayName = safeVal(corpoProfile?.full_name) || "Corporate";
+  const categoryName =
+    safeVal(corpoProfile?.corporateCategoryId?.name) || "Corporate supplier";
+  const hasProfileImage = Boolean(safeVal(corpoProfile?.profile_image));
+  const profileImageSrc = userImageUrl(corpoProfile);
+  const isVerified =
+    corpoProfile?.account_verified === 1 || Boolean(corpoProfile?.email_verified);
+  const street = corporateStreet(corpoProfile);
+  const companyAddress = safeVal(corpoProfile?.address);
+  const reviewCount = reviews.length;
+  const averageRating = useMemo(() => {
+    if (!reviews.length) return 0;
+    return (
+      reviews.reduce((sum, item) => sum + (Number(item.rating) || 0), 0) /
+      reviews.length
+    );
+  }, [reviews]);
+  const ratingBars = useMemo(() => getRatingBars(reviews), [reviews]);
+
+  const handleChat = () => {
+    guardSpAction(() => {
+      if (!corpoProfile?._id) return;
+      navigate(`/messages?userID=${corpoProfile._id}`);
+      localStorage.setItem("reciverID", corpoProfile._id);
+    });
   };
+
+  const handleCall = () => {
+    guardSpAction(() => {
+      const phone = corpoProfile?.phone_number;
+      if (phone) window.location.href = `tel:${phone}`;
+    });
+  };
+
+  const handleMap = () => {
+    guardSpAction(() => setShowMapModal(true));
+  };
+
+  if (loading && !corpoProfile) {
+    return (
+      <Layout footerVariant="marketing">
+        <div className="simba-page p-profile p-corp-profile">
+          <div className="corp-profile-loading">
+            <Loader />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!loading && !corpoProfile) {
+    return (
+      <Layout footerVariant="marketing">
+        <div className="simba-page p-profile p-corp-profile">
+          <div className="wrap">
+            <div className="corp-profile-empty">
+              <h3>Corporate profile not found</h3>
+              <p>This supplier may no longer be available.</p>
+              <button type="button" className="btn btn-primary" onClick={() => navigate(-1)}>
+                Go back
+              </button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
-    <Layout>
-      <section className="search-results-sec">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="search-results-contain mt-5">
-                <div className="p-3 d-flex align-items-center justify-content-between  mb-3">
-                  <div className="d-flex align-items-center gap-3">
-                    <Link onClick={() => navigate(-1)} className="d-flex">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="40"
-                        height="42"
-                        viewBox="0 0 40 42"
-                        fill="none"
-                      >
-                        <path
-                          d="M10 21L8.91379 22.0345L7.92857 21L8.91379 19.9655L10 21ZM30 19.5C30.8284 19.5 31.5 20.1716 31.5 21C31.5 21.8284 30.8284 22.5 30 22.5V19.5ZM15.5805 29.0345L8.91379 22.0345L11.0862 19.9655L17.7529 26.9655L15.5805 29.0345ZM8.91379 19.9655L15.5805 12.9655L17.7529 15.0345L11.0862 22.0345L8.91379 19.9655ZM10 19.5H30V22.5L10 22.5L10 19.5Z"
-                          fill="#40413A"
-                        />
-                      </svg>
-                    </Link>
+    <Layout footerVariant="marketing">
+      <div className="simba-page p-profile p-corp-profile">
+        <div className="wrap">
+          <div className="corp-profile-topbar">
+            <button type="button" className="corp-back" onClick={() => navigate(-1)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div className="crumbs">
+              <Link to="/">Home</Link>
+              <span>/</span>
+              <Link to="/corporate-list">Corporate</Link>
+              <span>/</span>
+              <span className="here">{displayName}</span>
+            </div>
+          </div>
+        </div>
 
-                    <div className="d-flex align-items-center gap-3">
-                      <div className="">
-                        {corpoProfile?.profile_image ? (
-                          <img
-                            className="point-cursor avatar-circle"
-                            style={{ width: 50, height: 50 }}
-                            src={
-                              `${process.env.REACT_APP_API_URL}${corpoProfile.profile_image}` ||
-                              defaultImage
-                            }
-                            alt="profile-img"
-                          />
-                        ) : (
-                          <div
-                            className="point-cursor avatar-circle bg-secondary text-white d-flex align-items-center justify-content-center  text-transform"
-                            style={{
-                              width: 50,
-                              height: 50,
-                              fontWeight: "bold",
-                              fontSize: 20,
-                            }}
-                          >
-                            {corpoProfile?.full_name?.[0]?.toUpperCase() || "-"}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="fw-bold">{corpoProfile?.full_name}</div>
-                        <div className="text-muted small">
-                          {data?.corporateUser?.corporateCategoryId?.name ||
-                            "-"}
-                        </div>
-                      </div>
-                    </div>
+        <section className="phero">
+          <div className="wrap">
+            <div className="phero-card">
+              <div className="phero-inner">
+                <div
+                  className="phero-avatar"
+                  style={{
+                    background: hasProfileImage
+                      ? "transparent"
+                      : `linear-gradient(145deg,${avatarColor(displayName)},#0A4338)`,
+                  }}
+                >
+                  {hasProfileImage ? (
+                    <img
+                      src={profileImageSrc}
+                      alt={displayName}
+                      onError={handleUserImageError}
+                    />
+                  ) : (
+                    providerInitials(displayName)
+                  )}
+                  <span className="av-dot" />
+                </div>
+
+                <div className="phero-info">
+                  <div className="phero-name">
+                    <h1>{displayName}</h1>
+                    {isVerified && (
+                      <span className="badge-verified">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3a2a07" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m20 6-11 11-5-5" />
+                        </svg>
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  <div className="phero-role">{categoryName}</div>
+                  <div className="phero-tags">
+                    <span className="pt">
+                      <span className="stars">{starsText(averageRating)}</span>
+                      <b>{averageRating.toFixed(1)}</b>
+                      <span style={{ opacity: 0.8, fontWeight: 600 }}>
+                        ({reviewCount} reviews)
+                      </span>
+                    </span>
+                    {(companyAddress || street) && (
+                      <span className="pt">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
+                          <circle cx="12" cy="10" r="2.5" />
+                        </svg>
+                        <span>{companyAddress || street}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="bookings-tabs">
-                  <Tab.Container
-                    activeKey={activeTab}
-                    onSelect={(k) => setActiveTab(k)}
-                    defaultActiveKey="tasks"
-                  >
-                    <Row>
-                      <Col sm={12}>
-                        <Nav variant="pills" className="bookings-tab-nav mb-4">
-                          <Nav.Item>
-                            <Nav.Link eventKey="business-details">
-                              Business Details
-                            </Nav.Link>
-                          </Nav.Item>
 
-                          {role !== 2 && (
-                            <Nav.Item>
-                              <Nav.Link eventKey="products">Products</Nav.Link>
-                            </Nav.Item>
-                          )}
-                          <Nav.Item>
-                            <Nav.Link eventKey="reviews">
-                              Customer Reviews
-                            </Nav.Link>
-                          </Nav.Item>
-                        </Nav>
-                      </Col>
-
-                      <Col sm={12}>
-                        <Tab.Content>
-                          <Tab.Pane eventKey="business-details">
-                            <div className="bookings-cards">
-                              {loading ? (
-                                <Loader />
-                              ) : corpoProfile && productList ? (
-                                <ul className="list-unstyled">
-                                  <li
-                                    key={data.corporateUser._id}
-                                    className="mb-3"
-                                  >
-                                    <div className="booking-card p-3">
-                                      <div className="row align-items-start g-4">
-                                        <div className="col-md-2 text-center">
-                                          <img
-                                            src={
-                                              data?.corporateUser?.profile_image
-                                                ? `${process.env.REACT_APP_API_URL}${data.corporateUser.profile_image}`
-                                                : defaultImage
-                                            }
-                                            alt="Profile"
-                                            className="profile-image-business"
-                                          />
-                                        </div>
-
-                                        <div className="col-md-5">
-                                          <h5 className="fw-semibold mb-2">
-                                            {data.corporateUser.full_name ||
-                                              "N/A"}
-                                          </h5>
-                                          <p className="mb-1">
-                                            <strong>Email:</strong>{" "}
-                                            {data.corporateUser.email || "N/A"}
-                                          </p>
-                                          <p className="mb-1">
-                                            <strong>Phone:</strong>{" "}
-                                            {data.corporateUser.phone_number ||
-                                              "N/A"}
-                                          </p>
-                                          <p className="mb-1">
-                                            <strong>Address:</strong>{" "}
-                                            {`${
-                                              data.corporateUser.house_number ||
-                                              ""
-                                            }, ${
-                                              data.corporateUser
-                                                .street_address || ""
-                                            }`}
-                                          </p>
-                                        </div>
-
-                                        <div className="col-md-5">
-                                          <p className="mb-1">
-                                            <strong>Company Address:</strong>{" "}
-                                            {data.corporateUser.address ||
-                                              "N/A"}
-                                          </p>
-                                          <p className="mb-1">
-                                            <strong>Profession Type:</strong>{" "}
-                                            {data?.corporateUser
-                                              ?.corporateCategoryId?.name ||
-                                              "N/A"}
-                                          </p>
-                                          <p className="mb-1">
-                                            <strong>Verified:</strong>{" "}
-                                            {data.corporateUser.email_verified
-                                              ? "Yes"
-                                              : "No"}
-                                          </p>
-                                          <p className="mb-1">
-                                            <strong>Status:</strong>{" "}
-                                            {data.corporateUser.status === 1
-                                              ? "Active"
-                                              : "Inactive"}
-                                          </p>
-                                        </div>
-                                      </div>
-
-                                      <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3 mt-3">
-                                        <button
-                                          className="view-more-btn"
-                                          onClick={() => {
-                                            if (role === 2) {
-                                              if (
-                                                isSubscriptionExpired(
-                                                  packageDetails
-                                                )
-                                              ) {
-                                                setShowPlanModal(true);
-                                              } else {
-                                                navigate(
-                                                  `/messages?userID=${data?._id}`
-                                                );
-                                                localStorage.setItem(
-                                                  "reciverID",
-                                                  data?._id
-                                                );
-                                              }
-                                            } else {
-                                              navigate(
-                                                `/messages?userID=${data?.corporateUser._id}`
-                                              );
-                                              localStorage.setItem(
-                                                "reciverID",
-                                                data?.corporateUser._id
-                                              );
-                                            }
-                                          }}
-                                        >
-                                          <img src={ChatIcon} alt="Chat" />{" "}
-                                          Direct Chat
-                                        </button>
-                                        <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3">
-                                          <button
-                                            className="primaryBtn"
-                                            style={{
-                                              fontSize: "15px",
-                                              fontWeight: "400",
-                                            }}
-                                            onClick={() => {
-                                              if (role === 2) {
-                                                if (
-                                                  isSubscriptionExpired(
-                                                    packageDetails
-                                                  )
-                                                ) {
-                                                  setShowPlanModal(true);
-                                                } else {
-                                                  window.location.href = `tel:${data?.corporateUser.phone_number}`;
-                                                }
-                                              } else {
-                                                window.location.href = `tel:${data?.corporateUser.phone_number}`;
-                                              }
-                                            }}
-                                          >
-                                            Call Now
-                                          </button>
-                                        </div>
-
-                                        <div className="d-flex justify-content-center align-items-center book-service-action-btn gap-3">
-                                          <button
-                                            className="view-more-btn d-flex align-items-center gap-2"
-                                            onClick={() => {
-                                              if (role === 2) {
-                                                if (
-                                                  isSubscriptionExpired(
-                                                    packageDetails
-                                                  )
-                                                ) {
-                                                  setShowPlanModal(true);
-                                                } else {
-                                                  setShowMapModal(
-                                                    data?.corporateUser
-                                                  );
-                                                }
-                                              } else {
-                                                setShowMapModal(
-                                                  data?.corporateUser
-                                                );
-                                              }
-                                            }}
-                                          >
-                                            <img
-                                              src={mapIcon}
-                                              alt="Map"
-                                              width={20}
-                                              height={20}
-                                            />
-                                            Map
-                                          </button>
-                                        </div>
-                                      </div>
-                                      <Modal
-                                        show={
-                                          showMapModal === data?.corporateUser
-                                        }
-                                        onHide={() => setShowMapModal(false)}
-                                        centered
-                                        size="lg"
-                                      >
-                                        <Modal.Header
-                                          closeButton
-                                          className="border-none pb-0"
-                                        >
-                                          <Modal.Title>
-                                            Service Location
-                                          </Modal.Title>
-                                        </Modal.Header>
-                                        <Modal.Body>
-                                          <div className="comman-small-pop text-center">
-                                            <MapComponent
-                                              coordinates={
-                                                data?.corporateUser?.location
-                                                  ?.coordinates
-                                              }
-                                              address={
-                                                data?.corporateUser
-                                                  ?.street_address
-                                              }
-                                            />
-                                          </div>
-                                        </Modal.Body>
-                                      </Modal>
-                                    </div>
-                                  </li>
-                                </ul>
-                              ) : (
-                                <div className="no-upcoming-bookings text-center py-5">
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="80"
-                                    height="80"
-                                    viewBox="0 0 80 80"
-                                    fill="none"
-                                  ></svg>
-                                  <h5 className="mt-3 fw-semibold">
-                                    No Business Details Found
-                                  </h5>
-                                  <p className="text-muted small">
-                                    Currently you don’t have any business
-                                    details.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </Tab.Pane>
-
-                          <Tab.Pane eventKey="products">
-                            <div className="product-gallery">
-                              {productList?.length > 0 ? (
-                                <div className="row g-3">
-                                  {productList.map((product, index) => (
-                                    <div
-                                      className="col-6 col-md-4 col-lg-3"
-                                      key={product._id}
-                                    >
-                                      <div className="product-card shadow-sm h-100">
-                                        <div
-                                          className="product-img-wrapper cursor-pointer"
-                                          onClick={() =>
-                                            navigate(
-                                              `/product-detail/${product?._id}`
-                                            )
-                                          }
-                                        >
-                                          <img
-                                            src={`${
-                                              process.env.REACT_APP_API_URL
-                                            }/products/${
-                                              product.images[0] || ""
-                                            }`}
-                                            alt={product?.name}
-                                            className="img-fluid product-img"
-                                          />
-                                        </div>
-                                        <div className="product-body p-2">
-                                          <h6 className="mb-1 text-truncate">
-                                            {product?.name}
-                                          </h6>
-                                          <p className="mb-0 text-muted">
-                                            Description: {product?.description}
-                                          </p>
-                                          <p className="mb-0 text-success fw-semibold">
-                                            Price: ${product?.price}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="no-upcoming-bookings text-center py-5">
-                                  <h5 className="fw-semibold">
-                                    No Products Found
-                                  </h5>
-                                  <p className="text-muted small">
-                                    Currently there are no products.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            {totalPages > 10 && (
-                              <div className="pagination-flexs mt-5">
-                                <PaginationComponent
-                                  page={page}
-                                  setPage={setPage}
-                                  totalPages={totalPages}
-                                />
-                              </div>
-                            )}
-                          </Tab.Pane>
-
-                          <Tab.Pane eventKey="reviews">
-                            <div className="product-gallery">
-                              {getreview?.length > 0 ? (
-                                getreview.map((review) => (
-                                  <Col
-                                    key={review._id}
-                                    md={12}
-                                    className="mb-4"
-                                  >
-                                    <div className="review-section">
-                                      <div>
-                                        <div className="review-content">
-                                          <div className=" review-main d-flex align-items-center">
-                                            <img
-                                              src={`${process.env.REACT_APP_API_URL}/${review.user_id?.profile_image}`}
-                                              alt={""}
-                                              style={{
-                                                width: "60px",
-                                                height: "60px",
-                                                objectFit: "cover",
-                                              }}
-                                            />
-                                            <div>
-                                              <h3>
-                                                {review.user_id?.full_name ||
-                                                  ""}
-                                              </h3>
-                                              <StarRating
-                                                averageRating={review?.rating}
-                                                type={"noreview"}
-                                              />{" "}
-                                              {formatDate(review?.createdAt)}
-                                            </div>
-                                          </div>
-                                          <p>{review.message || ""}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </Col>
-                                ))
-                              ) : (
-                                <div className="no-upcoming-bookings text-center py-5">
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="80"
-                                    height="80"
-                                    viewBox="0 0 80 80"
-                                    fill="none"
-                                  >
-                                    <path
-                                      d="M80 37.4898C80 39.1586 80 40.8215 80 42.4903C79.7966 43.9258 79.6351 45.3733 79.3957 46.8029C76.6437 63.2041 63.3082 76.5666 46.8855 79.3839C45.4317 79.6351 43.96 79.7966 42.4942 80C40.825 80 39.1618 80 37.4926 80C37.2414 79.9521 36.9901 79.8923 36.7388 79.8564C35.3448 79.665 33.9449 79.5454 32.5629 79.2882C26.0178 78.0441 20.1188 75.3524 14.9916 71.1175C5.49098 63.2639 0.35779 53.1791 0.0167742 40.8274C-0.252449 31.2033 2.72097 22.5481 8.79943 15.0832C16.6966 5.39328 26.963 0.279139 39.4969 0.00997335C47.6633 -0.16947 55.2016 2.07358 61.968 6.65537C71.4327 13.0615 77.2958 21.9021 79.3838 33.1772C79.653 34.6007 79.7966 36.0483 80 37.4898ZM16.9958 66.4699C31.6355 79.4916 54.1845 78.1637 67.2149 62.3427C79.7846 47.084 76.3685 27.4529 66.4132 17.0511C49.9547 33.5121 33.4962 49.9731 16.9958 66.4699ZM63.0748 13.5879C48.6265 0.727748 26.6699 1.79245 13.5258 16.7341C0.423601 31.6339 3.02609 51.7615 13.6455 63.0366C15.189 61.4874 16.7086 59.9262 18.2761 58.401C18.7188 57.9703 18.9043 57.5396 18.9043 56.9116C18.8863 45.17 18.8923 33.4224 18.8923 21.6808C18.8923 19.7907 19.7778 18.8934 21.6444 18.8934C26.6938 18.8934 31.7492 18.8934 36.7986 18.8934C37.0739 18.8934 37.3431 18.8934 37.6422 18.8934C37.6422 22.0397 37.6362 25.0543 37.6422 28.075C37.6482 29.5404 38.6054 30.5872 39.9456 30.6111C41.3156 30.635 42.3207 29.5763 42.3267 28.075C42.3387 25.473 42.3267 22.8651 42.3267 20.2632C42.3267 19.8265 42.3267 19.3899 42.3267 18.8875C42.6857 18.8875 42.9669 18.8875 43.248 18.8875C47.8548 18.8875 52.4674 18.8934 57.0742 18.8815C57.3673 18.8815 57.7562 18.8575 57.9357 18.6841C59.6587 17.0212 61.3398 15.3225 63.0748 13.5879Z"
-                                      fill="#CCCCCC"
-                                    />
-                                    <path
-                                      d="M29.0929 61.0866C39.7721 50.4097 50.4213 39.7568 61.0886 29.0918C61.0886 29.2892 61.0886 29.5404 61.0886 29.7916C61.0886 39.2962 61.0886 48.8007 61.0886 58.3053C61.0886 60.1894 60.1971 61.0866 58.3245 61.0866C48.794 61.0866 39.2635 61.0866 29.733 61.0866C29.4997 61.0866 29.2724 61.0866 29.0929 61.0866Z"
-                                      fill="#CCCCCC"
-                                    />
-                                  </svg>
-                                  <h5 className="fw-semibold">
-                                    No Reviews Yet
-                                  </h5>
-                                  <p className="text-muted small">
-                                    Currently you don’t have any reviews.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            {totalPages > 10 && (
-                              <div className="pagination-flexs mt-5">
-                                <PaginationComponent
-                                  page={page}
-                                  setPage={setPage}
-                                  totalPages={totalPages}
-                                />
-                              </div>
-                            )}
-                          </Tab.Pane>
-                        </Tab.Content>
-                      </Col>
-                    </Row>
-                  </Tab.Container>
-                  <Modal
-                    show={showPlanModal}
-                    onHide={() => setShowPlanModal(false)}
-                    centered
-                    backdrop="static"
-                    keyboard={false}
-                  >
-                    <Modal.Body>
-                      <div className="comman-small-pop">
-                        <h3>Upgrade Plan</h3>
-                        <div className="d-flex justify-content-center download-app-section mt-2">
-                          Please subscribe to our plan to access this feature
-                        </div>
-                        <div className="d-flex justify-content-center mt-3">
-                          <button
-                            className="primaryBtn"
-                            onClick={() => navigate(`/payment`)}
-                          >
-                            Upgrade Plan
-                          </button>
-                        </div>
-                      </div>
-                    </Modal.Body>
-                  </Modal>
+                <div className="phero-actions">
+                  <button type="button" className="btn btn-gold" onClick={handleChat}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+                    </svg>
+                    Direct Chat
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={handleCall}>
+                    Call Now
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={handleMap}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
+                      <circle cx="12" cy="10" r="2.5" />
+                    </svg>
+                    Map
+                  </button>
                 </div>
               </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+
+              <div className="pstats">
+                <div className="pstat">
+                  <b>{productList.length}</b>
+                  <span>Products listed</span>
+                </div>
+                <div className="pstat">
+                  <b>{reviewCount}</b>
+                  <span>Customer reviews</span>
+                </div>
+                <div className="pstat">
+                  <b>{averageRating.toFixed(1)}</b>
+                  <span>Average rating</span>
+                </div>
+                <div className="pstat">
+                  <b>{corpoProfile?.status === 1 ? "Active" : "Inactive"}</b>
+                  <span>Account status</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="pbody">
+          <div className="wrap">
+            <div className="corp-tab-nav">
+              {visibleTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`corp-tab${activeTab === tab.key ? " active" : ""}`}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === "business-details" && (
+              <div className="card reveal in">
+                <h2>
+                  <span className="hico">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" />
+                    </svg>
+                  </span>
+                  Business Details
+                </h2>
+                <p className="lead">Contact information and company profile.</p>
+
+                <div className="corp-detail-layout">
+                  <div className="corp-detail-photo">
+                    {hasProfileImage ? (
+                      <img
+                        src={profileImageSrc}
+                        alt={displayName}
+                        onError={handleUserImageError}
+                      />
+                    ) : (
+                      <div
+                        className="corp-detail-photo-fallback"
+                        style={{
+                          background: `linear-gradient(145deg,${avatarColor(displayName)},#0A4338)`,
+                        }}
+                      >
+                        {providerInitials(displayName)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="corp-info-grid">
+                    <InfoRow label="Company name" value={displayName} />
+                    <InfoRow label="Profession type" value={categoryName} />
+                    <InfoRow label="Email" value={corpoProfile?.email} />
+                    <InfoRow label="Phone" value={corpoProfile?.phone_number} />
+                    <InfoRow label="Street address" value={street} />
+                    <InfoRow label="Company address" value={companyAddress} />
+                    <InfoRow
+                      label="Verified"
+                      value={isVerified ? "Yes" : "No"}
+                    />
+                    <InfoRow
+                      label="Status"
+                      value={corpoProfile?.status === 1 ? "Active" : "Inactive"}
+                    />
+                  </div>
+                </div>
+
+                <div className="corp-detail-actions">
+                  <button type="button" className="btn btn-ghost corp-action-btn" onClick={handleChat}>
+                    Direct Chat
+                  </button>
+                  <button type="button" className="btn btn-gold corp-action-btn" onClick={handleCall}>
+                    Call Now
+                  </button>
+                  <button type="button" className="btn btn-ghost corp-action-btn" onClick={handleMap}>
+                    View on Map
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "products" && (
+              <div className="card reveal in">
+                <h2>
+                  <span className="hico">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                      <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
+                    </svg>
+                  </span>
+                  Products
+                </h2>
+                <p className="lead">Browse products offered by this corporate supplier.</p>
+
+                {productList.length > 0 ? (
+                  <>
+                    <div className="corp-product-grid">
+                      {productList.map((product) => (
+                        <button
+                          key={product._id}
+                          type="button"
+                          className="corp-product-card"
+                          onClick={() => navigate(`/product-detail/${product._id}`)}
+                        >
+                          <div className="corp-product-img">
+                            <img
+                              src={productImageUrl(product.images?.[0] || "")}
+                              alt={product?.name || "Product"}
+                              onError={handleCategoryImageError}
+                            />
+                          </div>
+                          <div className="corp-product-body">
+                            <h4>{product?.name || "Product"}</h4>
+                            <p>{product?.description || "No description"}</p>
+                            <span className="corp-product-price">
+                              ${Number(product?.price || 0).toFixed(2)}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="corp-profile-pager">
+                      <SimbaPager
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="corp-profile-empty inline">
+                    <h3>No products yet</h3>
+                    <p>This corporate has not listed any products.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "reviews" && (
+              <div className="card reveal in">
+                <h2>
+                  <span className="hico">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2-6.3-4.6-6.3 4.6L8 13.8l-6-4.4h7.6L12 2Z" />
+                    </svg>
+                  </span>
+                  Customer Reviews
+                </h2>
+
+                {reviews.length > 0 ? (
+                  <>
+                    <div className="rev-summary">
+                      <div className="rev-score">
+                        <b>{averageRating.toFixed(1)}</b>
+                        <span className="stars">{starsText(averageRating)}</span>
+                        <span>{reviewCount} reviews</span>
+                      </div>
+                      <div className="rev-bars">
+                        {ratingBars.map((bar) => (
+                          <div className="rbar" key={bar.star}>
+                            <span>{bar.star}</span>
+                            <div className="track">
+                              <div className="fill" style={{ width: `${bar.pct}%` }} />
+                            </div>
+                            <span>{bar.pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {reviews.map((review) => {
+                      const reviewerName =
+                        safeVal(review.user_id?.full_name) || "Customer";
+                      return (
+                        <div className="review" key={review._id}>
+                          <img
+                            className="corp-review-avatar"
+                            src={userImageUrl(review.user_id)}
+                            alt={reviewerName}
+                            onError={handleUserImageError}
+                          />
+                          <div className="rev-main">
+                            <div className="rev-head">
+                              <b>{reviewerName}</b>
+                              <span className="when">
+                                {formatReviewDate(review.createdAt)}
+                              </span>
+                            </div>
+                            <div className="rev-stars">
+                              {starsText(review.rating)}
+                            </div>
+                            <div className="rev-body">{review.message || ""}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <div className="corp-profile-empty inline">
+                    <h3>No reviews yet</h3>
+                    <p>Be the first to leave feedback for this corporate.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <Modal show={showMapModal} onHide={() => setShowMapModal(false)} centered size="lg">
+          <Modal.Header closeButton className="border-none pb-0">
+            <Modal.Title>Business Location</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="comman-small-pop text-center">
+              <MapComponent
+                coordinates={corporateMapCoordinates(corpoProfile)}
+                address={corporateMapAddress(
+                  corpoProfile,
+                  street,
+                  companyAddress,
+                  displayName
+                )}
+              />
+            </div>
+          </Modal.Body>
+        </Modal>
+
+        <Modal
+          show={showPlanModal}
+          onHide={() => setShowPlanModal(false)}
+          centered
+          backdrop="static"
+          keyboard={false}
+        >
+          <Modal.Body>
+            <div className="comman-small-pop">
+              <h3>Upgrade Plan</h3>
+              <div className="d-flex justify-content-center download-app-section mt-2">
+                Please subscribe to our plan to access this feature
+              </div>
+              <div className="d-flex justify-content-center mt-3">
+                <button
+                  type="button"
+                  className="primaryBtn"
+                  onClick={() => navigate("/payment")}
+                >
+                  Upgrade Plan
+                </button>
+              </div>
+            </div>
+          </Modal.Body>
+        </Modal>
+      </div>
     </Layout>
   );
 }

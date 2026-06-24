@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import Layout from "../../Components/Layout/Layout";
+import CorporatePageShell from "../../CommanComponents/CorporatePageShell";
 import { Row, Nav, Col, Tab } from "react-bootstrap";
 import TotalLeadsIcon from "../../Assets/Images/corporate/TotalLeads.svg";
 import PendingIcon from "../../Assets/Images/corporate/PendingIcon.svg";
@@ -10,9 +10,21 @@ import TierIcon from "../../Assets/Images/corporate/TierIcon.svg";
 import { useDispatch, useSelector } from "react-redux";
 import CorporateActions from "../../Redux/Actions/corporateActions";
 import PaginationComponent from "../../CommanComponents/PaginationComponent";
-import locationPin from "../../Assets/Images/corporate/locationPin.svg";
-import calenderIcon from "../../Assets/Images/corporate/calenderIcon.svg";
-import defalutImage from "../../Assets/Images/placeholder.jpg";
+import {
+  handleUserImageError,
+  userImageUrl,
+  formatDisplayTitle,
+  providerDisplayName,
+} from "../../utils/landingUtils";
+import CorporateLeadCardMeta from "../../CommanComponents/CorporateLeadCardMeta";
+import CorporateUpcomingTaskCard from "../../CommanComponents/CorporateUpcomingTaskCard";
+import {
+  getCorporateLeadStatus,
+  formatCorporateLeadStatusLabel,
+  sortUpcomingCorporateLeads,
+  canCorporateRespondToLead,
+  canCorporateViewLeadDetails,
+} from "../../utils/corporateLeadStatus";
 
 const CorporateDashboard = () => {
   const navigate = useNavigate();
@@ -25,6 +37,10 @@ const CorporateDashboard = () => {
   );
   const upcomingTasks = useSelector(
     (state) => state.corporateSlice?.upcomingtask?.leads
+  );
+  const sortedUpcomingTasks = useMemo(
+    () => sortUpcomingCorporateLeads(upcomingTasks || []),
+    [upcomingTasks]
   );
   const totalPages = leads?.totalPages;
   const [searchParams, setSearchParams] = useSearchParams();
@@ -81,7 +97,7 @@ const CorporateDashboard = () => {
       });
   };
 
-  const CorporateDashboard = [
+  const dashboardStats = [
     {
       label: "Total Leads",
       value: corporateDashboard?.total_leads || 0,
@@ -109,13 +125,9 @@ const CorporateDashboard = () => {
   ];
 
   return (
-    <Layout>
-      <section className="search-results-sec">
-        <div className="container corporate-wrapper pt-5">
-          <h1 className="h4 mb-4 fw-semibold">Corporate Dashboard</h1>
-
+    <CorporatePageShell title="Corporate Dashboard" crumbLabel="Dashboard">
           <div className="dashbox-box-wrap">
-            {CorporateDashboard?.map((item, idx) => (
+            {dashboardStats.map((item, idx) => (
               <div
                 key={idx}
                 className="dashbox-box cursor-pointer"
@@ -160,64 +172,12 @@ const CorporateDashboard = () => {
                     <div className="bookings-cards">
                       <ul className="list-unstyled">
                         <ul className="list-unstyled">
-                          {upcomingTasks?.length > 0 ? (
-                            upcomingTasks.map((res, idx) => {
-                              return res?.type === "task" ? (
-                                <li key={idx} className="mb-3">
-                                  <div className="booking-card">
-                                    <div className="d-flex justify-content-between">
-                                      <h5 className="mb-2">
-                                        {res?.taskId?.need_done}
-                                      </h5>
-                                      <h5 className="mb-2 corporate_inner pending">
-                                        Pending
-                                      </h5>
-                                    </div>
-                                    <p className="mb-1 small text-muted">
-                                      {res?.taskId?.details}
-                                    </p>
-                                    <p className="mb-1 mt-2">
-                                      Address: {res?.taskId?.address}
-                                    </p>
-                                    <div className="d-flex gap-3 mt-3">
-                                      <small className="text-muted">
-                                        Time: {res.taskId?.task_time}
-                                      </small>
-                                      <small className="text-muted">
-                                        Date: {res.taskId?.when_done}
-                                      </small>
-                                    </div>
-                                  </div>
-                                </li>
-                              ) : (
-                                <li key={idx}>
-                                  <div className="booking-card">
-                                    <div className="d-flex justify-content-between">
-                                      <h5 className="mb-2">
-                                        {res?.userId?.full_name}
-                                      </h5>
-                                      <h5 className="mb-2 corporate_inner pending">
-                                        Pending
-                                      </h5>
-                                    </div>
-                                    <p className="text-muted mb-0">
-                                      {res?.userId?.email}
-                                    </p>
-                                    <p className="mb-1 mt-2">
-                                      Address: {res?.bookingId?.address}
-                                    </p>
-                                    <div className="d-flex gap-3 mt-3">
-                                      <small className="text-muted">
-                                        Time: {res.bookingId?.slotTime[idx]}
-                                      </small>
-                                      <small className="text-muted">
-                                        Date: {res.bookingId?.date}
-                                      </small>
-                                    </div>
-                                  </div>
-                                </li>
-                              );
-                            })
+                          {sortedUpcomingTasks.length > 0 ? (
+                            sortedUpcomingTasks.map((res, idx) => (
+                              <li key={res._id || idx} className="mb-3">
+                                <CorporateUpcomingTaskCard lead={res} />
+                              </li>
+                            ))
                           ) : (
                             <div className="no-upcoming-bookings">
                               <svg
@@ -236,8 +196,8 @@ const CorporateDashboard = () => {
                                   fill="#CCCCCC"
                                 />
                               </svg>
-                              <h3>No Leads Found</h3>
-                              <p>Currently you don’t have any upcoming leads</p>
+                              <h3>No upcoming tasks</h3>
+                              <p>You don&apos;t have any upcoming tasks right now.</p>
                             </div>
                           )}
                         </ul>
@@ -263,95 +223,78 @@ const CorporateDashboard = () => {
                             .filter((res) =>
                               leadFilter === "all"
                                 ? true
-                                : res.status === leadFilter
+                                : getCorporateLeadStatus(res) === leadFilter
                             )
                             .slice(0, 10)
                             .map((res, idx) => {
                               const corp = res?.corporateIds || {};
                               const item = res.taskId || {};
-                              const status = res.status;
+                              const status = getCorporateLeadStatus(res);
                               const bookingItem = res.bookingId || {};
                               return (
                                 <li key={res._id || idx} className="mb-3">
                                   <div className="booking-card">
-                                    <div className="d-flex justify-content-between align-items-start mb-2">
-                                      <div>
+                                    <div className="d-flex justify-content-between align-items-start mb-2 gap-3 corp-lead-card-head">
+                                      <div className="corp-lead-card-head__main">
                                         {res.type === "task" ? (
                                           <>
                                             <h5 className="mb-1">
-                                              {item.need_done ||
-                                                "Untitled Task"}
+                                              {formatDisplayTitle(
+                                                item.need_done,
+                                                "Untitled Task"
+                                              )}
                                             </h5>
-                                            <div className="small text-muted">
-                                              <img
-                                                src={locationPin}
-                                                alt=""
-                                                height={20}
-                                                width={20}
-                                              ></img>
-                                              {item.address || "No Location"}{" "}
-                                              &nbsp; | &nbsp;
-                                              <img
-                                                src={calenderIcon}
-                                                alt=""
-                                                height={20}
-                                                width={20}
-                                              ></img>{" "}
-                                              {item.when_done ||
-                                                item.date ||
-                                                "No Date"}
-                                            </div>
+                                            <CorporateLeadCardMeta
+                                              address={item.address}
+                                              date={
+                                                item.when_done || item.date
+                                              }
+                                            />
                                           </>
                                         ) : res.type === "service" ? (
                                           <div>
                                             <h5 className="mb-1">
-                                              {bookingItem.message || "-"}
+                                              {formatDisplayTitle(
+                                                bookingItem.message,
+                                                "-"
+                                              )}
                                             </h5>
-                                            <div className="small text-muted">
-                                              <img
-                                                src={locationPin}
-                                                alt=""
-                                                height={20}
-                                                width={20}
-                                              ></img>
-                                              {bookingItem.address ||
-                                                "No Location"}{" "}
-                                              &nbsp; | &nbsp;
-                                              <img
-                                                src={calenderIcon}
-                                                alt=""
-                                                height={20}
-                                                width={20}
-                                              ></img>{" "}
-                                              {bookingItem.date || "No Date"}
-                                            </div>
+                                            <CorporateLeadCardMeta
+                                              address={bookingItem.address}
+                                              date={bookingItem.date}
+                                            />
                                           </div>
                                         ) : null}
                                       </div>
                                       <span
                                         className={`corporate_inner ${status}`}
                                       >
-                                        {status}
+                                        {formatCorporateLeadStatusLabel(status)}
                                       </span>
                                     </div>
 
                                     <div className="d-flex align-items-center gap-2 mb-3">
                                       <img
-                                        src={`${process.env.REACT_APP_API_URL}/${res.serviceProviderId?.profile_image}` || defalutImage}
-                                        alt={res.serviceProviderId?.full_name}
+                                        src={userImageUrl(res.serviceProviderId)}
+                                        onError={handleUserImageError}
+                                        alt={providerDisplayName(
+                                          res.serviceProviderId
+                                        )}
                                         className="booking-avatar rounded-circle"
                                         width={40}
                                         height={40}
                                       />
                                       <p className="mb-0 small">
                                         Suggested by:{" "}
-                                        <strong>{res.serviceProviderId?.full_name}</strong>
+                                        <strong>
+                                          {providerDisplayName(
+                                            res.serviceProviderId
+                                          )}
+                                        </strong>
                                       </p>
                                     </div>
 
-                                    {(res.userStatus === 1 &&
-                                      res.corporateStatus === 1) ||
-                                    status === "rejected" ? (
+                                    {canCorporateViewLeadDetails(res) ? (
                                       <div className="book-service-action-btn d-flex gap-2">
                                         <button
                                           className="primaryBtn"
@@ -367,8 +310,7 @@ const CorporateDashboard = () => {
                                           See More
                                         </button>
                                       </div>
-                                    ) : res.userStatus === 1 &&
-                                      status !== "rejected" ? (
+                                    ) : canCorporateRespondToLead(res) ? (
                                       <div className="book-service-action-btn d-flex gap-2">
                                         <button
                                           className="view-more-btn"
@@ -406,30 +348,26 @@ const CorporateDashboard = () => {
                                 fill="#CCCCCC"
                               />
                             </svg>
-                            <h3>No Leads Found</h3>
-                            <p>Currently you don’t have any Leads.</p>
+                            <h3>No new leads</h3>
+                            <p>You don&apos;t have any new leads right now.</p>
                           </div>
                         )}
                       </ul>
                     </div>
 
-                    {totalPages > 10 && (
-                      <div className="pagination-flexs mt-5">
-                        <PaginationComponent
-                          page={page}
-                          setPage={setPage}
-                          totalPages={totalPages}
-                        />
-                      </div>
-                    )}
+                    <div className="pagination-flexs">
+                      <PaginationComponent
+                        page={page}
+                        setPage={setPage}
+                        totalPages={totalPages}
+                      />
+                    </div>
                   </Tab.Pane>
                 </Tab.Content>
               </Col>
             </Row>
           </Tab.Container>
-        </div>
-      </section>
-    </Layout>
+    </CorporatePageShell>
   );
 };
 

@@ -1,11 +1,6 @@
-import React, { useEffect, useState } from "react";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Layout from "../Components/Layout/Layout";
-import Nav from "react-bootstrap/Nav";
-import Tab from "react-bootstrap/Tab";
+import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,10 +11,74 @@ import "react-toastify/dist/ReactToastify.css";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
 import CancelModal from "../CommanComponents/Modals/CancelModal";
 import FilterModal from "../CommanComponents/Modals/FilterModal";
+import SimbaPager from "../CommanComponents/SimbaPager";
 import moment from "moment";
-import defaultImage from "../Assets/Images/placeholder.jpg";
-import JobFlowStepper from "../CommanComponents/JobFlowStepper";
+import { SimbaTaskTimeline } from "../CommanComponents/TaskDetail/SimbaTaskDetailParts";
+import {
+  formatDisplayTitle,
+  handleUserImageError,
+  taskImageUrl,
+  userImageUrl,
+} from "../utils/landingUtils";
 import { getTaskFlowDescription, taskStatus } from "../utils/jobFlowStatus";
+
+const TASK_TABS = [
+  { key: "first", label: "Tasks" },
+  { key: "second", label: "Quotation" },
+  { key: "third", label: "Upcoming" },
+  { key: "fourth", label: "Completed" },
+];
+
+const UPCOMING_PAGE_SIZE = 10;
+
+function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 7v5l3 2" />
+      <circle cx="12" cy="12" r="9" />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function LocationIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
+function PlaceholderThumbIcon() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.5-3.5L9 20" />
+    </svg>
+  );
+}
+
+function EmptyState({ title, message }) {
+  return (
+    <div className="empty">
+      <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+      </svg>
+      <h3>{title}</h3>
+      <p>{message}</p>
+    </div>
+  );
+}
+
 export default function ServiceTasks() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,21 +110,59 @@ export default function ServiceTasks() {
     tasks: [],
     completedTasks: [],
   });
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const [listFilters, setListFilters] = useState({
+    need_done: "",
+    budget: "",
+    date: "",
+    time: "",
+  });
   const postTasksList = useSelector(
     (state) => state.service.getPostTaskService
   );
+  const tasksPagination = postTasksList?.tasksPagination;
 
-  // Fetch post tasks list on mount
-  useEffect(() => {
-    let data = {
-      need_done: "",
-      budget: "",
-      date: "",
-      time: "",
+  const fetchPostTaskList = useCallback(() => {
+    const base = {
+      need_done: listFilters.need_done,
+      budget: listFilters.budget,
+      date: listFilters.date,
+      time: listFilters.time,
+      limit: UPCOMING_PAGE_SIZE,
     };
 
-    dispatch(ServiceActions.getPostTaskList(data));
-  }, [dispatch]);
+    if (activeTab === "third") {
+      dispatch(
+        ServiceActions.getPostTaskList({
+          ...base,
+          type: "tasks",
+          page: upcomingPage,
+        })
+      );
+      return;
+    }
+
+    dispatch(
+      ServiceActions.getPostTaskList({
+        ...base,
+        page: 1,
+      })
+    );
+  }, [activeTab, dispatch, listFilters, upcomingPage]);
+
+  useEffect(() => {
+    fetchPostTaskList();
+  }, [fetchPostTaskList]);
+
+  const handleTabChange = (tab) => {
+    setUpcomingPage(1);
+    setActiveTab(tab);
+  };
+
+  const handleFiltersApplied = (filters) => {
+    setUpcomingPage(1);
+    setListFilters(filters);
+  };
 
   useEffect(() => {
     if (!postTasksList) return;
@@ -347,101 +444,116 @@ export default function ServiceTasks() {
     return null;
   };
 
-  const renderTaskCard = (task) => (
-    <div className="quotation-requests" key={task?._id}>
-      <div className="bookings-card-item">
-        <img
-          style={{ cursor: "pointer" }}
-          onClick={() => navigate(`/servicetasksdetails/${task?._id}`)}
-          src={
-            task?.images?.length > 0
-              ? `${process.env.REACT_APP_API_URLL}${task.images[0]}`
-              : require("../Assets/Images/placeholder.jpg")
-          }
-          alt="Task"
-          className="task-image"
-        />
-        <div className="requests-time-checkup">
-          <h3>{task?.need_done || ""}</h3>
-          <p>
-            {task?.task_time}, {formatDate(task?.when_done)} - {task?.address}
-          </p>
-          <p>{task.details}</p>
-          <p className="task-price">${task.budget}</p>
-        </div>
-      </div>
-    </div>
-  );
+  const openTaskDetail = (task, withStatus = true) => {
+    const base = `/servicetasksdetails/${task?._id}`;
+    navigate(
+      withStatus ? `${base}?status=task&fromTab=${activeTab}` : base
+    );
+  };
 
-  const renderTaskCardTask = (task) => (
-    <div className="quotation-requests" key={task?._id}>
-      <div className="bookings-card-item3">
-        <img
-          style={{ cursor: "pointer" }}
-          onClick={() =>
-            navigate(
-              `/servicetasksdetails/${task?._id}?status=task&fromTab=${activeTab}`
-            )
-          }
-          src={
-            task?.images?.length > 0
-              ? `${process.env.REACT_APP_API_URLL}${task.images[0]}`
-              : defaultImage
-          }
-          alt="Task"
-          className="task-image"
-        />
-        <div className="requests-time-checkup">
-          <h3>{task?.need_done || ""}</h3>
-          <p>
-            {task?.task_time}, {formatDatee(task?.when_done)} - {task?.address}
-          </p>
-          <p>{task.details}</p>
-          <p className="task-price">${task.budget}</p>
-        </div>
-      </div>
-    </div>
-  );
+  const handleTaskThumbError = (e) => {
+    const thumb = e.currentTarget.closest(".tthumb");
+    e.currentTarget.style.display = "none";
+    if (thumb) {
+      thumb.classList.remove("tthumb--photo");
+    }
+  };
 
-  const renderMyQuotations = (task) => (
-    <div className="quotation" key={task?._id}>
-      <div>
-        <div className="quotation-txt-show">
-          <div
-            className="profile-side cursor-pointer"
-            onClick={() => navigate(`/quotations-detail/${task?._id}`)}
-          >
+  const renderBrowseTaskCard = (task, withStatus = true) => {
+    const imageSrc = task?.images?.length > 0 ? task.images[0] : null;
+    const whenLabel = withStatus
+      ? formatDatee(task?.when_done)
+      : formatDate(task?.when_done);
+    const address =
+      task?.address && task.address !== "undefined" ? task.address : null;
+
+    return (
+      <button
+        key={task?._id}
+        type="button"
+        className={`tcard sp-task-card${
+          withStatus ? "" : " sp-task-card--upcoming"
+        }`}
+        onClick={() => openTaskDetail(task, withStatus)}
+      >
+        <div className={`tthumb${imageSrc ? " tthumb--photo" : ""}`}>
+          {imageSrc ? (
             <img
-              className="point-cursor"
-              src={
-                task?.user_details?.profile_image  
-                  ? `${process.env.REACT_APP_API_URL}${task?.user_details?.profile_image}`
-                  : defaultImage
-              }
-              alt="Service Provider"
+              src={taskImageUrl(imageSrc)}
+              alt={task?.need_done || "Task"}
+              onError={handleTaskThumbError}
             />
-            <div>
-              <h5>{task?.user_details?.full_name || ""}</h5>
-              <p>
-                {task?.user_details?.address &&
-                task.user_details.address !== "undefined"
-                  ? task.user_details.address
-                  : "-"}
-              </p>
-              {/* <div className="rating-stars">
-                <ul> <StarRating averageRating={task.averageRating} /></ul>
-              </div> */}
-            </div>
+          ) : (
+            <PlaceholderThumbIcon />
+          )}
+        </div>
+        <div className="tinfo">
+          <div className="tinfo-head">
+            <h3>{formatDisplayTitle(task?.need_done, "Task")}</h3>
+            {!withStatus ? <span className="tbadge posted">Open</span> : null}
           </div>
-          <div>
-            <h5>${task?.offer_price || "N/A"}</h5>
-            <p>Offer Price</p>
+          <div className="tsched">
+            <ClockIcon />
+            {task?.task_time}
+            {whenLabel ? `, ${whenLabel}` : ""}
+          </div>
+          {address ? (
+            <div className="tloc">
+              <LocationIcon />
+              <span>{address}</span>
+            </div>
+          ) : null}
+          <div className="tdesc tdesc--wrap">
+            {task?.details || "No description provided."}
           </div>
         </div>
-        <p>{task?.description || "No description provided"}</p>
-      </div>
-    </div>
-  );
+        <div className="tside">
+          <span className="tprice">${task?.budget ?? "N/A"}</span>
+          <span className="tarrow">
+            View <ArrowIcon />
+          </span>
+        </div>
+      </button>
+    );
+  };
+
+  const renderMyQuotations = (task) => {
+    const address =
+      task?.user_details?.address &&
+      task.user_details.address !== "undefined"
+        ? task.user_details.address
+        : "-";
+
+    return (
+      <button
+        key={task?._id}
+        type="button"
+        className="quotation-card sp-quote-card"
+        onClick={() => navigate(`/quotations-detail/${task?._id}`)}
+      >
+        <div className="tthumb tthumb--photo">
+          <img
+            src={userImageUrl(task?.user_details)}
+            alt={task?.user_details?.full_name || "Customer"}
+            onError={handleUserImageError}
+          />
+        </div>
+        <div className="tinfo">
+          <h3>{task?.user_details?.full_name || "Customer"}</h3>
+          <div className="tsched">{address}</div>
+          <div className="tdesc tdesc--wrap">
+            {task?.description || "No description provided"}
+          </div>
+        </div>
+        <div className="tside">
+          <span className="tprice">${task?.offer_price || "N/A"}</span>
+          <span className="tarrow">
+            Offer <ArrowIcon />
+          </span>
+        </div>
+      </button>
+    );
+  };
 
   const renderCompletedTaskCard = (task) => {
     const detailUrl = `/servicetasksdetails/${task?._id}?status=task&fromTab=${activeTab}`;
@@ -453,303 +565,272 @@ export default function ServiceTasks() {
       ? `https://maps.google.com/?q=${map.lat},${map.lng}`
       : null;
 
+    const imageSrc = task?.images?.length > 0 ? task.images[0] : null;
+    const title = formatDisplayTitle(task?.need_done?.trim(), "Task");
+    const details = task?.details?.trim() || "";
+    const normalizeLabel = (value) =>
+      value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const showDetails =
+      details.length > 0 &&
+      normalizeLabel(details) !== normalizeLabel(title);
+    const address =
+      task?.address && task.address !== "undefined" ? task.address : null;
+
     return (
-      <div
-        className="quotation-requests quotation-requests--completed"
-        key={task?._id}
-      >
-        <div className="requests-completed-main map-container-service-tasks">
-          <div className="requests-time-checkup requests-completed-left d-flex gap-3">
-            <img
-              style={{ cursor: "pointer", width: 100, height: 100, objectFit: "cover", borderRadius: 8, flexShrink: 0 }}
+      <div className="tk-card tk-card--completed" key={task?._id}>
+        <div className="tk-main">
+          <div className="tk-top">
+            <button
+              type="button"
+              className={`tk-thumb${imageSrc ? " tk-thumb--photo" : ""}`}
               onClick={() => navigate(detailUrl)}
-              src={
-                task?.images?.length > 0
-                  ? `${process.env.REACT_APP_API_URLL}${task.images[0]}`
-                  : defaultImage
-              }
-              alt="Task"
-              className="task-image"
-            />
-            <div className="flex-grow-1">
-              <h3
-                style={{ cursor: "pointer" }}
-                onClick={() => navigate(detailUrl)}
-              >
-                {task?.need_done || ""}
-              </h3>
-              <p className="text-muted">{task?.details || ""}</p>
-              <p>
-                {task?.task_time}, {formatDatee(task?.when_done)}
-              </p>
-              <p>{task?.address}</p>
-              <p className="task-price mb-0">${task?.budget}</p>
-              <div className="mt-3">
-                <JobFlowStepper mode="task" status={task?.status} />
-                <p className="mt-2 mb-0">
-                  {getTaskFlowDescription(task?.status)}
-                </p>
-                <div className="completed-status-note">
-                  Job completed. Payment will be processed by the customer.
-                </div>
-                <div className="book-service-action-btn d-flex gap-2 mt-3">
+              aria-label={`View ${title}`}
+            >
+              {imageSrc ? (
+                <img
+                  src={taskImageUrl(imageSrc)}
+                  alt={title}
+                  onError={handleTaskThumbError}
+                />
+              ) : (
+                <PlaceholderThumbIcon />
+              )}
+            </button>
+            <div className="tk-id">
+              <div className="tk-id-head">
+                <h2>
                   <button
                     type="button"
-                    className="booking-job-done-btn"
-                    onClick={() => handleOpenFeedback(task)}
+                    className="tk-title-btn"
+                    onClick={() => navigate(detailUrl)}
                   >
-                    Rate the Customer
+                    {title}
                   </button>
-                </div>
-                <button
-                  type="button"
-                  className="task-dispute-link-btn"
-                  onClick={() => handleOpenDispute(task)}
-                >
-                  Having an issue? <span>Raise Dispute</span>
-                </button>
+                </h2>
+                <span className="tbadge completed">Completed</span>
               </div>
+              {showDetails ? <p className="tk-sub">{details}</p> : null}
+              <div className="tk-meta">
+                <div className="tk-meta-line">
+                  <ClockIcon />
+                  <span>
+                    {task?.task_time}
+                    {task?.when_done
+                      ? `, ${formatDatee(task.when_done)}`
+                      : ""}
+                  </span>
+                </div>
+                {address ? (
+                  <div className="tk-meta-line">
+                    <LocationIcon />
+                    <span>{address}</span>
+                  </div>
+                ) : null}
+              </div>
+              <div className="tk-price">${task?.budget ?? "N/A"}</div>
             </div>
           </div>
-          {map && mapUrl && shareUrl ? (
-            <div className="requests-completed-map">
+
+          <div className="tk-timeline">
+            <SimbaTaskTimeline status={task?.status} />
+            <p className="tk-note">{getTaskFlowDescription(task?.status)}</p>
+          </div>
+
+          <div className="done-banner">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            >
+              <path d="m20 6-11 11-5-5" />
+            </svg>
+            Job completed. Payment will be processed by the customer.
+          </div>
+
+          <div className="tk-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => handleOpenFeedback(task)}
+            >
+              Rate the customer
+            </button>
+          </div>
+
+          <p className="dispute-line">
+            Having an issue?{" "}
+            <button type="button" onClick={() => handleOpenDispute(task)}>
+              Raise dispute
+            </button>
+          </p>
+        </div>
+
+        {map && mapUrl && shareUrl ? (
+          <div className="tk-map">
+            <div className="map-frame">
               <iframe
                 title={`completed-task-map-${task?._id}`}
                 src={mapUrl}
-                width="100%"
-                height="220"
-                style={{ border: 0, borderRadius: "8px" }}
                 loading="lazy"
               />
-              <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
-                <button
-                  type="button"
-                  className="booking-job-done-btn"
-                  onClick={() => window.open(shareUrl, "_blank")}
-                >
-                  Open in Maps
-                </button>
-                <button
-                  type="button"
-                  className="booking-job-done-btn"
-                  onClick={async () => {
-                    try {
-                      if (navigator.share) {
-                        await navigator.share({
-                          title: "Task location",
-                          text: "Completed task location",
-                          url: shareUrl,
-                        });
-                        return;
-                      }
-                      if (navigator.clipboard?.writeText) {
-                        await navigator.clipboard.writeText(shareUrl);
-                        toast.success("Location copied.");
-                      }
-                    } catch {}
-                  }}
-                >
-                  Share Location
-                </button>
-              </div>
             </div>
-          ) : null}
-        </div>
+            <div className="map-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => window.open(shareUrl, "_blank")}
+              >
+                Open in Maps
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: "Task location",
+                        text: "Completed task location",
+                        url: shareUrl,
+                      });
+                      return;
+                    }
+                    if (navigator.clipboard?.writeText) {
+                      await navigator.clipboard.writeText(shareUrl);
+                      toast.success("Location copied.");
+                    }
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+              >
+                Share location
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   };
 
   return (
-    <Layout>
-      <section className="search-results-sec">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="search-results-contain">
-                <div className="taskk">
-                  <div>
-                    <h2>Browse Task</h2>
-                  </div>
-                  <div className="task-nav">
-                    <div className="search-bar">
-                      <input
-                        type="text"
-                        placeholder="Search by name or task"
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                      />
-                      {activeTab != "second" && (
-                        <div
-                          className="mt-1"
-                          onClick={() => setShowModal(true)}
-                        >
-                          <svg
-                            className="cursor-pointer"
-                            width="24"
-                            height="25"
-                            viewBox="0 0 24 25"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M20.0215 3.5H3.97905C3.57179 3.50032 3.17338 3.61885 2.83216 3.84119C2.49095 4.06353 2.22162 4.38013 2.05684 4.75257C1.89206 5.12501 1.83893 5.53727 1.90389 5.93931C1.96885 6.34136 2.14911 6.71591 2.4228 7.0175L9.3753 14.6637V21.875C9.37536 22.016 9.41515 22.1541 9.49009 22.2734C9.56504 22.3928 9.67212 22.4887 9.79905 22.55C9.90049 22.6 10.0122 22.6257 10.1253 22.625C10.2958 22.6249 10.4611 22.5667 10.594 22.46L12.0003 21.335L14.344 19.46C14.4318 19.3898 14.5026 19.3008 14.5512 19.1995C14.5999 19.0982 14.6252 18.9873 14.6253 18.875V14.6637L21.5778 7.0175C21.8515 6.71591 22.0317 6.34136 22.0967 5.93931C22.1617 5.53727 22.1085 5.12501 21.9438 4.75257C21.779 4.38013 21.5096 4.06353 21.1684 3.84119C20.8272 3.61885 20.4288 3.50032 20.0215 3.5Z"
-                              fill="#252525"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="bookings-tabs">
-                  <Tab.Container
-                    id="left-tabs-example"
-                    activeKey={activeTab}
-                    onSelect={(key) => setActiveTab(key)}
-                  >
-                    <Row>
-                      <Col sm={12}>
-                        <div className="task-post-action mb-4">
-                          <Nav variant="pills" className="bookings-tab-nav">
-                            <Nav.Item>
-                              <Nav.Link eventKey="first">Tasks</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                              <Nav.Link eventKey="second">Quotation</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                              <Nav.Link eventKey="third">Upcoming</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                              <Nav.Link eventKey="fourth">Completed</Nav.Link>
-                            </Nav.Item>
-                          </Nav>
-                        </div>
-                      </Col>
-                      <Col sm={12}>
-                        <Tab.Content>
-                          {/* Tasks Tab (acceptedTasks) */}
-                          <Tab.Pane eventKey="first">
-                            {filteredData?.acceptedTasks?.length > 0 ? (
-                              filteredData?.acceptedTasks?.map(
-                                renderTaskCardTask
-                              )
-                            ) : (
-                              <div className="no-upcoming-bookings">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="80"
-                                  height="80"
-                                  viewBox="0 0 80 80"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M80 37.4898C80 39.1586 80 40.8215 80 42.4903C79.7966 43.9258 79.6351 45.3733 79.3957 46.8029C76.6437 63.2041 63.3082 76.5666 46.8855 79.3839C45.4317 79.6351 43.96 79.7966 42.4942 80C40.825 80 39.1618 80 37.4926 80C37.2414 79.9521 36.9901 79.8923 36.7388 79.8564C35.3448 79.665 33.9449 79.5454 32.5629 79.2882C26.0178 78.0441 20.1188 75.3524 14.9916 71.1175C5.49098 63.2639 0.35779 53.1791 0.0167742 40.8274C-0.252449 31.2033 2.72097 22.5481 8.79943 15.0832C16.6966 5.39328 26.963 0.279139 39.4969 0.00997335C47.6633 -0.16947 55.2016 2.07358 61.968 6.65537C71.4327 13.0615 77.2958 21.9021 79.3838 33.1772C79.653 34.6007 79.7966 36.0483 80 37.4898ZM16.9958 66.4699C31.6355 79.4916 54.1845 78.1637 67.2149 62.3427C79.7846 47.084 76.3685 27.4529 66.4132 17.0511C49.9547 33.5121 33.4962 49.9731 16.9958 66.4699ZM63.0748 13.5879C48.6265 0.727748 26.6699 1.79245 13.5258 16.7341C0.423601 31.6339 3.02609 51.7615 13.6455 63.0366C15.189 61.4874 16.7086 59.9262 18.2761 58.401C18.7188 57.9703 18.9043 57.5396 18.9043 56.9116C18.8863 45.17 18.8923 33.4224 18.8923 21.6808C18.8923 19.7907 19.7778 18.8934 21.6444 18.8934C26.6938 18.8934 31.7492 18.8934 36.7986 18.8934C37.0739 18.8934 37.3431 18.8934 37.6422 18.8934C37.6422 22.0397 37.6362 25.0543 37.6422 28.075C37.6482 29.5404 38.6054 30.5872 39.9456 30.6111C41.3156 30.635 42.3207 29.5763 42.3267 28.075C42.3387 25.473 42.3267 22.8651 42.3267 20.2632C42.3267 19.8265 42.3267 19.3899 42.3267 18.8875C42.6857 18.8875 42.9669 18.8875 43.248 18.8875C47.8548 18.8875 52.4674 18.8934 57.0742 18.8815C57.3673 18.8815 57.7562 18.8575 57.9357 18.6841C59.6587 17.0212 61.3398 15.3225 63.0748 13.5879Z"
-                                    fill="#CCCCCC"
-                                  />
-                                  <path
-                                    d="M29.0929 61.0866C39.7721 50.4097 50.4213 39.7568 61.0886 29.0918C61.0886 29.2892 61.0886 29.5404 61.0886 29.7916C61.0886 39.2962 61.0886 48.8007 61.0886 58.3053C61.0886 60.1894 60.1971 61.0866 58.3245 61.0866C48.794 61.0866 39.2635 61.0866 29.733 61.0866C29.4997 61.0866 29.2724 61.0866 29.0929 61.0866Z"
-                                    fill="#CCCCCC"
-                                  />
-                                </svg>
-                                <h3>No Tasks Found</h3>
-                                <p>
-                                  {searchQuery
-                                    ? "No tasks match your search."
-                                    : "Currently you don’t have any tasks."}
-                                </p>
-                              </div>
-                            )}
-                          </Tab.Pane>
-                          {/* Quotation Tab (myQuotations) */}
-                          <Tab.Pane eventKey="second">
-                            {filteredData?.myQuotations?.length > 0 ? (
-                              filteredData?.myQuotations?.map(
-                                renderMyQuotations
-                              )
-                            ) : (
-                              <div className="no-upcoming-bookings">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="80"
-                                  height="80"
-                                  viewBox="0 0 80 80"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M80 37.4898C80 39.1586 80 40.8215 80 42.4903C79.7966 43.9258 79.6351 45.3733 79.3957 46.8029C76.6437 63.2041 63.3082 76.5666 46.8855 79.3839C45.4317 79.6351 43.96 79.7966 42.4942 80C40.825 80 39.1618 80 37.4926 80C37.2414 79.9521 36.9901 79.8923 36.7388 79.8564C35.3448 79.665 33.9449 79.5454 32.5629 79.2882C26.0178 78.0441 20.1188 75.3524 14.9916 71.1175C5.49098 63.2639 0.35779 53.1791 0.0167742 40.8274C-0.252449 31.2033 2.72097 22.5481 8.79943 15.0832C16.6966 5.39328 26.963 0.279139 39.4969 0.00997335C47.6633 -0.16947 55.2016 2.07358 61.968 6.65537C71.4327 13.0615 77.2958 21.9021 79.3838 33.1772C79.653 34.6007 79.7966 36.0483 80 37.4898ZM16.9958 66.4699C31.6355 79.4916 54.1845 78.1637 67.2149 62.3427C79.7846 47.084 76.3685 27.4529 66.4132 17.0511C49.9547 33.5121 33.4962 49.9731 16.9958 66.4699ZM63.0748 13.5879C48.6265 0.727748 26.6699 1.79245 13.5258 16.7341C0.423601 31.6339 3.02609 51.7615 13.6455 63.0366C15.189 61.4874 16.7086 59.9262 18.2761 58.401C18.7188 57.9703 18.9043 57.5396 18.9043 56.9116C18.8863 45.17 18.8923 33.4224 18.8923 21.6808C18.8923 19.7907 19.7778 18.8934 21.6444 18.8934C26.6938 18.8934 31.7492 18.8934 36.7986 18.8934C37.0739 18.8934 37.3431 18.8934 37.6422 18.8934C37.6422 22.0397 37.6362 25.0543 37.6422 28.075C37.6482 29.5404 38.6054 30.5872 39.9456 30.6111C41.3156 30.635 42.3207 29.5763 42.3267 28.075C42.3387 25.473 42.3267 22.8651 42.3267 20.2632C42.3267 19.8265 42.3267 19.3899 42.3267 18.8875C42.6857 18.8875 42.9669 18.8875 43.248 18.8875C47.8548 18.8875 52.4674 18.8934 57.0742 18.8815C57.3673 18.8815 57.7562 18.8575 57.9357 18.6841C59.6587 17.0212 61.3398 15.3225 63.0748 13.5879Z"
-                                    fill="#CCCCCC"
-                                  />
-                                  <path
-                                    d="M29.0929 61.0866C39.7721 50.4097 50.4213 39.7568 61.0886 29.0918C61.0886 29.2892 61.0886 29.5404 61.0886 29.7916C61.0886 39.2962 61.0886 48.8007 61.0886 58.3053C61.0886 60.1894 60.1971 61.0866 58.3245 61.0866C48.794 61.0866 39.2635 61.0866 29.733 61.0866C29.4997 61.0866 29.2724 61.0866 29.0929 61.0866Z"
-                                    fill="#CCCCCC"
-                                  />
-                                </svg>
-                                <h3>No Quotations Found</h3>
-                                <p>
-                                  {searchQuery
-                                    ? "No quotations match your search."
-                                    : "Currently you don’t have any quotations."}
-                                </p>
-                              </div>
-                            )}
-                          </Tab.Pane>
-                          {/* Upcoming Tab (tasks) */}
-                          <Tab.Pane eventKey="third">
-                            {filteredData?.tasks?.length > 0 ? (
-                              filteredData?.tasks.map(renderTaskCard)
-                            ) : (
-                              <div className="no-upcoming-bookings">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="80"
-                                  height="80"
-                                  viewBox="0 0 80 80"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M80 37.4898C80 39.1586 80 40.8215 80 42.4903C79.7966 43.9258 79.6351 45.3733 79.3957 46.8029C76.6437 63.2041 63.3082 76.5666 46.8855 79.3839C45.4317 79.6351 43.96 79.7966 42.4942 80C40.825 80 39.1618 80 37.4926 80C37.2414 79.9521 36.9901 79.8923 36.7388 79.8564C35.3448 79.665 33.9449 79.5454 32.5629 79.2882C26.0178 78.0441 20.1188 75.3524 14.9916 71.1175C5.49098 63.2639 0.35779 53.1791 0.0167742 40.8274C-0.252449 31.2033 2.72097 22.5481 8.79943 15.0832C16.6966 5.39328 26.963 0.279139 39.4969 0.00997335C47.6633 -0.16947 55.2016 2.07358 61.968 6.65537C71.4327 13.0615 77.2958 21.9021 79.3838 33.1772C79.653 34.6007 79.7966 36.0483 80 37.4898ZM16.9958 66.4699C31.6355 79.4916 54.1845 78.1637 67.2149 62.3427C79.7846 47.084 76.3685 27.4529 66.4132 17.0511C49.9547 33.5121 33.4962 49.9731 16.9958 66.4699ZM63.0748 13.5879C48.6265 0.727748 26.6699 1.79245 13.5258 16.7341C0.423601 31.6339 3.02609 51.7615 13.6455 63.0366C15.189 61.4874 16.7086 59.9262 18.2761 58.401C18.7188 57.9703 18.9043 57.5396 18.9043 56.9116C18.8863 45.17 18.8923 33.4224 18.8923 21.6808C18.8923 19.7907 19.7778 18.8934 21.6444 18.8934C26.6938 18.8934 31.7492 18.8934 36.7986 18.8934C37.0739 18.8934 37.3431 18.8934 37.6422 18.8934C37.6422 22.0397 37.6362 25.0543 37.6422 28.075C37.6482 29.5404 38.6054 30.5872 39.9456 30.6111C41.3156 30.635 42.3207 29.5763 42.3267 28.075C42.3387 25.473 42.3267 22.8651 42.3267 20.2632C42.3267 19.8265 42.3267 19.3899 42.3267 18.8875C42.6857 18.8875 42.9669 18.8875 43.248 18.8875C47.8548 18.8875 52.4674 18.8934 57.0742 18.8815C57.3673 18.8815 57.7562 18.8575 57.9357 18.6841C59.6587 17.0212 61.3398 15.3225 63.0748 13.5879Z"
-                                    fill="#CCCCCC"
-                                  />
-                                  <path
-                                    d="M29.0929 61.0866C39.7721 50.4097 50.4213 39.7568 61.0886 29.0918C61.0886 29.2892 61.0886 29.5404 61.0886 29.7916C61.0886 39.2962 61.0886 48.8007 61.0886 58.3053C61.0886 60.1894 60.1971 61.0866 58.3245 61.0866C48.794 61.0866 39.2635 61.0866 29.733 61.0866C29.4997 61.0866 29.2724 61.0866 29.0929 61.0866Z"
-                                    fill="#CCCCCC"
-                                  />
-                                </svg>
-                                <h3>No Upcoming Tasks Found</h3>
-                                <p>
-                                  {searchQuery
-                                    ? "No upcoming tasks match your search."
-                                    : "Currently you don’t have any upcoming tasks."}
-                                </p>
-                              </div>
-                            )}
-                          </Tab.Pane>
-                          <Tab.Pane eventKey="fourth">
-                            {filteredData?.completedTasks?.length > 0 ? (
-                              filteredData?.completedTasks.map(
-                                renderCompletedTaskCard
-                              )
-                            ) : (
-                              <div className="no-upcoming-bookings">
-                                <h3>No Completed Tasks Found</h3>
-                                <p>
-                                  {searchQuery
-                                    ? "No completed tasks match your search."
-                                    : "Currently you don’t have any completed tasks."}
-                                </p>
-                              </div>
-                            )}
-                          </Tab.Pane>
-                        </Tab.Content>
-                      </Col>
-                    </Row>
-                  </Tab.Container>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </Container>
+    <>
+      <CorporatePageShell
+        title="Browse Tasks"
+        crumbLabel="Tasks"
+        pageClass="p-corporate-portal p-mytasks p-browsetask"
+      >
+        <div className="browse-head">
+          <div className="browse-tools">
+            <div className="task-search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4-4" strokeLinecap="round" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search by name or task"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+            </div>
+            {activeTab !== "second" && (
+              <button
+                type="button"
+                className="filter-btn"
+                aria-label="Filter tasks"
+                onClick={() => setShowModal(true)}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 6h16M7 12h10M10 18h4" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="tabs">
+          {TASK_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`tab${activeTab === tab.key ? " active" : ""}`}
+              onClick={() => handleTabChange(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className={activeTab === "fourth" ? "task-list" : "tasklist"}>
+          {activeTab === "first" &&
+            (filteredData.acceptedTasks.length > 0 ? (
+              filteredData.acceptedTasks.map((task) => renderBrowseTaskCard(task, true))
+            ) : (
+              <EmptyState
+                title="No tasks found"
+                message={
+                  searchQuery
+                    ? "No tasks match your search."
+                    : "You don't have any active tasks yet."
+                }
+              />
+            ))}
+
+          {activeTab === "second" &&
+            (filteredData.myQuotations.length > 0 ? (
+              filteredData.myQuotations.map(renderMyQuotations)
+            ) : (
+              <EmptyState
+                title="No quotations found"
+                message={
+                  searchQuery
+                    ? "No quotations match your search."
+                    : "Your submitted quotations will appear here."
+                }
+              />
+            ))}
+
+          {activeTab === "third" &&
+            (filteredData.tasks.length > 0 ? (
+              <>
+                {filteredData.tasks.map((task) => renderBrowseTaskCard(task, false))}
+                <SimbaPager
+                  page={tasksPagination?.page || upcomingPage}
+                  totalPages={tasksPagination?.totalPages || 1}
+                  onPageChange={setUpcomingPage}
+                />
+              </>
+            ) : (
+              <EmptyState
+                title="No upcoming tasks"
+                message={
+                  searchQuery
+                    ? "No upcoming tasks match your search."
+                    : "Browse and quote on tasks to fill this list."
+                }
+              />
+            ))}
+
+          {activeTab === "fourth" &&
+            (filteredData.completedTasks.length > 0 ? (
+              filteredData.completedTasks.map(renderCompletedTaskCard)
+            ) : (
+              <EmptyState
+                title="No completed tasks"
+                message={
+                  searchQuery
+                    ? "No completed tasks match your search."
+                    : "Finished jobs will appear here."
+                }
+              />
+            ))}
+        </div>
+      </CorporatePageShell>
         <BookingConfirmationModal
           show={isRequestModal}
           handleClose={() => setIsRequestModal(false)}
@@ -764,6 +845,7 @@ export default function ServiceTasks() {
           show={showModal}
           handleClose={() => setShowModal(false)}
           type={activeTab}
+          onFiltersApplied={handleFiltersApplied}
         />
         <Modal
           show={showFeedbackModal}
@@ -881,7 +963,6 @@ export default function ServiceTasks() {
           </Modal.Footer>
         </Modal>
         <ToastContainer />
-      </section>
-    </Layout>
+    </>
   );
 }

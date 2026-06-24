@@ -1,124 +1,123 @@
 import { useContext, useState } from 'react';
 import { ChatContext } from '../context/ChatProvider';
 import moment from 'moment';
+import {
+  handleUserImageError,
+  userImageUrl,
+  formatDisplayTitle,
+} from '../utils/landingUtils';
+import { getChatPeerId, getLastMessagePreview, normalizeChatUserId } from '../utils/chatUtils';
 
-const ChatList = () => {
+const ChatList = ({ onSelect }) => {
   const { chatList, selectedUser, setSelectedUser, setChatList } = useContext(ChatContext);
-  const role = localStorage.getItem('role');
+  const currentUserId = localStorage.getItem('userId');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleChatSelect = (receiverId, chatIndex) => {
-    // let receiverId = user.sender_id;
-    // if(selectedUser === user.sender_id){
-    //   receiverId = user.receiver_id
-    // }
-    if (selectedUser !== receiverId) {
-      setSelectedUser(receiverId);
-      localStorage.setItem('reciverID', receiverId);
-      // Reset unreadCount for the selected chat
+  const handleChatSelect = (peerId, chatIndex) => {
+    const normalizedPeerId = normalizeChatUserId(peerId);
+    if (!normalizedPeerId) return;
+    if (selectedUser !== normalizedPeerId) {
+      setSelectedUser(normalizedPeerId);
+      localStorage.setItem('reciverID', normalizedPeerId);
       setChatList((prevChatList) =>
         prevChatList.map((chat, index) =>
           index === chatIndex ? { ...chat, unreadCount: 0 } : chat
         )
       );
     }
+    onSelect?.();
   };
 
-  // Filter chatList based on search term
   const filteredChatList = Array.isArray(chatList)
     ? chatList.filter((ele) =>
         ele?.receiver?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : [];
+
   return (
-      <div className="message-chat-list">
-        <div className="chat-search">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="17"
-            viewBox="0 0 16 17"
-            fill="none"
-          >
-            <path
-              d="M7.33333 13.1667C10.2789 13.1667 12.6667 10.7789 12.6667 7.83333C12.6667 4.88781 10.2789 2.5 7.33333 2.5C4.38781 2.5 2 4.88781 2 7.83333C2 10.7789 4.38781 13.1667 7.33333 13.1667Z"
-              stroke="#CCCCCC"
-              stroke-width="1.33333"
-              stroke-linecap="square"
-              stroke-linejoin="round"
-            />
-            <path
-              d="M13.9996 14.4996L11.0996 11.5996"
-              stroke="#CCCCCC"
-              stroke-width="1.33333"
-              stroke-linecap="square"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search here…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+    <div className="message-chat-list">
+      <div className="chat-search">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="17"
+          viewBox="0 0 16 17"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M7.33333 13.1667C10.2789 13.1667 12.6667 10.7789 12.6667 7.83333C12.6667 4.88781 10.2789 2.5 7.33333 2.5C4.38781 2.5 2 4.88781 2 7.83333C2 10.7789 4.38781 13.1667 7.33333 13.1667Z"
+            stroke="#CCCCCC"
+            strokeWidth="1.33333"
+            strokeLinecap="square"
+            strokeLinejoin="round"
           />
-        </div>
-        <ul>
-          {filteredChatList.length > 0 ? (
-            filteredChatList.map((ele, index) => {
-              let receiverId = ele?.receiver_id;
-              if(selectedUser === ele?.receiver_id){
-                receiverId = ele?.sender_id;
-              }
-              // if(role === '2'){
-              //   receiverId =ele?.sender_id;
-              // }else if(role === '1'){
-              //   receiverId =ele?.sender_id;
-              // }else{
-              //    receiverId =  ele?.receiver_id;
-              // }
-              // const receiverId = role === '2' ? ele?.sender_id : ele?.receiver_id;
-              const isImageMessage = ele?.lastMessage?.message_type === 1;
-              return (
-                <li
-                  key={index}
-                  onClick={() => handleChatSelect(receiverId, chatList.indexOf(ele))}
-                  className={selectedUser === ele?.receiver_id ? 'active mt-0' : 'mt-0'}
-                >
-                  <div className="d-flex">
-                    <div className="chat-list-pro">
-                      <img
-                        src={
-                          ele?.receiver?.profile_image
-                            ? `${process.env.REACT_APP_API_URL}${ele?.receiver?.profile_image}`
-                            : require('../Assets/Images/my-profile.svg').default
-                        }
-                        alt="Profile"
-                      />
-                      <div>
-                        <h5>{ele?.receiver?.name}</h5>
-                        <p>
-                          {isImageMessage ? (
-                            <p>Image</p>
-                          ) : ele?.lastMessage?.message?.length > 25 ? (
-                            `${ele?.lastMessage?.message?.substring(0, 25)}...`
-                          ) : ( ele?.lastMessage?.message || "No messages yet")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="ms-auto  bd-highlight">
-                      <p>{moment(ele?.lastMessage?.createdAt).format('h:mm A')}</p>
-                      {ele?.unreadCount > 0 && (
-                        <span className="unread-count">{ele?.unreadCount}</span>
-                      )}
+          <path
+            d="M13.9996 14.4996L11.0996 11.5996"
+            stroke="#CCCCCC"
+            strokeWidth="1.33333"
+            strokeLinecap="square"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <input
+          type="text"
+          placeholder="Search conversations…"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label="Search conversations"
+        />
+      </div>
+      <ul>
+        {filteredChatList.length > 0 ? (
+          filteredChatList.map((ele, index) => {
+            const peerId = getChatPeerId(ele, currentUserId);
+            const chatIndex = chatList.indexOf(ele);
+            const isActive = selectedUser && peerId && String(selectedUser) === String(peerId);
+            const createdAt = ele?.lastMessage?.createdAt;
+            const timeLabel =
+              createdAt && moment(createdAt).isValid()
+                ? moment(createdAt).format('h:mm A')
+                : '';
+
+            return (
+              <li
+                key={peerId || ele?._id || `chat-${index}`}
+                onClick={() => handleChatSelect(peerId, chatIndex)}
+                className={isActive ? 'active' : ''}
+              >
+                <div className="d-flex align-items-start">
+                  <div className="chat-list-pro">
+                    <img
+                      src={
+                        ele?.receiver?.profile_image
+                          ? userImageUrl(ele?.receiver)
+                          : require('../Assets/Images/my-profile.svg').default
+                      }
+                      alt=""
+                      onError={handleUserImageError}
+                    />
+                    <div>
+                      <h5>{formatDisplayTitle(ele?.receiver?.name, 'User')}</h5>
+                      <p>{getLastMessagePreview(ele?.lastMessage)}</p>
                     </div>
                   </div>
-                </li>
-              );
-            })
-          ) : (
-            <li>{searchTerm ? 'No matching chats found' : 'No chats available'}</li>
-          )}
-        </ul>
+                  <div className="ms-auto chat-list-meta">
+                    {timeLabel ? <p>{timeLabel}</p> : null}
+                    {ele?.unreadCount > 0 ? (
+                      <span className="unread-count">{ele.unreadCount}</span>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            );
+          })
+        ) : (
+          <li className="messages-list-empty">
+            {searchTerm ? 'No matching chats found' : 'No chats available'}
+          </li>
+        )}
+      </ul>
     </div>
   );
 };

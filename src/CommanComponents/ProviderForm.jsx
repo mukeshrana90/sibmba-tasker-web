@@ -11,11 +11,29 @@ import PhoneNumberInput from "./PhoneNumberInput";
 import SuccessModal from "./Modals/SuccessModal";
 import AddressAutocomplete from "./AddressAutocomplete";
 import MapComponent from "./MapComponent";
+import { getGoogleMapsApiKey } from "../utils/landingPlaces";
 import { toast } from "react-toastify";
 import { timeSchedule, weekDays } from "../utils/rawjson";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate, useParams } from "react-router-dom";
+
+function hasValidLocationCoords(lat, lng) {
+  const latN = parseFloat(lat);
+  const lngN = parseFloat(lng);
+  if (Number.isNaN(latN) || Number.isNaN(lngN)) return false;
+  if (latN === 0 && lngN === 0) return false;
+  return true;
+}
+
+const locationCoordsValidation = Yup.mixed().test(
+  "pick-location",
+  "Please use Pick on map to select your business location",
+  function validateCoords(_value) {
+    const { lat, long } = this.parent;
+    return hasValidLocationCoords(lat, long);
+  }
+);
 
 const ProviderForm = ({
   currentStep,
@@ -95,6 +113,8 @@ const ProviderForm = ({
       street_address: Yup.string()
         .trim()
         .required("Street Address is required"),
+      lat: locationCoordsValidation,
+      long: locationCoordsValidation,
       suburbs: Yup.string().trim().nullable(),
       country: Yup.string().trim().nullable(),
       post_code_or_po_box: Yup.string().trim().nullable(),
@@ -159,9 +179,13 @@ const ProviderForm = ({
   });
   const [showModal, setShowModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [addressModalTarget, setAddressModalTarget] = useState("street_address");
+  const [addressSearchText, setAddressSearchText] = useState("");
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [hasExistingAddress, setHasExistingAddress] = useState(false);
+  const mapsApiKey =
+    getGoogleMapsApiKey() || "AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww";
   
   // Default Zimbabwe coordinates (Harare)
   const defaultZimbabweLocation = {
@@ -323,7 +347,7 @@ const ProviderForm = ({
   };
 
   const handlePlaceSelect = (place, setFieldValue, setFieldTouched, values) => {
-    const addressComponents = place?.address_components;
+    const addressComponents = place?.address_components || [];
     const geometry = place.geometry?.location;
     let streetNumber = "";
     let route = "";
@@ -331,32 +355,132 @@ const ProviderForm = ({
     let city = "";
     let country = "";
     let postalCode = "";
+    let premise = "";
+    let sublocality = "";
+    let neighborhood = "";
 
     addressComponents.forEach((component) => {
       const types = component.types;
       if (types.includes("street_number")) streetNumber = component.long_name;
       if (types.includes("route")) route = component.long_name;
-      if (types.includes("locality") || types.includes("sublocality"))
-        suburb = component.long_name;
+      if (types.includes("premise")) premise = component.long_name;
+      if (types.includes("neighborhood")) neighborhood = component.long_name;
+      if (
+        types.includes("sublocality") ||
+        types.includes("sublocality_level_1") ||
+        types.includes("sublocality_level_2")
+      ) {
+        if (!sublocality) sublocality = component.long_name;
+      }
+      if (types.includes("locality")) suburb = component.long_name;
       if (types.includes("administrative_area_level_1"))
         city = component.long_name;
       if (types.includes("country")) country = component.long_name;
       if (types.includes("postal_code")) postalCode = component.long_name;
     });
 
-    setFieldValue("street_address", route || "");
+    const streetLine =
+      route ||
+      premise ||
+      neighborhood ||
+      sublocality ||
+      place?.formatted_address?.split(",")[0]?.trim() ||
+      "";
+
+    setFieldValue("street_address", streetLine);
     if (!values.house_number || !values.house_number.trim()) {
       setFieldValue("house_number", streetNumber || "");
     }
-    setFieldValue("suburbs", suburb || city);
+    setFieldValue("suburbs", suburb || sublocality || city);
     setFieldValue("country", country);
     setFieldValue("post_code_or_po_box", postalCode);
-    setFieldValue("lat", geometry.lat());
-    setFieldValue("long", geometry.lng());
+    if (geometry) {
+      setFieldValue(
+        "lat",
+        typeof geometry.lat === "function" ? geometry.lat() : geometry.lat
+      );
+      setFieldValue(
+        "long",
+        typeof geometry.lng === "function" ? geometry.lng() : geometry.lng
+      );
+    }
     setFieldTouched("street_address", true);
     if (streetNumber) {
       setFieldTouched("house_number", true);
     }
+  };
+
+  const closeAddressModal = () => {
+    if (
+      document.activeElement &&
+      typeof document.activeElement.blur === "function"
+    ) {
+      document.activeElement.blur();
+    }
+    document.querySelectorAll(".pac-container").forEach((el) => {
+      el.style.display = "none";
+    });
+    setShowAddressModal(false);
+    setSelectedAddress(null);
+    setAddressSearchText("");
+    setCurrentLocation(null);
+    setHasExistingAddress(false);
+  };
+
+  const openAddressModal = (target, values) => {
+    setAddressModalTarget(target);
+    const existing =
+      target === "address" ? values.address : values.street_address;
+    setAddressSearchText(existing || "");
+    if (existing && values.lat && values.long) {
+      setSelectedAddress({
+        label: existing,
+        lat: parseFloat(values.lat),
+        lng: parseFloat(values.long),
+        value: { description: existing },
+      });
+      setHasExistingAddress(true);
+    } else {
+      setSelectedAddress(null);
+      setHasExistingAddress(false);
+    }
+    setShowAddressModal(true);
+  };
+
+  const applyAddressSelection = (setFieldValue, setFieldTouched, values) => {
+    if (
+      !selectedAddress?.place ||
+      !hasValidLocationCoords(selectedAddress.lat, selectedAddress.lng)
+    ) {
+      toast.error(
+        "Please choose a location from Google search suggestions or pin it on the map"
+      );
+      return;
+    }
+
+    const label =
+      selectedAddress.place.formatted_address ||
+      selectedAddress.label ||
+      selectedAddress.value?.description;
+
+    handlePlaceSelect(
+      selectedAddress.place,
+      setFieldValue,
+      setFieldTouched,
+      values
+    );
+
+    setFieldValue("lat", selectedAddress.lat);
+    setFieldValue("long", selectedAddress.lng);
+    setFieldTouched("lat", true);
+    setFieldTouched("long", true);
+
+    if (isCorporate && addressModalTarget === "address") {
+      setFieldValue("address", label);
+      setFieldTouched("address", true);
+    }
+
+    closeAddressModal();
   };
 
   const validatePreviousSteps = async (values) => {
@@ -440,7 +564,7 @@ const ProviderForm = ({
                         position: "absolute",
                         bottom: "5px",
                         right: "5px",
-                        background: "#038654",
+                        background: "#0f5c4c",
                         borderRadius: "50%",
                         width: "30px",
                         height: "30px",
@@ -477,7 +601,7 @@ const ProviderForm = ({
                         position: "absolute",
                         bottom: "5px",
                         right: "5px",
-                        background: "#038654",
+                        background: "#0f5c4c",
                         borderRadius: "50%",
                         width: "30px",
                         height: "30px",
@@ -644,67 +768,25 @@ const ProviderForm = ({
                 <Col lg={6}>
                   <div className="form-set">
                     <Form.Group className="mb-3" controlId="formShopName">
-                      <Form.Label>Company Address*</Form.Label>
-                      <div style={{ position: "relative" }}>
-                        <Form.Control
-                          type="text"
-                          placeholder="Click to select address"
-                          value={values.address ? values.address : ""}
-                          readOnly
-                          onClick={() => {
-                            // Initialize selectedAddress if address exists
-                            if (values.address && values.lat && values.long) {
-                              setSelectedAddress({
-                                label: values.address,
-                                lat: parseFloat(values.lat),
-                                lng: parseFloat(values.long),
-                                value: {
-                                  description: values.address,
-                                }
-                              });
-                              setHasExistingAddress(true);
-                            } else {
-                              setSelectedAddress(null);
-                              setHasExistingAddress(false);
-                            }
-                            setShowAddressModal(true);
-                          }}
-                          style={{ cursor: "pointer" }}
-                        />
-                        {values.address && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFieldValue("address", "");
-                              setFieldValue("lat", "");
-                              setFieldValue("long", "");
-                              setFieldTouched("address", false);
-                              setSelectedAddress(null);
-                              setHasExistingAddress(false);
-                            }}
-                            style={{
-                              position: "absolute",
-                              right: "10px",
-                              top: "50%",
-                              transform: "translateY(-50%)",
-                              background: "none",
-                              border: "none",
-                              fontSize: "18px",
-                              cursor: "pointer",
-                              color: "#999",
-                              padding: "0",
-                              width: "20px",
-                              height: "20px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center"
-                            }}
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
+                      <Form.Label className="d-flex align-items-center justify-content-between gap-2">
+                        <span>Company Address*</span>
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm p-0 text-decoration-none"
+                          onClick={() => openAddressModal("address", values)}
+                        >
+                          Pick on map
+                        </button>
+                      </Form.Label>
+                      <Field
+                        name="address"
+                        as={Form.Control}
+                        type="text"
+                        readOnly
+                        placeholder="Use Pick on map to select address"
+                        onClick={() => openAddressModal("address", values)}
+                        style={{ cursor: "pointer", backgroundColor: "#f8f9fa" }}
+                      />
                       <ErrorMessage
                         name="address"
                         component="div"
@@ -759,72 +841,37 @@ const ProviderForm = ({
               <Col lg={6}>
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formStreetAddress">
-                    <Form.Label>Street Address*</Form.Label>
-                    <div style={{ position: "relative" }}>
-                      <Form.Control
-                        type="text"
-                        placeholder="Click to select address"
-                        value={values.street_address ? values.street_address : ""}
-                        readOnly
-                        onClick={() => {
-                          // Initialize selectedAddress if street_address exists
-                          if (values.street_address && values.lat && values.long) {
-                            setSelectedAddress({
-                              label: values.street_address,
-                              lat: parseFloat(values.lat),
-                              lng: parseFloat(values.long),
-                              value: {
-                                description: values.street_address,
-                              }
-                            });
-                            setHasExistingAddress(true);
-                          } else {
-                            setSelectedAddress(null);
-                            setHasExistingAddress(false);
-                          }
-                          setShowAddressModal(true);
-                        }}
-                        style={{ cursor: "pointer" }}
-                      />
-                      {values.street_address && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFieldValue("street_address", "");
-                            setFieldValue("lat", "");
-                            setFieldValue("long", "");
-                            setFieldTouched("street_address", false);
-                            setSelectedAddress(null);
-                            setHasExistingAddress(false);
-                          }}
-                          style={{
-                            position: "absolute",
-                            right: "10px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            background: "none",
-                            border: "none",
-                            fontSize: "18px",
-                            cursor: "pointer",
-                            color: "#999",
-                            padding: "0",
-                            width: "20px",
-                            height: "20px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center"
-                          }}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
+                    <Form.Label className="d-flex align-items-center justify-content-between gap-2">
+                      <span>Street Address*</span>
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm p-0 text-decoration-none"
+                        onClick={() => openAddressModal("street_address", values)}
+                      >
+                        Pick on map
+                      </button>
+                    </Form.Label>
+                    <Field
+                      name="street_address"
+                      as={Form.Control}
+                      type="text"
+                      readOnly
+                      placeholder="Use Pick on map to select address"
+                      onClick={() =>
+                        openAddressModal("street_address", values)
+                      }
+                      style={{ cursor: "pointer", backgroundColor: "#f8f9fa" }}
+                    />
                     <ErrorMessage
                       name="street_address"
                       component="div"
                       className="text-danger"
                     />
+                    {(errors.lat || errors.long) && touched.street_address && (
+                      <div className="text-danger small mt-1">
+                        Please use Pick on map so your location coordinates are saved.
+                      </div>
+                    )}
                   </Form.Group>
                 </div>
               </Col>
@@ -1040,7 +1087,7 @@ const ProviderForm = ({
                                 position: "absolute",
                                 top: "-11px",
                                 right: "-11px",
-                                background: "#038654",
+                                background: "#0f5c4c",
                                 borderRadius: "50%",
                                 width: "27px",
                                 height: "27px",
@@ -1070,14 +1117,14 @@ const ProviderForm = ({
                             >
                               <path
                                 d="M21.7487 14.8347V29.1679M21.7487 14.8347C20.4941 14.8347 18.1502 18.4078 17.2695 19.3138M21.7487 14.8347C23.0032 14.8347 25.3472 18.4078 26.2278 19.3138"
-                                stroke="#038654"
+                                stroke="#0f5c4c"
                                 strokeWidth="2.14998"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                               />
                               <path
                                 d="M4.73047 21.9954C4.73047 13.9718 4.73047 9.95999 7.22309 7.46735C9.71572 4.97473 13.7275 4.97473 21.7512 4.97473C29.7747 4.97473 33.7866 4.97473 36.2793 7.46735C38.7719 9.95999 38.7719 13.9718 38.7719 21.9954C38.7719 30.019 38.7719 34.0309 36.2793 36.5236C33.7866 39.0161 29.7747 39.0161 21.7512 39.0161C13.7275 39.0161 9.71572 39.0161 7.22309 36.5236C4.73047 34.0309 4.73047 30.019 4.73047 21.9954Z"
-                                stroke="#038654"
+                                stroke="#0f5c4c"
                                 strokeWidth="2.14998"
                               />
                             </svg>
@@ -1168,7 +1215,7 @@ const ProviderForm = ({
                                 position: "absolute",
                                 top: "-11px",
                                 right: "-11px",
-                                background: "#038654",
+                                background: "#0f5c4c",
                                 borderRadius: "50%",
                                 width: "27px",
                                 height: "27px",
@@ -1634,15 +1681,8 @@ const ProviderForm = ({
             )}
             <button
               type="submit"
-              className="submit forgot-btn half-width-btn"
+              className="submit forgot-btn half-width-btn provider-setup-submit"
               disabled={isSubmitting}
-              style={{ 
-                borderRadius: "16px", 
-                padding: "10px 24px",
-                backgroundColor: "#278754",
-                color: "#ffffff",
-                border: "none"
-              }}
             >
               {currentStep === 3 || currentStep === 4 ? "Submit" : "Continue"}
             </button>
@@ -1695,11 +1735,9 @@ const ProviderForm = ({
           {/* Address Selection Modal */}
           <Modal
             show={showAddressModal}
-            onHide={() => {
-              setShowAddressModal(false);
-              setSelectedAddress(null);
-              setCurrentLocation(null);
-            }}
+            onHide={closeAddressModal}
+            enforceFocus={false}
+            restoreFocus={false}
             centered
             size="lg"
             style={{ zIndex: 1050 }}
@@ -1723,13 +1761,17 @@ const ProviderForm = ({
             </Modal.Header>
             <Modal.Body style={{ position: "relative", overflow: "visible", padding: "20px" }}>
               <div className="comman-small-pop" style={{ position: "relative" }}>
+                <p className="text-muted small mb-3">
+                  Search with Google, pick a suggestion from the dropdown, or click
+                  the map to pin your location. Manual address entry is not allowed.
+                </p>
                 <div className="mb-3" style={{ position: "relative" }}>
                   <label className="form-label" style={{ marginBottom: "8px", display: "block" }}>Search Address</label>
                   <div style={{ position: "relative", width: "100%", display: "flex", gap: "10px", alignItems: "flex-start" }}>
                     <div style={{ flex: 1, position: "relative" }}>
                       <AddressAutocomplete
-                        key={`address-autocomplete-${showAddressModal}-${selectedAddress?.label}`}
-                        apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
+                        key={`address-autocomplete-${showAddressModal}-${addressModalTarget}-${selectedAddress?.label}`}
+                        apiKey={mapsApiKey}
                         onPlaceSelected={(place) => {
                           if (place) {
                             const geometry = place.geometry?.location;
@@ -1761,15 +1803,22 @@ const ProviderForm = ({
                             // Don't close modal automatically - user will click Select button
                           }
                         }}
-                        defaultValue={selectedAddress?.label || (isCorporate ? values.address : values.street_address) || ""}
+                        defaultValue={
+                          selectedAddress?.label ||
+                          addressSearchText ||
+                          (addressModalTarget === "address"
+                            ? values.address
+                            : values.street_address) ||
+                          ""
+                        }
                         options={{
-                          types: ["address"],
+                          types: ["geocode", "establishment"],
                           componentRestrictions: { country: [] }
                         }}
                         onChange={(e) => {
-                          // Allow typing in the search field - this is needed for autocomplete to work
-                          // If user is typing, clear the selected address to prevent conflicts
-                          if (selectedAddress && e.target.value !== selectedAddress.label) {
+                          const next = e.target.value;
+                          setAddressSearchText(next);
+                          if (selectedAddress && next !== selectedAddress.label) {
                             setSelectedAddress(null);
                           }
                         }}
@@ -1777,51 +1826,28 @@ const ProviderForm = ({
                     </div>
                     <button
                       type="button"
-                      className="btn btn-primary"
+                      className="btn btn-primary provider-setup-select-btn"
                       style={{
                         padding: "8px 20px",
                         borderRadius: "8px",
                         whiteSpace: "nowrap",
                         height: "38px",
                         marginTop: "0",
-                        backgroundColor: "#278754",
-                        color: "#ffffff",
-                        border: "none"
                       }}
-                      onClick={() => {
-                        if (selectedAddress || (isCorporate ? values.address : values.street_address)) {
-                          // If address is selected, update the form fields
-                          if (selectedAddress && selectedAddress.place) {
-                            if (isCorporate) {
-                              // For corporate, just set the address field
-                              setFieldValue("address", selectedAddress.label || selectedAddress.value?.description || "");
-                              setFieldValue("lat", selectedAddress.lat);
-                              setFieldValue("long", selectedAddress.lng);
-                              setFieldTouched("address", true);
-                            } else {
-                              // For non-corporate, use the detailed address parsing
-                              handlePlaceSelect(selectedAddress.place, setFieldValue, setFieldTouched, values);
-                            }
-                          } else if (selectedAddress) {
-                            // Fallback if place object is not available
-                            if (isCorporate) {
-                              setFieldValue("address", selectedAddress.label || selectedAddress.value?.description || "");
-                              setFieldValue("lat", selectedAddress.lat);
-                              setFieldValue("long", selectedAddress.lng);
-                              setFieldTouched("address", true);
-                            } else {
-                              setFieldValue("street_address", selectedAddress.label || selectedAddress.value?.description || "");
-                              setFieldValue("lat", selectedAddress.lat);
-                              setFieldValue("long", selectedAddress.lng);
-                              setFieldTouched("street_address", true);
-                            }
-                          }
-                          setShowAddressModal(false);
-                        } else {
-                          toast.error("Please select an address first");
-                        }
-                      }}
-                      disabled={!selectedAddress && !(isCorporate ? values.address : values.street_address)}
+                      onClick={() =>
+                        applyAddressSelection(
+                          setFieldValue,
+                          setFieldTouched,
+                          values
+                        )
+                      }
+                      disabled={
+                        !selectedAddress?.place ||
+                        !hasValidLocationCoords(
+                          selectedAddress?.lat,
+                          selectedAddress?.lng
+                        )
+                      }
                     >
                       Select
                     </button>
@@ -1830,6 +1856,7 @@ const ProviderForm = ({
                 <div className="mt-3" style={{ height: "400px", width: "100%", minHeight: "400px", position: "relative", zIndex: 1 }}>
                   {((selectedAddress && selectedAddress.lat && selectedAddress.lng) || (values.lat && values.long) || currentLocation || defaultZimbabweLocation) ? (
                     <MapComponent
+                      key={`address-map-${showAddressModal}-${selectedAddress?.lat ?? currentLocation?.lat ?? defaultZimbabweLocation.lat}`}
                       coordinates={
                         selectedAddress && selectedAddress.lat && selectedAddress.lng
                           ? [parseFloat(selectedAddress.lng), parseFloat(selectedAddress.lat)]
@@ -1908,6 +1935,15 @@ const ProviderForm = ({
                 </div>
               </div>
             </Modal.Body>
+            <Modal.Footer className="border-0 pt-0">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={closeAddressModal}
+              >
+                Cancel
+              </button>
+            </Modal.Footer>
           </Modal>
         </FormikForm>
       )}

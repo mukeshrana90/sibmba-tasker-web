@@ -16,6 +16,12 @@ import { formatDate } from "fullcalendar/index.js";
 import DeleteConfirmation from "../CommanComponents/Modals/DeleteConfirmation";
 import { chunk, wrap } from "lodash";
 import { timeSchedule, weekDays } from "../utils/rawjson";
+import {
+  handleCategoryImageError,
+  handleUserImageError,
+  serviceImageUrl,
+  userImageUrl,
+} from "../utils/landingUtils";
 
 export default function ServiceDetails() {
   const Navigate = useNavigate();
@@ -169,7 +175,8 @@ export default function ServiceDetails() {
                     serviceDetail?.images?.map((image, index) => (
                       <div key={index} className="card-box">
                         <img
-                          src={`${process.env.REACT_APP_API_URL}/user/${image}`}
+                          src={serviceImageUrl(image)}
+                          onError={handleCategoryImageError}
                           alt={`Service Image ${index + 1}`}
                         // style={{ cursor: "pointer", maxWidth: "200px", margin: "0 auto" }}
                         />
@@ -293,7 +300,8 @@ export default function ServiceDetails() {
                           >
                             <div>
                               <img
-                                src={`${process.env.REACT_APP_API_URL}/${feedback?.user_id?.profile_image}`}
+                                src={userImageUrl(feedback?.user_id)}
+                                onError={handleUserImageError}
                                 alt=""
                               />
                               <div className="rv-section">

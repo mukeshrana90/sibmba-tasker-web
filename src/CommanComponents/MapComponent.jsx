@@ -1,89 +1,195 @@
-// MapComponent.jsx
-import React from "react";
-import { Wrapper, Status } from "@googlemaps/react-wrapper";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  geocodeFreeText,
+  getGoogleMapsApiKey,
+  loadGooglePlaces,
+} from "../utils/landingPlaces";
 
-const render = (status) => {
-  if (status === Status.LOADING) return <div>Loading map...</div>;
-  if (status === Status.FAILURE) return <div>Error loading map</div>;
-  return null;
-};
+function parseCoordinates(coordinates) {
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  const lng = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+  if (lat === 0 && lng === 0) return null;
+  return { lat, lng };
+}
 
+function isUsableAddress(address) {
+  const trimmed = String(address || "").trim();
+  if (!trimmed) return false;
+  if (trimmed === "undefined" || trimmed === "null") return false;
+  if (/\bundefined\b/i.test(trimmed)) return false;
+  return true;
+}
 
 const GoogleMap = ({ coordinates, address, onMapClick }) => {
-  const mapRef = React.useRef(null);
-  const [map, setMap] = React.useState(null);
-  const [marker, setMarker] = React.useState(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const onMapClickRef = useRef(onMapClick);
 
-  React.useEffect(() => {
-    if (mapRef.current && !map && coordinates && coordinates.length === 2) {
-      const position = { lat: coordinates[1], lng: coordinates[0] }; 
+  onMapClickRef.current = onMapClick;
 
+  const position = parseCoordinates(coordinates);
+
+  useEffect(() => {
+    if (!mapRef.current || !position || !window.google?.maps) return;
+
+    if (!mapInstanceRef.current) {
       const googleMap = new window.google.maps.Map(mapRef.current, {
         center: position,
         zoom: 13,
+        mapTypeControl: false,
+        streetViewControl: false,
       });
 
       const newMarker = new window.google.maps.Marker({
-        position: position,
+        position,
         map: googleMap,
-        title: address,
-        draggable: false,
+        title: address || "",
       });
 
-      setMap(googleMap);
-      setMarker(newMarker);
-    }
-  }, [mapRef, map, coordinates, address]);
+      mapInstanceRef.current = googleMap;
+      markerRef.current = newMarker;
 
-  // Add click listener to map
-  React.useEffect(() => {
-    if (map && onMapClick) {
-      const clickListener = map.addListener('click', (event) => {
+      googleMap.addListener("click", (event) => {
         const clickedPosition = {
           lat: event.latLng.lat(),
           lng: event.latLng.lng(),
         };
-        
-        // Update marker position
-        if (marker) {
-          marker.setPosition(clickedPosition);
-        }
-        
-        // Call the callback with clicked coordinates
-        onMapClick(clickedPosition);
+        markerRef.current?.setPosition(clickedPosition);
+        onMapClickRef.current?.(clickedPosition);
       });
-
-      return () => {
-        if (clickListener) {
-          window.google.maps.event.removeListener(clickListener);
-        }
-      };
     }
-  }, [map, onMapClick, marker]);
 
-  // Update marker position when coordinates change
-  React.useEffect(() => {
-    if (marker && coordinates && coordinates.length === 2) {
-      const position = { lat: coordinates[1], lng: coordinates[0] };
-      marker.setPosition(position);
-      if (map) {
-        map.setCenter(position);
+    markerRef.current?.setPosition(position);
+    mapInstanceRef.current.setCenter(position);
+
+    const resizeTimer = window.setTimeout(() => {
+      if (mapInstanceRef.current) {
+        window.google.maps.event.trigger(mapInstanceRef.current, "resize");
+        mapInstanceRef.current.setCenter(position);
       }
-    }
-  }, [marker, coordinates, map]);
+    }, 150);
 
-  if (!coordinates || coordinates.length < 2) {
+    return () => window.clearTimeout(resizeTimer);
+  }, [position?.lat, position?.lng, address]);
+
+  useEffect(() => {
+    return () => {
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+    };
+  }, []);
+
+  if (!position) {
     return <div>No location data available</div>;
   }
 
-  return <div ref={mapRef} style={{ height: "400px", width: "100%", cursor: "crosshair" }} />;
-};
-    
-const MapComponent = ({ coordinates, address, onMapClick }) => {
   return (
-    <Wrapper apiKey={"AIzaSyBRZp7G4TbTK0Fx4uo_8nJfwefH9WtU5zc"} render={render}>
-      <GoogleMap coordinates={coordinates} address={address} onMapClick={onMapClick} />
-    </Wrapper>
+    <div
+      ref={mapRef}
+      style={{ height: "400px", width: "100%", cursor: "crosshair" }}
+    />
+  );
+};
+
+const MapComponent = ({ coordinates, address, onMapClick }) => {
+  const [ready, setReady] = useState(
+    () => typeof window !== "undefined" && !!window.google?.maps
+  );
+  const [error, setError] = useState(false);
+  const [resolvedCoordinates, setResolvedCoordinates] = useState(null);
+  const [geocoding, setGeocoding] = useState(false);
+
+  useEffect(() => {
+    if (ready) return undefined;
+
+    let cancelled = false;
+
+    const boot = async () => {
+      try {
+        if (window.google?.maps) {
+          if (!cancelled) setReady(true);
+          return;
+        }
+        if (getGoogleMapsApiKey()) {
+          await loadGooglePlaces();
+        }
+        if (!cancelled) setReady(true);
+      } catch (err) {
+        console.error("MapComponent: failed to load Google Maps", err);
+        if (!cancelled) setError(true);
+      }
+    };
+
+    boot();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
+
+  useEffect(() => {
+    const direct = parseCoordinates(coordinates);
+    if (direct) {
+      setResolvedCoordinates(coordinates);
+      setGeocoding(false);
+      return undefined;
+    }
+
+    if (!isUsableAddress(address)) {
+      setResolvedCoordinates(null);
+      setGeocoding(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setGeocoding(true);
+
+    geocodeFreeText(address)
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.lat != null && result?.lng != null) {
+          setResolvedCoordinates([result.lng, result.lat]);
+        } else {
+          setResolvedCoordinates(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedCoordinates(null);
+      })
+      .finally(() => {
+        if (!cancelled) setGeocoding(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coordinates, address]);
+
+  if (error) {
+    return (
+      <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+        Unable to load map. You can still pick an address from Google search.
+      </div>
+    );
+  }
+
+  if (!ready || geocoding) {
+    return (
+      <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+        Loading map…
+      </div>
+    );
+  }
+
+  return (
+    <GoogleMap
+      coordinates={resolvedCoordinates}
+      address={address}
+      onMapClick={onMapClick}
+    />
   );
 };
 

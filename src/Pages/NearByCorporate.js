@@ -8,8 +8,11 @@ import { useDispatch } from "react-redux";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
 import ReadMore from "../CommanComponents/ReadMore";
 import ServiceActions from "../Redux/Actions/ServiceActions";
-import defaultImage from "../Assets/Images/placeholder.jpg";
 import Form from "react-bootstrap/Form";
+import {
+  handleUserImageError,
+  userImageUrl,
+} from "../utils/landingUtils";
 import Loader from "../CommanComponents/Loader";
 
 export default function NearByCorporate() {
@@ -80,7 +83,7 @@ export default function NearByCorporate() {
                 <p>
                   <span
                     style={{
-                      color: "#038654",
+                      color: "#0f5c4c",
                       cursor: "pointer",
                     }}
                     onClick={() => Navigate("/")}
@@ -132,12 +135,9 @@ export default function NearByCorporate() {
                                 handleProfiles("corporate", ele?._id)
                               }
                               className="point-cursor"
-                              src={
-                                ele?.profile_image
-                                  ? `${process.env.REACT_APP_API_URL}${ele.profile_image}`
-                                  : defaultImage
-                              }
+                              src={userImageUrl(ele)}
                               alt="categories-img"
+                              onError={handleUserImageError}
                             />
                             <h3>{ele?.full_name}</h3>
                             <ReadMore
@@ -147,15 +147,13 @@ export default function NearByCorporate() {
                         ))}
                     </div>
 
-                    {totalPages > 10 && (
-                      <div className="pagination-flexs mt-5">
-                        <PaginationComponent
-                          page={page}
-                          setPage={setPage}
-                          totalPages={totalPages}
-                        />
-                      </div>
-                    )}
+                    <div className="pagination-flexs">
+                      <PaginationComponent
+                        page={page}
+                        setPage={setPage}
+                        totalPages={totalPages}
+                      />
+                    </div>
                   </>
                 ) : (
                   <div className="no-upcoming-bookings text-center py-5">

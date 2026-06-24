@@ -7,7 +7,12 @@ import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
- 
+import {
+  categoryImageFromPath,
+  formatDisplayTitle,
+  handleCategoryImageError,
+} from "../utils/landingUtils";
+
 export default function Category() {
   const dispatch = useDispatch();
   const Navigate = useNavigate();
@@ -78,27 +83,24 @@ export default function Category() {
                                 handleProfiles("category", ele?._id)
                               }
                               className="point-cursor"
-                              src={`${process.env.REACT_APP_API_URL}${ele?.image}`}
+                              src={categoryImageFromPath(ele?.image)}
                               alt="categories-img"
+                              onError={handleCategoryImageError}
                             />
                           </>
-                          <h3>{ele?.service_category_name}</h3>
+                          <h3>{formatDisplayTitle(ele?.service_category_name)}</h3>
                           {/* <p>{ele?.desc}</p> */}
                         </div>
                       );
                     })}
                 </div>
-                {Array.isArray(allUserCategories?.allCat) &&
-                  allUserCategories?.totalCount > 10 && (
+                {Array.isArray(allUserCategories?.allCat) && (
                     <div className="pagination-flexs">
-                      <div></div>
-                      <div className="mt-5">
-                        <PaginationComponent
-                          page={page}
-                          setPage={setPage}
-                          totalPages={allUserCategories?.totalPages}
-                        />
-                      </div>
+                      <PaginationComponent
+                        page={page}
+                        setPage={setPage}
+                        totalPages={allUserCategories?.totalPages}
+                      />
                     </div>
                   )}
               </div>

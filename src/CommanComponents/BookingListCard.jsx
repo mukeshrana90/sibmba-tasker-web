@@ -2,6 +2,13 @@ import moment from "moment";
 import { useNavigate } from "react-router-dom";
 import { getStatusLabel } from "../utils/CommonFunction";
 import CustomerBookServiceModal from "./Modals/CustomerBookServiceModal";
+import {
+  handleCategoryImageError,
+  handleUserImageError,
+  providerDisplayName,
+  serviceImageUrl,
+  userImageUrl,
+} from "../utils/landingUtils";
 
 const getStatusColor = (status) => {
   const s = Number(status);
@@ -32,9 +39,10 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
           <img
             src={
               data?.serviceSubCategory?.images[0]
-                ? `${process.env.REACT_APP_API_URL}/user/${data?.serviceSubCategory?.images[0]}`
+                ? serviceImageUrl(data?.serviceSubCategory?.images[0])
                 : require("../Assets/Images/light-replace-&-repair.png")
             }
+            onError={handleCategoryImageError}
           />
           <div className="bookings-card-data">
             <div>
@@ -72,11 +80,12 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                   // onClick={() => navigate("/service-provider")}
                 >
                   <img
-                    src={`${process.env.REACT_APP_API_URL}${data?.serviceProvider?.profile_image}`}
+                    src={userImageUrl(data?.serviceProvider)}
                     alt="categories-img"
+                    onError={handleUserImageError}
                   />
                   <div>
-                    <h5>{data?.serviceProvider?.full_name}</h5>
+                    <h5>{providerDisplayName(data?.serviceProvider)}</h5>
                     <p className="text-muted mb-1">{data?.serviceProvider?.email || '-'}</p>
                     <p>{data?.serviceProvider?.street_address !== 'undefined' ? data?.serviceProvider?.street_address : '-'}</p>
                   </div>

@@ -1,25 +1,26 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import Layout from "../../Components/Layout/Layout";
-import { Container, Row, Col } from "react-bootstrap";
+import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { useParams } from "react-router-dom";
+import CorporatePageShell from "../../CommanComponents/CorporatePageShell";
 import PaginationComponent from "../../CommanComponents/PaginationComponent";
 import Loader from "../../CommanComponents/Loader";
-import defaultImage from "../../Assets/Images/placeholder.jpg";
 import CorporateActions from "../../Redux/Actions/corporateActions";
+import {
+  handleUserImageError,
+  userImageUrl,
+  formatDisplayTitle,
+  providerDisplayName,
+} from "../../utils/landingUtils";
 
 export default function CorporateProDetails() {
- const dispatch = useDispatch();
-  const Navigate = useNavigate();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const token = localStorage.getItem("token");
   const [loading, setLoading] = useState(true);
   const [limit] = useState(10);
-  const [totalPages, setTotalPages] = useState(false);
-  const location = useLocation();
+  const [totalPages, setTotalPages] = useState(1);
   const { categoryId } = useParams();
-  const [corporateDetail, setCorporateDetail] = useState("");
+  const [corporateDetail, setCorporateDetail] = useState([]);
 
   useEffect(() => {
     const latitude = localStorage.getItem("latitude");
@@ -40,7 +41,7 @@ export default function CorporateProDetails() {
             CorporateActions.getNearbyCorporatPro(payload)
           ).unwrap();
           const response = resultAction.data;
-          setCorporateDetail(response);
+          setCorporateDetail(Array.isArray(response) ? response : []);
           if (response?.totalPages) {
             setTotalPages(response.totalPages);
           }
@@ -55,76 +56,65 @@ export default function CorporateProDetails() {
     fetchData();
   }, [dispatch, page, limit, categoryId]);
 
-  return (
-    <Layout>
-      <section className="breadcrumb-nav">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="breadcrumb-nav-contain">
-                <h2>
-                  {corporateDetail?.[0]?.corporateCategoryId?.name ||
-                    "Corporate Category"}
-                </h2>
-                  <p>
-                  <span
-                    style={{
-                      color: "#038654",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => Navigate("/")}
-                  >
-                    Home
-                  </span>{" "}
-                  / Corporate Category
-                </p>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+  const categoryName = formatDisplayTitle(
+    corporateDetail?.[0]?.corporateCategoryId?.name,
+    "Corporate Category"
+  );
 
-      <section className="category-services-sec pt-0 mt-5">
-        <Container>
-          {loading ? (
-            <Loader />
-          ) : (
-            <div className="category-services-lists">
-              {Array.isArray(corporateDetail) && corporateDetail.length > 0 ? (
-                <div className="services-list">
-                  {corporateDetail.map((ele, index) => (
-                    <div key={index} className="cursor-pointer">
-                      <img
-                       onClick={() => Navigate(`/corporate/corporate-business/${ele?._id}`)}
-                        className="point-cursor"
-                        src={
-                          ele?.profile_image
-                            ? `${process.env.REACT_APP_API_URL}${ele.profile_image}`
-                            : defaultImage
-                        }
-                        alt="corporate-img"
-                      />
-                      <h3>{ele?.full_name}</h3>
-                      <p>{ele?.address}</p>
-                    </div>
-                  ))}
+  return (
+    <CorporatePageShell title={categoryName} crumbLabel="Corporate Pro">
+      {loading ? (
+        <Loader />
+      ) : Array.isArray(corporateDetail) && corporateDetail.length > 0 ? (
+        <>
+          <div className="corp-user-grid">
+            {corporateDetail.map((ele) => (
+              <button
+                key={ele._id}
+                type="button"
+                className="corp-user-card"
+                onClick={() =>
+                  navigate(`/corporate/corporate-business/${ele._id}`)
+                }
+              >
+                <img
+                  src={userImageUrl(ele)}
+                  alt={providerDisplayName(ele)}
+                  onError={handleUserImageError}
+                />
+                <div className="corp-user-body">
+                  <h3>{providerDisplayName(ele)}</h3>
+                  {ele.address && (
+                    <p className="corp-user-loc">{ele.address}</p>
+                  )}
                 </div>
-              ) : (
-                <h1>No Data Found</h1>
-              )}
-              {totalPages > 1 && (
-                <div className="pagination-flexs mt-5 d-flex  justify-content-end ">
-                  <PaginationComponent
-                    page={page}
-                    setPage={setPage}
-                    totalPages={totalPages}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </Container>
-      </section>
-    </Layout>
+                <span className="corp-user-arrow" aria-hidden="true">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="pagination-flexs">
+            <PaginationComponent
+              page={page}
+              setPage={setPage}
+              totalPages={totalPages}
+            />
+          </div>
+        </>
+      ) : (
+        <p className="corp-empty">No corporate suppliers found in this category.</p>
+      )}
+    </CorporatePageShell>
   );
 }

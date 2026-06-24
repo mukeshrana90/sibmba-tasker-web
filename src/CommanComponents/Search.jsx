@@ -4,8 +4,9 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "../utils/CommonFunction";
+import { searchProvidersPath } from "../utils/searchProvidersUrl";
 
-const Search = () => {
+const Search = ({ variant = "default" }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -75,15 +76,56 @@ const Search = () => {
     ) || [];
 
   // Handle click on a search result
-  const handleItemClick = (item) => {
-    const categoryName = item?.service_category_name || "";
-    const normalizedCategoryName = normalizeCategoryName(categoryName);
-    setSearchText(normalizedCategoryName);
-    const encodedCategoryName = encodeURIComponent(normalizedCategoryName);
+  const goToProviderSearch = (overrides = {}) => {
+    const q = overrides.search ?? searchText;
     navigate(
-      `/search-for-service?search=${encodedCategoryName}&id=${item?._id}`
+      searchProvidersPath("/customer-search-providers", {
+        search: q,
+        categoryIds: overrides.categoryId ? [overrides.categoryId] : undefined,
+      })
     );
   };
+
+  const handleItemClick = (item) => {
+    const categoryName = item?.service_category_name || "";
+    setSearchText(categoryName);
+    goToProviderSearch({ search: categoryName, categoryId: item?._id });
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter" && searchText.trim()) {
+      e.preventDefault();
+      goToProviderSearch();
+    }
+  };
+
+  const suggestionsList =
+    isFocused && filterData.length > 0 && searchText ? (
+      <ul className="search-list search-list--dropdown">
+        {filterData.map((ele, index) => (
+          <li key={index} onMouseDown={() => handleItemClick(ele)}>
+            {ele?.service_category_name}
+          </li>
+        ))}
+      </ul>
+    ) : null;
+
+  if (variant === "appnav") {
+    return (
+      <div className="appnav-search-wrap">
+        <input
+          type="search"
+          placeholder="Search service or provider"
+          value={searchText}
+          onChange={handleSearchChange}
+          onKeyDown={handleSearchKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+        />
+        {suggestionsList}
+      </div>
+    );
+  }
 
   return (
     <div className="user-pro-search" style={{ position: "relative" }}>
@@ -96,36 +138,12 @@ const Search = () => {
         onFocus={() => setIsFocused(true)}
         onBlur={() => setTimeout(() => setIsFocused(false), 200)}
       />
-    <img className="search-icn" src= {require("../Assets/Images/search-icon.svg").default} />
-
-      {isFocused && filterData.length > 0 && searchText && (
-        <ul className="search-list"
-          style={{
-            listStyle: "none",
-            padding: 0,
-            margin: 0,
-            position: "absolute",
-            width: "100%",
-            backgroundColor: "#fff",
-            zIndex: 999,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          }}
-        >
-          {filterData.map((ele, index) => (
-            <li
-              key={index}
-              onClick={() => handleItemClick(ele)}
-              style={{
-                padding: "8px 12px",
-                cursor: "pointer",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              {ele?.service_category_name}
-            </li>
-          ))}
-        </ul>
-      )}
+      <img
+        className="search-icn"
+        src={require("../Assets/Images/search-icon.svg").default}
+        alt=""
+      />
+      {suggestionsList}
     </div>
   );
 };

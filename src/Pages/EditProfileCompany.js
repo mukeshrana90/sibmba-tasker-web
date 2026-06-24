@@ -12,10 +12,10 @@ import defaultSilhouette from "../Assets/Images/silhotte.svg";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import Layout from "../Components/Layout/Layout";
 import { ImagePathCustomer } from "../utils/ImagePath";
+import { handleUserImageError } from "../utils/landingUtils";
 import { setCustomer } from "../Redux/Reducers/LoginSlice";
 import PhoneNumberInput from "../CommanComponents/PhoneNumberInput";
 import Modal from "react-bootstrap/Modal";
-import Button from "react-bootstrap/Button";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 import { Roles } from "../utils/Roles";
@@ -31,8 +31,11 @@ export default function EditProfileCompany() {
   const identificationLists = useSelector((e) => e.service.identificationList);
   const [showSocialMediaModal, setShowSocialMediaModal] = useState(false);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState(() => localStorage.getItem("role") || "");
   const corporateCategory = useSelector((e) => e.service.corporateCategory);
+  const userRole = Number(role);
+  const isCorporate = userRole === Roles.CORPORATE;
+  const isServiceProvider = userRole === Roles.SERVICE_PROVIDER;
 
   const getPhoneNumberAndCountryCode = (phoneValue) => {
     if (!phoneValue) return { phone: "", countryCode: "" };
@@ -203,8 +206,13 @@ export default function EditProfileCompany() {
   useEffect(() => {
     dispatch(ServiceActions.getIdentificationList());
     dispatch(ServiceActions.getCorporateCategoryList());
-    setRole(customerDetails?.role);
-  }, [role, dispatch]);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (customerDetails?.role != null && customerDetails.role !== "") {
+      setRole(customerDetails.role);
+    }
+  }, [customerDetails?.role]);
 
   return (
     <Layout>
@@ -232,6 +240,7 @@ export default function EditProfileCompany() {
                                 : ImagePathCustomer(preview)
                             }
                             alt="Profile Preview"
+                            onError={handleUserImageError}
                             style={{
                               width: "110px",
                               height: "110px",
@@ -244,7 +253,7 @@ export default function EditProfileCompany() {
                               position: "absolute",
                               bottom: "5px",
                               right: "5px",
-                              background: "#038654",
+                              background: "#0f5c4c",
                               borderRadius: "50%",
                               width: "30px",
                               height: "30px",
@@ -278,7 +287,7 @@ export default function EditProfileCompany() {
                               position: "absolute",
                               bottom: "5px",
                               right: "5px",
-                              background: "#038654",
+                              background: "#0f5c4c",
                               borderRadius: "50%",
                               width: "30px",
                               height: "30px",
@@ -319,7 +328,7 @@ export default function EditProfileCompany() {
                         </Form.Group>
                       </Col>
                     </Row>
-                    {role !== Roles.CORPORATE && (
+                    {!isCorporate && (
                       <Row>
                         <Col lg={6}>
                           <Form.Group className="mb-3">
@@ -356,7 +365,7 @@ export default function EditProfileCompany() {
                       </Row>
                     )}
 
-                    {role === Roles.CORPORATE && (
+                    {isCorporate && (
                       <Row>
                         <Col lg={12}>
                           <Form.Group className="mb-3">
@@ -499,36 +508,55 @@ export default function EditProfileCompany() {
                       </Col>
                     </Row>
 
-                    <Row className="mb-3">
-                      <Col lg={role === Roles.CORPORATE? '12' : '6'}>
-                        <Button
-                          variant="outline-success"
-                          className="w-100"
-                          onClick={() => setShowSocialMediaModal(true)}
-                        >
-                          Social Media Links
-                        </Button>
+                    <Row className="mb-3 g-3">
+                      <Col lg={6}>
+                        <div className="submit-btn">
+                          <button
+                            type="button"
+                            className="submit forgot-btn w-100"
+                            onClick={() => setShowSocialMediaModal(true)}
+                          >
+                            Social Media Links
+                          </button>
+                        </div>
                       </Col>
-                         {role !== Roles.CORPORATE &&  role === Roles.SERVICE_PROVIDER &&                     <Col lg={6}>
-                        <Button
-                          variant="outline-success"
-                          className="w-100"
-                          onClick={() => setShowReferenceModal(true)}
-                        >
-                          Reference Details
-                        </Button>
-                      </Col>
-                        }
+                      {isCorporate ? (
+                        <Col lg={6}>
+                          <div className="submit-btn">
+                            <button
+                              type="submit"
+                              className="submit forgot-btn w-100"
+                              disabled={isLoader}
+                            >
+                              {isLoader ? <ButtonLoader /> : "Save"}
+                            </button>
+                          </div>
+                        </Col>
+                      ) : isServiceProvider ? (
+                        <Col lg={6}>
+                          <div className="submit-btn">
+                            <button
+                              type="button"
+                              className="submit forgot-btn w-100"
+                              onClick={() => setShowReferenceModal(true)}
+                            >
+                              Reference Details
+                            </button>
+                          </div>
+                        </Col>
+                      ) : null}
                     </Row>
-                    <div className="submit-btn">
-                      <button
-                        type="submit"
-                        className="btn btn-success w-50"
-                        disabled={isLoader}
-                      >
-                        {isLoader ? <ButtonLoader /> : "Save"}
-                      </button>
-                    </div>
+                    {!isCorporate && (
+                      <div className="submit-btn">
+                        <button
+                          type="submit"
+                          className="submit forgot-btn w-50"
+                          disabled={isLoader}
+                        >
+                          {isLoader ? <ButtonLoader /> : "Save"}
+                        </button>
+                      </div>
+                    )}
                   </Form>
 
                   <Modal
@@ -571,13 +599,9 @@ export default function EditProfileCompany() {
                           />
                         </Form.Group>
                         <div className="submit-btn">
-                          <Button
-                            variant="success"
-                            type="submit"
-                            className="w-50"
-                          >
+                          <button type="submit" className="submit w-50">
                             Save
-                          </Button>
+                          </button>
                         </div>
                       </Form>
                     </Modal.Body>
@@ -658,13 +682,9 @@ export default function EditProfileCompany() {
                           </Col>
                         </Row>
                         <div className="submit-btn">
-                          <Button
-                            variant="success"
-                            type="submit"
-                            className="w-50"
-                          >
+                          <button type="submit" className="submit w-50">
                             Save
-                          </Button>
+                          </button>
                         </div>
                       </Form>
                     </Modal.Body>

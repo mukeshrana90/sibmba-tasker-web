@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import Slider from "react-slick";
 import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import { corpoTaskStatus } from "../utils/Roles";
-import defaultImage from "../Assets/Images/placeholder.jpg";
+import {
+  handleUserImageError,
+  taskImageUrl,
+  userImageUrl,
+} from "../utils/landingUtils";
 import {
   hasAcceptedQuotationForTask,
   getPosterTaskDetailStepperStatus,
@@ -22,16 +22,19 @@ import {
 } from "../utils/quotationPosterDecision";
 import ChatIcon from "../Assets/Images/chatIcon2.svg";
 import {
-  getSeekerTaskFlowDescription,
-  getTaskFlowStepperState,
-  JOB_FLOW_STEP_LABELS,
+  canMessageOnActiveTask,
   seekerShouldHideTaskCancellationActions,
   taskStatus,
 } from "../utils/jobFlowStatus";
 import { formatTaskWhenDoneDisplay } from "../utils/CommonFunction";
 import { isSeekerConfirmedTaskData } from "../utils/seekerCompletion";
 import PaymentModal from "../CommanComponents/Modals/PaymentModal";
-import JobFlowStepper from "../CommanComponents/JobFlowStepper";
+import {
+  getStatusPillMeta,
+  TaskDetailHero,
+  TaskDetailPageShell,
+  TaskDetailStatusCard,
+} from "../CommanComponents/TaskDetail/SimbaTaskDetailParts";
 
 export default function TaskDetail() {
   const navigate = useNavigate();
@@ -42,7 +45,8 @@ export default function TaskDetail() {
   const postTaskDetails = useSelector(
     (state) => state.UserSlice.postTaskDetail
   );
-  const [selectedCorporateIds, setSelectedCorporateIds] = useState("");
+  const [selectedCorporateByQuotationId, setSelectedCorporateByQuotationId] =
+    useState({});
   /** After accept/reject, hide buttons even if GET task detail lags or omits `status`. */
   const [optimisticQuotationStatusById, setOptimisticQuotationStatusById] =
     useState(() => ({}));
@@ -82,41 +86,6 @@ export default function TaskDetail() {
       delete next[quotationId];
       return next;
     });
-  };
-  const sliderSettings = {
-    dots: true,
-    arrows: false,
-    infinite: postTaskDetails?.data?.task?.images?.length > 1,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          infinite: true,
-          arrows: false,
-        },
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          arrows: false,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          arrows: false,
-        },
-      },
-    ],
   };
 
   useEffect(() => {
@@ -402,19 +371,6 @@ export default function TaskDetail() {
     Number(displayStepperStatus) === taskStatus.IN_PROGRESS ||
     Number(displayStepperStatus) === taskStatus.COMPLETED;
 
-  const getPosterTaskStatusColor = (st) => {
-    const s = Number(st);
-    const statusMap = {
-      0: "yellow",
-      1: "green",
-      2: "red",
-      3: "green",
-      4: "green",
-      5: "green",
-    };
-    return statusMap[s] || "green";
-  };
-
   useEffect(() => {
     const currentStatus = Number(task?.status);
     if (Number.isNaN(currentStatus)) return;
@@ -445,6 +401,13 @@ export default function TaskDetail() {
 
     if (type === 3) {
       if (!beginQuotationAction(qid)) return;
+      const acceptedCorporate = data?.corporateSuggestion?.find(
+        (cs) => Number(cs?.userStatus) === corpoTaskStatus.ACCEPT
+      );
+      const corporateId =
+        corporateIds ||
+        acceptedCorporate?.corporateIds?._id ||
+        acceptedCorporate?.corporateIds?.id;
       const taskStatusPayload = {
         quatation_id: data?._id,
         task_id: id,
@@ -454,7 +417,7 @@ export default function TaskDetail() {
       const suggestionStatusPayload = {
         taskId: id,
         status: 3,
-        corporateId: corporateIds || undefined,
+        corporateId: corporateId || undefined,
       };
       try {
         const resTask = await dispatch(
@@ -466,11 +429,13 @@ export default function TaskDetail() {
           );
           return;
         }
-        await dispatch(
-          CustomerActions.acceptRejectTaskCorporateSuggestion(
-            suggestionStatusPayload
-          )
-        );
+        if (corporateId) {
+          await dispatch(
+            CustomerActions.acceptRejectTaskCorporateSuggestion(
+              suggestionStatusPayload
+            )
+          );
+        }
         toast.success("Job marked as done.");
         dispatch(CustomerActions.getPostTaskDetail(id));
       } catch {
@@ -507,12 +472,6 @@ export default function TaskDetail() {
       status: statusValueAcceptReject,
     };
 
-    const suggestionStatusPayload = {
-      taskId: id,
-      status: statusValueAcceptReject,
-      corporateId: corporateIds || undefined,
-    };
-
     try {
       const resTask = await dispatch(
         CustomerActions.acceptRejectTaskStatus(taskStatusPayload)
@@ -523,12 +482,6 @@ export default function TaskDetail() {
         );
         return;
       }
-
-      await dispatch(
-        CustomerActions.acceptRejectTaskCorporateSuggestion(
-          suggestionStatusPayload
-        )
-      );
 
       setOptimisticQuotationStatusById((prev) => ({
         ...prev,
@@ -545,6 +498,49 @@ export default function TaskDetail() {
       toast.error("Something went wrong. Please try again.");
     } finally {
       endQuotationAction(qid);
+    }
+  };
+
+  const handleCorporateSuggestion = async (quotationId, corporateId, status) => {
+    if (!corporateId) {
+      toast.error("Please select a corporate suggestion.");
+      return;
+    }
+    const actionKey = `corp-${quotationId}`;
+    if (!beginQuotationAction(actionKey)) return;
+
+    try {
+      const res = await dispatch(
+        CustomerActions.acceptRejectTaskCorporateSuggestion({
+          taskId: id,
+          status,
+          corporateId,
+        })
+      );
+      const suggestion = res?.payload?.data;
+      if (suggestion) {
+        toast.success(
+          status === corpoTaskStatus.ACCEPT
+            ? "Corporate suggestion accepted. The corporate partner will receive this lead."
+            : "Corporate suggestion rejected."
+        );
+        setSelectedCorporateByQuotationId((prev) => {
+          const next = { ...prev };
+          delete next[quotationId];
+          return next;
+        });
+        dispatch(CustomerActions.getPostTaskDetail(id));
+      } else {
+        toast.error(
+          res?.payload?.message ||
+            res?.payload?.error ||
+            "Could not update corporate suggestion."
+        );
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      endQuotationAction(actionKey);
     }
   };
 
@@ -569,18 +565,11 @@ export default function TaskDetail() {
         setDeletePostSubmitting(false);
       });
   };
-  const toggleSelect = (id) => {
-    setSelectedCorporateIds((prev) => (prev === id ? null : id));
-  };
-
-  const handleCorporateAddSave = (taskId, selectedIds) => {
-    console.log(selectedIds, "selectedIds");
-    console.log(taskId, "taskId");
-  };
-
-  const handleCorporateReject = (taskId, selectedIds) => {
-    console.log(selectedIds, "selectedIds");
-    console.log(taskId, "taskId");
+  const toggleSelect = (quotationId, corpId) => {
+    setSelectedCorporateByQuotationId((prev) => ({
+      ...prev,
+      [quotationId]: prev[quotationId] === corpId ? null : corpId,
+    }));
   };
   const handleOpenDisputeModal = () => setShowDisputeModal(true);
   const handleCloseDisputeModal = () => {
@@ -620,230 +609,148 @@ export default function TaskDetail() {
     }
   };
 
+  const statePill = getStatusPillMeta(
+    displayStepperStatus,
+    shouldShowProviderCancelledState
+  );
+  const scheduleText = formatTaskWhenDoneDisplay(task?.when_done);
+  const acceptedProviderId =
+    selectedQuotation?.service_provider?._id ??
+    selectedQuotation?.service_provider_id ??
+    task?.serviceProviderId ??
+    task?.service_provider_id ??
+    task?.service_provider?._id ??
+    null;
+  const canMessageAcceptedProvider =
+    canMessageOnActiveTask(task?.status) && Boolean(acceptedProviderId);
+  const handleMessageProvider = () => {
+    if (!acceptedProviderId) return;
+    localStorage.setItem("reciverID", acceptedProviderId);
+    navigate(`/messages?userID=${acceptedProviderId}`);
+  };
+
   return (
-    <Layout>
-      <section className="service-detail-sec">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="bookings-details-title">
-                <h2>Task Details</h2>
-              </div>
-              <div className="service-detail-card pt-3">
-                {task?.images?.length > 0 ? (
-                  <Slider {...sliderSettings}>
-                    {task.images.map((image, index) => (
-                      <div key={index} className="card-box task-details">
-                        <img
-                          src={`${process.env.REACT_APP_API_URLL}${image}`}
-                          alt={task.need_done}
-                          style={{ maxWidth: "200px", margin: "0 auto" }}
-                        />
-                      </div>
-                    ))}
-                  </Slider>
-                ) : (
-                  <img
-                    src={require("../Assets/Images/living-room-cleaning.png")}
-                    alt="Default"
-                  />
-                )}
-                <div>
-                  <h3>{task?.need_done || "Task"}</h3>
-                  <h5>
-                    {task?.task_time},{" "}
-                    {formatTaskWhenDoneDisplay(task?.when_done)}
-                  </h5>
-                  <p>{task?.details || "No description provided."}</p>
-                  <div className="book-service-action-btn task-detail-price-actions">
-                    <h4>${task?.budget || "N/A"}</h4>
-                    <div className="task-detail-primary-actions">
-                      {taskShowSeekerJobDoneBtn && (
-                        <button
-                          type="button"
-                          className="booking-job-done-btn"
-                          onClick={() => setShowJobDoneConfirmModal(true)}
-                          disabled={jobDoneSubmitting}
-                        >
-                          Job Done
-                        </button>
-                      )}
-                      {taskShowSeekerPayBtn && (
-                        <button
-                          type="button"
-                          className="task-detail-view-history-btn"
-                          onClick={() => handlePaymentOpen(task._id)}
-                        >
-                          Pay Now
-                        </button>
-                      )}
-                      {showTaskDetailViewHistory && (
-                        <button
-                          type="button"
-                          className="task-detail-view-history-btn"
-                          onClick={() => navigate("/bookings")}
-                        >
-                          View history
-                        </button>
-                      )}
-                    </div>
-                    {providerCancelledWithoutQuotations ? (
-                      <p className="text-danger fw-bold mb-0"></p>
-                    ) : quotations?.length === 0 ? (
-                      <button
-                        onClick={() => navigate(`/edit-task/${task?._id}`)}
-                      >
-                        Edit Post
-                      </button>
-                    ) : !seekerShouldHideTaskCancellationActions(
-                        task?.status
-                      ) ? (
-                      <button
-                        type="button"
-                        disabled={deletePostSubmitting}
-                        onClick={() => handleDeletePost(task?._id)}
-                      >
-                        Delete Post
-                      </button>
-                    ) : null}
-                  </div>
-                  {canRaiseTaskDispute && !providerCancelledWithoutQuotations && (
-                    <button
-                      type="button"
-                      className="task-dispute-link-btn"
-                      onClick={handleOpenDisputeModal}
-                    >
-                      Having an issue? <span>Raise Dispute</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </Col>
-          </Row>
-          {hasTaskDisputes && (
-            <Row className="mt-3">
-              <Col lg={12}>
-                <section className="booking-status-sec task-dispute-details-card">
-                  <div className="booking-status-txt pt-0 pb-0">
-                    <div className="booking-status-left-txt">
-                      <div className="task-dispute-details-header">
-                        <h2>Dispute details</h2>
-                        {taskDisputes.length > 3 && (
-                          <button
-                            type="button"
-                            className="task-dispute-details-toggle"
-                            onClick={() =>
-                              setShowAllTaskDisputes((prev) => !prev)
-                            }
-                          >
-                            {showAllTaskDisputes
-                              ? "View less"
-                              : `View all (${taskDisputes.length})`}
-                          </button>
-                        )}
-                      </div>
-                      <ul className="task-dispute-details-list">
-                        {visibleTaskDisputes.map((dispute) => (
-                          <li
-                            key={dispute?._id || dispute?.id}
-                            className="task-dispute-details-item"
-                          >
-                            <div className="task-dispute-details-item__header">
-                              <span className="task-dispute-details-item__reason">
-                                {dispute?.reason || "Dispute"}
-                              </span>
-                              <div className="task-dispute-details-item__meta">
-                                <span className="task-dispute-details-item__status">
-                                  {dispute?.status || "open"}
-                                </span>
-                              </div>
-                            </div>
-                            {dispute?.description ? (
-                              <div className="task-dispute-details-item__message">
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-                                  <span className="task-dispute-details-item__label">
-                                    Dispute message
-                                  </span>
-                                  <span
-                                    className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
-                                      dispute
-                                    )}`}
-                                  >
-                                    Raised by: {getTaskDisputeRaisedByName(dispute)}
-                                  </span>
-                                </div>
-                                <p className="task-dispute-details-item__description">
-                                  {dispute.description}
-                                </p>
-                              </div>
-                            ) : null}
-                            {dispute?.adminRemark ? (
-                              <div className="task-dispute-details-item__admin">
-                                <span className="task-dispute-details-item__label">
-                                  Admin
-                                </span>
-                                <p className="task-dispute-details-item__remark">
-                                  {dispute.adminRemark}
-                                </p>
-                              </div>
-                            ) : null}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </section>
-              </Col>
-            </Row>
-          )}
-          {task && (
-            <Row>
-              <Col lg={12}>
-                <section className="booking-status-sec mt-3">
-                  <div className="requests-completed-main task-detail-map-container">
-                    <div className="booking-status-txt pt-0 pb-0">
-                      <div className="booking-status-left-txt">
-                        <h2>Status</h2>
-                        {(() => {
-                          const flow = getTaskFlowStepperState(posterStepperStatus);
-                          const headline = shouldShowProviderCancelledState
-                            ? "Task has been rejected"
-                            : flow.variant !== "default"
-                            ? flow.terminalLabel || "Status"
-                            : JOB_FLOW_STEP_LABELS[flow.activeStep] || "Status";
-                          const description = shouldShowProviderCancelledState
-                            ? "This task has been rejected."
-                            : getSeekerTaskFlowDescription(posterStepperStatus);
-                          const showStatusDescription =
-                            !shouldShowProviderCancelledState &&
-                            flow.variant === "default" &&
-                            Boolean(description);
-                          return (
-                            <>
-                              <h3 className={getPosterTaskStatusColor(displayStepperStatus)}>
-                                {headline}
-                              </h3>
-                              <JobFlowStepper mode="task" status={displayStepperStatus} />
-                              {showStatusDescription ? <p>{description}</p> : null}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </Col>
-            </Row>
-          )}
-        </Container>
-      </section>
-      {!providerCancelledWithoutQuotations && (
-      <section className="category-services-sec pt-0 mt-5">
-        <Container>
-          <div className="category-services-lists">
-            <div className="list-title">
-              <h2>Quotations</h2>
+    <Layout footerVariant="marketing">
+      <TaskDetailPageShell>
+        {task && (
+          <TaskDetailHero
+            task={task}
+            scheduleText={scheduleText}
+            statePill={statePill}
+            showTaskDetailViewHistory={showTaskDetailViewHistory}
+            taskShowSeekerJobDoneBtn={taskShowSeekerJobDoneBtn}
+            taskShowSeekerPayBtn={taskShowSeekerPayBtn}
+            jobDoneSubmitting={jobDoneSubmitting}
+            deletePostSubmitting={deletePostSubmitting}
+            quotationsLength={quotations?.length ?? 0}
+            providerCancelledWithoutQuotations={providerCancelledWithoutQuotations}
+            canRaiseTaskDispute={canRaiseTaskDispute}
+            onNavigateBookings={() => navigate("/bookings")}
+            onNavigateEditTask={() => navigate(`/edit-task/${task?._id}`)}
+            onDeletePost={() => handleDeletePost(task?._id)}
+            onJobDone={() => setShowJobDoneConfirmModal(true)}
+            onPayNow={() => handlePaymentOpen(task._id)}
+            onRaiseDispute={handleOpenDisputeModal}
+            seekerShouldHideTaskCancellationActions={
+              seekerShouldHideTaskCancellationActions
+            }
+            showMessageProvider={canMessageAcceptedProvider}
+            onMessageProvider={handleMessageProvider}
+            acceptedProviderName={taskProviderName}
+          />
+        )}
+
+        {hasTaskDisputes && (
+          <div className="card">
+            <div className="card-h">
+              <h3>Dispute details</h3>
+              {taskDisputes.length > 3 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowAllTaskDisputes((prev) => !prev)}
+                >
+                  {showAllTaskDisputes
+                    ? "View less"
+                    : `View all (${taskDisputes.length})`}
+                </button>
+              )}
             </div>
+            <ul className="task-dispute-details-list">
+              {visibleTaskDisputes.map((dispute) => (
+                <li
+                  key={dispute?._id || dispute?.id}
+                  className="task-dispute-details-item"
+                >
+                  <div className="task-dispute-details-item__header">
+                    <span className="task-dispute-details-item__reason">
+                      {dispute?.reason || "Dispute"}
+                    </span>
+                    <div className="task-dispute-details-item__meta">
+                      <span className="task-dispute-details-item__status">
+                        {dispute?.status || "open"}
+                      </span>
+                    </div>
+                  </div>
+                  {dispute?.description ? (
+                    <div className="task-dispute-details-item__message">
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span className="task-dispute-details-item__label">
+                          Dispute message
+                        </span>
+                        <span
+                          className={`task-dispute-details-item__raisedby-badge ${getTaskDisputeRaisedByClass(
+                            dispute
+                          )}`}
+                        >
+                          Raised by: {getTaskDisputeRaisedByName(dispute)}
+                        </span>
+                      </div>
+                      <p className="task-dispute-details-item__description">
+                        {dispute.description}
+                      </p>
+                    </div>
+                  ) : null}
+                  {dispute?.adminRemark ? (
+                    <div className="task-dispute-details-item__admin">
+                      <span className="task-dispute-details-item__label">
+                        Admin
+                      </span>
+                      <p className="task-dispute-details-item__remark">
+                        {dispute.adminRemark}
+                      </p>
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {task && (
+          <TaskDetailStatusCard
+            displayStepperStatus={displayStepperStatus}
+            posterStepperStatus={posterStepperStatus}
+            shouldShowProviderCancelledState={shouldShowProviderCancelledState}
+            statePill={statePill}
+          />
+        )}
+
+        {!providerCancelledWithoutQuotations && (
+          <div className="card">
+            <div className="card-h">
+              <h3>Quotations</h3>
+            </div>
+            <p className="state-note">
+              Providers who&apos;ve sent you an offer for this task.
+            </p>
             {quotations?.length === 0 ? (
               <div className="no-upcoming-bookings">
                 <svg
@@ -863,10 +770,10 @@ export default function TaskDetail() {
                   />
                 </svg>
                 <h3>No Quotations Yet</h3>
-                <p>Currently you don’t have any offers</p>
+                <p>Currently you don&apos;t have any offers</p>
               </div>
             ) : (
-              <div>
+              <div className="quotes">
                 {quotations?.map((quotation, index) => {
                   const quotationForUi = mergeQuotationWithParentTaskForStatus(
                     mergeQuotationWithOptimisticStatus(
@@ -943,141 +850,197 @@ export default function TaskDetail() {
 
                   const submittingThis =
                     !!quotationSubmittingById[quotation._id];
+                  const providerName =
+                    quotation?.service_provider?.full_name || "Provider";
+                  const providerAddress =
+                    quotation?.service_provider?.address !== "undefined"
+                      ? quotation?.service_provider?.address
+                      : "-";
+                  const avatarColors = ["#0F5C4C", "#C2682B", "#2B4FB8", "#7A4B9E"];
+                  const avatarColor =
+                    avatarColors[index % avatarColors.length];
+                  const providerInitials = providerName
+                    .slice(0, 2)
+                    .toUpperCase();
+                  const isAcceptedProviderQuotation =
+                    isTaskLevelSelectedQuotation ||
+                    resolvedPosterState.badge === "accepted";
+                  const showCorporateSection =
+                    quotation?.corporateSuggestion?.length > 0 &&
+                    (isAcceptedProviderQuotation ||
+                      (!hasAcceptedQuotation && showActionButtons));
+                  const showCorporateDecisionUi =
+                    isAcceptedProviderQuotation &&
+                    !quotation.corporateSuggestion.some(
+                      (cs) => Number(cs?.userStatus) === corpoTaskStatus.ACCEPT
+                    );
+                  const selectedCorporateId =
+                    selectedCorporateByQuotationId[quotation._id] || null;
+                  const corporateSubmitting =
+                    !!quotationSubmittingById[`corp-${quotation._id}`];
 
                   return (
-                  <div
-                    className={`quotation-requests-wrap quotation-poster-card${
-                      effectiveBadge
-                        ? " quotation-poster-card--with-badge"
-                        : ""
-                    }${disableActionButtons ? " quotation-poster-card--locked" : ""}
-                    }`}
-                    key={quotation._id || index}
-                  >
-                    {!resolvedPosterState.showActions && effectiveBadge && (
-                      <span
-                        className={
-                          effectiveBadge === "accepted"
-                            ? "review-status-corner-badge review-status-corner-badge--published"
-                            : "review-status-corner-badge review-status-corner-badge--rejected"
+                    <div key={quotation._id || index} className="qcard-stack">
+                      <div
+                        className={`qcard${
+                          effectiveBadge === "accepted" ? " accepted" : ""
+                        }${disableActionButtons ? " qcard--locked" : ""}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() =>
+                          navigate(`/quotations-detail/${quotation?._id}`)
                         }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            navigate(`/quotations-detail/${quotation?._id}`);
+                          }
+                        }}
                       >
-                        {effectiveBadge === "accepted"
-                          ? "Accepted"
-                          : effectiveBadge === "cancelled"
-                          ? "Cancelled by provider"
-                          : "Rejected"}
-                      </span>
-                    )}
-                    <div className="quotation-requests quotation-requests-inner">
-                      <div className="quotation-requests-inner">
-                        <div className="quotation-txt-show">
-                          <div
-                            className="profile-side cursor-pointer"
-                            onClick={() =>
-                              navigate(`/quotations-detail/${quotation?._id}`)
-                            }
-                          >
-                            <img
-                              className="point-cursor"
-                              src={quotation?.service_provider?.profile_image ? `${process.env.REACT_APP_API_URL}${quotation?.service_provider?.profile_image}`  : defaultImage}
-                              alt="categories-img"
-                            />
-                            <div>
-                              <h5>{quotation?.service_provider?.full_name}</h5>
-                              <p>{quotation?.service_provider?.address}</p>
-                              <div className="rating-stars">
-                                <ul>
-                                  {" "}
-                                  <StarRating
-                                    averageRating={quotation.averageRating}
-                                  />
-                                </ul>
-                              </div>
+                        <div
+                          className="qav"
+                          style={{
+                            background: `linear-gradient(145deg,${avatarColor},${avatarColor}99)`,
+                          }}
+                        >
+                          <img
+                            src={userImageUrl(quotation?.service_provider)}
+                            alt={providerName}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              e.currentTarget.parentElement.textContent =
+                                providerInitials;
+                            }}
+                          />
+                        </div>
+                        <div className="qinfo">
+                          <b>{providerName}</b>
+                          <div className="qloc">
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
+                              <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            {providerAddress}
+                          </div>
+                          <div className="qstars">
+                            <StarRating averageRating={quotation.averageRating} />
+                            {quotation?.description ? (
+                              <span className="note">
+                                &quot;{quotation.description}&quot;
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div
+                          className="qright"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="qprice">
+                            <b>${quotation?.offer_price}</b>
+                            <small>Offer price</small>
+                          </div>
+                          {effectiveBadge === "accepted" ? (
+                            <span className="accepted-badge">
+                              <svg
+                                width="11"
+                                height="11"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="m20 6-11 11-5-5" />
+                              </svg>
+                              Accepted
+                            </span>
+                          ) : effectiveBadge === "rejected" ||
+                            effectiveBadge === "cancelled" ? (
+                            <span className="rejected-badge">
+                              {effectiveBadge === "cancelled"
+                                ? "Cancelled by provider"
+                                : "Rejected"}
+                            </span>
+                          ) : showActionButtons ? (
+                            <div className="qactions">
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                disabled={submittingThis || disableActionButtons}
+                                onClick={() => handleAccept(quotation, "accept")}
+                              >
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                disabled={submittingThis || disableActionButtons}
+                                onClick={() => handleAccept(quotation, "reject")}
+                              >
+                                Reject
+                              </button>
                             </div>
-                          </div>
+                          ) : showJobDone ? (
+                            <div className="qactions">
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                disabled={submittingThis}
+                                onClick={() => handleAccept(quotation, 3)}
+                              >
+                                Job Done
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
-                        <p>{quotation?.description}</p>
                       </div>
-                      <div className="quotation-requests-task-btns">
-                        <div>
-                          <h5>${quotation?.offer_price}</h5>
-                          <p>Offer Price</p>
-                        </div>
-                        {showActionButtons ? (
-                          <div className="btn-price">
-                            <button
-                              type="button"
-                              disabled={submittingThis || disableActionButtons}
-                              onClick={() =>
-                                handleAccept(
-                                  quotation,
-                                  "accept",
-                                  selectedCorporateIds
-                                )
-                              }
-                            >
-                              Accept
-                            </button>
-                            <button
-                              type="button"
-                              disabled={submittingThis || disableActionButtons}
-                              onClick={() =>
-                                handleAccept(
-                                  quotation,
-                                  "reject",
-                                  selectedCorporateIds
-                                )
-                              }
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        ) : showJobDone ? (
-                          <div className="btn-price">
-                            <button
-                              type="button"
-                              className="primaryBtn"
-                              disabled={submittingThis}
-                              onClick={() => handleAccept(quotation, 3)}
-                            >
-                              Job Done
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="quotation-wrapper">
-                      {quotation?.corporateSuggestion?.length > 0 && (
-                        <div className="suggested-caproate cursor-pointer">
+                      {showCorporateSection && (
+                        <div className="qcard-corporate">
                           <h5>Suggested Corporate</h5>
+                          {!isAcceptedProviderQuotation && (
+                            <p className="state-note px-4 pt-1 mb-0">
+                              Accept this provider&apos;s quotation to choose a
+                              corporate partner.
+                            </p>
+                          )}
                           <div className="modal-scrollable-list px-4 pt-2 pb-3 flex-grow-1 overflow-auto">
                             {quotation.corporateSuggestion.map(
-                              (item, index) => {
+                              (item, corpIndex) => {
                                 const corp = item?.corporateIds;
-                                const status = item?.userStatus === 1;
+                                const status =
+                                  Number(item?.userStatus) ===
+                                  corpoTaskStatus.ACCEPT;
                                 if (!corp) return null;
-                                const isSelected =selectedCorporateIds === corp._id;
+                                const isSelected =
+                                  selectedCorporateId === corp._id;
 
                                 return (
                                   <div
-                                    key={item._id || index}
+                                    key={item._id || corpIndex}
                                     className="corporate-item d-flex align-items-center py-2"
                                     style={{ gap: "10px" }}
                                   >
-                                   {!quotation.corporateSuggestion.some(
-                                    (cs) => cs.userStatus === 1
-                                  ) && (
+                                    {showCorporateDecisionUi && (
                                       <Form.Check
                                         type="checkbox"
                                         className="me-2"
                                         checked={isSelected}
-                                        onChange={() => toggleSelect(corp._id)}
+                                        onChange={() =>
+                                          toggleSelect(quotation._id, corp._id)
+                                        }
                                       />
                                     )}
 
                                     <img
-                                      src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                                      src={userImageUrl(corp)}
+                                      onError={handleUserImageError}
                                       alt={corp.full_name}
                                       className="rounded-circle"
                                       width={40}
@@ -1102,51 +1065,64 @@ export default function TaskDetail() {
                                         {corp.email}
                                       </div>
                                     </div>
-                                    {status && Number(item?.userStatus) === 1  &&
-                                         <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
-                                        <div
-                                          className="action-button-wrap"
-                                          onClick={() =>{
-                                              localStorage.setItem("reciverID", corp._id);
-                                            navigate(
-                                              `/messages?userID=${corp._id}`
-                                            )
-                                          }
-                                          }
-                                        >
-                                          <div className="icon-circle green">
-                                            <img src={ChatIcon} alt="Chat" />
+                                    {status &&
+                                      Number(item?.userStatus) ===
+                                        corpoTaskStatus.ACCEPT && (
+                                        <div className="quotation-inner d-flex justify-content-center gap-4 mb-0">
+                                          <div
+                                            className="action-button-wrap"
+                                            onClick={() => {
+                                              localStorage.setItem(
+                                                "reciverID",
+                                                corp._id
+                                              );
+                                              navigate(
+                                                `/messages?userID=${corp._id}`
+                                              );
+                                            }}
+                                          >
+                                            <div className="icon-circle green">
+                                              <img src={ChatIcon} alt="Chat" />
+                                            </div>
                                           </div>
                                         </div>
-                                      </div> } 
+                                      )}
                                   </div>
                                 );
                               }
                             )}
                           </div>
 
-                          {!quotation.corporateSuggestion.some(
-                            (cs) => cs.userStatus === 1
-                          ) && (
-                            <div className="px-4 pb-3 pt-2 d-flex gap-5 justify-content-center">
+                          {showCorporateDecisionUi && (
+                            <div className="px-4 pb-3 pt-2 d-flex gap-3 justify-content-center flex-wrap">
                               <button
-                                className="primaryBtn w-25"
-                                disabled={!selectedCorporateIds}
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                disabled={
+                                  !selectedCorporateId || corporateSubmitting
+                                }
                                 onClick={() =>
-                                  handleCorporateAddSave(task?._id, [
-                                    selectedCorporateIds,
-                                  ])
+                                  handleCorporateSuggestion(
+                                    quotation._id,
+                                    selectedCorporateId,
+                                    corpoTaskStatus.ACCEPT
+                                  )
                                 }
                               >
                                 Accept Corporate
                               </button>
                               <button
-                                className="view-more-btn w-25"
-                                disabled={!selectedCorporateIds}
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                disabled={
+                                  !selectedCorporateId || corporateSubmitting
+                                }
                                 onClick={() =>
-                                  handleCorporateReject(task?._id, [
-                                    selectedCorporateIds,
-                                  ])
+                                  handleCorporateSuggestion(
+                                    quotation._id,
+                                    selectedCorporateId,
+                                    corpoTaskStatus.REJECT
+                                  )
                                 }
                               >
                                 Reject Corporate
@@ -1156,65 +1132,60 @@ export default function TaskDetail() {
                         </div>
                       )}
                     </div>
-                  </div>
                   );
                 })}
               </div>
             )}
           </div>
-        </Container>
-      </section>
-      )}
-      {task && shouldShowTaskMap && mapLat != null && mapLng != null && (
-        <section className="category-services-sec pt-0 mt-4">
-          <Container>
-            <section className="booking-status-sec task-dispute-details-card">
-              <div className="requests-completed-map">
-                <h2>Live Location</h2>
-                <iframe
-                  title="Task Map"
-                  src={routeEmbedUrl}
-                  width="100%"
-                  height="260"
-                  style={{ border: 0, borderRadius: "8px" }}
-                  loading="lazy"
-                />
-                <div className="book-service-action-btn d-flex gap-2 mt-3 requests-completed-map-actions">
-                  <button
-                    type="button"
-                    className="booking-job-done-btn"
-                    onClick={() => window.open(routeShareUrl, "_blank")}
-                  >
-                    Open in Maps
-                  </button>
-                  <button
-                    type="button"
-                    className="booking-job-done-btn"
-                    onClick={async () => {
-                      try {
-                        if (navigator.share) {
-                          await navigator.share({
-                            title: "Task Route",
-                            text: "Task to provider route",
-                            url: routeShareUrl,
-                          });
-                          return;
-                        }
-                        if (navigator.clipboard?.writeText) {
-                          await navigator.clipboard.writeText(routeShareUrl);
-                          toast.success("Location copied.");
-                        }
-                      } catch {}
-                    }}
-                  >
-                    Share Location
-                  </button>
-                </div>
-              </div>
-            </section>
-          </Container>
-        </section>
-      )}
+        )}
+
+        {task && shouldShowTaskMap && mapLat != null && mapLng != null && (
+          <div className="card">
+            <div className="card-h">
+              <h3>Live Location</h3>
+            </div>
+            <iframe
+              title="Task Map"
+              src={routeEmbedUrl}
+              width="100%"
+              height="260"
+              style={{ border: 0, borderRadius: "8px" }}
+              loading="lazy"
+            />
+            <div className="hero-actions mt-3">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => window.open(routeShareUrl, "_blank")}
+              >
+                Open in Maps
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={async () => {
+                  try {
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: "Task Route",
+                        text: "Task to provider route",
+                        url: routeShareUrl,
+                      });
+                      return;
+                    }
+                    if (navigator.clipboard?.writeText) {
+                      await navigator.clipboard.writeText(routeShareUrl);
+                      toast.success("Location copied.");
+                    }
+                  } catch {}
+                }}
+              >
+                Share Location
+              </button>
+            </div>
+          </div>
+        )}
+      </TaskDetailPageShell>
 
       <Modal show={show} onHide={handleClose} centered>
         <Modal.Header closeButton className="border-none pb-0">
@@ -1225,7 +1196,7 @@ export default function TaskDetail() {
             <img
               src={
                 task?.images?.length > 0
-                  ? `${process.env.REACT_APP_API_URL}/${task.images[0]}`
+                  ? taskImageUrl(task.images[0])
                   : require("../Assets/Images/living-room-cleaning.png")
               }
               alt={task?.need_done || "Task"}

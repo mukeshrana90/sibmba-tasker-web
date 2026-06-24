@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import { useLocation, useNavigate } from "react-router-dom";
-import Layout from "../Components/Layout/Layout";
-import Nav from "react-bootstrap/Nav";
+import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import Tab from "react-bootstrap/Tab";
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
@@ -246,41 +242,38 @@ export default function Requests() {
     }
   };
 
+  const requestTabs = [
+    { key: "first", label: "Requests" },
+    { key: "second", label: "Approved" },
+    { key: "third", label: "Rejected" },
+    { key: "fourth", label: "Completed" },
+  ];
+
   return (
-    <Layout>
-      <section className="search-results-sec">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="search-results-contain">
-                <h2></h2>
-                <div className="bookings-tabs">
-                  <Tab.Container
-                    id="left-tabs-example"
-                    activeKey={activeTab}
-                    onSelect={(key) => setActiveTab(key)}
-                  >
-                    <Row>
-                      <Col sm={12}>
-                        <div className="task-post-action mb-4">
-                          <Nav variant="pills" className="bookings-tab-nav">
-                            <Nav.Item>
-                              <Nav.Link eventKey="first">Requests</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                              <Nav.Link eventKey="second">Approved</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                              <Nav.Link eventKey="third">Rejected</Nav.Link>
-                            </Nav.Item>
-                            <Nav.Item>
-                              <Nav.Link eventKey="fourth">Completed</Nav.Link>
-                            </Nav.Item>
-                          </Nav>
-                        </div>
-                      </Col>
-                      <Col sm={12}>
-                        <Tab.Content>
+    <>
+      <CorporatePageShell
+        title="Requests"
+        pageClass="p-bookings p-sp-requests"
+        showBanner={false}
+      >
+        <div className="tabs">
+          {requestTabs.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className={`tab${activeTab === key ? " active" : ""}`}
+              onClick={() => setActiveTab(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <Tab.Container
+          id="provider-requests-tabs"
+          activeKey={activeTab}
+          onSelect={(key) => setActiveTab(key)}
+        >
+          <Tab.Content>
                           <Tab.Pane eventKey="first">
                             {filteredRequests("first")?.length > 0 ? (
                               filteredRequests("first")?.map((request) => (
@@ -740,16 +733,9 @@ export default function Requests() {
                               </div>
                             )}
                           </Tab.Pane>
-                        </Tab.Content>
-                      </Col>
-                    </Row>
-                  </Tab.Container>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+          </Tab.Content>
+        </Tab.Container>
+      </CorporatePageShell>
 
       <BookingConfirmationModal
         isRequestModal={isRequestModal}
@@ -880,6 +866,6 @@ export default function Requests() {
           </button>
         </Modal.Footer>
       </Modal>
-    </Layout>
+    </>
   );
 }

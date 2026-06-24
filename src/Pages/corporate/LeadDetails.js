@@ -8,7 +8,7 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import Layout from "../../Components/Layout/Layout";
+import CorporatePageShell from "../../CommanComponents/CorporatePageShell";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import Slider from "react-slick";
@@ -20,6 +20,25 @@ import MapComponent from "../../CommanComponents/MapComponent";
 import CorporateActions from "../../Redux/Actions/corporateActions";
 import { toast } from "react-toastify";
 import { formatTaskWhenDoneDisplay } from "../../utils/CommonFunction";
+import {
+  handleCategoryImageError,
+  handleUserImageError,
+  taskImageUrl,
+  userImageUrl,
+  formatDisplayTitle,
+  providerDisplayName,
+} from "../../utils/landingUtils";
+import { normalizeChatUserId } from "../../utils/chatUtils";
+
+function openChatWithUser(navigate, userRef) {
+  const peerId = normalizeChatUserId(userRef);
+  if (!peerId) {
+    toast.error("Could not open chat: user not found.");
+    return;
+  }
+  localStorage.setItem("reciverID", peerId);
+  navigate(`/messages?userID=${peerId}`);
+}
 
 export default function LeadDetails() {
   const navigate = useNavigate();
@@ -155,7 +174,11 @@ export default function LeadDetails() {
       .then((res) => {
         if (res?.payload) {
           toast.success(
-            status === 3 ? "Accepted successfully." : "Rejected successfully."
+            status === 3
+              ? "Job marked as done."
+              : status === 1
+                ? "Accepted successfully."
+                : "Rejected successfully."
           );
           navigate("/corporate/leads?page=leads");
         }
@@ -166,11 +189,7 @@ export default function LeadDetails() {
   };
 
   return (
-    <Layout>
-      <section className="service-detail-sec">
-        <Container>
-          <Row>
-            <Col lg={12}>
+    <CorporatePageShell title="Lead Details" crumbLabel="Leads">
               <div className="bookings-details-title lead-details-wrapper d-flex align-items-center gap-2">
                 <Link onClick={() => navigate(-1)} className="d-flex">
                   <svg
@@ -188,7 +207,7 @@ export default function LeadDetails() {
                 </Link>
                 <h2 className="mt-0">
                   {" "}
-                  {bookingState ? "Booking Details" : "Task Detsils"}
+                  {bookingState ? "Booking Details" : "Task Details"}
                 </h2>
               </div>
               {bookingState ? (
@@ -199,7 +218,8 @@ export default function LeadDetails() {
                         {bookingState.images.map((image, index) => (
                           <div key={index} className="card-box task-details">
                             <img
-                              src={`${process.env.REACT_APP_API_URLL}${image}`}
+                              src={taskImageUrl(image)}
+                              onError={handleCategoryImageError}
                               alt={bookingState.need_done}
                               style={{ maxWidth: "200px", margin: "0 auto" }}
                             />
@@ -213,7 +233,7 @@ export default function LeadDetails() {
                       />
                     )}
                     <div>
-                      <h3>{bookingState?.message || "-"}</h3>
+                      <h3>{formatDisplayTitle(bookingState?.message, "-")}</h3>
                       <h5>{bookingState?.date}</h5>
                       <p>Slots:{bookingState?.slotTime || "-"}</p>
                       <p>
@@ -247,12 +267,15 @@ export default function LeadDetails() {
                                 <div className="profile-side cursor-pointer">
                                   <img
                                     className="point-cursor"
-                                    src={`${process.env.REACT_APP_API_URL}${bookingState?.serviceProvider?.profile_image}`}
+                                    src={userImageUrl(bookingState?.serviceProvider)}
+                                    onError={handleUserImageError}
                                     alt="categories-img"
                                   />
                                   <div>
                                     <h5>
-                                      {bookingState?.serviceProvider?.full_name}
+                                      {providerDisplayName(
+                                        bookingState?.serviceProvider
+                                      )}
                                     </h5>
                                     <p>
                                       {bookingState?.serviceProvider?.email}
@@ -262,10 +285,10 @@ export default function LeadDetails() {
                                     </p>
                                     <p className="text-muted mt-1">
                                       Company Name:{" "}
-                                      {
+                                      {formatDisplayTitle(
                                         bookingState?.serviceProvider
                                           ?.company_name
-                                      }
+                                      )}
                                     </p>
                                   </div>
                                 </div>
@@ -306,18 +329,21 @@ export default function LeadDetails() {
                                         style={{ gap: "10px" }}
                                       >
                                         <img
-                                          src={`${process.env.REACT_APP_API_URL}/${item.corporateIds?.profile_image}`}
-                                          alt={item.corporateIds?.full_name}
+                                          src={userImageUrl(item.corporateIds)}
+                                          onError={handleUserImageError}
+                                          alt={providerDisplayName(item.corporateIds)}
                                           className="rounded-circle"
                                           width={40}
                                           height={40}
                                         />
                                         <div className="flex-grow-1">
                                           <div className="fw-bold">
-                                            {item.corporateIds?.full_name}
+                                            {providerDisplayName(item.corporateIds)}
                                           </div>
                                           <div className="text-muted small">
-                                            {item.corporateIds?.shop_name}
+                                            {formatDisplayTitle(
+                                              item.corporateIds?.shop_name
+                                            )}
                                           </div>
                                           <div className="text-muted small">
                                             {item.corporateIds?.email}
@@ -337,15 +363,12 @@ export default function LeadDetails() {
                                       className="quotation-inner d-flex justify-content-center gap-4 mt-3"
                                     >
                                       <button
-                                        onClick={() => {
-                                          navigate(
-                                            `/messages?userID=${bookingState?.bookBy?._id}`
-                                          );
-                                          localStorage.setItem(
-                                            "reciverID",
-                                            bookingState?.bookBy?._id
-                                          );
-                                        }}
+                                        onClick={() =>
+                                          openChatWithUser(
+                                            navigate,
+                                            bookingState?.bookBy
+                                          )
+                                        }
                                       >
                                         <img src={ChatIcon} alt="" /> Chat
                                       </button>
@@ -404,7 +427,8 @@ export default function LeadDetails() {
                         {task.images.map((image, index) => (
                           <div key={index} className="card-box task-details">
                             <img
-                              src={`${process.env.REACT_APP_API_URLL}${image}`}
+                              src={taskImageUrl(image)}
+                              onError={handleCategoryImageError}
                               alt={task.need_done}
                               style={{ maxWidth: "200px", margin: "2px  auto" }}
                             />
@@ -418,12 +442,17 @@ export default function LeadDetails() {
                       />
                     )}
                     <div>
-                      <h3>{task?.need_done || "Task"}</h3>
+                      <h3>{formatDisplayTitle(task?.need_done, "Task")}</h3>
                       <h5>
                         {task?.task_time},{" "}
                         {formatTaskWhenDoneDisplay(task?.when_done)}
                       </h5>
-                      <p>{task?.details || "No description provided."}</p>
+                      <p>
+                        {formatDisplayTitle(
+                          task?.details,
+                          "No description provided."
+                        )}
+                      </p>
                       <p>Budget:${task?.budget || "-"}</p>
                       <div className="book-now-product mb-0">
                         {quotations?.length > 0 ? (
@@ -475,38 +504,28 @@ export default function LeadDetails() {
                               const suggestion =
                                 quotation?.corporateSuggestion?.[index];
                               const status = suggestion?.corporateStatus;
-                              const userStatus = suggestion?.userStatus;
-                              let currentStatus;
-
-                              if (status === 3 && userStatus === 1) {
-                                currentStatus = {
-                                  label: "In Progress",
-                                  className: "in-progress",
-                                };
-                              } else {
-                                const statusMap = {
-                                  0: {
-                                    label: "Pending Booking",
-                                    className: "pending",
-                                  },
-                                  1: {
-                                    label: "Accepted",
-                                    className: "completed",
-                                  },
-                                  2: {
-                                    label: "Rejected",
-                                    className: "rejected",
-                                  },
-                                  3: {
-                                    label: "Completed",
-                                    className: "completed",
-                                  },
-                                };
-                                currentStatus = statusMap[status] || {
-                                  label: "Unknown",
-                                  className: "unknown",
-                                };
-                              }
+                              const statusMap = {
+                                0: {
+                                  label: "Pending Booking",
+                                  className: "pending",
+                                },
+                                1: {
+                                  label: "Accepted",
+                                  className: "completed",
+                                },
+                                2: {
+                                  label: "Rejected",
+                                  className: "rejected",
+                                },
+                                3: {
+                                  label: "Completed",
+                                  className: "completed",
+                                },
+                              };
+                              const currentStatus = statusMap[status] || {
+                                label: "Unknown",
+                                className: "unknown",
+                              };
                               return (
                                 <div
                                   className="quotation-requests-wrap"
@@ -525,15 +544,15 @@ export default function LeadDetails() {
                                         >
                                           <img
                                             className="point-cursor"
-                                            src={`${process.env.REACT_APP_API_URL}/${quotation?.service_provider?.profile_image}`}
+                                            src={userImageUrl(quotation?.service_provider)}
+                                            onError={handleUserImageError}
                                             alt="categories-img"
                                           />
                                           <div>
                                             <h5>
-                                              {
+                                              {providerDisplayName(
                                                 quotation?.service_provider
-                                                  ?.full_name
-                                              }
+                                              )}
                                             </h5>
                                             <p>
                                               {
@@ -559,7 +578,9 @@ export default function LeadDetails() {
                                           </div>
                                         </div>
                                       </div>
-                                      <p>{quotation?.description}</p>
+                                      <p>
+                                        {formatDisplayTitle(quotation?.description)}
+                                      </p>
                                       <div className="d-flex gap-2 mt-2">
                                         {" "}
                                         Status:
@@ -599,26 +620,25 @@ export default function LeadDetails() {
                                                 style={{ gap: "10px" }}
                                               >
                                                 <img
-                                                  src={`${process.env.REACT_APP_API_URL}/${item?.corporateIds?.profile_image}`}
-                                                  alt={
-                                                    item.corporateIds?.full_name
-                                                  }
+                                                  src={userImageUrl(item?.corporateIds)}
+                                                  onError={handleUserImageError}
+                                                  alt={providerDisplayName(
+                                                    item.corporateIds
+                                                  )}
                                                   className="rounded-circle"
                                                   width={40}
                                                   height={40}
                                                 />
                                                 <div className="flex-grow-1">
                                                   <div className="fw-bold">
-                                                    {
+                                                    {providerDisplayName(
                                                       item.corporateIds
-                                                        ?.full_name
-                                                    }
+                                                    )}
                                                   </div>
                                                   <div className="text-muted small">
-                                                    {
-                                                      item.corporateIds
-                                                        ?.shop_name
-                                                    }
+                                                    {formatDisplayTitle(
+                                                      item.corporateIds?.shop_name
+                                                    )}
                                                   </div>
                                                   <div className="text-muted small">
                                                     {item.corporateIds?.email}
@@ -638,15 +658,12 @@ export default function LeadDetails() {
                                     ) && (
                                       <>
                                         <button
-                                          onClick={() => {
-                                            navigate(
-                                              `/messages?userID=${task?.user_id}`
-                                            );
-                                            localStorage.setItem(
-                                              "reciverID",
+                                          onClick={() =>
+                                            openChatWithUser(
+                                              navigate,
                                               task?.user_id
-                                            );
-                                          }}
+                                            )
+                                          }
                                         >
                                           <img src={ChatIcon} alt="" /> Chat
                                         </button>
@@ -697,10 +714,6 @@ export default function LeadDetails() {
                   </section>
                 </>
               )}
-            </Col>
-          </Row>
-        </Container>
-      </section>
-    </Layout>
+    </CorporatePageShell>
   );
 }

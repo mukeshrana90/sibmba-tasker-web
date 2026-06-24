@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Modal } from "react-bootstrap";
-import Layout from "../../Components/Layout/Layout";
+import CorporatePageShell from "../../CommanComponents/CorporatePageShell";
 import checkIcon from "../../Assets/Images/status-check.svg";
 import darkCheckIcon from "../../Assets/Images/dark-status-check.svg";
 import { useDispatch } from "react-redux";
@@ -31,7 +31,7 @@ function SubscriptionPlan() {
       id: "silver",
       name: "Silver Package",
       price: 100,
-      details: ["700 Leads Responses", "Unlimited online shopping link"],
+      details: ["700 Leads Responses", "Unlimited online shop linking"],
       popular: true,
     },
     {
@@ -88,71 +88,65 @@ function SubscriptionPlan() {
   }, [token, dispatch]);
 
   return (
-    <Layout>
-      <section className="service-detail-sec mb-5">
-        <Container>
-          <div className="bookings-details-title mb-4">
-            <h2>Choose Your Plan</h2>
-          </div>
+    <CorporatePageShell title="Choose Your Plan" crumbLabel="Subscription">
           {isLoader ? (
             <Loader />
           ) : (
-            <Row className="g-4">
+            <Row className="g-4 corp-subscription-plans">
               {plans.map((plan) => {
                 const isActivePlan =
                   activePlan?.subscriptionPlan?.split(" ")[0]?.toLowerCase() ===
                   plan?.name?.split(" ")[0]?.toLowerCase();
+                const isCurrentActive =
+                  isActivePlan && activePlan?.status === "active";
                 return (
-                  <Col md={isSignup ? 3 : 4} key={plan.id}>
+                  <Col
+                    md={isSignup ? 3 : 4}
+                    key={plan.id}
+                    className="d-flex"
+                  >
                     <div
-                      className={`plan-card ${
-                        isActivePlan && activePlan?.status === "active"
-                          ? "highlight"
-                          : ""
-                      }`}
+                      className={`plan-card corp-plan-card ${
+                        isCurrentActive ? "highlight" : ""
+                      } ${plan.popular ? "is-popular" : ""}`}
                     >
                       {plan.popular && (
                         <div className="popular-badge">Popular</div>
                       )}
-                      <h6 className="plan-name">{plan.name}</h6>
-                      <div className="plan-price">
-                        <span className="currency">$</span>
-                        <span className="amount">{plan.price}</span>
-                        <span className="duration">/month</span>
-                      </div>
-                      <ul className="plan-features">
-                        <div className="list-wrap">
+                      <div className="plan-card__body">
+                        <h6 className="plan-name">{plan.name}</h6>
+                        <div className="plan-price">
+                          <span className="currency">$</span>
+                          <span className="amount">{plan.price}</span>
+                          <span className="duration">/month</span>
+                        </div>
+                        <ul className="plan-features">
                           {plan.details.map((feature, idx) => (
                             <li key={idx}>
                               <img
-                                src={
-                                  isActivePlan &&
-                                  activePlan?.status === "active"
-                                    ? darkCheckIcon
-                                    : checkIcon
-                                }
+                                src={isCurrentActive ? darkCheckIcon : checkIcon}
+                                alt=""
                                 className="check-icon"
                               />
-                              <i className="bi bi-check-circle-fill"></i>
-                              {feature}
+                              <span>{feature}</span>
                             </li>
                           ))}
-                        </div>
-                      </ul>
-                      {plan.price === 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigate("/corporate", { replace: true });
-                          }}
-                          className="cursor-pointer primaryBtn mt-4"
-                        >
-                          Try For Free
-                        </button>
-                      )}
+                        </ul>
+                      </div>
+                      <div className="plan-card__footer">
+                        {plan.price === 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigate("/corporate", { replace: true });
+                            }}
+                            className="cursor-pointer primaryBtn"
+                          >
+                            Try For Free
+                          </button>
+                        )}
 
-                      {plan.price !== 0 &&
-                        (!isActivePlan || activePlan?.status !== "active") && (
+                        {plan.price !== 0 && !isCurrentActive && (
                           <button
                             type="button"
                             onClick={() => {
@@ -168,6 +162,11 @@ function SubscriptionPlan() {
                             Purchase
                           </button>
                         )}
+
+                        {plan.price !== 0 && isCurrentActive && (
+                          <span className="plan-active-label">Current Plan</span>
+                        )}
+                      </div>
                     </div>
                   </Col>
                 );
@@ -217,9 +216,7 @@ function SubscriptionPlan() {
               </div>
             </Modal.Body>
           </Modal>
-        </Container>
-      </section>
-    </Layout>
+    </CorporatePageShell>
   );
 }
 

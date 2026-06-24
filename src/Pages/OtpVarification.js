@@ -10,6 +10,7 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast } from "react-toastify";
 import { useQuery } from "../utils/CommonFunction";
+import { consumeAuthReturnUrl } from "../utils/authRedirect";
 
 export default function OtpVarification() {
 
@@ -180,7 +181,7 @@ export default function OtpVarification() {
         localStorage.setItem("userId", userId);
         localStorage.setItem("role", userRole);
         localStorage.setItem("expiresAt", expiresAt);
-        navigate("/", { replace: true });
+        navigate(consumeAuthReturnUrl() || "/", { replace: true });
       }
       localStorage.removeItem("signupFormData");
     } else {

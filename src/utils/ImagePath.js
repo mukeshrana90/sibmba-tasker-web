@@ -1,22 +1,34 @@
-const API_FILE_ROOT = process.env.REACT_APP_API_URL
+import {
+  buildPublicAssetUrl,
+  categoryImageFromPath,
+  corporateCategoryImageUrl,
+  defaultImage,
+  defaultProviderAvatar,
+  productImageUrl,
+  serviceImageUrl,
+  userImageUrl,
+} from "./landingUtils";
 
 const ImagePathService = (filename) => {
-    if (filename?.startsWith('http')) {
-        return filename
-    } else {
-        return `${API_FILE_ROOT}/service/${filename}`
-    }
-}
+  if (!filename) return defaultImage;
+  if (filename.startsWith("http")) return filename;
+  const path = filename.startsWith("/service/")
+    ? filename
+    : `/service/${filename}`;
+  return buildPublicAssetUrl(path) || defaultImage;
+};
 
-const ImagePathCustomer = (filename) => {
-    if (filename?.startsWith('http')) {
-        return filename
-    } else {
-        return `${API_FILE_ROOT}${filename}`
-    }
-}
+const ImagePathCustomer = (filename) => userImageUrl(filename);
 
 export {
-    ImagePathService,
-    ImagePathCustomer
-}
+  ImagePathService,
+  ImagePathCustomer,
+  buildPublicAssetUrl,
+  categoryImageFromPath,
+  corporateCategoryImageUrl,
+  defaultImage,
+  defaultProviderAvatar,
+  productImageUrl,
+  serviceImageUrl,
+  userImageUrl,
+};

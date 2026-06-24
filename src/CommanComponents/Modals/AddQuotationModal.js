@@ -7,6 +7,10 @@ import * as Yup from "yup";
 import SuggestCorporateModal from "./SuggestCorporateModal";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { useDispatch } from "react-redux";
+import {
+  handleUserImageError,
+  userImageUrl,
+} from "../../utils/landingUtils";
 
 // Validation schema using Yup
 const validationSchema = Yup.object({
@@ -28,6 +32,7 @@ const AddQuotationModal = ({
   task,
   onSubmit,
   quatation,
+  fallbackCoords = null,
 }) => {
   const isEdit = !!quatation;
   const [showSuggestModal, setShowSuggestModal] = useState(false);
@@ -149,10 +154,11 @@ const AddQuotationModal = ({
                       <div className="d-flex align-items-center">
                       {corp.profile_image ? (
                         <img
-                          src={`${process.env.REACT_APP_API_URL}/${corp.profile_image}`}
+                          src={userImageUrl(corp)}
                           alt={corp.full_name}
                           width={40}
                           height={40}
+                          onError={handleUserImageError}
                           className="rounded-circle me-2"
                         />
                       ) : (
@@ -212,6 +218,7 @@ const AddQuotationModal = ({
                     setShowSuggestModal(false);
                   }}
                   customerData={task}
+                  fallbackCoords={fallbackCoords}
                 />
 
                 <div className="quotation-requestss mt-3">

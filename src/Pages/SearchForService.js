@@ -10,6 +10,11 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { useQuery } from "../utils/CommonFunction";
 import StarRating from "../CommanComponents/StarRating";
+import {
+  handleCategoryImageError,
+  formatDisplayTitle,
+  serviceImageUrl,
+} from "../utils/landingUtils";
 
 export default function SearchForService() {
   const dispatch = useDispatch();
@@ -146,7 +151,7 @@ export default function SearchForService() {
                                         );
                                       }}
                                     />
-                                    <label>{ele?.service_category_name}</label>
+                                    <label>{formatDisplayTitle(ele?.service_category_name)}</label>
                                   </li>
                                 );
                               })}
@@ -173,15 +178,16 @@ export default function SearchForService() {
                                       ele.images.length > 0 && (
                                         <img
                                           className="point-cursor"
-                                          src={`${process.env.REACT_APP_API_URL}/user/${ele?.images[0]}`}
+                                          src={serviceImageUrl(ele?.images[0])}
                                           alt="categories-img"
+                                          onError={handleCategoryImageError}
                                         />
                                       )}
                                     <div>
                                       <div className="rating-stars">
                                         <StarRating averageRating={ele?.averageRating} />
                                       </div>
-                                      <h3>{ele?.serviceSubCategoryName}</h3>
+                                      <h3>{formatDisplayTitle(ele?.serviceSubCategoryName)}</h3>
                                       <p>{ele.desc}</p>
                                       <h4>${ele?.price}</h4>
                                     </div>

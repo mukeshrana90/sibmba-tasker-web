@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import Layout from "../../../Components/Layout/Layout";
+import CorporatePageShell from "../../../CommanComponents/CorporatePageShell";
 import ProductActions from "../../../Redux/Actions/ProductActions";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
@@ -9,6 +9,10 @@ import Col from "react-bootstrap/Col";
 import Slider from "react-slick";
 import DeleteConfirmation from "../../../CommanComponents/Modals/DeleteConfirmation";
 import { toast } from "react-toastify";
+import {
+  handleCategoryImageError,
+  productImageUrl,
+} from "../../../utils/landingUtils";
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
@@ -71,17 +75,18 @@ export default function ProductDetailsPage() {
   };
 
   return (
-    <Layout>
-      <section className="service-detail-sec mb-5">
-        <Container>
-          <Row>
-            <Col lg={12}>
+    <>
+    <CorporatePageShell
+      title={productDetail?.name || "Product Details"}
+      crumbLabel="Products"
+    >
               <div className="service-detail-card3 product-slider">
                 <Slider {...sliderSettings}>
                   {productDetail?.images?.map((image, index) => (
                     <div key={index} className="card-box">
                       <img
-                        src={`${process.env.REACT_APP_API_URL}/products/${image}`}
+                        src={productImageUrl(image)}
+                        onError={handleCategoryImageError}
                         alt={`Product Image ${index + 1}`}
                       />
                     </div>
@@ -116,9 +121,7 @@ export default function ProductDetailsPage() {
                   </div>
                 </div>
               </div>
-            </Col>
-          </Row>
-        </Container>
+    </CorporatePageShell>
 
         <DeleteConfirmation
           show={showDeleteModal}
@@ -129,7 +132,6 @@ export default function ProductDetailsPage() {
           confirmText="Delete"
           isLoading={isDeleting}
         />
-      </section>
-    </Layout>
+    </>
   );
 }

@@ -4,6 +4,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../Components/Layout/Layout";
 import ServiceActions from "../Redux/Actions/ServiceActions";
+import {
+  formatDisplayTitle,
+  handleCategoryImageError,
+  serviceImageUrl,
+} from "../utils/landingUtils";
 
 export default function ServiceProCategory() {
     const navigate = useNavigate();
@@ -66,7 +71,7 @@ export default function ServiceProCategory() {
               <Col lg={12}>
                 <div className="search-results-contain">
                   <div className=" services-secs d-flex justify-content-between align-items-center mb-3 px-1">
-                    <h2 className="mb-1">{myservices?.length > 0 ? myservices[0]?.serviceCategoryId?.service_category_name : "No Services Found"}</h2>
+                    <h2 className="mb-1">{myservices?.length > 0 ? formatDisplayTitle(myservices[0]?.serviceCategoryId?.service_category_name) : "No Services Found"}</h2>
                   </div>
 
                   <div className="bookings-tabs">
@@ -93,10 +98,11 @@ export default function ServiceProCategory() {
                                           <img
                                             src={
                                               service?.images?.length
-                                                ? `${process.env.REACT_APP_API_URL}/user/${service?.images[0]}`
+                                                ? serviceImageUrl(service?.images[0])
                                                 : ""
                                             }
                                             alt={""}
+                                            onError={handleCategoryImageError}
                                             onClick={() =>
                                               handleServiceClick(service?._id)
                                             }

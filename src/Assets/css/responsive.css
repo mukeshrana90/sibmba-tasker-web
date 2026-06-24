@@ -321,7 +321,7 @@
 
 .pagination-flexs {
   display: flex;
-  justify-content: left;
+  justify-content: flex-end;
 }
 
 .link {

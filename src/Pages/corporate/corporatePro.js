@@ -1,126 +1,112 @@
 import { useEffect, useState } from "react";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import { useNavigate } from "react-router-dom";
-import Layout from "../../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../../Redux/Actions/ServiceActions";
-import defaultImage from "../../Assets/Images/placeholder.jpg";
-import ReadMore from "../../CommanComponents/ReadMore";
+import CorporatePageShell from "../../CommanComponents/CorporatePageShell";
 import Loader from "../../CommanComponents/Loader";
-import PaginationComponent from "../../CommanComponents/PaginationComponent"
+import SimbaPager from "../../CommanComponents/SimbaPager";
+import {
+  corporateCategoryImageUrl,
+  handleCategoryImageError,
+} from "../../utils/landingUtils";
+
+function PlaceholderIcon() {
+  return (
+    <svg className="ph" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.5-3.5L9 20" />
+    </svg>
+  );
+}
 
 export default function CorporatePro() {
-    const dispatch = useDispatch();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [totalPages, setTotalPages] = useState(false);
-  const Navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const corporateSuggestions = useSelector((e) => e.service.corporateCategory);
 
   useEffect(() => {
-    const fetchCategoryAndServices = async () => {
+    const fetchCategories = async () => {
       setLoading(true);
       try {
-        const [categoryResponse] = await Promise.all([
-          dispatch(ServiceActions.getCorporateCategoryList({ page, limit })),
-          setTotalPages(corporateSuggestions?.pagination?.total),
-        ]);
+        const result = await dispatch(
+          ServiceActions.getCorporateCategoryList({ page, limit })
+        ).unwrap();
+        setTotalPages(result?.pagination?.pages || 1);
       } catch (error) {
-        console.error("Error fetching category and services:", error);
+        console.error("Error fetching corporate categories:", error);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategoryAndServices();
-  }, [dispatch, page]);
+    fetchCategories();
+  }, [dispatch, page, limit]);
 
-  const handleProfiles = (id) => {
-    if (token) {
-      Navigate(`/corporate/corporate-pro-detail/${id}`);
-    } else {
-      Navigate("/login");
-    }
-  };
+  const categories = corporateSuggestions?.data || [];
 
   return (
-    <Layout>
-      <section className="breadcrumb-nav">
-        <Container>
-          <Row>
-            <Col lg={12}>
-              <div className="breadcrumb-nav-contain">
-                <h2>Browse Corporate By Category</h2>
-                <p>
-                  <span
-                    style={{
-                      color: "#038654",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => Navigate("/")}
-                  >
-                    Home
-                  </span>{" "}
-                  / Corporate Category
-                </p>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+    <CorporatePageShell
+      title="Browse Corporate By Category"
+      crumbLabel="Corporate Pro"
+    >
+      {loading ? (
+        <div className="corp-loading">
+          <Loader />
+        </div>
+      ) : categories.length === 0 ? (
+        <p className="corp-empty">No corporate categories available yet.</p>
+      ) : (
+        <>
+          <div className="cc-grid">
+            {categories.map((cat) => {
+              const imgSrc = corporateCategoryImageUrl(cat?.image);
+              const hasImage =
+                cat?.image && cat.image !== "undefined" && cat.image !== "null";
 
-      <section className="category-services-sec pt-0 mt-5">
-        <Container>
-          <div className="category-services-lists">
-            {loading ? (
-              <Loader />
-            ) : Array.isArray(corporateSuggestions?.data) &&
-              corporateSuggestions?.data.length > 0 ? (
-              <>
-                <div className="services-list-browse">
-                  {corporateSuggestions.data.map((ele, index) => (
-                    <div key={index}>
+              return (
+                <button
+                  key={cat._id}
+                  type="button"
+                  className="cc-tile"
+                  onClick={() => navigate(`/corporate/corporate-pro-detail/${cat._id}`)}
+                >
+                  <div className="cc-img">
+                    {hasImage ? (
                       <img
-                        onClick={() => handleProfiles(ele?._id)}
-                        className="point-cursor"
-                        src={
-                          ele?.image
-                            ? `${process.env.REACT_APP_API_URL}/corporate-category/${ele.image}`
-                            : defaultImage
-                        }
-                        alt="categories-img"
+                        src={imgSrc}
+                        alt={cat.name}
+                        loading="lazy"
+                        onError={handleCategoryImageError}
                       />
-                      <h3>{ele?.name}</h3>
-                      <ReadMore desc={ele?.description} />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pagination (optional) */}
-                {totalPages > 10 && (
-                  <div className="pagination-flexs">
-                    <div className="mt-5">
-                      <PaginationComponent
-                        page={page}
-                        setPage={setPage}
-                        totalPages={totalPages}
-                      />
+                    ) : (
+                      <PlaceholderIcon />
+                    )}
+                    <div className="ov">
+                      <span>
+                        View suppliers
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+                          <path d="M5 12h14M13 6l6 6-6 6" />
+                        </svg>
+                      </span>
                     </div>
                   </div>
-                )}
-              </>
-            ) : (
-              <div style={{ height: "300px" }}>
-                <h3 className="text-center mt-5">No Data Found</h3>
-              </div>
-            )}
+                  <div className="cc-title">{cat.name}</div>
+                  <div className="cc-desc">
+                    {cat.description || "Explore corporate suppliers"}
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        </Container>
-      </section>
-    </Layout>
+          <SimbaPager page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
+      )}
+    </CorporatePageShell>
   );
 }
