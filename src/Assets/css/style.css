@@ -9076,13 +9076,20 @@ footer .logo{color:#fff;margin-bottom:16px}
 .simba-page .page .wrap.corp-portal-content > h1,
 .simba-page .page-head h1,
 .simba-page .messages-page-head h1,
-.simba-page .page-title,
-.simba-page.p-posttask .banner h1{
+.simba-page .page-title{
   font-family:var(--font-display)!important;
   font-size:var(--page-title-size)!important;
   font-weight:800;
   line-height:1.1;
   color:var(--ink);
+}
+
+.simba-page.p-posttask .banner h1{
+  font-family:var(--font-display)!important;
+  font-size:var(--page-title-size)!important;
+  font-weight:800;
+  line-height:1.1;
+  color:#fff;
 }
 
 @media (max-width:520px){
@@ -9096,7 +9103,6 @@ footer .logo{color:#fff;margin-bottom:16px}
   .simba-page.p-posttask .banner h1{
     font-size:clamp(28px,8vw,var(--page-title-size))!important;
   }
-
   .simba-page .stat-num,
   .simba-page .balance-card .bal-amt,
   .p-mystats .stat-num,

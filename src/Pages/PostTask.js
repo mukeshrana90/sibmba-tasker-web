@@ -140,8 +140,9 @@ export default function PostTask() {
   const dispatch = useDispatch();
   const categories = useSelector((e) => e.UserSlice.categories);
   const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
-  const isCustomer = Boolean(token && role === Roles.CUSTOMER);
+  const customerDetails = useSelector((e) => e.login.customerDetails);
+  const role = customerDetails?.role ?? localStorage.getItem("role");
+  const isCustomer = Boolean(token && Number(role) === Roles.CUSTOMER);
 
   const [selectedTime, setSelectedTime] = useState("");
   const [previews, setPreviews] = useState([]);
@@ -293,7 +294,7 @@ export default function PostTask() {
                   return;
                 }
 
-                if (role !== Roles.CUSTOMER) {
+                if (Number(role) !== Roles.CUSTOMER) {
                   toast.error("Only customers can post tasks.");
                   setSubmitting(false);
                   return;
