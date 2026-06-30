@@ -3779,6 +3779,85 @@ header.appnav .avatar-menu .am-item {
   border-top: 1px solid var(--line);
 }
 
+.simba-book-modal .bk-modal-foot .btn,
+.simba-book-loc-modal .bk-modal-foot .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 14px 24px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s,
+    background 0.25s;
+}
+
+.simba-book-modal .bk-modal-foot .btn-primary,
+.simba-book-loc-modal .bk-modal-foot .btn-primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 20px -6px rgba(15, 92, 76, 0.5);
+}
+
+.simba-book-modal .bk-modal-foot .btn-primary:hover:not(:disabled),
+.simba-book-loc-modal .bk-modal-foot .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--primary-2);
+  color: #fff;
+  box-shadow: 0 14px 28px -8px rgba(15, 92, 76, 0.6);
+}
+
+.simba-book-modal .bk-modal-foot .btn-ghost,
+.simba-book-loc-modal .bk-modal-foot .btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--line-strong);
+}
+
+.simba-book-modal .bk-modal-foot .btn-ghost:hover:not(:disabled),
+.simba-book-loc-modal .bk-modal-foot .btn-ghost:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.simba-book-modal .bk-modal-foot .btn:disabled,
+.simba-book-loc-modal .bk-modal-foot .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.simba-page.p-servicedetail .side-actions .btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  box-shadow: 0 8px 20px -6px rgba(15, 92, 76, 0.5);
+}
+
+.simba-page.p-servicedetail .side-actions .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--primary-2);
+  color: #fff;
+  box-shadow: 0 14px 28px -8px rgba(15, 92, 76, 0.6);
+}
+
+.simba-page.p-servicedetail .side-actions .btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--line-strong);
+}
+
+.simba-page.p-servicedetail .side-actions .btn-ghost:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .simba-book-loc-modal .bk-loc-hint {
   margin: 0 0 14px;
   font-size: 0.9rem;
@@ -3872,6 +3951,36 @@ header.appnav .avatar-menu .am-item {
   .simba-book-loc-modal .bk-modal-foot .btn {
     width: 100%;
   }
+}
+
+/* Service add/edit — availability day & time slot buttons */
+.availability-slots .btn.btn-success {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+.availability-slots .btn.btn-success:hover,
+.availability-slots .btn.btn-success:focus,
+.availability-slots .btn.btn-success:active,
+.availability-slots .btn.btn-success.active {
+  background-color: var(--primary-2) !important;
+  border-color: var(--primary-2) !important;
+  color: #fff !important;
+}
+
+.availability-slots .btn.btn-outline-secondary {
+  color: var(--ink) !important;
+  border-color: var(--line-strong) !important;
+  background-color: var(--surface) !important;
+}
+
+.availability-slots .btn.btn-outline-secondary:hover,
+.availability-slots .btn.btn-outline-secondary:focus,
+.availability-slots .btn.btn-outline-secondary:active {
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  background-color: var(--primary-soft) !important;
 }
 
 /* Corporate portal pages */
@@ -4352,5 +4461,162 @@ header.appnav .avatar-menu .am-item {
 
 .simba-page.p-corporate-portal.p-corp-profile .corp-detail-actions .corp-action-btn img {
   flex-shrink: 0;
+}
+
+/* Service provider category detail — profile hero + info cards */
+.simba-page.p-sp-category-detail .sp-cat-detail-page {
+  padding: 32px 0 80px;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-hero-card {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) 1fr;
+  gap: 32px;
+  align-items: center;
+  padding: 28px;
+  margin-bottom: 32px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-hero-avatar {
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 4 / 3;
+  border-radius: 20px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.4rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-hero-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-hero-initials {
+  line-height: 1;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-hero-info h1 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-hero-info p {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 100px;
+  background: var(--primary);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 20px -6px rgba(15, 92, 76, 0.5);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-chat-btn:hover {
+  background: var(--primary-2);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-info-title {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-info-card {
+  height: calc(100% - 38px);
+  padding: 22px 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-info-card p {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-info-card p:last-child {
+  margin-bottom: 0;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-info-card strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-verif-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.simba-page.p-sp-category-detail .verif-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.simba-page.p-sp-category-detail .verif-pill.verified {
+  background: #e3f5ea;
+  color: #0e7a47;
+}
+
+.simba-page.p-sp-category-detail .verif-pill.unverified {
+  background: #fbe9e9;
+  color: #b4302c;
+}
+
+@media (max-width: 768px) {
+  .simba-page.p-sp-category-detail .sp-cat-hero-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .simba-page.p-sp-category-detail .sp-cat-hero-avatar {
+    margin: 0 auto;
+  }
+
+  .simba-page.p-sp-category-detail .sp-cat-chat-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 

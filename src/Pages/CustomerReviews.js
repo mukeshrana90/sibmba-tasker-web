@@ -5,8 +5,7 @@ import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import {
   avatarColor,
-  handleUserImageError,
-  providerInitials,
+  handleReviewAvatarError,
   userImageUrl,
 } from "../utils/landingUtils";
 
@@ -150,12 +149,7 @@ export default function CustomerReviews() {
                     <img
                       src={userImageUrl(review.user_id)}
                       alt=""
-                      onError={(e) => {
-                        handleUserImageError(e);
-                        e.currentTarget.style.display = "none";
-                        e.currentTarget.parentElement.textContent =
-                          providerInitials(name).slice(0, 1);
-                      }}
+                      onError={(e) => handleReviewAvatarError(e, name)}
                     />
                   </span>
                   <div className="rv-id">

@@ -14,6 +14,7 @@ import linkIcon from "../Assets/Images/link.png";
 import {
   avatarColor,
   handleCategoryImageError,
+  handleProviderAvatarError,
   handleUserImageError,
   providerInitials,
   serviceImageUrl,
@@ -311,11 +312,12 @@ export default function CustomerServiceDetail() {
                           <img
                             src={userImageUrl(sp)}
                             alt={providerName}
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                              e.currentTarget.parentElement.textContent =
-                                providerInitials(providerName);
-                            }}
+                            onError={(e) =>
+                              handleProviderAvatarError(
+                                e,
+                                providerInitials(providerName)
+                              )
+                            }
                           />
                         </span>
                         <div className="pinfo">

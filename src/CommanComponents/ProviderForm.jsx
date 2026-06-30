@@ -1368,7 +1368,7 @@ const ProviderForm = ({
                     <Row>
                       <div className="">
                         <Form.Label>Select Day</Form.Label>
-                        <Col>
+                        <Col className="availability-slots">
                           {weekDays.map((day) => (
                             <button
                               key={day}
@@ -1416,7 +1416,7 @@ const ProviderForm = ({
                       </div>
                       <Col>
                         <Form.Label>Select Time</Form.Label>
-                        <div>
+                        <div className="availability-slots">
                           {(timeSchedule.length > 0
                             ? timeSchedule
                             : ["08am-09am", "07am-08am", "09am-10am"]

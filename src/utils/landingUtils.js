@@ -99,6 +99,20 @@ export function handleUserImageError(e) {
   }
 }
 
+export function handleProviderAvatarError(e, initials = "SP") {
+  const img = e?.currentTarget;
+  if (!img) return;
+  img.onerror = null;
+  const parent = img.parentElement;
+  if (!parent) return;
+  img.style.display = "none";
+  parent.textContent = initials;
+}
+
+export function handleReviewAvatarError(e, name) {
+  handleProviderAvatarError(e, providerInitials(name).slice(0, 1));
+}
+
 export function handleCategoryImageError(e) {
   if (e?.currentTarget) {
     e.currentTarget.onerror = null;
@@ -229,6 +243,42 @@ export function providerLocation(sp) {
 
 export function isVerified(sp) {
   return sp?.email_verified === 1 || sp?.phone_verified === 1;
+}
+
+export function isTruthyVerified(value) {
+  return value === 1 || value === true || value === "1";
+}
+
+export function verificationLabel(flag) {
+  return isTruthyVerified(flag) ? "Verified" : "Not Verified";
+}
+
+export function verificationPillClass(flag) {
+  return isTruthyVerified(flag)
+    ? "verif-pill verified"
+    : "verif-pill unverified";
+}
+
+export function displayField(value) {
+  if (value == null || value === "" || value === "undefined" || value === "null") {
+    return "N/A";
+  }
+  return String(value);
+}
+
+export function formatProviderPhone(sp) {
+  if (!sp?.phone_number || sp.phone_number === "undefined") return "N/A";
+  const code = sp.country_code && sp.country_code !== "undefined" ? sp.country_code : "";
+  return `${code}${sp.phone_number}`.trim() || "N/A";
+}
+
+export function providerRoleLabel(sp) {
+  if (!sp) return "Service provider";
+  const identify = sp.identify_yourself;
+  if (identify && identify !== "undefined") return identify;
+  const company = sp.company_name;
+  if (company && company !== "undefined") return company;
+  return "Service provider";
 }
 
 export { buildPublicAssetUrl, defaultImage, defaultProviderAvatar };

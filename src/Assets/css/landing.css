@@ -199,14 +199,26 @@
 
 .landing-btn--ghost {
   background: transparent !important;
-  color:  #ffffff !important;
+  color: var(--landing-ink) !important;
   border: 1.5px solid var(--landing-line-strong);
+  box-shadow: none;
 }
 
 .landing-btn--ghost:hover {
   background: #fff !important;
   border-color: var(--landing-primary);
   color: var(--landing-primary) !important;
+}
+
+.landing-cta .landing-btn--ghost {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.landing-cta .landing-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: #fff;
+  color: #fff !important;
 }
 
 .landing-nav__signin {
@@ -1033,6 +1045,20 @@
 
 .landing-prov-actions .landing-btn {
   gap: 8px;
+}
+
+.landing-prov-actions .landing-btn--ghost {
+  color: var(--landing-primary) !important;
+  border-color: var(--landing-primary);
+  padding: 14px 28px;
+}
+
+.landing-prov-actions .landing-btn--ghost:hover {
+  background: var(--landing-primary) !important;
+  border-color: var(--landing-primary);
+  color: #fff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -6px rgba(15, 92, 76, 0.5);
 }
 
 .landing-prov-card {
