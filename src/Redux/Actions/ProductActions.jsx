@@ -87,7 +87,7 @@ export const getProductById = createAsyncThunk(
 
 
 
-export default {
+const ProductActions = {
   fetchProducts,
   addProduct,
   updateProduct,
@@ -96,3 +96,5 @@ export default {
   removeProduct,
   PaymentStatusCheck
 };
+
+export default ProductActions;

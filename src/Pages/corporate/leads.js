@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import CorporatePageShell from "../../CommanComponents/CorporatePageShell";
-import { Row, Nav, Col, Tab, Container } from "react-bootstrap";
+import { Row, Nav, Col, Tab } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import CorporateActions from "../../Redux/Actions/corporateActions";
 import PaginationComponent from "../../CommanComponents/PaginationComponent";
@@ -76,7 +76,7 @@ export default function CorporateLeadsPage() {
       status: status,
     };
 
-    if (data?.type == "task") {
+    if (data?.type === "task") {
       payload.taskId = data?.taskId?._id;
     } else {
       payload.bookingId = data?.bookingId?._id;
@@ -164,6 +164,7 @@ export default function CorporateLeadsPage() {
                                 <div className="nav-serch-bar leads-search-wrapper d-flex align-items-center mr-0 gap-2">
                                   <img
                                     className="search-icn leads-search mt-1"
+                                    alt=""
                                     src={
                                       require("../../Assets/Images/search-icon.svg")
                                         .default
@@ -199,7 +200,6 @@ export default function CorporateLeadsPage() {
                                           leadFilter
                                     )
                                     .map((res, idx) => {
-                                      const corp = res.corporateIds || {};
                                       const item = res.taskId || {};
                                       const status = getCorporateLeadStatus(res);
                                       const bookingItem = res.bookingId || {};

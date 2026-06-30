@@ -45,11 +45,11 @@ const formatPhoneNumber = (countryCode, phoneNumber) => {
 };
 
 const getGender = (gender) => {
-  if (gender == 1) {
+  if (gender === 1) {
     return "Male";
-  } else if (gender == 2) {
+  } else if (gender === 2) {
     return "Female";
-  } else if (gender == 3) {
+  } else if (gender === 3) {
     return "Other";
   } else {
     return "N/A";
@@ -100,7 +100,7 @@ const createCsv = async (data) => {
   result += "\n";
   data?.forEach((element) => {
     keys.forEach((key) => {
-      result += `${element[key] ? element[key] : "N/A"}` + ",";
+      result += `${element[key] ? element[key] : "N/A"},`;
     });
     result += "\n";
   });

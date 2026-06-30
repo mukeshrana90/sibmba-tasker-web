@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import {
   Link,
   useNavigate,
@@ -48,7 +46,7 @@ export default function LeadDetails() {
   const type = searchParams.get("type");
 
   const [showMapModal, setShowMapModal] = useState(false);
-  const [jobStatus, setJobStatus] = useState("");
+  const [, setJobStatus] = useState("");
 
   const postTaskDetails = useSelector(
     (state) => state.UserSlice.postTaskDetail
@@ -124,7 +122,7 @@ export default function LeadDetails() {
     } else {
       dispatch(CustomerActions.getPostTaskDetail(id));
     }
-  }, [dispatch, id]);
+  }, [dispatch, id, type]);
   const task = postTaskDetails?.data?.task;
   const quotations = postTaskDetails?.data?.quotations;
 

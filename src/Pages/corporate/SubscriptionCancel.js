@@ -8,8 +8,9 @@ const SubscriptionCancel = () => {
   const Navigate = useNavigate();
 
   useEffect(() => {
-    setTimeout(() => Navigate("/"), 3000);
-  }, []);
+    const timer = setTimeout(() => Navigate("/"), 3000);
+    return () => clearTimeout(timer);
+  }, [Navigate]);
   return (
     <Layout footerVariant="marketing">
       <div className="simba-page p-corporate-portal">

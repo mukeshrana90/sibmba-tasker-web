@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
@@ -164,18 +164,18 @@ export default function EditProfileUser() {
     }
   };
 
-  const getProfileApiCall = async () => {
-    let apiRes = await dispatch(CustomerActions.getProfile());
+  const getProfileApiCall = useCallback(async () => {
+    const apiRes = await dispatch(CustomerActions.getProfile());
     if (apiRes?.payload?.success) {
       dispatch(setCustomer(apiRes?.payload?.data));
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     if (token) {
       getProfileApiCall();
     }
-  }, [token]);
+  }, [token, getProfileApiCall]);
 
   useEffect(() => {
     if (customerDetails) {

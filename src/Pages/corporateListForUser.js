@@ -9,7 +9,6 @@ import SimbaPageBanner from "../CommanComponents/SimbaPageBanner";
 import {
   corporateCategoryImageUrl,
   formatDisplayTitle,
-  handleCategoryImageError,
 } from "../utils/landingUtils";
 
 function PlaceholderIcon() {

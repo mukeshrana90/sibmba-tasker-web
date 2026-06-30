@@ -19,7 +19,6 @@ import {
 export default function SearchForService() {
   const dispatch = useDispatch();
   const Navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [kmValues, setKmValues] = useState([0, 100]);
   const [ratingvalue, setRatingValue] = useState([0]);
   const getQueryURL = useQuery();
@@ -33,13 +32,10 @@ export default function SearchForService() {
 
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
-      setLoading(true);
       try {
         await dispatch(CustomerActions.getAllCategories());
       } catch (error) {
         console.error("Error fetching category and services:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -52,7 +48,6 @@ export default function SearchForService() {
 
   useEffect(() => {
     const fetchSubCategoryAndServices = async () => {
-      setLoading(true);
       try {
 
         let rawParams = {
@@ -71,8 +66,6 @@ export default function SearchForService() {
         await dispatch(CustomerActions.getFilteredSubCategories(params));
       } catch (error) {
         console.error("Error fetching category and services:", error);
-      } finally {
-        setLoading(false);
       }
     };
 

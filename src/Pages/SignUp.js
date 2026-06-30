@@ -107,6 +107,26 @@ function EyeClosedIcon() {
   );
 }
 
+const SIGNUP_DEFAULT_VALUES = {
+  email: "",
+  phone: "",
+  password: "",
+  confirmPassword: "",
+  terms: false,
+  country_code: "+263",
+};
+
+function getSignupInitialValues() {
+  const savedData = localStorage.getItem("signupFormData");
+  if (!savedData) return SIGNUP_DEFAULT_VALUES;
+  try {
+    return { ...SIGNUP_DEFAULT_VALUES, ...JSON.parse(savedData) };
+  } catch {
+    localStorage.removeItem("signupFormData");
+    return SIGNUP_DEFAULT_VALUES;
+  }
+}
+
 export default function SignUp() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -125,14 +145,7 @@ export default function SignUp() {
   const roleCopy = ROLE_COPY[selectedRole] || ROLE_COPY[1];
 
   const formik = useFormik({
-    initialValues: {
-      email: "",
-      phone: "",
-      password: "",
-      confirmPassword: "",
-      terms: false,
-      country_code: "+263",
-    },
+    initialValues: getSignupInitialValues(),
     validationSchema: Yup.object({
       email: Yup.string()
         .email("Invalid email address")
@@ -177,18 +190,6 @@ export default function SignUp() {
       }
     };
     handleGetFirebaseToken();
-  }, []);
-
-  useEffect(() => {
-    const savedData = localStorage.getItem("signupFormData");
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        formik.setValues(parsedData);
-      } catch {
-        localStorage.removeItem("signupFormData");
-      }
-    }
   }, []);
 
   useEffect(() => {

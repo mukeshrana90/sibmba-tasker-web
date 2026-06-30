@@ -409,7 +409,11 @@ export default function MyTasks() {
   const [quotationSubmittingById, setQuotationSubmittingById] = useState({});
 
   const allMyPosts = useSelector((state) => state.UserSlice.postlist) || [];
-  const allMyQuotations = useSelector((state) => state.UserSlice.myQuotations) || [];
+  const myQuotations = useSelector((state) => state.UserSlice.myQuotations);
+  const allMyQuotations = useMemo(
+    () => myQuotations || [],
+    [myQuotations]
+  );
 
   useEffect(() => {
     dispatch(CustomerActions.getPostList());

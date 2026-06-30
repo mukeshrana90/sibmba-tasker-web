@@ -53,7 +53,10 @@ export default function NearByServices() {
     fetchServices();
   }, [dispatch, lat, long, page, categoryId, limit]);
 
-  const allCats = Array.isArray(nearByServices?.data) ? nearByServices.data : [];
+  const allCats = useMemo(
+    () => (Array.isArray(nearByServices?.data) ? nearByServices.data : []),
+    [nearByServices?.data]
+  );
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();

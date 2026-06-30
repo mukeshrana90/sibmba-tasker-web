@@ -67,7 +67,7 @@ const FilterModal = ({ show, handleClose, type, onFiltersApplied }) => {
               <li
                 key={t}
                 onClick={() => setSelectedTime(t)}
-                className={`cursor-pointer px-4 py-2 rounded ${selectedTime == t ? 'active' : ''}`}
+                className={`cursor-pointer px-4 py-2 rounded ${selectedTime === t ? 'active' : ''}`}
               >
                 <p className="mb-0">{t}</p>
               </li>

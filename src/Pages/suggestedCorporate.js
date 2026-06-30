@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Modal from "react-bootstrap/Modal";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
@@ -127,6 +127,20 @@ export default function SuggestedCorporatePage() {
     }
   }, [visibleTabs, activeTab]);
 
+  const getProfileApiCall = useCallback(async () => {
+    try {
+      const apiRes = await dispatch(CustomerActions.getProfileWithSuscription());
+      if (apiRes?.payload?.success) {
+        dispatch(setCustomer(apiRes?.payload?.data.user));
+      }
+      const isSubscribed = apiRes?.payload?.data?.user?.isSubscribed;
+      setRole(apiRes?.payload?.data?.user?.role ?? "");
+      setPackageDetails(isSubscribed === 1);
+    } catch (error) {
+      console.error("Subscription check failed:", error);
+    }
+  }, [dispatch]);
+
   useEffect(() => {
     const fetchCorporateInfo = async () => {
       if (!userId) return;
@@ -168,21 +182,7 @@ export default function SuggestedCorporatePage() {
 
     fetchCorporateInfo();
     getProfileApiCall();
-  }, [dispatch, userId, page, limit, leadFilter, searchText]);
-
-  const getProfileApiCall = async () => {
-    try {
-      const apiRes = await dispatch(CustomerActions.getProfileWithSuscription());
-      if (apiRes?.payload?.success) {
-        dispatch(setCustomer(apiRes?.payload?.data.user));
-      }
-      const isSubscribed = apiRes?.payload?.data?.user?.isSubscribed;
-      setRole(apiRes?.payload?.data?.user?.role ?? "");
-      setPackageDetails(isSubscribed === 1);
-    } catch (error) {
-      console.error("Subscription check failed:", error);
-    }
-  };
+  }, [dispatch, userId, page, limit, leadFilter, searchText, getProfileApiCall]);
 
   const isSubscriptionExpired = () => !packageDetails;
 

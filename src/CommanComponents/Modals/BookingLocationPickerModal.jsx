@@ -66,6 +66,8 @@ function PickerMap({ center, address, onPick }) {
 
     mapObj.current = map;
     markerRef.current = marker;
+    // Map instance is created once per center; onPick uses latest callback via closure at init
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lng]);
 
   useEffect(() => {

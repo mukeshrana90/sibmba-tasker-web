@@ -10,8 +10,6 @@ const StarRating = ({ averageRating, type, reviewCount }) => {
     if (averageRating >= i) {
       fillColor = '#FFC107'; // Fully filled star (yellow)
     } else if (averageRating >= i - 1 && averageRating < i) {
-      // Partially filled star (use a gradient or percentage-based fill)
-      const percentage = (averageRating - (i - 1)) * 100;
       fillColor = `url(#partialGradient${i})`;
     }
 

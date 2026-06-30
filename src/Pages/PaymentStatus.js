@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import ProductActions from '../Redux/Actions/ProductActions';
@@ -9,21 +9,23 @@ const PaymentStatus = () => {
     const [message,setMessage] = useState("")
 
     useEffect(() => {
-        if (purchaseproductid) {
-            getDetails();
-        }
-    }, [purchaseproductid, dispatch]);
+        if (!purchaseproductid) return;
 
-    const getDetails =async()=>{
-        try{
-            const response = await dispatch(ProductActions.PaymentStatusCheck({ purchaseproductid }));
-            if(response?.payload){
-                setMessage(response?.payload?.message)
+        const getDetails = async () => {
+            try {
+                const response = await dispatch(
+                    ProductActions.PaymentStatusCheck({ purchaseproductid })
+                );
+                if (response?.payload) {
+                    setMessage(response?.payload?.message);
+                }
+            } catch (error) {
+                // ignore
             }
-        }catch(error){
+        };
 
-        }
-    }
+        getDetails();
+    }, [purchaseproductid, dispatch]);
     return (
       <div className="payment-model">
             <div className="payment-model-inner">

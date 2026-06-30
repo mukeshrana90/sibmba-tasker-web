@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
 import { toast } from "react-toastify";
@@ -39,28 +39,25 @@ const AddQuotationModal = ({
   const [selectedCorporate, setSelectedCorporate] = useState([]);
   const dispatch = useDispatch();
 
-  // Initial form values
-  const initialValues = {
-    price: quatation?.offer_price || "",
-    description: quatation?.description || "",
-  };
-  
+  const initialValues = useMemo(
+    () => ({
+      price: quatation?.offer_price || "",
+      description: quatation?.description || "",
+    }),
+    [quatation?.offer_price, quatation?.description]
+  );
 
   useEffect(() => {
     if (!show) {
-      initialValues.price = "";
-      initialValues.description = "";
       setSelectedCorporate([]);
-    } else {
-      if (
-        Array.isArray(quatation?.corporateSuggestion) &&
-        quatation.corporateSuggestion.length > 0
-      ) {
-        const firstCorporate = quatation.corporateSuggestion.find(
-          (corp) => !!corp._id
-        );
-        setSelectedCorporate(firstCorporate?.corporateIds);
-      }
+    } else if (
+      Array.isArray(quatation?.corporateSuggestion) &&
+      quatation.corporateSuggestion.length > 0
+    ) {
+      const firstCorporate = quatation.corporateSuggestion.find(
+        (corp) => !!corp._id
+      );
+      setSelectedCorporate(firstCorporate?.corporateIds);
     }
   }, [show, quatation]);
 

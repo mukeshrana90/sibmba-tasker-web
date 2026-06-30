@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -167,16 +167,16 @@ export default function EditProfileCompany() {
     }
   };
 
-  const getProfileApiCall = async () => {
-    let apiRes = await dispatch(CustomerActions.getProfile());
+  const getProfileApiCall = useCallback(async () => {
+    const apiRes = await dispatch(CustomerActions.getProfile());
     if (apiRes?.payload?.success) {
       dispatch(setCustomer(apiRes?.payload?.data));
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     if (token) getProfileApiCall();
-  }, [token]);
+  }, [token, getProfileApiCall]);
 
   useEffect(() => {
     setPreview(customerDetails?.profile_image || "");
@@ -197,9 +197,7 @@ export default function EditProfileCompany() {
       ref_phone_number: formik.values.ref_phone_number,
       corporateCategoryId: formik.values.corporateCategoryId,
     };
-    const apiRes = await dispatch(
-      ServiceActions.updateReference(referenceData)
-    );
+    await dispatch(ServiceActions.updateReference(referenceData));
     setShowReferenceModal(false);
   };
 

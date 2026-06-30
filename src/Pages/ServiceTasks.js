@@ -92,7 +92,7 @@ export default function ServiceTasks() {
   const [showModal, setShowModal] = useState(false);
   const [isRequestModal, setIsRequestModal] = useState(false);
   const [showModalCancel, setShowModalCancel] = useState(false);
-  const [ids, setIds] = useState(null);
+  const [ids] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -290,12 +290,6 @@ export default function ServiceTasks() {
   };
 
   // Handle reject button
-  const handleReject = (id) => {
-    setShowModalCancel(true);
-    setIds(id);
-  };
-
-  // Confirm cancel action
   const handleConfirmCancel = () => {
     navigate(`/requestdetail/${ids}?service=reject`);
     setShowModalCancel(false);

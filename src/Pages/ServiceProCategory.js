@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Container, Row, Col, Tab, Nav } from "react-bootstrap";
+import { Container, Row, Col, Tab } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../Components/Layout/Layout";
@@ -15,7 +15,7 @@ export default function ServiceProCategory() {
     const dispatch = useDispatch();
     const dropdownRefs = useRef({});
 
-    const [dropdownStates, setDropdownStates] = useState({});
+    const [, setDropdownStates] = useState({});
 
     const { id } = useParams()
 
@@ -23,19 +23,12 @@ export default function ServiceProCategory() {
 
     useEffect(() => {
         dispatch(ServiceActions.getServiceProviderByCategory({ categoryId: id }))
-    }, [])
+    }, [dispatch, id])
 
     const handleServiceClick = (id) => {
         navigate(`/serviceprocategorydetail/${id}`);
     };
 
-
-    const handleButtonClick = (id) => {
-      setDropdownStates((prev) => ({
-        ...prev,
-        [id]: !prev[id], 
-      }));
-    };
 
     useEffect(() => {
         const handleClickOutside = (event) => {

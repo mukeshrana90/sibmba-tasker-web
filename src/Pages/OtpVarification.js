@@ -1,12 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
-import { Link, replace, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import OtpInput from "react-otp-input";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast } from "react-toastify";
 import { useQuery } from "../utils/CommonFunction";
@@ -40,20 +38,18 @@ export default function OtpVarification() {
   const query = useQuery();
   const userId = query.get("userId");
   const type = query.get("type");
-  const role = query.get("role");
   const otpType = query.get("otpType") || "1"; // Default to 1 (email) if not provided
   const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState(30);
   const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
   const [resendOtploading, setResendOtploading] = useState(false);
 
-    // Check if user is already authenticated
+  // Check if user is already authenticated
   useEffect(() => {
     if (isTokenValid()) {
-      const storedRole = localStorage.getItem("role");
-      // navigate(storedRole === "1" ? "/home" : "/requests", { replace: true });
+      // Intentionally no redirect — user may be completing OTP verification
     }
-  }, [navigate]);
+  }, []);
 
   // Timer for OTP resend
   // useEffect(() => {
@@ -165,12 +161,12 @@ export default function OtpVarification() {
 
       if (type === "forgot") {
         navigate(`/reset-password?userId=${userId}`, { replace: true });
-      } else if (res?.payload?.data?.is_completeProfile == 0 && userRole == "1") {
+      } else if (Number(res?.payload?.data?.is_completeProfile) === 0 && Number(userRole) === 1) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         localStorage.setItem("expiresAt", expiresAt);
         navigate("/complete-profile", { replace: true });
-      } else if (userRole == "2" || userRole == "3") {
+      } else if (Number(userRole) === 2 || Number(userRole) === 3) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         localStorage.setItem("expiresAt", expiresAt);
@@ -203,7 +199,7 @@ export default function OtpVarification() {
               <div className="login-cmn-box">
                 <div className="login-box-inner-wrap">
                   <div className="login-logo cursor-pointer" onClick={() => navigate("/")}>
-                    <img src={require("../Assets/Images/dark-logo.png")} />
+                    <img src={require("../Assets/Images/dark-logo.png")} alt="Simba Tasker" />
                   </div>
                   <h2>OTP</h2>
                   <p className="mb-0">

@@ -124,9 +124,7 @@ export default function EditTask() {
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
       try {
-        const [categoryResponse] = await Promise.all([
-          dispatch(CustomerActions.getCategories()),
-        ]);
+        await dispatch(CustomerActions.getCategories());
       } catch (error) {
         console.error("Error fetching category and services:", error);
       } finally {
@@ -334,7 +332,7 @@ export default function EditTask() {
                               >
                                 <img
                                   src={preview}
-                                  alt={`Service Image ${index + 1} Preview`}
+                                  alt={`Service ${index + 1} preview`}
                                   style={{
                                     width: "150px",
                                     height: "150px",

@@ -1,16 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Link, Navigate, useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 
 import Form from "react-bootstrap/Form";
-import Modal from "react-bootstrap/Modal";
 
 export default function ContactUs() {
-  const Navigate = useNavigate();
-
   return (
     <Layout>
       <section className="contact-us-sec">

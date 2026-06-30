@@ -1,35 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Formik, Form as FormikForm, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
 import uploadSvg from "../../../Assets/Images/upload.svg";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
-import { Container, Button } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import CorporatePageShell from "../../../CommanComponents/CorporatePageShell";
 import ServiceActions from "../../../Redux/Actions/ServiceActions";
 import ProductActions from "../../../Redux/Actions/ProductActions";
 import { productImageUrl } from "../../../utils/landingUtils";
-
-const validationSchema = Yup.object({
-  images: Yup.array()
-    .max(6, "Maximum 6 images allowed")
-    .test(
-      "fileSize",
-      "File size must be less than 10MB",
-      (value) =>
-        !value || value.every((file) => file && file.size <= 10 * 1024 * 1024)
-    ),
-  categoryId: Yup.string().required("Service category is required"),
-  name: Yup.string().trim().required("Service Name is required"),
-  price: Yup.number()
-    .required("Price is required")
-    .positive("Price must be positive"),
-  description: Yup.string().trim().required("Description is required"),
-});
 
 const CorporateEditProduct = () => {
   const dispatch = useDispatch();
@@ -322,7 +303,7 @@ const CorporateEditProduct = () => {
                                 </span>
                                 <img
                                   src={preview}
-                                  alt={`Service Image ${index + 1} Preview`}
+                                  alt={`Product ${index + 1} preview`}
                                   style={{
                                     width: "200px",
                                     height: "180px",

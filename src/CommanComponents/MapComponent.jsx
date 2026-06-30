@@ -73,6 +73,8 @@ const GoogleMap = ({ coordinates, address, onMapClick }) => {
     }, 150);
 
     return () => window.clearTimeout(resizeTimer);
+    // position derived from coordinates prop via lat/lng deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position?.lat, position?.lng, address]);
 
   useEffect(() => {

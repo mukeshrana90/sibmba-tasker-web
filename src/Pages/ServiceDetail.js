@@ -2,15 +2,14 @@ import React, { useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import Accordion from "react-bootstrap/Accordion";
 import Slider from "react-slick";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 
 export default function ServiceDetail() {
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
   const [show, setShow] = useState(false);
 
   const handleClose = () => setShow(false);
@@ -58,6 +57,7 @@ export default function ServiceDetail() {
               <div className="service-detail-card">
                 <img
                   src={require("../Assets/Images/living-room-cleaning.png")}
+                  alt="Living room cleaning"
                 />
                 <div>
                   <div className="rating-stars">
@@ -163,7 +163,7 @@ export default function ServiceDetail() {
                 <div>
                   <div className="review-slide-card">
                     <div>
-                      <img src={require("../Assets/Images/user.png")} />
+                      <img src={require("../Assets/Images/user.png")} alt="Reviewer" />
                       <div className="">
                         <div>
                           <h4>Ronaldo Richards</h4>
@@ -255,7 +255,7 @@ export default function ServiceDetail() {
                 <div>
                   <div className="review-slide-card">
                     <div>
-                      <img src={require("../Assets/Images/user.png")} />
+                      <img src={require("../Assets/Images/user.png")} alt="Reviewer" />
                       <div className="">
                         <div>
                           <h4>Ronaldo Richards</h4>
@@ -347,7 +347,7 @@ export default function ServiceDetail() {
                 <div>
                   <div className="review-slide-card">
                     <div>
-                      <img src={require("../Assets/Images/user.png")} />
+                      <img src={require("../Assets/Images/user.png")} alt="Reviewer" />
                       <div className="">
                         <div>
                           <h4>Ronaldo Richards</h4>
@@ -439,7 +439,7 @@ export default function ServiceDetail() {
                 <div>
                   <div className="review-slide-card">
                     <div>
-                      <img src={require("../Assets/Images/user.png")} />
+                      <img src={require("../Assets/Images/user.png")} alt="Reviewer" />
                       <div className="">
                         <div>
                           <h4>Ronaldo Richards</h4>
@@ -531,7 +531,7 @@ export default function ServiceDetail() {
                 <div>
                   <div className="review-slide-card">
                     <div>
-                      <img src={require("../Assets/Images/user.png")} />
+                      <img src={require("../Assets/Images/user.png")} alt="Reviewer" />
                       <div className="">
                         <div>
                           <h4>Ronaldo Richards</h4>
@@ -633,9 +633,9 @@ export default function ServiceDetail() {
             </div>
             <div
               className="provider-view-pro"
-              onClick={() => Navigate("/service-provider")}
+              onClick={() => navigate("/service-provider")}
             >
-              <img src={require("../Assets/Images/user.png")} />
+              <img src={require("../Assets/Images/user.png")} alt="Service provider" />
               <div>
                 <h5>James Enterprises</h5>
                 <p>234 Elm Street Springfield, IL </p>
@@ -673,6 +673,7 @@ export default function ServiceDetail() {
               <div>
                 <img
                   src={require("../Assets/Images/living-room-cleaning.png")}
+                  alt="Living room cleaning"
                 />
                 <h3>Living Room Cleaning</h3>
                 <p>Lorem ipsum dolor sit ametcons ectetur ullamcorper.</p>
@@ -680,22 +681,23 @@ export default function ServiceDetail() {
               <div>
                 <img
                   src={require("../Assets/Images/light-replace-&-repair.png")}
+                  alt="Light replace and repair"
                 />
                 <h3>Light Replace & Repair</h3>
                 <p>Lorem ipsum dolor sit ametcons ectetur ullamcorper.</p>
               </div>
               <div>
-                <img src={require("../Assets/Images/snow-removal.png")} />
+                <img src={require("../Assets/Images/snow-removal.png")} alt="Snow removal" />
                 <h3>Snow Removal</h3>
                 <p>Lorem ipsum dolor sit ametcons ectetur ullamcorper.</p>
               </div>
               <div>
-                <img src={require("../Assets/Images/window-cleaning.png")} />
+                <img src={require("../Assets/Images/window-cleaning.png")} alt="Window cleaning" />
                 <h3>Window Cleaning</h3>
                 <p>Lorem ipsum dolor sit ametcons ectetur ullamcorper.</p>
               </div>
               <div>
-                <img src={require("../Assets/Images/pest-control.png")} />
+                <img src={require("../Assets/Images/pest-control.png")} alt="Pest control" />
                 <h3>Pest Control</h3>
                 <p>Lorem ipsum dolor sit ametcons ectetur ullamcorper.</p>
               </div>
@@ -710,7 +712,10 @@ export default function ServiceDetail() {
         </Modal.Header>
         <Modal.Body>
           <div className="book-service-view">
-            <img src={require("../Assets/Images/living-room-cleaning.png")} />
+            <img
+              src={require("../Assets/Images/living-room-cleaning.png")}
+              alt="Living room cleaning"
+            />
             <p>Living Room Cleaning</p>
           </div>
           <div className="book-service-select">

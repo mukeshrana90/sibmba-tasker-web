@@ -14,7 +14,7 @@ import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import { formatDate } from "fullcalendar/index.js";
 import DeleteConfirmation from "../CommanComponents/Modals/DeleteConfirmation";
-import { chunk, wrap } from "lodash";
+import { chunk } from "lodash";
 import { timeSchedule, weekDays } from "../utils/rawjson";
 import {
   handleCategoryImageError,
@@ -35,10 +35,8 @@ export default function ServiceDetails() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
 
   const feedbackCount = serviceDetail?.feedbacks?.length || 0;
-  const slidesToScrollValue = feedbackCount < 3 ? 1 : 3;
 
   const settings = {
     dots: true,
@@ -104,7 +102,7 @@ export default function ServiceDetails() {
 
   useEffect(() => {
     dispatch(ServiceActions.getMyServiceDetailById({ id: id }))
-  }, [])
+  }, [dispatch, id])
 
   // const handleDelete = () => {
 
@@ -177,7 +175,7 @@ export default function ServiceDetails() {
                         <img
                           src={serviceImageUrl(image)}
                           onError={handleCategoryImageError}
-                          alt={`Service Image ${index + 1}`}
+                          alt={`Service ${index + 1}`}
                         // style={{ cursor: "pointer", maxWidth: "200px", margin: "0 auto" }}
                         />
                       </div>
@@ -721,7 +719,10 @@ export default function ServiceDetails() {
         </Modal.Header>
         <Modal.Body>
           <div className="book-service-view">
-            <img src={require("../Assets/Images/living-room-cleaning.png")} />
+            <img
+              src={require("../Assets/Images/living-room-cleaning.png")}
+              alt="Living room cleaning"
+            />
             <p>Living Room Cleaning</p>
           </div>
           <div className="book-service-select">

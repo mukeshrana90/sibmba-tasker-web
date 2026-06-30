@@ -327,7 +327,10 @@ function SearchProvidersContent({ variant = "visitor" }) {
   const items = results?.items || [];
   const total = results?.total ?? 0;
   const totalPages = results?.totalPages ?? 0;
-  const categoryFilters = results?.categoryFilters || [];
+  const categoryFilters = useMemo(
+    () => results?.categoryFilters || [],
+    [results?.categoryFilters]
+  );
   const locationFilters = results?.locationFilters || [];
 
   const title = useMemo(() => {

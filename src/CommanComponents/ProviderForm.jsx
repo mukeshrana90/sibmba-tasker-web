@@ -16,7 +16,7 @@ import { toast } from "react-toastify";
 import { timeSchedule, weekDays } from "../utils/rawjson";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function hasValidLocationCoords(lat, lng) {
   const latN = parseFloat(lat);
@@ -34,6 +34,12 @@ const locationCoordsValidation = Yup.mixed().test(
     return hasValidLocationCoords(lat, long);
   }
 );
+
+const DEFAULT_ZIMBABWE_LOCATION = {
+  lat: -17.8292,
+  lng: 31.0522,
+  address: "Harare, Zimbabwe",
+};
 
 const ProviderForm = ({
   currentStep,
@@ -169,7 +175,7 @@ const ProviderForm = ({
     certifications: "",
     images: [],
   });
-  const [editMode, setEditMode] = useState({
+  const [, setEditMode] = useState({
     profile_image: false,
     govtIssueId: false,
     businessLicence: false,
@@ -186,13 +192,6 @@ const ProviderForm = ({
   const [hasExistingAddress, setHasExistingAddress] = useState(false);
   const mapsApiKey =
     getGoogleMapsApiKey() || "AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww";
-  
-  // Default Zimbabwe coordinates (Harare)
-  const defaultZimbabweLocation = {
-    lat: -17.8292,
-    lng: 31.0522,
-    address: "Harare, Zimbabwe"
-  };
 
   // Get current location when modal opens
   useEffect(() => {
@@ -209,16 +208,16 @@ const ProviderForm = ({
             console.error("Error getting current location:", error);
             // If geolocation fails, use default Zimbabwe location
             setCurrentLocation({
-              lat: defaultZimbabweLocation.lat,
-              lng: defaultZimbabweLocation.lng,
+              lat: DEFAULT_ZIMBABWE_LOCATION.lat,
+              lng: DEFAULT_ZIMBABWE_LOCATION.lng,
             });
           }
         );
       } else {
         // If geolocation is not available, use default Zimbabwe location
         setCurrentLocation({
-          lat: defaultZimbabweLocation.lat,
-          lng: defaultZimbabweLocation.lng,
+          lat: DEFAULT_ZIMBABWE_LOCATION.lat,
+          lng: DEFAULT_ZIMBABWE_LOCATION.lng,
         });
       }
     }
@@ -269,6 +268,7 @@ const ProviderForm = ({
         });
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- revoke blob URLs on unmount only
   }, []);
 
   const handleFileChange = (
@@ -1195,7 +1195,7 @@ const ProviderForm = ({
                           >
                             <img
                               src={previews.images[index]}
-                              alt={`Service Image ${index + 1} Preview`}
+                              alt={`Service ${index + 1} preview`}
                               style={{
                                 width: "274px",
                                 height: "150px",
@@ -1700,7 +1700,8 @@ const ProviderForm = ({
             keyboard={false}
             show={isCorporate ? showModalCop : showModal}
             onHide={() => {
-               {isCorporate ? setShowModalCop(true) : setShowModal(false)};
+              if (isCorporate) setShowModalCop(true);
+              else setShowModal(false);
             }}
             message="You’re all set!"
             onNext={() => {
@@ -1854,9 +1855,9 @@ const ProviderForm = ({
                   </div>
                 </div>
                 <div className="mt-3" style={{ height: "400px", width: "100%", minHeight: "400px", position: "relative", zIndex: 1 }}>
-                  {((selectedAddress && selectedAddress.lat && selectedAddress.lng) || (values.lat && values.long) || currentLocation || defaultZimbabweLocation) ? (
+                  {((selectedAddress && selectedAddress.lat && selectedAddress.lng) || (values.lat && values.long) || currentLocation || DEFAULT_ZIMBABWE_LOCATION) ? (
                     <MapComponent
-                      key={`address-map-${showAddressModal}-${selectedAddress?.lat ?? currentLocation?.lat ?? defaultZimbabweLocation.lat}`}
+                      key={`address-map-${showAddressModal}-${selectedAddress?.lat ?? currentLocation?.lat ?? DEFAULT_ZIMBABWE_LOCATION.lat}`}
                       coordinates={
                         selectedAddress && selectedAddress.lat && selectedAddress.lng
                           ? [parseFloat(selectedAddress.lng), parseFloat(selectedAddress.lat)]
@@ -1864,14 +1865,14 @@ const ProviderForm = ({
                           ? [parseFloat(values.long), parseFloat(values.lat)]
                           : currentLocation
                           ? [parseFloat(currentLocation.lng), parseFloat(currentLocation.lat)]
-                          : [defaultZimbabweLocation.lng, defaultZimbabweLocation.lat]
+                          : [DEFAULT_ZIMBABWE_LOCATION.lng, DEFAULT_ZIMBABWE_LOCATION.lat]
                       }
                       address={
                         selectedAddress?.value?.description || 
                         selectedAddress?.label || 
                         (isCorporate ? values.address : values.street_address) || 
-                        (currentLocation ? "Current Location" : defaultZimbabweLocation.address) ||
-                        defaultZimbabweLocation.address
+                        (currentLocation ? "Current Location" : DEFAULT_ZIMBABWE_LOCATION.address) ||
+                        DEFAULT_ZIMBABWE_LOCATION.address
                       }
                       onMapClick={async (clickedPosition) => {
                         try {

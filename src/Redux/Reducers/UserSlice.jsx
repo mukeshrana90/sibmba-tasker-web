@@ -1,6 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { toast } from "react-toastify";
-import ServiceActions from "../Actions/ServiceActions";
 import CustomerActions from "../Actions/CustomerActions";
 
 const UserSlice = createSlice({

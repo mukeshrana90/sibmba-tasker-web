@@ -64,7 +64,7 @@ export default function NearByCorporate() {
 
   const handleProfiles = (type, id) => {
     if (token) {
-      if (type == "corporate") {
+      if (type === "corporate") {
         Navigate(`/get-corporate/${id}`);
       }
     } else {

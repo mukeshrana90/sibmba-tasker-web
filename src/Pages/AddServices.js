@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Formik, Form as FormikForm, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
@@ -14,30 +13,6 @@ import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "../utils/CommonFunction";
 import { serviceImageUrl } from "../utils/landingUtils";
-
-const validationSchema = Yup.object({
-    images: Yup.array()
-        .max(6, "Maximum 6 images allowed")
-        .test(
-            "fileSize",
-            "File size must be less than 10MB",
-            (value) => !value || value.every((file) => file && file.size <= 10 * 1024 * 1024)
-        ),
-    dayAvailability: Yup.array()
-        .of(
-            Yup.object({
-                day: Yup.array().min(1, "At least one day is required"),
-                timeArr: Yup.array().min(1, "At least one time slot is required"),
-            })
-        )
-        .min(1, "At least one availability entry is required"),
-    serviceCategoryId: Yup.string().required("Service category is required"),
-    serviceSubCategoryName: Yup.string().trim().required("Service Name is required"),
-    price: Yup.number()
-        .required("Price is required")
-        .positive("Price must be positive"),
-    desc: Yup.string().trim().required("Description is required"),
-});
 
 const AddService = () => {
     const dispatch = useDispatch();
@@ -122,29 +97,6 @@ const AddService = () => {
             setPreviews([...previews, ...newPreviews]);
         } else {
             toast.error("Maximum 6 images allowed.");
-        }
-    };
-
-    const handleDeleteImage = (index, setFieldValue, values) => {
-        if (index < existingImages.length) {
-            // Deleting an existing image
-            const updatedExistingImages = existingImages.filter((_, i) => i !== index);
-            setExistingImages(updatedExistingImages);
-            setPreviews([
-                ...updatedExistingImages,
-                ...(Array.isArray(values.images) ? values.images.map((file) => URL.createObjectURL(file)) : []),
-            ]);
-        } else {
-            // Deleting a new image
-            const newImageIndex = index - existingImages.length;
-            const updatedImages = Array.isArray(values.images)
-                ? values.images.filter((_, i) => i !== newImageIndex)
-                : [];
-            setFieldValue("images", updatedImages);
-            setPreviews([
-                ...existingImages,
-                ...updatedImages.map((file) => URL.createObjectURL(file)),
-            ]);
         }
     };
 
@@ -294,7 +246,7 @@ const AddService = () => {
                                                             >
                                                                 <img
                                                                     src={preview}
-                                                                    alt={`Service Image ${index + 1} Preview`}
+                                                                    alt={`Service preview ${index + 1}`}
                                                                     style={{
                                                                         width: "200px",
                                                                         height: "180px",

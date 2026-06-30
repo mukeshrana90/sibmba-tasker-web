@@ -23,7 +23,7 @@ export default function ProviderProfile() {
   const dispatch = useDispatch();
   const query = useQuery();
   const role = query.get("role");
-  const isCorporate = role == Roles.CORPORATE;
+  const isCorporate = role === Roles.CORPORATE;
   const [showModal, setShowModal] = useState(false);
   const copy =
     SETUP_COPY[isCorporate ? Roles.CORPORATE : Roles.SERVICE_PROVIDER];

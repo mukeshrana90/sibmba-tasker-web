@@ -1,14 +1,6 @@
 import React from "react";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Form from "react-bootstrap/Form";
 import { Link } from "react-router-dom";
-import Button from "react-bootstrap/Button";
-import Nav from "react-bootstrap/Nav";
-import Navbar from "react-bootstrap/Navbar";
-import NavDropdown from "react-bootstrap/NavDropdown";
-import Dropdown from "react-bootstrap/Dropdown";
 
 export default function Footer({ isActive, setIsActive, setShow, show }) {
   return (
@@ -16,7 +8,7 @@ export default function Footer({ isActive, setIsActive, setShow, show }) {
       <Container>
         <div className="footer-links">
           <div>
-            <img src={require("../..//Assets/Images/dark-logo.png")} />
+            <img src={require("../..//Assets/Images/dark-logo.png")} alt="Simba Tasker" />
             <p>
               Complete Your Routine Tasks <br />Faster & Smarter With Simba Tasker!
             </p>

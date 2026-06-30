@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import { useDispatch } from 'react-redux';
 import { Navigate, Outlet } from 'react-router-dom';
 import CustomerActions from '../Redux/Actions/CustomerActions';
 
 const PrivateCorporate = () => {
   const dispatch = useDispatch();
-  const [loading, setLoading] = useState(true);
   const [redirect, setRedirect] = useState(null);
 
   useEffect(() => {
@@ -45,7 +44,6 @@ const PrivateCorporate = () => {
         }
       }
 
-      setLoading(false);
     };
 
     checkAccess();

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { io } from "socket.io-client";
 import { ChatContext } from "../context/ChatProvider";
 import { Modal } from "react-bootstrap";
@@ -227,13 +227,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
     senderId,
   ]);
 
-  useEffect(() => {
-    if (token) {
-      getProfileApiCall();
-    }
-  }, [token]);
-
-  const getProfileApiCall = async () => {
+  const getProfileApiCall = useCallback(async () => {
     try {
       const apiRes = await dispatch(
         CustomerActions.getProfileWithSuscription()
@@ -245,7 +239,13 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
     } catch (error) {
       console.error("Subscription check failed:", error);
     }
-  };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (token) {
+      getProfileApiCall();
+    }
+  }, [token, getProfileApiCall]);
 
   const userRole = Number(packageDetails?.user?.role);
   const isSubscribed = Number(packageDetails?.user?.isSubscribed) === 1;
@@ -555,7 +555,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
                 className="primaryBtn"
                 onClick={() => {
                   const role = packageDetails?.user?.role;
-                  if (role == 3) {
+                  if (Number(role) === 3) {
                     navigate(`/corporate/subscription-plan`);
                   } else {
                     navigate(`/payment`);

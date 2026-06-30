@@ -95,7 +95,7 @@ const ServiceRescheduleModal = ({ show, setShow, service_id, data }) => {
 
   useEffect(() => {
     dispatch(CustomerActions.getServiceDetail({ service_id }));
-  }, []);
+  }, [dispatch, service_id]);
 
   useEffect(() => {
     if (data) {
@@ -169,7 +169,7 @@ const ServiceRescheduleModal = ({ show, setShow, service_id, data }) => {
                       return (
                         <li
                           key={index}
-                          className={timeState == res ? `active-list-book` : ``}
+                          className={timeState === res ? `active-list-book` : ``}
                         >
                           <p 
                             className="mb-0" 

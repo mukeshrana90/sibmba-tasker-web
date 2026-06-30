@@ -38,7 +38,6 @@ const AddressAutocomplete = ({
     }, [defaultValue]);
 
     const handleInputChange = (e) => {
-        const value = e.target.value;
         if (onChange) {
             onChange(e);
         }

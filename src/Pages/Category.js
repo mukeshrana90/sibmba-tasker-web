@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
@@ -17,30 +17,24 @@ export default function Category() {
   const dispatch = useDispatch();
   const Navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const limit = 10;
   const token = localStorage.getItem("token");
-  const [loading, setLoading] = useState(true);
   const allUserCategories = useSelector((e) => e.UserSlice.allUserCategories);
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
-      setLoading(true);
       try {
-        const [getAllCategories] = await Promise.all([
-          dispatch(CustomerActions.getAllCategories({ page, limit })),
-        ]);
+        await dispatch(CustomerActions.getAllCategories({ page, limit }));
       } catch (error) {
         console.error("Error fetching category and services:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchCategoryAndServices();
-  }, [dispatch, page]);
+  }, [dispatch, page, limit]);
 
   const handleProfiles = (type, id) => {
     if (token) {
-      if (type == "services") {
+      if (type === "services") {
         Navigate(`/customer-service-detail?service_id=${id}`);
       } else {
         Navigate(`/customer-category-detail?categoryId=${id}`);

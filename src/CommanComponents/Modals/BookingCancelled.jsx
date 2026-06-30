@@ -1,7 +1,6 @@
 import moment from "moment";
 import React from "react";
 import { Modal } from "react-bootstrap";
-import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 const BookingCancelled = ({ isRequestModal, setIsRequestModal, type, request }) => {

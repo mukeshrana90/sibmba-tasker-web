@@ -145,19 +145,19 @@ export default function Login() {
       localStorage.setItem("role", role);
       localStorage.setItem("expiresAt", expiresAt);
 
-      if (response?.payload?.data?.email_verified == 0) {
+      if (Number(response?.payload?.data?.email_verified) === 0) {
         navigate(`/otp-varification?userId=${userId}`, { replace: true });
         toast.success(response?.payload?.message);
       } else if (
-        response?.payload?.data?.is_completeProfile == 0 &&
-        role == Roles.CUSTOMER
+        Number(response?.payload?.data?.is_completeProfile) === 0 &&
+        Number(role) === Roles.CUSTOMER
       ) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         navigate("/complete-profile", { replace: true });
         toast.success("Please Complete Your Profile.");
       } else if (response?.payload?.data?.is_completeProfile === 0) {
-        if (role == Roles.SERVICE_PROVIDER || role == Roles.CORPORATE) {
+        if (Number(role) === Roles.SERVICE_PROVIDER || Number(role) === Roles.CORPORATE) {
           localStorage.setItem("temptoken", token);
           localStorage.setItem("userId", userId);
           navigate(`/provider?role=${role}`, { replace: true });
@@ -165,13 +165,13 @@ export default function Login() {
         }
       } else {
         localStorage.removeItem("temptoken");
-        if (role == Roles.CUSTOMER) {
+        if (Number(role) === Roles.CUSTOMER) {
           emit("new_user_connect", { userid: userId });
           navigate(consumeAuthReturnUrl() || returnUrl || "/");
-        } else if (role == Roles.SERVICE_PROVIDER) {
+        } else if (Number(role) === Roles.SERVICE_PROVIDER) {
           navigate("/requests");
           emit("new_user_connect", { userid: userId });
-        } else if (role == Roles.CORPORATE) {
+        } else if (Number(role) === Roles.CORPORATE) {
           navigate("/corporate");
           emit("new_user_connect", { userid: userId });
         }

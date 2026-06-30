@@ -112,7 +112,8 @@ export default function CustomerServiceDetail() {
   useEffect(() => {
     if (!service_id || !isLoggedIn()) return;
 
-    const openBooking = searchParams.get("openBooking") === "1";
+    const params = new URLSearchParams(location.search);
+    const openBooking = params.get("openBooking") === "1";
     const hasDraft = hasBookingDraftForService(service_id);
 
     if (openBooking || hasDraft) {

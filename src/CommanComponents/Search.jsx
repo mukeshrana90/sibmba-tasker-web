@@ -13,14 +13,13 @@ const Search = ({ variant = "default" }) => {
   const getQueryURL = useQuery();
 
   const [searchText, setSearchText] = useState("");
-  const [loading, setLoading] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
 
   // Fetch initial search value from URL and update when URL changes
   useEffect(() => {
     const searchValFromUrl = getQueryURL.get("search") || "";
     setSearchText(decodeURIComponent(searchValFromUrl));
-  }, [location.search]);
+  }, [location.search, getQueryURL]);
 
   const allUserCategories = useSelector(
     (state) => state.UserSlice.allUserCategories
@@ -29,13 +28,10 @@ const Search = ({ variant = "default" }) => {
   // Fetch categories on component mount
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
-      setLoading(true);
       try {
         await dispatch(CustomerActions.getAllCategories());
       } catch (error) {
         console.error("Error fetching category and services:", error);
-      } finally {
-        setLoading(false);
       }
     };
 

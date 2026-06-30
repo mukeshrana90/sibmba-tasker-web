@@ -35,7 +35,7 @@ Api.interceptors.request.use(
 
 Api.interceptors.response.use(
   (response) => {
-    if (response?.data?.status == 501) {
+    if (response?.data?.status === 501) {
       localStorage.clear();
       toast.error(response?.data?.message);
       setTimeout(() => {
@@ -57,7 +57,7 @@ Api.interceptors.response.use(
   },
   (error) => {
     console.log(error, "error");
-    if (error?.response?.data?.status == 501) {
+    if (error?.response?.data?.status === 501) {
       localStorage.clear();
       toast.error(error?.response?.data?.message);
       setTimeout(() => {
@@ -73,7 +73,7 @@ Api.interceptors.response.use(
         error?.response?.data?.message || "Session expired. Please login again."
       );
     } else {
-      if (error?.response?.data?.message == "No Quatations found for this user.") {
+      if (error?.response?.data?.message === "No Quatations found for this user.") {
         return;
       }
       toast.error(error?.response?.data?.message);

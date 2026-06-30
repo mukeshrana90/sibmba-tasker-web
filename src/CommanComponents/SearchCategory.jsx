@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
-import useDebouncedValue from "../Hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "../utils/CommonFunction";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 
 const SearchCategory = ({ onSearch }) => {
-  const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const getQueryURL = useQuery();
   const searchValFromUrl = getQueryURL.get("search");
   const [searchValue, setSearchValue] = useState(searchValFromUrl || "");
-  const debouncedSearchValue = useDebouncedValue(searchValue, 300);
 
   const allUserCategories = useSelector(
     (state) => state.UserSlice.allUserCategories
@@ -21,13 +18,10 @@ const SearchCategory = ({ onSearch }) => {
 
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
-      setLoading(true);
       try {
         await dispatch(CustomerActions.getAllCategories());
       } catch (error) {
         console.error("Error fetching category and services:", error);
-      } finally {
-        setLoading(false);
       }
     };
 

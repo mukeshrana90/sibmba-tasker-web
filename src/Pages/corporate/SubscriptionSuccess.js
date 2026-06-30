@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
@@ -12,23 +12,25 @@ const SubscriptionSuccess = () => {
   const [planData, setPlanData] = useState({});
   const Navigate = useNavigate();
 
-  useEffect(() => {
-    if (transactionId) {
-      handleStatusChange();
-    }
-  }, [transactionId]);
-
-  const handleStatusChange = async () => {
+  const handleStatusChange = useCallback(async () => {
     try {
-      let res = await dispatch(
+      const res = await dispatch(
         CustomerActions.updateSubscriptionPaymentStatus(transactionId)
       );
       if (res && res.payload) {
         setPlanData(res.payload?.data);
         setTimeout(() => Navigate("/"), 3000);
       }
-    } catch (error) {}
-  };
+    } catch (error) {
+      // ignore
+    }
+  }, [dispatch, transactionId, Navigate]);
+
+  useEffect(() => {
+    if (transactionId) {
+      handleStatusChange();
+    }
+  }, [transactionId, handleStatusChange]);
 
   return (
     <Layout footerVariant="marketing">

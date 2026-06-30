@@ -95,9 +95,7 @@ export default function ServiceRequest() {
   );
 
   const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
 
-  const handleCloseReschedule = () => setShowReschedule(false);
   const handleShowReschedule = () => setShowReschedule(true);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
   const [selectedCorporate, setSelectedCorporate] = useState(null);
@@ -140,7 +138,7 @@ export default function ServiceRequest() {
 
   useEffect(() => {
     dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
-  }, []);
+  }, [dispatch, id]);
   useEffect(() => {
     if (!id) return;
     const pollable = [
@@ -172,35 +170,6 @@ export default function ServiceRequest() {
       ...prev,
       [id]: !prev[id],
     }));
-  };
-  const handleAccept1 = () => {
-    // First: Accept the booking
-    dispatch(
-      ServiceActions.updateBookingStatus({
-        booking_id: id,
-        status: 2, // Accepted
-      })
-    )
-      .then((e) => {
-        if (e?.payload?.success) {
-          // Second: Create corporate suggestion
-          dispatch(
-            CustomerActions.createCorporateSuggestionsForTask({
-              bookingId: id,
-              corporateIds: selectedCorporate.map((corp) => corp._id),
-            })
-          );
-          // Show success modal
-          setIsRequestModal(true);
-          // Redirect after 3 seconds
-          setTimeout(() => {
-            Navigate("/requests");
-          }, 3000);
-        }
-      })
-      .catch(() => {
-        toast.error("An error occurred. Please try again.");
-      });
   };
   const handleAccept = () => {
     console.log(selectedCorporate);
@@ -497,7 +466,6 @@ export default function ServiceRequest() {
                             <button
                               style={{
                                 borderRadius: "15px",
-                                border: "1px solid black",
                                 display: "block",
                                 width: "100%",
                                 padding: "8px 6px",
@@ -905,7 +873,10 @@ export default function ServiceRequest() {
         </Modal.Header>
         <Modal.Body>
           <div className="book-service-view">
-            <img src={require("../Assets/Images/living-room-cleaning.png")} />
+            <img
+              src={require("../Assets/Images/living-room-cleaning.png")}
+              alt="Living room cleaning"
+            />
             <p>Living Room Cleaning</p>
           </div>
           <div className="book-service-select">

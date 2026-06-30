@@ -12,21 +12,11 @@ import { toast } from "react-toastify";
 import CorporateActions from "../Redux/Actions/corporateActions";
 import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
 import {
-  handleCategoryImageError,
   serviceImageUrl,
   taskImageUrl,
 } from "../utils/landingUtils";
 import {
-  formatTaskWhenDoneDisplay,
-} from "../utils/CommonFunction";
-import {
   bookingStatus,
-  bookingSeekerShouldHideCancellationActions,
-  getBookingFlowStepperState,
-  getBookingFlowDescription,
-  JOB_FLOW_STEP_LABELS,
-  getSeekerTaskFlowDescription,
-  seekerShouldHideTaskCancellationActions,
   taskStatus,
 } from "../utils/jobFlowStatus";
 import { getPosterTaskDetailStepperStatus } from "../utils/quotationPosterDecision";
@@ -53,7 +43,6 @@ export default function UserBookingDetails() {
   const [paymentshow, setPaymentShow] = useState(false);
   const [boookingId, setBookingId] = useState(null);
   const [selectedBoooking, setSelectedBoooking] = useState(null);
-  const [respondedCorporateIds, setRespondedCorporateIds] = useState([]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [rating, setRating] = useState(0);

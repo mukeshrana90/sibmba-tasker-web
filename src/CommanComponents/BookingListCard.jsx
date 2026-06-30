@@ -1,7 +1,6 @@
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 import { getStatusLabel } from "../utils/CommonFunction";
-import CustomerBookServiceModal from "./Modals/CustomerBookServiceModal";
 import {
   handleCategoryImageError,
   handleUserImageError,
@@ -42,6 +41,7 @@ const BookingListTab = ({ data, handleOpen, setSelectedBoooking }) => {
                 ? serviceImageUrl(data?.serviceSubCategory?.images[0])
                 : require("../Assets/Images/light-replace-&-repair.png")
             }
+            alt={data?.serviceSubCategory?.serviceSubCategoryName || "Service"}
             onError={handleCategoryImageError}
           />
           <div className="bookings-card-data">

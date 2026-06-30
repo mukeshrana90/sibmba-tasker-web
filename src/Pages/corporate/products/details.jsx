@@ -3,9 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import CorporatePageShell from "../../../CommanComponents/CorporatePageShell";
 import ProductActions from "../../../Redux/Actions/ProductActions";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import Slider from "react-slick";
 import DeleteConfirmation from "../../../CommanComponents/Modals/DeleteConfirmation";
 import { toast } from "react-toastify";
@@ -37,7 +34,7 @@ export default function ProductDetailsPage() {
           if (res) {
             toast.success("Product deleted successfully!");
             navigate("/corporate/products");
-          } else if(res.status_code== 404){
+          } else if (res.status_code === 404) {
              toast.error("Product not found!");
           }
         })
@@ -87,7 +84,7 @@ export default function ProductDetailsPage() {
                       <img
                         src={productImageUrl(image)}
                         onError={handleCategoryImageError}
-                        alt={`Product Image ${index + 1}`}
+                        alt={`Product ${index + 1}`}
                       />
                     </div>
                   ))}

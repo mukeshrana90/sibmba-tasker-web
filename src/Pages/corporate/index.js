@@ -47,7 +47,7 @@ const CorporateDashboard = () => {
   const [activeTab, setActiveTab] = useState(
     searchParams?.get("page") || "tasks"
   );
-  const [leadFilter, setLeadFilter] = useState("all");
+  const leadFilter = "all";
 
   useEffect(() => {
     dispatch(
@@ -77,7 +77,7 @@ const CorporateDashboard = () => {
       status: status,
     };
 
-    if (data?.type == "task") {
+    if (data?.type === "task") {
       payload.taskId = data?.taskId?._id;
     } else {
       payload.bookingId = data?.bookingId?._id;
@@ -227,7 +227,6 @@ const CorporateDashboard = () => {
                             )
                             .slice(0, 10)
                             .map((res, idx) => {
-                              const corp = res?.corporateIds || {};
                               const item = res.taskId || {};
                               const status = getCorporateLeadStatus(res);
                               const bookingItem = res.bookingId || {};

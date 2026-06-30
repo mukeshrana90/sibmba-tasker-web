@@ -18,7 +18,6 @@ import {
   QuotationsEmptyState,
 } from "../CommanComponents/TaskDetail/SimbaTaskDetailParts";
 import {
-  handleUserImageError,
   taskImageUrl,
   userImageUrl,
 } from "../utils/landingUtils";
@@ -881,13 +880,13 @@ export default function ServiceTaskDetails() {
                           {reviewerImage && (
                             <img
                               src={userImageUrl(reviewerImage)}
-                              onError={handleUserImageError}
                               alt={reviewerName}
                               className="task-rating-reviewer-avatar"
                               onLoad={(e) => {
                                 e.currentTarget.style.display = "inline-block";
                               }}
                               onError={(e) => {
+                                e.currentTarget.onerror = null;
                                 e.currentTarget.style.display = "none";
                                 const fallback =
                                   e.currentTarget.nextElementSibling;
@@ -909,13 +908,13 @@ export default function ServiceTaskDetails() {
                           {ratedSeekerImage && (
                             <img
                               src={userImageUrl(ratedSeekerImage)}
-                              onError={handleUserImageError}
                               alt={ratedSeekerName}
                               className="task-rating-reviewer-avatar"
                               onLoad={(e) => {
                                 e.currentTarget.style.display = "inline-block";
                               }}
                               onError={(e) => {
+                                e.currentTarget.onerror = null;
                                 e.currentTarget.style.display = "none";
                                 const fallback =
                                   e.currentTarget.nextElementSibling;

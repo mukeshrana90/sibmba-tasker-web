@@ -2,19 +2,16 @@ import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import Slider from "react-slick";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
-import { Button } from "react-bootstrap";
-import { toast } from "react-toastify";
 import moment from "moment";
 import ServiceRescheduleModal from "../CommanComponents/Modals/ServiceRescheduleModal";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
-import StarRating from "../CommanComponents/StarRating";
 import {
   handleCategoryImageError,
   serviceImageUrl,
@@ -34,28 +31,16 @@ export default function ServiceReject() {
         return statusMap[status] || "N/A";
     };
 
-    const Navigate = useNavigate();
     const dispatch = useDispatch()
     const { id } = useParams()
-
-    const location = useLocation();
-    const searchParams = new URLSearchParams(location.search);
-    const servicetype = searchParams.get("service");
 
     const [show, setShow] = useState(false);
     const [showReschedule, setShowReschedule] = useState(false);
     const [isRequestModal, setIsRequestModal] = useState(false);
 
-    const [cancelReason, setCancelReason] = useState("");
-    const [cancelNotes, setCancelNotes] = useState("");
-
     const bookingReqDetail = useSelector((e) => e.service.getBookingRequestList)
 
     const handleClose = () => setShow(false);
-    const handleShow = () => setShow(true);
-
-    const handleCloseReschedule = () => setShowReschedule(false);
-    const handleShowReschedule = () => setShowReschedule(true);
 
     const sliderSettings = {
         dots: true,
@@ -95,77 +80,7 @@ export default function ServiceReject() {
 
     useEffect(() => {
         dispatch(ServiceActions.getBookingReqDetailById({ id: id }))
-    }, [])
-
-
-    const handleAccept = () => {
-        dispatch(
-            ServiceActions.updateBookingStatus({
-                booking_id: id,
-                status: 2, // Accepted
-            })
-        )
-            .then((e) => {
-                if (e?.payload?.success) {
-                    setIsRequestModal(true)
-                    setTimeout(() => {
-                        Navigate("/requests");
-                    }, 3000);
-                }
-            })
-            .catch(() => { });
-    }
-
-    const handleShowCancel = () => {
-        dispatch(
-            ServiceActions.updateBookingStatus({
-                booking_id: id,
-                status: 3, // Rejected
-            })
-        )
-            .then((e) => {
-                if (e?.payload?.success) {
-
-
-                    dispatch(
-                        ServiceActions.getRequestList({
-                            status: 1,
-                        })
-                    );
-                }
-            })
-            .catch(() => {
-                toast.error(
-                    "Failed to reject booking."
-                );
-            });
-    }
-
-
-    const handleShowCancelBooking = () => {
-
-        if (cancelReason == "" && cancelNotes == "") {
-            toast.info("Please mention the reason before cancelling.")
-            return
-        }
-        dispatch(
-            ServiceActions.updateBookingStatus({
-                booking_id: id,
-                status: 3,
-                reasonForCancel: cancelReason,
-                message: cancelNotes,
-            })
-        )
-            .then((e) => {
-                if (e?.payload?.success) {
-                    toast.success("Service Cancelled Successfully")
-                    Navigate("/requests")
-                }
-            })
-            .catch(() => {
-                toast.error("Failed to reject booking.");
-            });
-    };
+    }, [dispatch, id])
 
 
     return (
@@ -246,7 +161,10 @@ export default function ServiceReject() {
                 </Modal.Header>
                 <Modal.Body>
                     <div className="book-service-view">
-                        <img src={require("../Assets/Images/living-room-cleaning.png")} />
+                        <img
+                          src={require("../Assets/Images/living-room-cleaning.png")}
+                          alt="Living room cleaning"
+                        />
                         <p>Living Room Cleaning</p>
                     </div>
                     <div className="book-service-select">

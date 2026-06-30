@@ -78,12 +78,14 @@ export default function Header({ isGuestLanding = false }) {
     if (token) {
       getProfileApiCall();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh profile when token changes
   }, [token]);
 
   useEffect(() => {
     if (token) {
       dispatch(CustomerActions.notificationListing());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch notifications once on mount
   }, []);
 
   const formatTime = (dateString) => {
@@ -101,7 +103,7 @@ export default function Header({ isGuestLanding = false }) {
 
   useEffect(() => {
     if (customerDetails) {
-      setIsNotificationsEnabled(customerDetails?.notification_visibility == 1);
+      setIsNotificationsEnabled(Number(customerDetails?.notification_visibility) === 1);
     }
   }, [customerDetails]);
 
@@ -133,8 +135,8 @@ export default function Header({ isGuestLanding = false }) {
   }
 };
   const getNavRoutes = () => {
-    if (role == Roles.SERVICE_PROVIDER) return serviceProviderRoutes;
-    if (role == Roles.CORPORATE) return corporateRoutes;
+    if (Number(role) === Roles.SERVICE_PROVIDER) return serviceProviderRoutes;
+    if (Number(role) === Roles.CORPORATE) return corporateRoutes;
     return clientRoutes;
   };
 
@@ -214,21 +216,21 @@ export default function Header({ isGuestLanding = false }) {
     <>
       {isGuestLanding && !token ? (
         <LandingGuestHeader />
-      ) : token && role == Roles.CUSTOMER ? (
+      ) : token && Number(role) === Roles.CUSTOMER ? (
         <CustomerAppNav
           customerDetails={customerDetails}
           notificationDetail={notificationDetail}
           onDeleteAccount={() => setIsDeleteModal(true)}
           onLogout={() => setShowLogoutModal(true)}
         />
-      ) : token && role == Roles.CORPORATE ? (
+      ) : token && Number(role) === Roles.CORPORATE ? (
         <CorporateAppNav
           customerDetails={customerDetails}
           notificationDetail={notificationDetail}
           onDeleteAccount={() => setIsDeleteModal(true)}
           onLogout={() => setShowLogoutModal(true)}
         />
-      ) : token && role == Roles.SERVICE_PROVIDER ? (
+      ) : token && Number(role) === Roles.SERVICE_PROVIDER ? (
         <ServiceProviderAppNav
           customerDetails={customerDetails}
           notificationDetail={notificationDetail}
@@ -248,9 +250,9 @@ export default function Header({ isGuestLanding = false }) {
             <Container fluid>
               <Navbar.Brand
                 as={Link}
-                to={role == Roles.SERVICE_PROVIDER ? "/requests" : "/"}
+                to={Number(role) === Roles.SERVICE_PROVIDER ? "/requests" : "/"}
               >
-                <img src={require("../../Assets/Images/dark-logo.png")} />
+                <img src={require("../../Assets/Images/dark-logo.png")} alt="Simba Tasker" />
               </Navbar.Brand>
               <Navbar.Toggle aria-controls="navbarScroll" />
 
@@ -258,7 +260,7 @@ export default function Header({ isGuestLanding = false }) {
                 <Navbar.Collapse id="navbarScroll">
                   {token &&
                     !hideSearchbarCollapse &&
-                    !(role == Roles.CORPORATE) && (
+                    !(Number(role) === Roles.CORPORATE) && (
                       <div className="nav-serch-bar ms-0 mt-2 mt-md-0 ms-md-5">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -420,6 +422,7 @@ export default function Header({ isGuestLanding = false }) {
                                           .default
                                   }
                                   onError={handleUserImageError}
+                                  alt="Profile"
                                 />
                               </div>
                             </Dropdown.Toggle>
@@ -436,12 +439,13 @@ export default function Header({ isGuestLanding = false }) {
                                           .default
                                   }
                                   onError={handleUserImageError}
+                                  alt="Profile"
                                 />
                                 <div>
                                   <h2>{customerDetails?.full_name || "N/A"}</h2>
                                   <p
                                     onClick={() =>
-                                      role == Roles.SERVICE_PROVIDER ||  role == Roles.CORPORATE  
+                                      Number(role) === Roles.SERVICE_PROVIDER || Number(role) === Roles.CORPORATE  
                                         ? Navigate(`/edit-profile-company`)
                                         : Navigate(`/edit-profile`)
                                     }
@@ -453,7 +457,7 @@ export default function Header({ isGuestLanding = false }) {
                               </div>
                               <div className="nav-profile-menu">
                                 {/* ======================== Role = 2 ( Service ) */}
-                                {role == Roles.SERVICE_PROVIDER ? (
+                                {Number(role) === Roles.SERVICE_PROVIDER ? (
                                   <>
                                     <div>
                                       <div className="avail-toggle">
@@ -543,7 +547,7 @@ export default function Header({ isGuestLanding = false }) {
                                                    </button>
                                                    <Dropdown.Divider />  */}
                                   </>
-                                ) : role == Roles.CORPORATE ? (
+                                ) : Number(role) === Roles.CORPORATE ? (
                                   <>
                                     <div>
                                       <div className="avail-toggle">
@@ -632,19 +636,19 @@ export default function Header({ isGuestLanding = false }) {
                                     <Link
                                       className={
                                         currentPath ===
-                                        (role == Roles.CORPORATE
+                                        (Number(role) === Roles.CORPORATE
                                           ? "/corporate/leads"
                                           : "/bookings")
                                           ? "nav-link active"
                                           : "nav-link"
                                       }
                                       to={
-                                        role == Roles.CORPORATE
+                                        Number(role) === Roles.CORPORATE
                                           ? "/corporate/leads"
                                           : "/bookings"
                                       }
                                     >
-                                      {role === Roles.CORPORATE
+                                      {Number(role) === Roles.CORPORATE
                                         ? "Leads"
                                         : "Bookings"}
                                     </Link>
@@ -675,7 +679,7 @@ export default function Header({ isGuestLanding = false }) {
                                   </>
                                 )}
                                 {/* =============================================== */}
-                                {role == Roles.CUSTOMER && (
+                                {Number(role) === Roles.CUSTOMER && (
                                   <>
                                     <Link
                                       className={

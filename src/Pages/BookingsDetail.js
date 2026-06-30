@@ -2,10 +2,8 @@ import React, { useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import Accordion from "react-bootstrap/Accordion";
-import Slider from "react-slick";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 
@@ -16,39 +14,6 @@ export default function BookingsDetail() {
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
-
-  var settings = {
-    dots: false,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    arrows: true,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 1,
-          infinite: true,
-        },
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
-    ],
-  };
 
   return (
     <Layout>
@@ -62,6 +27,7 @@ export default function BookingsDetail() {
               <div className="service-detail-card pt-3">
                 <img
                   src={require("../Assets/Images/living-room-cleaning.png")}
+                  alt="Living room cleaning"
                 />
                 <div>
                   <h3>Light replace & repair</h3>
@@ -89,7 +55,7 @@ export default function BookingsDetail() {
               <h2>About Service Provider</h2>
             </div>
             <div className="provider-view-pro">
-              <img src={require("../Assets/Images/user.png")} />
+              <img src={require("../Assets/Images/user.png")} alt="Service provider" />
               <div>
                 <h5>James Enterprises</h5>
                 <p>234 Elm Street Springfield, IL </p>

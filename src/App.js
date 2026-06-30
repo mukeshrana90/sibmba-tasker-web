@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RoutesPage from "./routes/Routes";
@@ -6,18 +6,14 @@ import { io } from 'socket.io-client';
 import { onForegroundMessage } from "./utils/fireBaseConfig";
 
 function App() {
-  const [locationHandled, setLocationHandled] = useState(false);
-
   useEffect(() => {
     const path = window.location.pathname;
     const existingLat = localStorage.getItem("latitude");
     const existingLng = localStorage.getItem("longitude");
      if (path.includes("terms-and-conditions") || path.includes("privacy-policy")) {
-      setLocationHandled(true);
       return;
     }
     if (existingLat && existingLng) {
-      setLocationHandled(true);
       return;
     }
   
@@ -29,16 +25,13 @@ function App() {
 
           localStorage.setItem("latitude", lat);
           localStorage.setItem("longitude", lng);
-          setLocationHandled(true); // Location access handled (granted)
         },
         error => {
           console.error("Error getting location:", error);
-          setLocationHandled(true); // Location access handled (denied or error)
         }
       );
     } else {
       console.error("Geolocation is not supported by this browser.");
-      setLocationHandled(true); //  Fallback if not supported
     }
   }, []);
 

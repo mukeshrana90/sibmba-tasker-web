@@ -25,13 +25,13 @@ export default function ProductDetail() {
   const { id } = useParams();
   const productDetail = useSelector((state) => state.products?.productDetail);
   const [paymentshow, setPaymentShow] = useState(false);
-  const [boookingId, setBookingId] = useState(null);
+  const [, setBookingId] = useState(null);
   const [selectedBoooking, setSelectedBoooking] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
-  const [bookingState, setBookingState] = useState();
+  const [bookingState] = useState();
 
   const sliderSettings = {
     dots: true,
@@ -124,6 +124,7 @@ export default function ProductDetail() {
                   ? serviceImageUrl(productDetail?.categoryId?.images)
                   : ""
               }
+              alt={productDetail?.categoryId?.name || "Category"}
               onError={handleCategoryImageError}
             />
             <div className="">

@@ -1,13 +1,10 @@
-import React, { useState } from "react";
-import Container from "react-bootstrap/Container";
+import React from "react";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import cleaningImage from "../Assets/Images/paymentpic.svg"
 
 export default function Payment() {
-    const [isActive, setIsActive] = useState(false);
-
     return (
         <CorporatePageShell
             title="Payments / Subscription"

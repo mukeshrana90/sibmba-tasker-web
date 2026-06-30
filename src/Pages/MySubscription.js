@@ -1,17 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import Accordion from "react-bootstrap/Accordion";
 import Slider from "react-slick";
-import Form from "react-bootstrap/Form";
-import Modal from "react-bootstrap/Modal";
 
 export default function MySubscription() {
-  const Navigate = useNavigate();
-
   var settings = {
     dots: true,
     infinite: true,

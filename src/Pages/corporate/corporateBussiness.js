@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import CorporatePageShell from "../../CommanComponents/CorporatePageShell";
 import { Modal } from "react-bootstrap";
@@ -53,6 +53,20 @@ export default function CorporateBusinessPage() {
 
   const data = useSelector((state) => state.service?.corpoProUserDetail);
 
+  const getProfileApiCall = useCallback(async () => {
+    try {
+      const apiRes = await dispatch(
+        CustomerActions.getProfileWithSuscription()
+      );
+      if (apiRes?.payload?.success) {
+        dispatch(setCustomer(apiRes?.payload?.data.user));
+      }
+      setPackageDetails(apiRes?.payload?.data?.subscriptionDetail);
+    } catch (error) {
+      console.error("Subscription check failed:", error);
+    }
+  }, [dispatch]);
+
   useEffect(() => {
     const fetchCorporateInfo = async () => {
       setLoading(true);
@@ -74,21 +88,7 @@ export default function CorporateBusinessPage() {
       fetchCorporateInfo();
     }
     getProfileApiCall();
-  }, [dispatch, userId, page, limit, leadFilter, searchText]);
-
-  const getProfileApiCall = async () => {
-    try {
-      const apiRes = await dispatch(
-        CustomerActions.getProfileWithSuscription()
-      );
-      if (apiRes?.payload?.success) {
-        dispatch(setCustomer(apiRes?.payload?.data.user));
-      }
-      setPackageDetails(apiRes?.payload?.data?.subscriptionDetail);
-    } catch (error) {
-      console.error("Subscription check failed:", error);
-    }
-  };
+  }, [dispatch, userId, page, limit, leadFilter, searchText, getProfileApiCall]);
 
   const isSubscriptionExpired = (user) => {
     const subscription = user?.subscriptionDetail;

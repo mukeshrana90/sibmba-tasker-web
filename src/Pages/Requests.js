@@ -7,12 +7,12 @@ import Form from "react-bootstrap/Form";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
 import CancelModal from "../CommanComponents/Modals/CancelModal";
 import JobFlowStepper from "../CommanComponents/JobFlowStepper";
-import { bookingStatus, getBookingFlowDescription } from "../utils/jobFlowStatus";
+import { bookingStatus } from "../utils/jobFlowStatus";
 
 export default function Requests() {
   const Navigate = useNavigate();
@@ -102,23 +102,18 @@ export default function Requests() {
   // Filter requests based on tab
   const filteredRequests = (tab) => {
     if (tab === "first") {
-      return serviceRequestList?.filter((request) => request.status == 1);
+      return serviceRequestList?.filter((request) => request.status === 1);
     } else if (tab === "second") {
-      return serviceRequestList?.filter((request) => request.status == 2);
+      return serviceRequestList?.filter((request) => request.status === 2);
     } else if (tab === "third") {
-      return serviceRequestList?.filter((request) => request.status == 3);
+      return serviceRequestList?.filter((request) => request.status === 3);
     } else if (tab === "fourth") {
-      return serviceRequestList?.filter((request) => request.status == 4);
+      return serviceRequestList?.filter((request) => request.status === 4);
     }
     return [];
   };
 
-  const [ids, setIds] = useState(null);
-
-  const handleReject = (id) => {
-    setShowModalCancel(true);
-    setIds(id);
-  };
+  const [ids] = useState(null);
 
   const handleConfirmCancel = () => {
     // dispatch(

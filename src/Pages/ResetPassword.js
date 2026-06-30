@@ -20,7 +20,6 @@ export default function ResetPassword() {
     confirmPassword: "",
   });
   const [passwordStrength, setPasswordStrength] = useState("weak");
-  const [passwordFocused, setPasswordFocused] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -48,16 +47,6 @@ export default function ResetPassword() {
     }
 
     return minLength && hasLowerCase && hasUpperCase && hasSpecialChar;
-  };
-
-  const handlePasswordFocus = () => {
-    setPasswordFocused(true);
-  };
-
-  const handlePasswordBlur = () => {
-    if (!formData.password) {
-      setPasswordFocused(false);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -110,7 +99,7 @@ export default function ResetPassword() {
               <div className="login-cmn-box">
                 <div className="login-box-inner-wrap">
                   <div className="login-logo cursor-pointer" onClick={() => navigate("/")}>
-                    <img src={require("../Assets/Images/dark-logo.png")} />
+                    <img src={require("../Assets/Images/dark-logo.png")} alt="Simba Tasker" />
                   </div>
                   <h2>Reset Passwoard </h2>
                   <p className="mb-0">Please create a new strong password</p>
@@ -124,8 +113,6 @@ export default function ResetPassword() {
                           name="password"
                           value={formData.password}
                           onChange={handleInputChange}
-                          onFocus={handlePasswordFocus}
-                          onBlur={handlePasswordBlur}
                         />
                         <img
                         src={showPassword ? eyeClosedIcon : eyeOpenIcon}

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Container, Row, Col } from "react-bootstrap";
+import { Container } from "react-bootstrap";
 import { Link, useLocation } from "react-router-dom";
 export default function PrivacyPolicy() {
   const location = useLocation();
@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
             <div class="privacy_text">
               <div class="header-logo text-center">
                 <Link class="main-logo link" to="/">
-                  <img src={require("../../src/Assets/Images/logo-update.svg").default} />
+                  <img src={require("../../src/Assets/Images/logo-update.svg").default} alt="Simba Tasker" />
                 </Link>
               </div>
               <div class="privacy_text">

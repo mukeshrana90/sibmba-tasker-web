@@ -1,9 +1,7 @@
 import React, { useEffect } from "react";
-import { Container, Row, Col } from "react-bootstrap";
+import { Container } from "react-bootstrap";
 import { Link, useLocation } from "react-router-dom";
 export default function TermsConditions() {
-  const { pathname } = useLocation();
-
   const location = useLocation();
   useEffect(() => {
     document.documentElement.scrollTo({
@@ -20,7 +18,7 @@ export default function TermsConditions() {
             <div class="privacy_text">
               <div class="header-logo text-center">
                 <Link class="main-logo link" to="/">
-                  <img src={require("../../src/Assets/Images/logo-update.svg").default} />
+                  <img src={require("../../src/Assets/Images/logo-update.svg").default} alt="Simba Tasker" />
                 </Link>
               </div>
               <h3>Terms and Conditions for Simba Tasker</h3>

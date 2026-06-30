@@ -27,13 +27,13 @@ export default function CorporateProductDetailPage() {
     (state) => state.service.getCorporateList?.data
   )?.product;
   const [paymentshow, setPaymentShow] = useState(false);
-  const [boookingId, setBookingId] = useState(null);
+  const [, setBookingId] = useState(null);
   const [selectedBoooking, setSelectedBoooking] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
-  const [bookingState, setBookingState] = useState();
+  const [bookingState] = useState();
 
   const sliderSettings = {
     dots: true,
@@ -72,7 +72,6 @@ export default function CorporateProductDetailPage() {
     setBookingId("");
   };
 
-  const handleFeedbackOpen = () => setShowFeedback(true);
   const handleFeedbackClose = () => {
     setShowFeedback(false);
     setRating(0);
@@ -112,6 +111,7 @@ export default function CorporateProductDetailPage() {
                   ? serviceImageUrl(productDetails?.categoryId?.images)
                   : ""
               }
+              alt={productDetails?.categoryId?.name || "Product category"}
             />
             <div className="">
               <h4>{productDetails?.categoryId?.name || ""}</h4>

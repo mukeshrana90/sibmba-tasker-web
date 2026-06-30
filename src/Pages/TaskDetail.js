@@ -66,7 +66,7 @@ export default function TaskDetail() {
   const [disputeDescription, setDisputeDescription] = useState("");
   const [disputeSubmitting, setDisputeSubmitting] = useState(false);
   const [showAllTaskDisputes, setShowAllTaskDisputes] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [, setCurrentLocation] = useState(null);
   const previousTaskStatusRef = useRef(null);
 
   const beginQuotationAction = (quotationId) => {

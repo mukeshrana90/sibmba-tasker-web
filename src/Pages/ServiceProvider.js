@@ -74,8 +74,8 @@ export default function ServiceProvider() {
   const serviceIdParam = searchParams.get("serviceId");
 
   const provider = profile?.provider;
-  const services = profile?.services || [];
-  const feedbacks = profile?.feedbacks || [];
+  const services = useMemo(() => profile?.services || [], [profile?.services]);
+  const feedbacks = useMemo(() => profile?.feedbacks || [], [profile?.feedbacks]);
   const averageRating = profile?.averageRating ?? 0;
   const completedJobsCount = profile?.completedJobsCount ?? 0;
   const distanceKm = profile?.distanceKm;
