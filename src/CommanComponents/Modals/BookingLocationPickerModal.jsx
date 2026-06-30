@@ -1,28 +1,45 @@
 import { useEffect, useRef, useState } from "react";
 import Modal from "react-bootstrap/Modal";
-import { Wrapper, Status } from "@googlemaps/react-wrapper";
-import AddressAutocomplete from "../AddressAutocomplete";
-import { getGoogleMapsApiKey } from "../../utils/landingPlaces";
-
-const DEFAULT_CENTER = { lat: -17.8292, lng: 31.0522 };
-
-function MapStatus({ status }) {
-  if (status === Status.LOADING) {
-    return <div className="bk-map-status">Loading map…</div>;
-  }
-  if (status === Status.FAILURE) {
-    return <div className="bk-map-status">Unable to load map.</div>;
-  }
-  return null;
-}
+import BookingLocationSearch from "./BookingLocationSearch";
+import { loadGooglePlaces } from "../../utils/landingPlaces";
+import {
+  DEFAULT_BOOKING_MAP_CENTER,
+  resolveBookingPickerDraft,
+} from "../../utils/bookingLocationPicker";
 
 function PickerMap({ center, address, onPick }) {
   const mapRef = useRef(null);
   const mapObj = useRef(null);
   const markerRef = useRef(null);
+  const onPickRef = useRef(onPick);
+  const [mapsReady, setMapsReady] = useState(
+    () => typeof window !== "undefined" && !!window.google?.maps
+  );
+  const [mapsError, setMapsError] = useState(false);
+
+  onPickRef.current = onPick;
 
   useEffect(() => {
-    if (!mapRef.current || !window.google?.maps || mapObj.current) return;
+    if (mapsReady) return undefined;
+
+    let cancelled = false;
+    loadGooglePlaces()
+      .then(() => {
+        if (!cancelled) setMapsReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setMapsError(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapsReady]);
+
+  useEffect(() => {
+    if (!mapRef.current || !window.google?.maps || !mapsReady || mapObj.current) {
+      return undefined;
+    }
 
     const position = { lat: center.lat, lng: center.lng };
     const map = new window.google.maps.Map(mapRef.current, {
@@ -47,7 +64,7 @@ function PickerMap({ center, address, onPick }) {
           status === "OK" && results?.[0]?.formatted_address
             ? results[0].formatted_address
             : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        onPick({ lat, lng, address: label });
+        onPickRef.current({ lat, lng, address: label });
       });
     };
 
@@ -66,9 +83,17 @@ function PickerMap({ center, address, onPick }) {
 
     mapObj.current = map;
     markerRef.current = marker;
-    // Map instance is created once per center; onPick uses latest callback via closure at init
+
+    const resizeTimer = window.setTimeout(() => {
+      if (mapObj.current) {
+        window.google.maps.event.trigger(mapObj.current, "resize");
+        mapObj.current.setCenter(position);
+      }
+    }, 150);
+
+    return () => window.clearTimeout(resizeTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center.lat, center.lng]);
+  }, [mapsReady, center.lat, center.lng]);
 
   useEffect(() => {
     if (!markerRef.current || !mapObj.current) return;
@@ -76,6 +101,21 @@ function PickerMap({ center, address, onPick }) {
     markerRef.current.setPosition(position);
     mapObj.current.panTo(position);
   }, [center.lat, center.lng]);
+
+  useEffect(() => {
+    return () => {
+      mapObj.current = null;
+      markerRef.current = null;
+    };
+  }, []);
+
+  if (mapsError) {
+    return <div className="bk-map-status">Unable to load map.</div>;
+  }
+
+  if (!mapsReady) {
+    return <div className="bk-map-status">Loading map…</div>;
+  }
 
   return <div ref={mapRef} className="bk-map-canvas" />;
 }
@@ -87,37 +127,49 @@ export default function BookingLocationPickerModal({
   onConfirm,
 }) {
   const [draft, setDraft] = useState(null);
-  const apiKey =
-    getGoogleMapsApiKey() || "AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww";
+  const [searchText, setSearchText] = useState("");
+  const [resolving, setResolving] = useState(false);
+  const initialLocationRef = useRef(initialLocation);
 
   useEffect(() => {
     if (!show) return;
-    if (initialLocation?.lat != null && initialLocation?.lng != null) {
-      setDraft(initialLocation);
-    } else {
-      setDraft({
-        address: "",
-        lat: DEFAULT_CENTER.lat,
-        lng: DEFAULT_CENTER.lng,
-      });
-    }
+    initialLocationRef.current = initialLocation;
   }, [show, initialLocation]);
 
-  const handlePlaceSelected = (place) => {
-    const loc = place?.geometry?.location;
-    if (!loc) return;
-    const lat = typeof loc.lat === "function" ? loc.lat() : loc.lat;
-    const lng = typeof loc.lng === "function" ? loc.lng() : loc.lng;
-    setDraft({
-      address: place.formatted_address || "",
-      lat,
-      lng,
-    });
-  };
+  useEffect(() => {
+    if (!show) return undefined;
+
+    let cancelled = false;
+    setResolving(true);
+    setDraft(null);
+    setSearchText("");
+
+    resolveBookingPickerDraft(initialLocationRef.current)
+      .then((resolved) => {
+        if (cancelled) return;
+        setDraft(resolved);
+        setSearchText(resolved.address || "");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDraft({
+          address: "",
+          lat: DEFAULT_BOOKING_MAP_CENTER.lat,
+          lng: DEFAULT_BOOKING_MAP_CENTER.lng,
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setResolving(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [show]);
 
   const center = draft
     ? { lat: draft.lat, lng: draft.lng }
-    : DEFAULT_CENTER;
+    : DEFAULT_BOOKING_MAP_CENTER;
 
   return (
     <Modal
@@ -136,34 +188,26 @@ export default function BookingLocationPickerModal({
           Search for an address or tap the map to drop a pin.
         </p>
         <div className="bk-loc-search">
-          <AddressAutocomplete
-            apiKey={apiKey}
-            className="control"
-            defaultValue={draft?.address || ""}
-            options={{ types: ["geocode"] }}
-            onPlaceSelected={handlePlaceSelected}
-            onChange={(e) =>
-              setDraft((prev) => ({
-                ...(prev || DEFAULT_CENTER),
-                address: e.target.value,
-              }))
-            }
+          <BookingLocationSearch
+            value={searchText}
+            onChange={setSearchText}
+            onSelect={(location) => {
+              setDraft(location);
+              setSearchText(location.address || "");
+            }}
           />
         </div>
         <div className="bk-map-wrap">
-          {show && draft && (
-            <Wrapper
-              apiKey={apiKey}
-              render={MapStatus}
-              libraries={["places", "geocoding"]}
-            >
-              <PickerMap
-                key={`${draft.lat}-${draft.lng}`}
-                center={center}
-                address={draft.address}
-                onPick={setDraft}
-              />
-            </Wrapper>
+          {show && draft && !resolving && (
+            <PickerMap
+              key={`${draft.lat}-${draft.lng}`}
+              center={center}
+              address={draft.address}
+              onPick={setDraft}
+            />
+          )}
+          {(resolving || !draft) && (
+            <div className="bk-map-status">Finding your location…</div>
           )}
         </div>
         {draft?.address && (
@@ -189,7 +233,7 @@ export default function BookingLocationPickerModal({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!draft?.address?.trim()}
+            disabled={!draft?.address?.trim() || resolving}
             onClick={() => {
               if (draft) onConfirm(draft);
               onHide();

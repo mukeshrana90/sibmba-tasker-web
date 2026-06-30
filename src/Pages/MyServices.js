@@ -204,13 +204,15 @@ export default function MyServices() {
           <div className="comman-small-pop text-center">
             <h2 className="mb-2">Limit reached</h2>
             <p className="mb-4">Please upgrade your plan to add more services.</p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => navigate("/payment")}
-            >
-              Upgrade plan
-            </button>
+            <div className="comman-pop-action mt-4">
+              <button
+                type="button"
+                className="btn-fill"
+                onClick={() => navigate("/payment")}
+              >
+                Upgrade plan
+              </button>
+            </div>
           </div>
         </Modal.Body>
       </Modal>
