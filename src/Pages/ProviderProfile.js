@@ -5,7 +5,7 @@ import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { useQuery } from "../utils/CommonFunction";
-import { Roles } from "../utils/Roles";
+import { isCorporateRole, Roles } from "../utils/Roles";
 
 const SETUP_COPY = {
   [Roles.SERVICE_PROVIDER]: {
@@ -22,8 +22,10 @@ export default function ProviderProfile() {
   const [currentStep, setCurrentStep] = useState(0);
   const dispatch = useDispatch();
   const query = useQuery();
-  const role = query.get("role");
-  const isCorporate = role === Roles.CORPORATE;
+  const roleNumber = Number(
+    query.get("role") ?? localStorage.getItem("role")
+  );
+  const isCorporate = isCorporateRole(roleNumber);
   const [showModal, setShowModal] = useState(false);
   const copy =
     SETUP_COPY[isCorporate ? Roles.CORPORATE : Roles.SERVICE_PROVIDER];

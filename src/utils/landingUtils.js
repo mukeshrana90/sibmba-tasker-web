@@ -218,6 +218,19 @@ export function formatDisplayTitle(value, fallback = "") {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+export function shortenLocationLabel(text, maxWords = 3) {
+  const full = String(text || "").trim();
+  if (!full) return { display: "", full: "" };
+  const words = full.split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) {
+    return { display: full, full };
+  }
+  return {
+    display: `${words.slice(0, maxWords).join(" ")}...`,
+    full,
+  };
+}
+
 export function providerDisplayName(sp) {
   if (!sp) return "Provider";
   const raw = sp.company_name || sp.full_name || "Provider";

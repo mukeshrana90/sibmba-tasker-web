@@ -3,6 +3,26 @@ export const Roles = {
     SERVICE_PROVIDER: 2,
     CORPORATE: 3,
 };
+
+export function normalizeRole(value) {
+    const role = Number(value);
+    if (
+        role === Roles.CUSTOMER ||
+        role === Roles.SERVICE_PROVIDER ||
+        role === Roles.CORPORATE
+    ) {
+        return role;
+    }
+    return null;
+}
+
+export function isCorporateRole(value) {
+    return normalizeRole(value) === Roles.CORPORATE;
+}
+
+export function isServiceProviderRole(value) {
+    return normalizeRole(value) === Roles.SERVICE_PROVIDER;
+}
 export const corpoTaskStatus = {
     PENDING: 0,// task not accept or reject by corpo
     ACCEPT: 1, // task accepted by corpo

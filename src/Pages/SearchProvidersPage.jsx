@@ -15,6 +15,7 @@ import {
   providerDisplayName,
   providerInitials,
   renderStars,
+  shortenLocationLabel,
 } from "../utils/landingUtils";
 import SimbaPager from "../CommanComponents/SimbaPager";
 import {
@@ -70,6 +71,8 @@ function ProviderCard({ item }) {
   const verified = item.verified ?? isVerified(sp);
   const profilePath = providerProfilePath(item);
   const availability = availabilityDisplay(item);
+  const locationFull = item.location || "Zimbabwe";
+  const { display: locationShort } = shortenLocationLabel(locationFull);
 
   return (
     <div className="prov-card">
@@ -92,12 +95,12 @@ function ProviderCard({ item }) {
             )}
           </h4>
           <div className="role">{formatDisplayTitle(item.role || item.serviceCategoryName, "Service provider")}</div>
-          <div className="loc">
+          <div className="loc" title={locationFull}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
               <circle cx="12" cy="10" r="2.5" />
             </svg>
-            {item.location || "Zimbabwe"}
+            <span>{locationShort}</span>
           </div>
         </div>
       </div>
@@ -532,7 +535,9 @@ function SearchProvidersContent({ variant = "visitor" }) {
               <div className="fgroup">
                 <h5>Location</h5>
                 <div className="fchips">
-                  {locationFilters.map((loc) => (
+                  {locationFilters.map((loc) => {
+                    const { display } = shortenLocationLabel(loc);
+                    return (
                     <button
                       key={loc}
                       type="button"
@@ -541,11 +546,13 @@ function SearchProvidersContent({ variant = "visitor" }) {
                           ? " active"
                           : ""
                       }`}
+                      title={loc}
                       onClick={() => toggleLocationChip(loc)}
                     >
-                      {loc}
+                      {display}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -556,6 +563,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
               <div className="results-count">
                 <b>{total}</b> providers found
               </div>
+              {variant !== "customer" && (
               <div className="results-tools">
                 <div className="sort-wrap">
                   <select
@@ -578,6 +586,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
                   </svg>
                 </div>
               </div>
+              )}
             </div>
 
             <div className="prov-grid">
