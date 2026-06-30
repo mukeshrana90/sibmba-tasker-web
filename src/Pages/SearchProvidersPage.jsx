@@ -8,6 +8,7 @@ import LandingLocationInput, {
 } from "../CommanComponents/Landing/LandingLocationInput";
 import { resolveSearchCoords, requestDeviceLocation } from "../utils/landingGeocode";
 import { reverseGeocodeCoords } from "../utils/landingPlaces";
+import { resolveSearchSubmitCoords } from "../utils/headerSearchSync";
 import {
   avatarColor,
   formatDisplayTitle,
@@ -170,6 +171,8 @@ function SearchProvidersContent({ variant = "visitor" }) {
         lng: parsed.lng,
         label: parsed.location,
       });
+    } else {
+      setLocationCoords(null);
     }
   }, [parsed.search, parsed.location, parsed.lat, parsed.lng]);
 
@@ -224,21 +227,35 @@ function SearchProvidersContent({ variant = "visitor" }) {
   }, [fetchResults]);
 
   const handleSearchSubmit = async () => {
-    let coords = resolveSearchCoords(locationInput, parsed.nearby, locationCoords);
-    if (!coords && locationInput.trim()) {
-      const resolved = await resolveLocationCoords(locationInput, locationCoords);
-      if (resolved) {
-        coords = { lat: resolved.lat, lng: resolved.lng };
-        setLocationCoords(resolved);
+    const locationQuery = locationInput.trim();
+    const { coords: presetCoords, nearby: useNearby } = resolveSearchSubmitCoords(
+      locationQuery,
+      parsed.nearby,
+      locationCoords
+    );
+
+    let coords = presetCoords;
+    if (locationQuery && !coords) {
+      coords = resolveSearchCoords(locationQuery, useNearby, locationCoords);
+      if (!coords) {
+        const resolved = await resolveLocationCoords(locationQuery, locationCoords);
+        if (resolved) {
+          coords = { lat: resolved.lat, lng: resolved.lng };
+          setLocationCoords(resolved);
+        }
       }
+    }
+
+    if (!locationQuery) {
+      setLocationCoords(null);
     }
 
     pushFilters({
       search: searchInput.trim(),
-      location: locationInput.trim(),
+      location: locationQuery,
       lat: coords?.lat ?? null,
       lng: coords?.lng ?? null,
-      nearby: parsed.nearby || undefined,
+      nearby: locationQuery ? useNearby : false,
       page: 1,
     });
   };

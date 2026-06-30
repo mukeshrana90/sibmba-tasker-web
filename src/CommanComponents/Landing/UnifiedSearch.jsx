@@ -101,13 +101,15 @@ export default function UnifiedSearch() {
         token && String(role) === String(Roles.CUSTOMER)
           ? "/customer-search-providers"
           : "/search-providers";
+      const trimmedLoc = loc.trim();
+      const includeGeo = Boolean(trimmedLoc) || nearby;
       navigate(
         searchProvidersPath(resultsPath, {
           search: q.trim(),
-          location: loc.trim(),
-          lat: coords?.lat,
-          lng: coords?.lng,
-          nearby,
+          location: trimmedLoc,
+          ...(includeGeo
+            ? { lat: coords?.lat, lng: coords?.lng, nearby }
+            : {}),
         })
       );
     },

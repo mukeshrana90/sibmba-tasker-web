@@ -1,31 +1,35 @@
 import React, { useEffect, useState } from "react";
-import Form from "react-bootstrap/Form";
-import CustomerActions from "../Redux/Actions/CustomerActions";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useQuery } from "../utils/CommonFunction";
+import CustomerActions from "../Redux/Actions/CustomerActions";
 import { searchProvidersPath } from "../utils/searchProvidersUrl";
+import {
+  buildSearchUrlWithoutQuery,
+  isProviderSearchPath,
+  readSearchFromUrl,
+} from "../utils/headerSearchSync";
 
 const Search = ({ variant = "default" }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const getQueryURL = useQuery();
+  const onSearchPage = isProviderSearchPath(location.pathname);
 
   const [searchText, setSearchText] = useState("");
   const [isFocused, setIsFocused] = useState(false);
 
-  // Fetch initial search value from URL and update when URL changes
   useEffect(() => {
-    const searchValFromUrl = getQueryURL.get("search") || "";
-    setSearchText(decodeURIComponent(searchValFromUrl));
-  }, [location.search, getQueryURL]);
+    if (!onSearchPage) {
+      setSearchText("");
+      return;
+    }
+    setSearchText(readSearchFromUrl(location.search));
+  }, [location.pathname, location.search, onSearchPage]);
 
   const allUserCategories = useSelector(
     (state) => state.UserSlice.allUserCategories
   );
 
-  // Fetch categories on component mount
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
       try {
@@ -42,16 +46,20 @@ const Search = ({ variant = "default" }) => {
     setSearchText(e.target.value);
   };
 
-  // Normalize category name: trim spaces, lowercase, standardize comma spacing
-  const normalizeCategoryName = (name) => {
-    if (!name) return "";
-    return name
-      .trim() // Remove leading/trailing spaces
-      .replace(/\s*,\s*/g, ", ") // Standardize comma spacing (e.g., "a , b" -> "a, b")
-      .toLowerCase(); // Convert to lowercase
+  const handleClear = () => {
+    setSearchText("");
+    if (onSearchPage) {
+      navigate(
+        buildSearchUrlWithoutQuery(location.pathname, location.search, "search")
+      );
+    }
   };
 
-  // Normalize categories and filter
+  const normalizeCategoryName = (name) => {
+    if (!name) return "";
+    return name.trim().replace(/\s*,\s*/g, ", ").toLowerCase();
+  };
+
   const uniqueCategories = Array.from(
     new Set(
       allUserCategories?.allCat?.map((item) =>
@@ -71,13 +79,13 @@ const Search = ({ variant = "default" }) => {
       )
     ) || [];
 
-  // Handle click on a search result
   const goToProviderSearch = (overrides = {}) => {
-    const q = overrides.search ?? searchText;
+    const q = (overrides.search ?? searchText).trim();
     navigate(
       searchProvidersPath("/customer-search-providers", {
-        search: q,
+        search: q || undefined,
         categoryIds: overrides.categoryId ? [overrides.categoryId] : undefined,
+        page: 1,
       })
     );
   };
@@ -89,7 +97,7 @@ const Search = ({ variant = "default" }) => {
   };
 
   const handleSearchKeyDown = (e) => {
-    if (e.key === "Enter" && searchText.trim()) {
+    if (e.key === "Enter") {
       e.preventDefault();
       goToProviderSearch();
     }
@@ -98,12 +106,24 @@ const Search = ({ variant = "default" }) => {
   const suggestionsList =
     isFocused && filterData.length > 0 && searchText ? (
       <ul className="search-list search-list--dropdown">
-        {filterData.map((ele, index) => (
-          <li key={index} onMouseDown={() => handleItemClick(ele)}>
+        {filterData.map((ele) => (
+          <li key={ele._id} onMouseDown={() => handleItemClick(ele)}>
             {ele?.service_category_name}
           </li>
         ))}
       </ul>
+    ) : null;
+
+  const clearButton =
+    searchText ? (
+      <button
+        type="button"
+        className="header-search-clear"
+        aria-label="Clear search"
+        onClick={handleClear}
+      >
+        ×
+      </button>
     ) : null;
 
   if (variant === "appnav") {
@@ -118,6 +138,7 @@ const Search = ({ variant = "default" }) => {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
         />
+        {clearButton}
         {suggestionsList}
       </div>
     );
@@ -125,15 +146,17 @@ const Search = ({ variant = "default" }) => {
 
   return (
     <div className="user-pro-search" style={{ position: "relative" }}>
-      <Form.Control
+      <input
         type="search"
         placeholder="Search Service Category"
-        className="me-2"
+        className="me-2 form-control"
         value={searchText}
         onChange={handleSearchChange}
+        onKeyDown={handleSearchKeyDown}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setTimeout(() => setIsFocused(false), 200)}
       />
+      {clearButton}
       <img
         className="search-icn"
         src={require("../Assets/Images/search-icon.svg").default}

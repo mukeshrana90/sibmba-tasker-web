@@ -18,7 +18,14 @@ export function buildSearchProvidersParams({
 
   if (q) params.set("search", q);
   if (loc) params.set("location", loc);
-  if (lat != null && lng != null && !Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng))) {
+  const useCoords = nearby || Boolean(loc);
+  if (
+    useCoords &&
+    lat != null &&
+    lng != null &&
+    !Number.isNaN(Number(lat)) &&
+    !Number.isNaN(Number(lng))
+  ) {
     params.set("lat", String(lat));
     params.set("lng", String(lng));
   }
@@ -48,11 +55,20 @@ export function parseSearchProvidersQuery(searchParams) {
     ? categoryRaw.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
 
+  const location = get("location") || get("loc") || "";
+  const nearby = get("nearby") === "1" || get("nearby") === "true";
+  let lat = get("lat") ? parseFloat(get("lat")) : null;
+  let lng = get("lng") ? parseFloat(get("lng")) : null;
+  if (!location.trim() && !nearby) {
+    lat = null;
+    lng = null;
+  }
+
   return {
     search: get("search") || get("q") || "",
-    location: get("location") || get("loc") || "",
-    lat: get("lat") ? parseFloat(get("lat")) : null,
-    lng: get("lng") ? parseFloat(get("lng")) : null,
+    location,
+    lat,
+    lng,
     categoryIds,
     minRating: parseFloat(get("minRating") || get("rating") || "0") || 0,
     maxRate: get("maxRate") ? parseFloat(get("maxRate")) : 40,

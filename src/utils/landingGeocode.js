@@ -132,12 +132,18 @@ export function resolveSearchCoords(
   nearbyEnabled,
   locationCoords = null
 ) {
+  const hasLocationText = String(locationText || "").trim().length > 0;
+
   if (nearbyEnabled) {
     const lat = parseFloat(localStorage.getItem("latitude"));
     const lng = parseFloat(localStorage.getItem("longitude"));
     if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
       return { lat, lng };
     }
+  }
+
+  if (!hasLocationText && !nearbyEnabled) {
+    return null;
   }
 
   if (
@@ -152,10 +158,12 @@ export function resolveSearchCoords(
   const geocoded = geocodeLocationText(locationText);
   if (geocoded) return { lat: geocoded.lat, lng: geocoded.lng };
 
-  const lat = parseFloat(localStorage.getItem("latitude"));
-  const lng = parseFloat(localStorage.getItem("longitude"));
-  if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-    return { lat, lng };
+  if (nearbyEnabled) {
+    const lat = parseFloat(localStorage.getItem("latitude"));
+    const lng = parseFloat(localStorage.getItem("longitude"));
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      return { lat, lng };
+    }
   }
 
   return null;
