@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   geocodeFreeText,
   getGoogleMapsApiKey,
@@ -20,6 +20,54 @@ function isUsableAddress(address) {
   if (trimmed === "undefined" || trimmed === "null") return false;
   if (/\bundefined\b/i.test(trimmed)) return false;
   return true;
+}
+
+function buildMapEmbedUrl(coordinates, address) {
+  const position = parseCoordinates(coordinates);
+  if (position) {
+    return `https://maps.google.com/maps?q=${position.lat},${position.lng}&z=14&output=embed`;
+  }
+  if (isUsableAddress(address)) {
+    return `https://maps.google.com/maps?q=${encodeURIComponent(
+      String(address).trim()
+    )}&z=14&output=embed`;
+  }
+  return null;
+}
+
+function MapEmbed({ url }) {
+  return (
+    <iframe
+      title="Location map"
+      src={url}
+      width="100%"
+      height="400"
+      style={{ border: 0, borderRadius: "8px" }}
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+      allowFullScreen
+    />
+  );
+}
+
+function ReadOnlyMap({ coordinates, address }) {
+  const embedUrl = useMemo(
+    () => buildMapEmbedUrl(coordinates, address),
+    [coordinates, address]
+  );
+
+  if (!embedUrl) {
+    return (
+      <div
+        className="d-flex align-items-center justify-content-center text-muted"
+        style={{ height: 400 }}
+      >
+        No location data available
+      </div>
+    );
+  }
+
+  return <MapEmbed url={embedUrl} />;
 }
 
 const GoogleMap = ({ coordinates, address, onMapClick }) => {
@@ -96,13 +144,26 @@ const GoogleMap = ({ coordinates, address, onMapClick }) => {
   );
 };
 
-const MapComponent = ({ coordinates, address, onMapClick }) => {
+const InteractiveMap = ({ coordinates, address, onMapClick }) => {
   const [ready, setReady] = useState(
     () => typeof window !== "undefined" && !!window.google?.maps
   );
   const [error, setError] = useState(false);
   const [resolvedCoordinates, setResolvedCoordinates] = useState(null);
   const [geocoding, setGeocoding] = useState(false);
+
+  const embedFallbackUrl = useMemo(
+    () => buildMapEmbedUrl(resolvedCoordinates || coordinates, address),
+    [resolvedCoordinates, coordinates, address]
+  );
+
+  useEffect(() => {
+    const previousAuthFailure = window.gm_authFailure;
+    window.gm_authFailure = () => setError(true);
+    return () => {
+      window.gm_authFailure = previousAuthFailure;
+    };
+  }, []);
 
   useEffect(() => {
     if (ready) return undefined;
@@ -171,6 +232,9 @@ const MapComponent = ({ coordinates, address, onMapClick }) => {
   }, [coordinates, address]);
 
   if (error) {
+    if (embedFallbackUrl) {
+      return <MapEmbed url={embedFallbackUrl} />;
+    }
     return (
       <div className="d-flex align-items-center justify-content-center h-100 text-muted">
         Unable to load map. You can still pick an address from Google search.
@@ -189,6 +253,20 @@ const MapComponent = ({ coordinates, address, onMapClick }) => {
   return (
     <GoogleMap
       coordinates={resolvedCoordinates}
+      address={address}
+      onMapClick={onMapClick}
+    />
+  );
+};
+
+const MapComponent = ({ coordinates, address, onMapClick }) => {
+  if (!onMapClick) {
+    return <ReadOnlyMap coordinates={coordinates} address={address} />;
+  }
+
+  return (
+    <InteractiveMap
+      coordinates={coordinates}
       address={address}
       onMapClick={onMapClick}
     />
