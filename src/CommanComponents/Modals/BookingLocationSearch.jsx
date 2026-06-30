@@ -148,14 +148,13 @@ export default function BookingLocationSearch({ value, onChange, onSelect }) {
         }}
       />
       {showDropdown && (
-        <ul className="bk-loc-suggestions" role="listbox">
+        <ul className="bk-loc-suggestions">
           {loading && predictions.length === 0 && (
             <li className="bk-loc-suggestion-muted">Searching…</li>
           )}
           {predictions.map((item) => (
             <li
               key={item.place_id}
-              role="option"
               onMouseDown={(e) => {
                 e.preventDefault();
                 handleSelect(item);
