@@ -43,6 +43,47 @@ export function buildSearchProvidersParams({
   return params;
 }
 
+/** API payload: never includes location text — only lat/lng when available. */
+export function buildSearchProvidersApiPayload({
+  search = "",
+  lat,
+  lng,
+  categoryIds = [],
+  minRating = 0,
+  maxRate,
+  availableOnly = false,
+  verifiedOnly = true,
+  sort = "rating",
+  page = 1,
+  nearby = false,
+  limit,
+} = {}) {
+  const payload = {
+    search: String(search || "").trim() || undefined,
+    categoryIds: categoryIds?.length ? categoryIds.join(",") : undefined,
+    minRating: minRating > 0 ? minRating : undefined,
+    maxRate: maxRate != null && maxRate < 40 ? maxRate : undefined,
+    availableOnly: availableOnly || undefined,
+    verifiedOnly: verifiedOnly ? undefined : "0",
+    sort: sort && sort !== "rating" ? sort : undefined,
+    page: page > 1 ? page : undefined,
+    limit,
+    nearby: nearby || undefined,
+  };
+
+  if (
+    lat != null &&
+    lng != null &&
+    !Number.isNaN(Number(lat)) &&
+    !Number.isNaN(Number(lng))
+  ) {
+    payload.lat = lat;
+    payload.lng = lng;
+  }
+
+  return payload;
+}
+
 export function searchProvidersPath(basePath, filters) {
   const qs = buildSearchProvidersParams(filters).toString();
   return qs ? `${basePath}?${qs}` : basePath;

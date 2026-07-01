@@ -21,6 +21,7 @@ import {
 } from "../utils/landingUtils";
 import SimbaPager from "../CommanComponents/SimbaPager";
 import {
+  buildSearchProvidersApiPayload,
   buildSearchProvidersParams,
   parseSearchProvidersQuery,
 } from "../utils/searchProvidersUrl";
@@ -192,36 +193,48 @@ function SearchProvidersContent({ variant = "visitor" }) {
   );
 
   const fetchResults = useCallback(async () => {
-    const coords = resolveSearchCoords(
-      parsed.location,
-      parsed.nearby,
-      locationCoords
-    );
+    let lat = null;
+    let lng = null;
 
-    const lat =
-      parsed.lat != null && !Number.isNaN(parsed.lat)
-        ? parsed.lat
-        : coords?.lat;
-    const lng =
-      parsed.lng != null && !Number.isNaN(parsed.lng)
-        ? parsed.lng
-        : coords?.lng;
+    if (parsed.nearby) {
+      const coords = resolveSearchCoords("", true, locationCoords);
+      lat = coords?.lat ?? null;
+      lng = coords?.lng ?? null;
+    } else if (
+      parsed.lat != null &&
+      parsed.lng != null &&
+      !Number.isNaN(parsed.lat) &&
+      !Number.isNaN(parsed.lng)
+    ) {
+      lat = parsed.lat;
+      lng = parsed.lng;
+    } else if (
+      locationCoords?.lat != null &&
+      locationCoords?.lng != null &&
+      !Number.isNaN(locationCoords.lat) &&
+      !Number.isNaN(locationCoords.lng)
+    ) {
+      lat = locationCoords.lat;
+      lng = locationCoords.lng;
+    }
 
     await dispatch(
-      CustomerActions.searchProviders({
-        search: parsed.search || undefined,
-        ...(parsed.nearby ? {} : { location: parsed.location || undefined }),
-        ...(lat != null && lng != null ? { lat, lng } : {}),
-        categoryIds: parsed.categoryIds.join(",") || undefined,
-        minRating: parsed.minRating || undefined,
-        maxRate: parsed.maxRate < RATE_MAX ? parsed.maxRate : undefined,
-        availableOnly: parsed.availableOnly || undefined,
-        verifiedOnly: parsed.verifiedOnly ? undefined : "0",
-        sort: parsed.sort !== "rating" ? parsed.sort : undefined,
-        page: parsed.page,
-        limit: PAGE_SIZE,
-        nearby: parsed.nearby || undefined,
-      })
+      CustomerActions.searchProviders(
+        buildSearchProvidersApiPayload({
+          search: parsed.search,
+          lat,
+          lng,
+          categoryIds: parsed.categoryIds,
+          minRating: parsed.minRating,
+          maxRate: parsed.maxRate < RATE_MAX ? parsed.maxRate : undefined,
+          availableOnly: parsed.availableOnly,
+          verifiedOnly: parsed.verifiedOnly,
+          sort: parsed.sort,
+          page: parsed.page,
+          limit: PAGE_SIZE,
+          nearby: parsed.nearby,
+        })
+      )
     );
   }, [dispatch, parsed, locationCoords]);
 

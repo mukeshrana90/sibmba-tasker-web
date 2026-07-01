@@ -7,6 +7,10 @@ import {
   requestDeviceLocation,
   resolveSearchCoords,
 } from "../../utils/landingGeocode";
+import {
+  selectLocationPrediction,
+  useLocationPredictions,
+} from "../../utils/landingLocationPredictions";
 import { searchProvidersPath } from "../../utils/searchProvidersUrl";
 import { Roles } from "../../utils/Roles";
 import LandingLocationInput, {
@@ -63,11 +67,25 @@ export default function UnifiedSearch() {
   const results = useSelector((s) => s.UserSlice.customerSearchResults);
   const [showPopup, setShowPopup] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [activeField, setActiveField] = useState("search");
+
+  const locationQueryActive = String(locationText || "").trim().length >= 2;
+  const {
+    predictions: locationPredictions,
+    loading: locationLoading,
+    emptyQuery: locationEmpty,
+    skipNextFetch: skipLocationFetch,
+  } = useLocationPredictions(locationText, {
+    enabled: activeField === "location" && locationQueryActive,
+    minLength: 2,
+  });
+
   const goToResultsPage = useCallback(
     async (opts = {}) => {
       const q = opts.query ?? searchQuery;
       const loc = opts.location ?? locationText;
       const nearby = opts.nearby ?? nearbyEnabled;
+      const coordsFromOpts = opts.coords ?? locationCoords;
 
       if (nearby) {
         try {
@@ -77,17 +95,10 @@ export default function UnifiedSearch() {
         }
       }
 
-      let coords = resolveSearchCoords(
-        loc,
-        nearby,
-        opts.coords ?? locationCoords
-      );
+      let coords = resolveSearchCoords(loc, nearby, coordsFromOpts);
 
       if (!coords && !nearby && loc.trim()) {
-        const resolved = await resolveLocationCoords(
-          loc,
-          opts.coords ?? locationCoords
-        );
+        const resolved = await resolveLocationCoords(loc, coordsFromOpts);
         if (resolved) {
           coords = { lat: resolved.lat, lng: resolved.lng };
           setLocationCoords(resolved);
@@ -128,6 +139,7 @@ export default function UnifiedSearch() {
       const q = opts.query ?? searchQuery;
       const loc = opts.location ?? locationText;
       const nearby = opts.nearby ?? nearbyEnabled;
+      const coordsFromOpts = opts.coords ?? locationCoords;
 
       if (opts.redirect) {
         await goToResultsPage(opts);
@@ -142,21 +154,18 @@ export default function UnifiedSearch() {
         }
       }
 
-      let coords = resolveSearchCoords(
-        loc,
-        nearby,
-        opts.coords ?? locationCoords
-      );
+      let coords = resolveSearchCoords(loc, nearby, coordsFromOpts);
 
       if (!coords && !nearby && loc.trim()) {
-        const resolved = await resolveLocationCoords(
-          loc,
-          opts.coords ?? locationCoords
-        );
+        const resolved = await resolveLocationCoords(loc, coordsFromOpts);
         if (resolved) {
           coords = { lat: resolved.lat, lng: resolved.lng };
           setLocationCoords(resolved);
         }
+      }
+
+      if (!q.trim() && !loc.trim() && !nearby) {
+        return;
       }
 
       setSearching(true);
@@ -186,16 +195,18 @@ export default function UnifiedSearch() {
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    if (!searchQuery.trim()) {
-      return;
-    }
+    if (activeField === "location") return undefined;
+
     debounceRef.current = setTimeout(() => {
-      if (searchQuery.trim().length >= 1) {
-        runSearch({ query: searchQuery });
+      const q = searchQuery.trim();
+      const loc = locationText.trim();
+      if (q || loc || nearbyEnabled) {
+        runSearch({ query: searchQuery, location: locationText });
       }
     }, 350);
+
     return () => clearTimeout(debounceRef.current);
-  }, [searchQuery, locationText, locationCoords, runSearch]);
+  }, [searchQuery, locationText, locationCoords, nearbyEnabled, activeField, runSearch]);
 
   useEffect(() => {
     if (!showPopup) return;
@@ -259,20 +270,42 @@ export default function UnifiedSearch() {
         /* continue with stored coords */
       }
     }
+    setActiveField("search");
     runSearch({ nearby: on });
+  };
+
+  const handleLocationSelect = async (prediction) => {
+    skipLocationFetch();
+    const coords = await selectLocationPrediction(prediction, {
+      onChange: setLocationText,
+      onCoordsChange: setLocationCoords,
+    });
+    setActiveField("search");
+    setShowPopup(true);
+    runSearch({
+      location: coords?.label || prediction.description,
+      coords: coords || undefined,
+    });
   };
 
   const categories = nearbyEnabled ? [] : results?.category?.items || [];
   const providers = results?.bestService?.items || [];
   const nearbyCats = results?.nearbyService?.items || [];
-  const hasResults = nearbyEnabled
-    ? nearbyCats.length > 0 || providers.length > 0
-    : categories.length > 0 ||
-      providers.length > 0 ||
-      nearbyCats.length > 0;
   const hasLocationCoords = Boolean(
     resolveSearchCoords(locationText, false, locationCoords)
   );
+  const hasSearchResults =
+    categories.length > 0 || providers.length > 0 || nearbyCats.length > 0;
+  const showLocationList =
+    activeField === "location" &&
+    locationQueryActive &&
+    (locationLoading || locationPredictions.length > 0 || locationEmpty);
+  const showSearchResults =
+    activeField === "search" &&
+    (searching || hasSearchResults || searchQuery.trim() || locationText.trim());
+  const popupOpen =
+    showPopup &&
+    (showLocationList || showSearchResults || searching || locationLoading);
 
   return (
     <div className="landing-search" ref={popupRef}>
@@ -287,11 +320,15 @@ export default function UnifiedSearch() {
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                if (e.target.value.trim()) setShowPopup(true);
+                setActiveField("search");
+                setShowPopup(true);
               }}
               onFocus={() => {
                 window.dispatchEvent(new Event("landing:closeJoin"));
-                if (searchQuery.trim() || hasResults) setShowPopup(true);
+                setActiveField("search");
+                if (searchQuery.trim() || locationText.trim() || hasSearchResults) {
+                  setShowPopup(true);
+                }
               }}
               onKeyDown={(e) => e.key === "Enter" && runSearch({ redirect: true })}
             />
@@ -303,19 +340,24 @@ export default function UnifiedSearch() {
           <div className="landing-search-fcol landing-search-fcol--loc">
             <label>Location</label>
             <LandingLocationInput
+              dropdownMode="external"
               value={locationText}
               placeholder="Search city or area…"
-              onChange={setLocationText}
-              onCoordsChange={(coords) => {
-                setLocationCoords(coords);
-                if (coords) {
-                  runSearch({ location: coords.label, coords });
-                }
+              onChange={(text) => {
+                setLocationText(text);
+                setActiveField("location");
+                setShowPopup(true);
               }}
+              onCoordsChange={setLocationCoords}
               onFocus={() => {
                 window.dispatchEvent(new Event("landing:closeJoin"));
+                setActiveField("location");
+                setShowPopup(true);
               }}
-              onEnter={() => runSearch({ redirect: true })}
+              onEnter={() => {
+                setActiveField("search");
+                runSearch({ redirect: true });
+              }}
             />
           </div>
         </div>
@@ -323,7 +365,10 @@ export default function UnifiedSearch() {
         <button
           type="button"
           className="landing-btn landing-btn--primary landing-search-btn"
-          onClick={() => runSearch({ redirect: true })}
+          onClick={() => {
+            setActiveField("search");
+            runSearch({ redirect: true });
+          }}
           disabled={searching}
           aria-label="Search"
         >
@@ -332,130 +377,167 @@ export default function UnifiedSearch() {
         </button>
       </div>
 
-      {showPopup && (searching || hasResults || searchQuery.trim()) && (
+      {popupOpen && (
         <div
           className="landing-search__popup"
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {searching && (
-            <p className="landing-search__loading">Searching…</p>
-          )}
-
-          <div className="landing-search__toggle-row">
-            <label className="landing-search__toggle">
-              <input
-                type="checkbox"
-                checked={nearbyEnabled}
-                onChange={handleNearbyToggle}
-              />
-              <span>Nearby providers</span>
-            </label>
-          </div>
-
-          {!nearbyEnabled && categories.length > 0 && (
+          {showLocationList && (
             <div className="landing-search__group">
-              <p className="landing-search__group-title">Categories</p>
-              {categories.map((cat) => (
+              <p className="landing-search__group-title">Locations</p>
+              {locationLoading && locationPredictions.length === 0 && (
+                <p className="landing-search__loading">Searching locations…</p>
+              )}
+              {locationPredictions.map((item) => (
                 <button
                   type="button"
-                  key={cat._id}
+                  key={item.place_id}
                   className="landing-search__row"
-                  onClick={() => handleCategoryClick(cat)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleLocationSelect(item);
+                  }}
                 >
-                  <span>{cat.service_category_name}</span>
-                  <span className="landing-badge landing-badge--category">
-                    Category
-                  </span>
+                  <span>{item.description}</span>
                 </button>
               ))}
+              {!locationLoading && locationEmpty && (
+                <p className="landing-search__empty">
+                  No locations found — try a city or area name
+                </p>
+              )}
             </div>
           )}
 
-          {!nearbyEnabled && hasLocationCoords && nearbyCats.length > 0 && (
-            <div className="landing-search__group">
-              <p className="landing-search__group-title">Categories near you</p>
-              {nearbyCats.map((cat) => (
-                <button
-                  type="button"
-                  key={`near-${cat._id}`}
-                  className="landing-search__row"
-                  onClick={() => handleCategoryClick(cat)}
-                >
-                  <span>
-                    {cat.service_category_name}
-                    {cat.providerNearbyCount > 0 && (
-                      <small> — {cat.providerNearbyCount} nearby</small>
-                    )}
-                  </span>
-                  <span className="landing-badge landing-badge--category">
-                    Category
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+          {showSearchResults && (
+            <>
+              {searching && (
+                <p className="landing-search__loading">Searching…</p>
+              )}
 
-          {nearbyEnabled && nearbyCats.length > 0 && (
-            <div className="landing-search__group">
-              <p className="landing-search__group-title">Nearby categories</p>
-              {nearbyCats.map((cat) => (
-                <button
-                  type="button"
-                  key={`near-${cat._id}`}
-                  className="landing-search__row"
-                  onClick={() => handleCategoryClick(cat)}
-                >
-                  <span>
-                    {cat.service_category_name}
-                    {cat.providerNearbyCount > 0 && (
-                      <small> — {cat.providerNearbyCount} providers near you</small>
-                    )}
-                  </span>
-                  <span className="landing-badge landing-badge--category">
-                    Category
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+              <div className="landing-search__toggle-row">
+                <label className="landing-search__toggle">
+                  <input
+                    type="checkbox"
+                    checked={nearbyEnabled}
+                    onChange={handleNearbyToggle}
+                  />
+                  <span>Nearby providers</span>
+                </label>
+              </div>
 
-          {providers.length > 0 && (
-            <div className="landing-search__group">
-              <p className="landing-search__group-title">
-                {nearbyEnabled ? "Nearby providers" : hasLocationCoords ? "Nearby providers" : "Providers"}
-              </p>
-              {providers.map((item) => (
-                <button
-                  type="button"
-                  key={item._id}
-                  className="landing-search__row"
-                  onClick={() => handleProviderClick(item)}
-                >
-                  <span>
-                    {providerLabel(item)}
-                    {item.serviceSubCategoryName && (
-                      <small> — {item.serviceSubCategoryName}</small>
-                    )}
-                  </span>
-                  <span className="landing-badge landing-badge--provider">
-                    Provider
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+              {!nearbyEnabled && categories.length > 0 && (
+                <div className="landing-search__group">
+                  <p className="landing-search__group-title">Categories</p>
+                  {categories.map((cat) => (
+                    <button
+                      type="button"
+                      key={cat._id}
+                      className="landing-search__row"
+                      onClick={() => handleCategoryClick(cat)}
+                    >
+                      <span>{cat.service_category_name}</span>
+                      <span className="landing-badge landing-badge--category">
+                        Category
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          {!searching && !hasResults && searchQuery.trim() && (
-            <p className="landing-search__empty">
-              {nearbyEnabled
-                ? "No nearby matches. Try another service or enable location."
-                : "No results yet. Try another search."}
-            </p>
-          )}
-          {!searching && nearbyEnabled && !searchQuery.trim() && (
-            <p className="landing-search__empty">
-              Type a service to find nearby categories and providers.
-            </p>
+              {!nearbyEnabled && hasLocationCoords && nearbyCats.length > 0 && (
+                <div className="landing-search__group">
+                  <p className="landing-search__group-title">Categories near you</p>
+                  {nearbyCats.map((cat) => (
+                    <button
+                      type="button"
+                      key={`near-${cat._id}`}
+                      className="landing-search__row"
+                      onClick={() => handleCategoryClick(cat)}
+                    >
+                      <span>
+                        {cat.service_category_name}
+                        {cat.providerNearbyCount > 0 && (
+                          <small> — {cat.providerNearbyCount} nearby</small>
+                        )}
+                      </span>
+                      <span className="landing-badge landing-badge--category">
+                        Category
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {nearbyEnabled && nearbyCats.length > 0 && (
+                <div className="landing-search__group">
+                  <p className="landing-search__group-title">Nearby categories</p>
+                  {nearbyCats.map((cat) => (
+                    <button
+                      type="button"
+                      key={`near-${cat._id}`}
+                      className="landing-search__row"
+                      onClick={() => handleCategoryClick(cat)}
+                    >
+                      <span>
+                        {cat.service_category_name}
+                        {cat.providerNearbyCount > 0 && (
+                          <small> — {cat.providerNearbyCount} providers near you</small>
+                        )}
+                      </span>
+                      <span className="landing-badge landing-badge--category">
+                        Category
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {providers.length > 0 && (
+                <div className="landing-search__group">
+                  <p className="landing-search__group-title">
+                    {nearbyEnabled
+                      ? "Nearby providers"
+                      : hasLocationCoords
+                        ? "Providers near location"
+                        : "Providers"}
+                  </p>
+                  {providers.map((item) => (
+                    <button
+                      type="button"
+                      key={item._id}
+                      className="landing-search__row"
+                      onClick={() => handleProviderClick(item)}
+                    >
+                      <span>
+                        {providerLabel(item)}
+                        {item.serviceSubCategoryName && (
+                          <small> — {item.serviceSubCategoryName}</small>
+                        )}
+                      </span>
+                      <span className="landing-badge landing-badge--provider">
+                        Provider
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!searching &&
+                !hasSearchResults &&
+                (searchQuery.trim() || locationText.trim()) && (
+                  <p className="landing-search__empty">
+                    {nearbyEnabled
+                      ? "No nearby matches. Try another service or enable location."
+                      : "No results yet. Try another search or location."}
+                  </p>
+                )}
+              {!searching && nearbyEnabled && !searchQuery.trim() && (
+                <p className="landing-search__empty">
+                  Type a service to find nearby categories and providers.
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

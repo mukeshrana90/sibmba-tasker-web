@@ -1,7 +1,32 @@
 import {
+  buildSearchProvidersApiPayload,
   buildSearchProvidersParams,
   parseSearchProvidersQuery,
 } from "./searchProvidersUrl";
+
+describe("buildSearchProvidersApiPayload", () => {
+  it("never includes location text", () => {
+    const payload = buildSearchProvidersApiPayload({
+      search: "plu",
+      location: "Harare",
+      lat: 30.69,
+      lng: 76.73,
+    });
+    expect(payload.search).toBe("plu");
+    expect(payload.lat).toBe(30.69);
+    expect(payload.lng).toBe(76.73);
+    expect(payload.location).toBeUndefined();
+  });
+
+  it("omits lat/lng when coords are missing", () => {
+    const payload = buildSearchProvidersApiPayload({
+      search: "plu",
+      location: "Harare",
+    });
+    expect(payload.lat).toBeUndefined();
+    expect(payload.lng).toBeUndefined();
+  });
+});
 
 describe("buildSearchProvidersParams", () => {
   it("omits lat/lng when location and nearby are absent", () => {
