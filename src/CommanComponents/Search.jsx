@@ -131,7 +131,7 @@ const Search = ({ variant = "default" }) => {
       <div className="appnav-search-wrap">
         <input
           type="search"
-          placeholder="Search service or provider"
+          placeholder="Search Category"
           value={searchText}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
