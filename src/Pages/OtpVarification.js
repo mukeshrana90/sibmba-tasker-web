@@ -9,6 +9,9 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast } from "react-toastify";
 import { useQuery } from "../utils/CommonFunction";
 import { consumeAuthReturnUrl } from "../utils/authRedirect";
+import { autoCompleteCustomerProfile } from "../utils/customerProfileAutoComplete";
+import { Roles } from "../utils/Roles";
+import { emit } from "../utils/socketService";
 
 export default function OtpVarification() {
 
@@ -161,11 +164,29 @@ export default function OtpVarification() {
 
       if (type === "forgot") {
         navigate(`/reset-password?userId=${userId}`, { replace: true });
-      } else if (Number(res?.payload?.data?.is_completeProfile) === 0 && Number(userRole) === 1) {
+      } else if (
+        Number(res?.payload?.data?.is_completeProfile) === 0 &&
+        Number(userRole) === Roles.CUSTOMER
+      ) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);
         localStorage.setItem("expiresAt", expiresAt);
-        navigate("/complete-profile", { replace: true });
+
+        const profileResult = await autoCompleteCustomerProfile(dispatch, {
+          email: res?.payload?.data?.email,
+          token,
+          userId,
+          role: userRole,
+          expiresAt,
+        });
+
+        if (!profileResult.ok) {
+          toast.error(profileResult.message);
+        } else {
+          emit("new_user_connect", { userid: userId });
+        }
+
+        navigate(consumeAuthReturnUrl() || "/", { replace: true });
       } else if (Number(userRole) === 2 || Number(userRole) === 3) {
         localStorage.setItem("temptoken", token);
         localStorage.setItem("userId", userId);

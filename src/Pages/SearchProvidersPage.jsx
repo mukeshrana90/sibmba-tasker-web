@@ -17,6 +17,7 @@ import {
   providerInitials,
   renderStars,
   shortenLocationLabel,
+  displayField,
 } from "../utils/landingUtils";
 import SimbaPager from "../CommanComponents/SimbaPager";
 import {
@@ -72,7 +73,9 @@ function ProviderCard({ item }) {
   const verified = item.verified ?? isVerified(sp);
   const profilePath = providerProfilePath(item);
   const availability = availabilityDisplay(item);
-  const locationFull = item.location || "Zimbabwe";
+  const rawLocation = displayField(item.location, "");
+  const locationFull =
+    rawLocation === "N/A" || !rawLocation ? "Zimbabwe" : rawLocation;
   const { display: locationShort } = shortenLocationLabel(locationFull);
 
   return (

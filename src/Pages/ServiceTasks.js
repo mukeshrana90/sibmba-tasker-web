@@ -10,7 +10,6 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
 import CancelModal from "../CommanComponents/Modals/CancelModal";
-import FilterModal from "../CommanComponents/Modals/FilterModal";
 import SimbaPager from "../CommanComponents/SimbaPager";
 import moment from "moment";
 import { SimbaTaskTimeline } from "../CommanComponents/TaskDetail/SimbaTaskDetailParts";
@@ -89,7 +88,6 @@ export default function ServiceTasks() {
   const [activeTab, setActiveTab] = useState(
     allowedTabs.has(initialTab) ? initialTab : "first"
   );
-  const [showModal, setShowModal] = useState(false);
   const [isRequestModal, setIsRequestModal] = useState(false);
   const [showModalCancel, setShowModalCancel] = useState(false);
   const [ids] = useState(null);
@@ -111,12 +109,6 @@ export default function ServiceTasks() {
     completedTasks: [],
   });
   const [upcomingPage, setUpcomingPage] = useState(1);
-  const [listFilters, setListFilters] = useState({
-    need_done: "",
-    budget: "",
-    date: "",
-    time: "",
-  });
   const postTasksList = useSelector(
     (state) => state.service.getPostTaskService
   );
@@ -124,10 +116,6 @@ export default function ServiceTasks() {
 
   const fetchPostTaskList = useCallback(() => {
     const base = {
-      need_done: listFilters.need_done,
-      budget: listFilters.budget,
-      date: listFilters.date,
-      time: listFilters.time,
       limit: UPCOMING_PAGE_SIZE,
     };
 
@@ -148,7 +136,7 @@ export default function ServiceTasks() {
         page: 1,
       })
     );
-  }, [activeTab, dispatch, listFilters, upcomingPage]);
+  }, [activeTab, dispatch, upcomingPage]);
 
   useEffect(() => {
     fetchPostTaskList();
@@ -157,11 +145,6 @@ export default function ServiceTasks() {
   const handleTabChange = (tab) => {
     setUpcomingPage(1);
     setActiveTab(tab);
-  };
-
-  const handleFiltersApplied = (filters) => {
-    setUpcomingPage(1);
-    setListFilters(filters);
   };
 
   useEffect(() => {
@@ -732,18 +715,6 @@ export default function ServiceTasks() {
                 onChange={handleSearchChange}
               />
             </div>
-            {activeTab !== "second" && (
-              <button
-                type="button"
-                className="filter-btn"
-                aria-label="Filter tasks"
-                onClick={() => setShowModal(true)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 6h16M7 12h10M10 18h4" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
           </div>
         </div>
 
@@ -834,12 +805,6 @@ export default function ServiceTasks() {
           handleClose={handleCloseModalCancell}
           handleConfirm={handleConfirmCancel}
           handleCloseModal={handleCloseModalCancel}
-        />
-        <FilterModal
-          show={showModal}
-          handleClose={() => setShowModal(false)}
-          type={activeTab}
-          onFiltersApplied={handleFiltersApplied}
         />
         <Modal
           show={showFeedbackModal}

@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import Search from "../../CommanComponents/Search";
 import { ImagePathCustomer } from "../../utils/ImagePath";
 import { handleUserImageError } from "../../utils/landingUtils";
+import { customerDisplayName } from "../../utils/customerProfileUtils";
 import { ChatContext } from "../../context/ChatProvider";
 
 const NAV_LINKS = [
@@ -155,7 +156,7 @@ export default function CustomerAppNav({
   const profileImage = customerDetails?.profile_image
     ? ImagePathCustomer(customerDetails.profile_image)
     : null;
-  const initials = getInitials(customerDetails?.full_name);
+  const initials = getInitials(customerDisplayName(customerDetails));
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -302,7 +303,7 @@ export default function CustomerAppNav({
                   <span className="am-av">{initials}</span>
                 )}
                 <div className="am-meta">
-                  <b>{customerDetails?.full_name || "User"}</b>
+                  <b>{customerDisplayName(customerDetails)}</b>
                   <Link
                     to="/edit-profile"
                     onClick={() => setAvatarOpen(false)}

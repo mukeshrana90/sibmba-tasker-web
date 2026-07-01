@@ -16,6 +16,7 @@ import Layout from "../Components/Layout/Layout";
 import { setCustomer } from "../Redux/Reducers/LoginSlice";
 import { ImagePathCustomer } from "../utils/ImagePath";
 import { handleUserImageError } from "../utils/landingUtils";
+import { sanitizeProfileValue } from "../utils/customerProfileUtils";
 
 export default function EditProfileUser() {
   const token = localStorage.getItem("token");
@@ -180,14 +181,14 @@ export default function EditProfileUser() {
   useEffect(() => {
     if (customerDetails) {
       setInitialValues({
-        full_name: customerDetails.full_name || "",
-        email: customerDetails.email || "",
-        house_number: customerDetails.house_number || "",
-        address: customerDetails.address || "",
-        suburbs: customerDetails.suburbs || "",
-        country: customerDetails.country || "",
-        post_code: customerDetails.post_code || "",
-        landMark: customerDetails.landMark || "",
+        full_name: sanitizeProfileValue(customerDetails.full_name),
+        email: sanitizeProfileValue(customerDetails.email),
+        house_number: sanitizeProfileValue(customerDetails.house_number),
+        address: sanitizeProfileValue(customerDetails.address),
+        suburbs: sanitizeProfileValue(customerDetails.suburbs),
+        country: sanitizeProfileValue(customerDetails.country),
+        post_code: sanitizeProfileValue(customerDetails.post_code),
+        landMark: sanitizeProfileValue(customerDetails.landMark),
       });
       // setPreviews({ profile_image: customerDetails?.profile_image });
     }

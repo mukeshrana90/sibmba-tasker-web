@@ -25,6 +25,7 @@ import {
   handleCategoryImageError,
   serviceImageUrl,
 } from "../../utils/landingUtils";
+import { sanitizeProfileValue } from "../../utils/customerProfileUtils";
 
 function getDayName(date) {
   return date
@@ -77,9 +78,8 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
   );
 
   const profileAddress =
-    customerDetails?.address ||
-    customerDetails?.street_address ||
-    "";
+    sanitizeProfileValue(customerDetails?.address) ||
+    sanitizeProfileValue(customerDetails?.street_address);
   const profileCoords = customerDetails?.location?.coordinates;
 
   const displayLocation = customLocation || {

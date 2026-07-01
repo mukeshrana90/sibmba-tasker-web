@@ -17,6 +17,7 @@ import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { setCustomer } from "../../Redux/Reducers/LoginSlice";
 import { ImagePathCustomer } from "../../utils/ImagePath";
 import { handleUserImageError } from "../../utils/landingUtils";
+import { customerDisplayName } from "../../utils/customerProfileUtils";
 import { Modal } from "react-bootstrap";
 import { Roles } from "../../utils/Roles";
 
@@ -442,7 +443,7 @@ export default function Header({ isGuestLanding = false }) {
                                   alt="Profile"
                                 />
                                 <div>
-                                  <h2>{customerDetails?.full_name || "N/A"}</h2>
+                                  <h2>{customerDisplayName(customerDetails, "N/A")}</h2>
                                   <p
                                     onClick={() =>
                                       Number(role) === Roles.SERVICE_PROVIDER || Number(role) === Roles.CORPORATE  
