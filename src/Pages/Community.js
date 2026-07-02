@@ -68,6 +68,9 @@ export default function Community() {
   const eventData = communityDataId || selectedEvent;
   const events = communityData || [];
 
+  const eventLocationText =
+    eventData?.eventAddress?.trim() || eventData?.locationLink?.trim() || "";
+
   return (
     <Layout footerVariant="marketing">
       <div className="simba-page p-training p-community">
@@ -122,7 +125,7 @@ export default function Community() {
                   </div>
                   <div className="tm-info">
                     <h2>{eventData.eventName}</h2>
-                    <div className="tm-cat">{eventData.eventAddress || "—"}</div>
+                    <div className="tm-cat">{eventLocationText || "—"}</div>
                     <p className="tm-desc">
                       {eventData.description || "No description provided."}
                     </p>
@@ -133,7 +136,7 @@ export default function Community() {
                       </div>
                       <div className="ft">
                         <LocationIcon />
-                        <span>{eventData.eventAddress || "—"}</span>
+                        <span>{eventLocationText || "—"}</span>
                       </div>
                     </div>
                     {eventData.bookingLink && (
@@ -148,11 +151,12 @@ export default function Community() {
                   </div>
                 </div>
 
-                {eventData.location?.coordinates && (
+                {(eventData.location?.coordinates?.length >= 2 ||
+                  eventLocationText) && (
                   <div className="community-map-wrap">
                     <MapComponent
-                      coordinates={eventData.location.coordinates}
-                      address={eventData.eventAddress}
+                      coordinates={eventData.location?.coordinates}
+                      address={eventLocationText}
                     />
                   </div>
                 )}
