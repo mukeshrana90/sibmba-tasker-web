@@ -59,7 +59,6 @@ export default function SimbaMarketingFooter() {
             <LandingSectionLink sectionId="about">About us</LandingSectionLink>
             <Link to="/sign-up?role=2">Become a provider</Link>
             <a href="mailto:info@simbatasker.com">Contact</a>
-            <a href="mailto:info@simbatasker.com">Help centre</a>
           </div>
           <div className="foot-col">
             <h5>Legal</h5>

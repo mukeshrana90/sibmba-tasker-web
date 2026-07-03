@@ -351,9 +351,6 @@ export default function HomeLanding() {
               >
                 Join as a provider
               </button>
-              <Link to="/" className="landing-btn landing-btn--ghost">
-                Learn more
-              </Link>
             </div>
           </div>
         </div>

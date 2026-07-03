@@ -415,7 +415,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
                 <label>Service or provider</label>
                 <input
                   type="text"
-                  placeholder="e.g. Plumber, cleaning, John's Electrical…"
+                  placeholder="e.g. Plumbing, cleaning, John's Electrical…"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
