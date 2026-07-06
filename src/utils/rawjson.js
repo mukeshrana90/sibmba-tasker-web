@@ -1,4 +1,4 @@
-export const timeSchedule = [
+  export const timeSchedule = [
     "00am - 01am",
     "01am - 02am",
     "02am - 03am",
@@ -25,7 +25,6 @@ export const timeSchedule = [
     "11pm - 12am"
   ];
 
-
   export const weekDays = [
     "monday",
     "tuesday",
@@ -33,5 +32,5 @@ export const timeSchedule = [
     "thursday",
     "friday",
     "saturday",
-    "sunday",
+    "sunday"
   ];

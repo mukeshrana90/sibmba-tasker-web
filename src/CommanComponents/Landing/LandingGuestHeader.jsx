@@ -30,13 +30,41 @@ export default function LandingGuestHeader() {
   const [joinOpen, setJoinOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const joinRef = useRef(null);
+  const mobileOpenRef = useRef(false);
+  const lastScrollYRef = useRef(0);
+  const suppressScrollCloseRef = useRef(0);
 
   useEffect(() => {
+    mobileOpenRef.current = mobileOpen;
+    if (mobileOpen) {
+      suppressScrollCloseRef.current = Date.now() + 450;
+    }
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    lastScrollYRef.current = window.scrollY;
+
     const onScroll = () => {
-      document.getElementById("landingNav")?.classList.toggle("scrolled", window.scrollY > 8);
+      const y = window.scrollY;
+      document.getElementById("landingNav")?.classList.toggle("scrolled", y > 8);
       setJoinOpen(false);
-      setMobileOpen(false);
+
+      if (!mobileOpenRef.current) {
+        lastScrollYRef.current = y;
+        return;
+      }
+
+      if (Date.now() < suppressScrollCloseRef.current) {
+        lastScrollYRef.current = y;
+        return;
+      }
+
+      if (Math.abs(y - lastScrollYRef.current) > 10) {
+        setMobileOpen(false);
+      }
+      lastScrollYRef.current = y;
     };
+
     const onClose = () => setJoinOpen(false);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("landing:closeJoin", onClose);
@@ -58,7 +86,9 @@ export default function LandingGuestHeader() {
 
   return (
     <header
-      className={`landing-nav${joinOpen ? " landing-nav--join-open" : ""}`}
+      className={`landing-nav${joinOpen ? " landing-nav--join-open" : ""}${
+        mobileOpen ? " landing-nav--mobile-open" : ""
+      }`}
       id="landingNav"
     >
       <div className="landing-wrap landing-nav__inner">
@@ -174,8 +204,14 @@ export default function LandingGuestHeader() {
           className="landing-nav__menu-btn"
           aria-label="Menu"
           aria-expanded={mobileOpen}
-          onClick={() => {
-            setMobileOpen((v) => !v);
+          onClick={(e) => {
+            e.stopPropagation();
+            const next = !mobileOpenRef.current;
+            if (next) {
+              suppressScrollCloseRef.current = Date.now() + 500;
+            }
+            mobileOpenRef.current = next;
+            setMobileOpen(next);
             setJoinOpen(false);
           }}
         >

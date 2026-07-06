@@ -13,6 +13,7 @@ const CorporateActions = {
       return response.data;
     }
   ),
+
   acceptRejectCorporateSuggestion: createAsyncThunk(
     "/corporate/accept-reject-corporate-suggestion",
     async (customerData) => {
@@ -23,7 +24,8 @@ const CorporateActions = {
       return response.data;
     }
   ),
-    acceptRejectCorporateSuggestionFromUser: createAsyncThunk(
+
+  acceptRejectCorporateSuggestionFromUser: createAsyncThunk(
     "/customer/accept-reject-corporate-suggestion",
     async (customerData) => {
       const response = await Api.post(
@@ -33,17 +35,18 @@ const CorporateActions = {
       return response.data;
     }
   ),
+
   getCorporateDashboard: createAsyncThunk("/corporate/dashboard", async () => {
     const response = await Api.get(`/corporate/dashboard`);
     return response.data;
   }),
 
   getUpcomingCorporateLeads: createAsyncThunk("corporate/get-upcoming-corporate-leads", async () => {
-  const response = await Api.get(`/corporate/get-upcoming-corporate-leads`);
-  return response.data;
-}),
-    getNearbyCorporatPro: createAsyncThunk(
-    "corporate/getNearbyCorporateWithCategory",
+    const response = await Api.get(`/corporate/get-upcoming-corporate-leads`);
+    return response.data;
+  }),
+
+  getNearbyCorporatPro: createAsyncThunk("corporate/getNearbyCorporateWithCategory",
     async (data, { rejectWithValue }) => {
       try {
         const params = {};
@@ -64,6 +67,7 @@ const CorporateActions = {
       }
     }
   ),
+
 };
 
 export default CorporateActions;

@@ -43,6 +43,7 @@ const ServiceActions = {
       return response.data;
     }
   ),
+
   getIdentificationList: createAsyncThunk(
     "service/getIdentifyYourSelf",
     async (customerData) => {
@@ -259,25 +260,24 @@ const ServiceActions = {
   ),
 
   // get post suggestion list
-getNearbyCorporateUser: createAsyncThunk(
-  "service/getNearbyCorporate",
-  async (data) => {
-    const params = {
-      lat: data.lat,
-      lng: data.lng,
-      category_id: data.category_id,
-    };
+  getNearbyCorporateUser: createAsyncThunk(
+    "service/getNearbyCorporate",
+    async (data) => {
+      const params = {
+        lat: data.lat,
+        lng: data.lng,
+        category_id: data.category_id,
+      };
 
-    if (data.page !== undefined && data.limit !== undefined) {
-      params.page = data.page;
-      params.limit = data.limit;
+      if (data.page !== undefined && data.limit !== undefined) {
+        params.page = data.page;
+        params.limit = data.limit;
+      }
+
+      const response = await Api.get("/service/getNearbyCorporate", { params });
+      return response.data;
     }
-
-    const response = await Api.get("/service/getNearbyCorporate", { params });
-    return response.data;
-  }
-),
-
+  ),
 
   getNearbyCorporateUserList: createAsyncThunk(
     "service/getNearbyCorporateUser",
@@ -298,6 +298,7 @@ getNearbyCorporateUser: createAsyncThunk(
       }
     }
   ),
+
   getNearbyCorporateWithCategory: createAsyncThunk(
     "service/getNearbyCorporateWithCategory",
     async (data, { rejectWithValue }) => {

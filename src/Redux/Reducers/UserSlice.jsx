@@ -37,15 +37,11 @@ const UserSlice = createSlice({
   extraReducers: (builder) => {
 
 
-
-
-
-
     //////////////////////////////////  Get sub category Detail  ////////
-
     builder.addCase(CustomerActions.getFilteredSubCategories.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getFilteredSubCategories.fulfilled,
       (state, action) => {
@@ -53,6 +49,7 @@ const UserSlice = createSlice({
         state.getSubCategories = action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getFilteredSubCategories.rejected,
       (state, action) => {
@@ -62,14 +59,11 @@ const UserSlice = createSlice({
     );
 
 
-
-
-
     ////////////////////////////////// category Detail  ////////
-
     builder.addCase(CustomerActions.getSubCategoryById.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getSubCategoryById.fulfilled,
       (state, action) => {
@@ -77,6 +71,7 @@ const UserSlice = createSlice({
         state.categoriesDetail = action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getSubCategoryById.rejected,
       (state, action) => {
@@ -85,12 +80,11 @@ const UserSlice = createSlice({
       }
     );
 
-
     ////////////////////////////////// all user services  ////////
-
     builder.addCase(CustomerActions.getAllServices.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getAllServices.fulfilled,
       (state, action) => {
@@ -98,6 +92,7 @@ const UserSlice = createSlice({
         state.AllUserServices = action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getAllServices.rejected,
       (state, action) => {
@@ -106,12 +101,11 @@ const UserSlice = createSlice({
       }
     );
 
-
     ////////////////////////////////// all user Categories  ////////
-
     builder.addCase(CustomerActions.getAllCategories.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getAllCategories.fulfilled,
       (state, action) => {
@@ -119,6 +113,7 @@ const UserSlice = createSlice({
         state.allUserCategories = action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getAllCategories.rejected,
       (state, action) => {
@@ -128,10 +123,10 @@ const UserSlice = createSlice({
     );
 
     ////////////////////////////////// get browser Categories home //////////
-
     builder.addCase(CustomerActions.getCategories.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getCategories.fulfilled,
       (state, action) => {
@@ -139,6 +134,7 @@ const UserSlice = createSlice({
         state.categories = action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getCategories.rejected,
       (state, action) => {
@@ -146,11 +142,12 @@ const UserSlice = createSlice({
         state.error = action.payload;
       }
     );
-    ////////////////////////////////// get Best service //////////
 
+    ////////////////////////////////// get Best service //////////
     builder.addCase(CustomerActions.getBestServices.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getBestServices.fulfilled,
       (state, action) => {
@@ -158,6 +155,7 @@ const UserSlice = createSlice({
         state.bestservices = action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getBestServices.rejected,
       (state, action) => {
@@ -168,10 +166,10 @@ const UserSlice = createSlice({
 
 
     ////////////////////////////////// get near by service //////////
-
     builder.addCase(CustomerActions.getNearByServices.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getNearByServices.fulfilled,
       (state, action) => {
@@ -179,6 +177,7 @@ const UserSlice = createSlice({
         state.nearByServices = action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getNearByServices.rejected,
       (state, action) => {
@@ -188,10 +187,10 @@ const UserSlice = createSlice({
     );
 
     ////////////////////////////////// get nearby service providers by category //////////
-
     builder.addCase(CustomerActions.getNearbyServiceProvider.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getNearbyServiceProvider.fulfilled,
       (state, action) => {
@@ -201,6 +200,7 @@ const UserSlice = createSlice({
           : action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getNearbyServiceProvider.rejected,
       (state, action) => {
@@ -211,15 +211,11 @@ const UserSlice = createSlice({
 
 
 
-
-
-
     ////////////////////////////////// payBooking //////////
-
-
     builder.addCase(CustomerActions.payBooking.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.payBooking.fulfilled,
       (state, action) => {
@@ -227,6 +223,7 @@ const UserSlice = createSlice({
         state.payBookingStatus = true
       }
     );
+
     builder.addCase(
       CustomerActions.payBooking.rejected,
       (state, action) => {
@@ -236,14 +233,11 @@ const UserSlice = createSlice({
     );
 
 
-
-
-
     ////////////////////////////////// get Service detail //////////
-
     builder.addCase(CustomerActions.getServiceDetail.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getServiceDetail.fulfilled,
       (state, action) => {
@@ -251,6 +245,7 @@ const UserSlice = createSlice({
         state.serviceDetail = action.payload;
       }
     );
+
     builder.addCase(
       CustomerActions.getServiceDetail.rejected,
       (state, action) => {
@@ -264,6 +259,7 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.getPostList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getPostList.fulfilled,
       (state, action) => {
@@ -271,6 +267,7 @@ const UserSlice = createSlice({
         state.postlist = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getPostList.rejected,
       (state, action) => {
@@ -283,6 +280,7 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.getPostTaskDetail.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getPostTaskDetail.fulfilled,
       (state, action) => {
@@ -290,6 +288,7 @@ const UserSlice = createSlice({
         state.postTaskDetail = action.payload;
       }
     );
+
     builder.addCase(
       CustomerActions.getPostTaskDetail.rejected,
       (state, action) => {
@@ -302,6 +301,7 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.getMyQuotationsList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getMyQuotationsList.fulfilled,
       (state, action) => {
@@ -314,6 +314,7 @@ const UserSlice = createSlice({
             : [];
       }
     );
+
     builder.addCase(
       CustomerActions.getMyQuotationsList.rejected,
       (state, action) => {
@@ -324,10 +325,10 @@ const UserSlice = createSlice({
 
 
     //////////////////////////////////////////////  
-
     builder.addCase(CustomerActions.getQuotationDataById.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getQuotationDataById.fulfilled,
       (state, action) => {
@@ -335,6 +336,7 @@ const UserSlice = createSlice({
         state.quotationDetail = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getQuotationDataById.rejected,
       (state, action) => {
@@ -344,10 +346,10 @@ const UserSlice = createSlice({
     );
 
     ////////////////////////////////////////////////
-
     builder.addCase(CustomerActions.getCommunity.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getCommunity.fulfilled,
       (state, action) => {
@@ -355,6 +357,7 @@ const UserSlice = createSlice({
         state.communityDetail = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getCommunity.rejected,
       (state, action) => {
@@ -364,10 +367,10 @@ const UserSlice = createSlice({
     );
 
     //////////////////////////////////////////////////////////////
-
     builder.addCase(CustomerActions.getCommunityById.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getCommunityById.fulfilled,
       (state, action) => {
@@ -375,6 +378,7 @@ const UserSlice = createSlice({
         state.communityDetailById = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getCommunityById.rejected,
       (state, action) => {
@@ -384,10 +388,10 @@ const UserSlice = createSlice({
     );
 
     ////////////////////////////////////////////////////////////////  
-
     builder.addCase(CustomerActions.faqsListingAction.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.faqsListingAction.fulfilled,
       (state, action) => {
@@ -395,6 +399,7 @@ const UserSlice = createSlice({
         state.getFaqListing = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.faqsListingAction.rejected,
       (state, action) => {
@@ -402,10 +407,12 @@ const UserSlice = createSlice({
         state.error = action.payload;
       }
     );
+
     ///////////////////////////////////////////////////////////////// 
     builder.addCase(CustomerActions.trainingListing.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.trainingListing.fulfilled,
       (state, action) => {
@@ -413,6 +420,7 @@ const UserSlice = createSlice({
         state.trainingListData = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.trainingListing.rejected,
       (state, action) => {
@@ -425,6 +433,7 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.statsListing.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.statsListing.fulfilled,
       (state, action) => {
@@ -432,6 +441,7 @@ const UserSlice = createSlice({
         state.statsListData = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.statsListing.rejected,
       (state, action) => {
@@ -444,6 +454,7 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.notificationListing.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.notificationListing.fulfilled,
       (state, action) => {
@@ -451,6 +462,7 @@ const UserSlice = createSlice({
         state.notificationData = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.notificationListing.rejected,
       (state, action) => {
@@ -460,10 +472,11 @@ const UserSlice = createSlice({
     )
 
 
-        ///////////////////////////////////////////////////////////////// 
+    ///////////////////////////////////////////////////////////////// 
     builder.addCase(CustomerActions.getServiceDetailReview.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getServiceDetailReview.fulfilled,
       (state, action) => {
@@ -471,6 +484,7 @@ const UserSlice = createSlice({
         state.detailService = action.payload;
       }
     );
+
     builder.addCase(
       CustomerActions.getServiceDetailReview.rejected,
       (state, action) => {
@@ -482,6 +496,7 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.getServiceProviderProfile.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getServiceProviderProfile.fulfilled,
       (state, action) => {
@@ -489,6 +504,7 @@ const UserSlice = createSlice({
         state.serviceProviderProfile = action.payload;
       }
     );
+
     builder.addCase(
       CustomerActions.getServiceProviderProfile.rejected,
       (state) => {
@@ -500,10 +516,12 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.customerSearch.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(CustomerActions.customerSearch.fulfilled, (state, action) => {
       state.loading = false;
       state.customerSearchResults = action.payload?.data;
     });
+
     builder.addCase(CustomerActions.customerSearch.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload;
@@ -512,6 +530,7 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.getTopRatedServices.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getTopRatedServices.fulfilled,
       (state, action) => {
@@ -519,6 +538,7 @@ const UserSlice = createSlice({
         state.topRatedServices = action.payload?.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getTopRatedServices.rejected,
       (state, action) => {
@@ -530,6 +550,7 @@ const UserSlice = createSlice({
     builder.addCase(CustomerActions.searchProviders.pending, (state) => {
       state.searchProvidersLoading = true;
     });
+
     builder.addCase(
       CustomerActions.searchProviders.fulfilled,
       (state, action) => {
@@ -537,6 +558,7 @@ const UserSlice = createSlice({
         state.searchProvidersResults = action.payload?.data;
       }
     );
+
     builder.addCase(CustomerActions.searchProviders.rejected, (state, action) => {
       state.searchProvidersLoading = false;
       state.error = action.payload;
@@ -546,4 +568,3 @@ const UserSlice = createSlice({
 });
 
 export default UserSlice.reducer;
-

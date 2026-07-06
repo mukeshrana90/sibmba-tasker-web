@@ -109,6 +109,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   // MARK: - RESEND OTP
   resendOtp: createAsyncThunk(
     "/customer/auth/resendOtp",
@@ -153,6 +154,7 @@ const CustomerActions = {
     const response = await Api.get(`/user/getOtherProfile?${queryString}`);
     return response.data;
   }),
+
   getCustomerRatingsById: createAsyncThunk(
     "/customer/ratings",
     async (userId) => {
@@ -172,6 +174,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   createCheckoutSession: createAsyncThunk(
     "/corporate/create_checkout_session",
     async (payload) => {
@@ -179,6 +182,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   updateSubscriptionPaymentStatus: createAsyncThunk(
     "/corporate/update-subscription-payment-status",
     async (id) => {
@@ -317,6 +321,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   createPost: createAsyncThunk(
     "/customer/post_tasks  ",
     async (customerData) => {
@@ -332,6 +337,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   payTask: createAsyncThunk(
     "/customer/initiate_payment_task ",
     async (payload) => {
@@ -401,6 +407,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   // accept, reject post tasks
   acceptRejectTaskCorporateSuggestion: createAsyncThunk(
     "/customer/accept-reject-corporate-suggestion",
@@ -559,8 +566,8 @@ const CustomerActions = {
       return body?.data !== undefined ? body.data : body;
     }
   ),
-  // corporate/product
 
+  // corporate/product
   getMyProductList: createAsyncThunk(
     "/corporate/product",
     async (customerData) => {
@@ -568,6 +575,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   CreateProduct: createAsyncThunk(
     "/corporate/product",
     async (customerData) => {
@@ -575,10 +583,12 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   updateProduct: createAsyncThunk("corporate/product", async (customerData) => {
     const response = await Api.post("corporate/product", customerData);
     return response.data;
   }),
+
   createCorporateSuggestionsForTask: createAsyncThunk(
     "/service/createCorporateSuggestion ",
     async (customerData) => {
@@ -589,6 +599,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   corpoInfoProductListUser: createAsyncThunk(
     "/customer/list-product",
     async (customerData) => {
@@ -628,13 +639,14 @@ const CustomerActions = {
     }
   ),
 
-   // Buy Product
+  // Buy Product
   buyProducts: createAsyncThunk("/customer/initiate_payment_for_product ",
     async (customerData) => {
       const response = await Api.post("/customer/initiate_payment_for_product", customerData);
       return response.data;
     }
   ),
+
   getPurchaseProducts: createAsyncThunk(
     "/customer/list-purchase-products",
     async (customerData) => {
@@ -642,6 +654,7 @@ const CustomerActions = {
       return response.data;
     }
   ),
+
   // MARK: - LOG OUT
   logOutUser: createAsyncThunk("/customer/auth/logOut", async () => {
     const response = await Api.post("/customer/auth/logOut");

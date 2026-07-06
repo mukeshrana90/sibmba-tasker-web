@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import Modal from "react-bootstrap/Modal";
+import Slider from "react-slick";
 import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -67,6 +68,9 @@ export default function ServiceProvider() {
   const profile = useSelector((e) => e.UserSlice.serviceProviderProfile);
   const loading = useSelector((e) => e.UserSlice.loading);
   const [showMapModal, setShowMapModal] = React.useState(false);
+  const [showGalleryModal, setShowGalleryModal] = React.useState(false);
+  const [activeGalleryIndex, setActiveGalleryIndex] = React.useState(0);
+  const gallerySliderRef = useRef(null);
   const [mapData, setMapData] = React.useState({ coordinates: null, address: "" });
   const [similarProviders, setSimilarProviders] = React.useState([]);
 
@@ -211,7 +215,7 @@ export default function ServiceProvider() {
     services.forEach((svc) => {
       if (Array.isArray(svc.images)) {
         svc.images.forEach((img) => {
-          if (img && items.length < 6) {
+          if (img) {
             items.push({
               src: serviceImageUrl(img),
               label: svc.serviceSubCategoryName || "Service",
@@ -222,6 +226,30 @@ export default function ServiceProvider() {
     });
     return items;
   }, [services]);
+
+  const gallerySliderSettings = useMemo(
+    () => ({
+      dots: true,
+      infinite: galleryImages.length > 1,
+      speed: 400,
+      slidesToShow: 1,
+      slidesToScroll: 1,
+      arrows: galleryImages.length > 1,
+      adaptiveHeight: false,
+      initialSlide: activeGalleryIndex,
+    }),
+    [galleryImages.length, activeGalleryIndex]
+  );
+
+  const openGallery = (index) => {
+    setActiveGalleryIndex(index);
+    setShowGalleryModal(true);
+  };
+
+  useEffect(() => {
+    if (!showGalleryModal || !gallerySliderRef.current) return;
+    gallerySliderRef.current.slickGoTo(activeGalleryIndex);
+  }, [showGalleryModal, activeGalleryIndex]);
 
   const minPrice = useMemo(() => {
     return services.reduce((min, svc) => {
@@ -609,7 +637,13 @@ export default function ServiceProvider() {
                   <p className="lead">Photos from this provider&apos;s services.</p>
                   <div className="gallery">
                     {galleryImages.map((item, idx) => (
-                      <div className="gimg" key={`${item.src}-${idx}`}>
+                      <button
+                        type="button"
+                        className="gimg"
+                        key={`${item.src}-${idx}`}
+                        onClick={() => openGallery(idx)}
+                        aria-label={`View ${item.label} photo`}
+                      >
                         <img
                           src={item.src}
                           alt={item.label}
@@ -623,7 +657,7 @@ export default function ServiceProvider() {
                           }}
                         />
                         <span>{item.label}</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -1060,6 +1094,52 @@ export default function ServiceProvider() {
           </div>
         )}
       </div>
+
+      <Modal
+        show={showGalleryModal}
+        onHide={() => setShowGalleryModal(false)}
+        centered
+        dialogClassName="provider-gallery-modal__dialog"
+        contentClassName="provider-gallery-modal__content"
+        className="provider-gallery-modal"
+      >
+        <Modal.Header closeButton className="provider-gallery-modal__header">
+          <Modal.Title>
+            Recent work
+            {galleryImages.length > 1 && (
+              <span className="provider-gallery-modal__count">
+                {activeGalleryIndex + 1} / {galleryImages.length}
+              </span>
+            )}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="provider-gallery-modal__body">
+          {galleryImages.length > 0 && (
+            <Slider
+              ref={gallerySliderRef}
+              key={`gallery-${activeGalleryIndex}-${showGalleryModal}`}
+              {...gallerySliderSettings}
+              afterChange={(index) => setActiveGalleryIndex(index)}
+              className="provider-gallery-carousel"
+            >
+              {galleryImages.map((item, idx) => (
+                <div key={`${item.src}-${idx}`}>
+                  <div className="provider-gallery-slide">
+                    <div className="provider-gallery-modal__viewport">
+                      <img
+                        src={item.src}
+                        alt={item.label}
+                        onError={handleCategoryImageError}
+                      />
+                    </div>
+                    <p className="provider-gallery-caption">{item.label}</p>
+                  </div>
+                </div>
+              ))}
+            </Slider>
+          )}
+        </Modal.Body>
+      </Modal>
 
       <Modal
         show={showMapModal}

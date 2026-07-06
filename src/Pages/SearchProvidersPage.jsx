@@ -367,7 +367,14 @@ function SearchProvidersContent({ variant = "visitor" }) {
     () => results?.categoryFilters || [],
     [results?.categoryFilters]
   );
-  const locationFilters = results?.locationFilters || [];
+  const locationFilters = useMemo(
+    () =>
+      (results?.locationFilters || []).filter((loc) => {
+        const text = String(loc ?? "").trim();
+        return text && text !== "undefined" && text !== "null";
+      }),
+    [results?.locationFilters]
+  );
 
   const title = useMemo(() => {
     if (parsed.categoryIds.length === 1) {

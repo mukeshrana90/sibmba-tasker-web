@@ -28,10 +28,12 @@ const serviceSlice = createSlice({
     corpoProUserDetail:null
   },
   reducers: {},
+
   extraReducers: (builder) => {
     builder.addCase(ServiceActions.getCategoryList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getCategoryList.fulfilled,
       (state, action) => {
@@ -39,6 +41,7 @@ const serviceSlice = createSlice({
         state.category = action.payload;
       }
     );
+
     builder.addCase(
       ServiceActions.getCategoryList.rejected,
       (state, action) => {
@@ -48,11 +51,10 @@ const serviceSlice = createSlice({
     );
 
     ////////////////////////////
-
-
     builder.addCase(ServiceActions.getIdentificationList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getIdentificationList.fulfilled,
       (state, action) => {
@@ -60,6 +62,7 @@ const serviceSlice = createSlice({
         state.identificationList = action.payload;
       }
     );
+
     builder.addCase(
       ServiceActions.getIdentificationList.rejected,
       (state, action) => {
@@ -68,12 +71,11 @@ const serviceSlice = createSlice({
       }
     );
 
-
     //////////////////////////////////
-
     builder.addCase(ServiceActions.getMyServicesList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getMyServicesList.fulfilled,
       (state, action) => {
@@ -81,6 +83,7 @@ const serviceSlice = createSlice({
         state.myservices = action.payload.data;
       }
     );
+
     builder.addCase(
       ServiceActions.getMyServicesList.rejected,
       (state, action) => {
@@ -93,6 +96,7 @@ const serviceSlice = createSlice({
     builder.addCase(CustomerActions.getMyProductList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.getMyProductList.fulfilled,
       (state, action) => {
@@ -100,6 +104,7 @@ const serviceSlice = createSlice({
         state.myProducts = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.getMyProductList.rejected,
       (state, action) => {
@@ -109,10 +114,10 @@ const serviceSlice = createSlice({
     );
 
     //////////////////////////////////
-
     builder.addCase(ServiceActions.getMyServiceDetailById.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getMyServiceDetailById.fulfilled,
       (state, action) => {
@@ -120,6 +125,7 @@ const serviceSlice = createSlice({
         state.serviceDetail = action.payload.data;
       }
     );
+
     builder.addCase(
       ServiceActions.getMyServiceDetailById.rejected,
       (state, action) => {
@@ -129,10 +135,10 @@ const serviceSlice = createSlice({
     );
 
     ///////////////////////////////////// 
-
     builder.addCase(ServiceActions.getRequestList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getRequestList.fulfilled,
       (state, action) => {
@@ -140,6 +146,7 @@ const serviceSlice = createSlice({
         state.getServiceRequestList = action.payload.data;
       }
     );
+
     builder.addCase(
       ServiceActions.getRequestList.rejected,
       (state, action) => {
@@ -152,6 +159,7 @@ const serviceSlice = createSlice({
     builder.addCase(ServiceActions.getBookingReqDetailById.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getBookingReqDetailById.fulfilled,
       (state, action) => {
@@ -159,6 +167,7 @@ const serviceSlice = createSlice({
         state.getBookingRequestList = action.payload.data;
       }
     );
+
     builder.addCase(
       ServiceActions.getBookingReqDetailById.rejected,
       (state, action) => {
@@ -166,11 +175,12 @@ const serviceSlice = createSlice({
         state.error = action.payload;
       }
     );
-    ////////////////////////////////////////////////////
 
+    ////////////////////////////////////////////////////
     builder.addCase(ServiceActions.getPostTaskList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getPostTaskList.fulfilled,
       (state, action) => {
@@ -178,6 +188,7 @@ const serviceSlice = createSlice({
         state.getPostTaskService = action.payload.data;
       }
     );
+
     builder.addCase(
       ServiceActions.getPostTaskList.rejected,
       (state, action) => {
@@ -187,11 +198,10 @@ const serviceSlice = createSlice({
     );
 
     //////////////////////////////////////////////////////////
-
-
     builder.addCase(ServiceActions.getCustomerReviews.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getCustomerReviews.fulfilled,
       (state, action) => {
@@ -199,6 +209,7 @@ const serviceSlice = createSlice({
         state.getReviewList = action.payload.data;
       }
     );
+
     builder.addCase(
       ServiceActions.getCustomerReviews.rejected,
       (state, action) => {
@@ -208,10 +219,10 @@ const serviceSlice = createSlice({
     );
 
     ////////////////////////////////////////////////////////////   
-
     builder.addCase(ServiceActions.getServiceSubCatById.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getServiceSubCatById.fulfilled,
       (state, action) => {
@@ -219,6 +230,7 @@ const serviceSlice = createSlice({
         state.serviceSubCatList = action.payload.data;
       }
     );
+
     builder.addCase(
       ServiceActions.getServiceSubCatById.rejected,
       (state, action) => {
@@ -228,16 +240,17 @@ const serviceSlice = createSlice({
     );
 
     /////////////////////////////////////////////////////////////
-
     builder.addCase(ServiceActions.getMyWallets.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getMyWallets.fulfilled, (state, action) => {
         state.loading = false;
         state.walletDetail = action.payload;
       }
     );
+
     builder.addCase(
       ServiceActions.getMyWallets.rejected,
       (state, action) => {
@@ -246,17 +259,18 @@ const serviceSlice = createSlice({
       }
     );
 
-
     /////////////////////////////////////////////////////////////
     builder.addCase(ServiceActions.getServiceProviderByCategory.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getServiceProviderByCategory.fulfilled, (state, action) => {
         state.loading = false;
         state.getServiceProviderCategory = action.payload.data;
       }
     );
+
     builder.addCase(
       ServiceActions.getServiceProviderByCategory.rejected,
       (state, action) => {
@@ -266,16 +280,18 @@ const serviceSlice = createSlice({
     );
 
 
-        /////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
     builder.addCase(ServiceActions.getServiceCategoryDetailId.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getServiceCategoryDetailId.fulfilled, (state, action) => {
         state.loading = false;
         state.categoryData = action.payload;
       }
     );
+
     builder.addCase(
       ServiceActions.getServiceCategoryDetailId.rejected,
       (state, action) => {
@@ -283,25 +299,28 @@ const serviceSlice = createSlice({
         state.error = action.payload;
       }
     );
+
     // start suggestion
     builder.addCase(ServiceActions.getNearbyCorporateUser.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(ServiceActions.getNearbyCorporateUser.fulfilled, (state, action) => {
       state.loading = false;
       state.corporateSuggestions = action.payload.data; 
     });
+
     builder.addCase(ServiceActions.getNearbyCorporateUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.error;
     });
     // end suggestion
 
-     // corporate Start
-
+    // corporate Start
     builder.addCase(CustomerActions.corpoInfoProductListUser.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.corpoInfoProductListUser.fulfilled,
       (state, action) => {
@@ -309,6 +328,7 @@ const serviceSlice = createSlice({
         state.getCorporateList = action.payload;
       }
     );
+
     builder.addCase(
       CustomerActions.corpoInfoProductListUser.rejected,
       (state, action) => {
@@ -316,9 +336,11 @@ const serviceSlice = createSlice({
         state.error = action.payload;
       }
     )
-      builder.addCase(CustomerActions.corpoProUserDetail.pending, (state) => {
+
+    builder.addCase(CustomerActions.corpoProUserDetail.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       CustomerActions.corpoProUserDetail.fulfilled,
       (state, action) => {
@@ -326,6 +348,7 @@ const serviceSlice = createSlice({
         state.corpoProUserDetail = action.payload.data;
       }
     );
+
     builder.addCase(
       CustomerActions.corpoProUserDetail.rejected,
       (state, action) => {
@@ -333,11 +356,12 @@ const serviceSlice = createSlice({
         state.error = action.payload;
       }
     )
-
-// 
-  builder.addCase(ServiceActions.getCorporateCategoryList.pending, (state) => {
+  
+  // 
+    builder.addCase(ServiceActions.getCorporateCategoryList.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(
       ServiceActions.getCorporateCategoryList.fulfilled,
       (state, action) => {
@@ -345,6 +369,7 @@ const serviceSlice = createSlice({
         state.corporateCategory = action.payload;
       }
     );
+
     builder.addCase(
       ServiceActions.getCorporateCategoryList.rejected,
       (state, action) => {
@@ -352,14 +377,17 @@ const serviceSlice = createSlice({
         state.error = action.payload;
       }
     );
+
     // start  get Near by Corporate With Category
     builder.addCase(ServiceActions.getNearbyCorporateWithCategory.pending, (state) => {
       state.loading = true;
     });
+
     builder.addCase(ServiceActions.getNearbyCorporateWithCategory.fulfilled, (state, action) => {
       state.loading = false;
       state.nearbyCorporateCategory = action.payload.data; 
     });
+
     builder.addCase(ServiceActions.getNearbyCorporateWithCategory.rejected, (state, action) => {
       state.loading = false;
       state.error = action.error;

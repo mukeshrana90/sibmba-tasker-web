@@ -83,12 +83,18 @@
   z-index: 1200;
 }
 
+.landing-nav--mobile-open {
+  z-index: 1300;
+}
+
 .landing-nav__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 74px;
   gap: 16px;
+  position: relative;
+  z-index: 2;
 }
 
 .landing-nav__logo img {
@@ -234,6 +240,10 @@
   border: none;
   cursor: pointer;
   padding: 6px;
+  position: relative;
+  z-index: 5;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .landing-nav-mobile {
@@ -1501,6 +1511,7 @@
     width: 100%;
     max-width: 100vw;
     overflow-x: clip;
+    overflow-y: visible;
   }
 
   .landing-nav__inner {
