@@ -19,6 +19,7 @@ import {
   loadPostTaskDraft,
   savePostTaskDraft,
 } from "../utils/postTaskDraft";
+import { normalizeCategoryList } from "../utils/normalizeCategory";
 
 const TIME_SLOTS = [
   {
@@ -192,6 +193,14 @@ export default function PostTask() {
     [isCustomer]
   );
 
+  const categoryList = useMemo(
+    () =>
+      normalizeCategoryList(
+        categories?.allCat || categories?.data?.allCat || []
+      ),
+    [categories]
+  );
+
   const handleTimeSelect = (time, setFieldValue) => {
     setSelectedTime(time);
     setFieldValue("task_time", time);
@@ -362,9 +371,9 @@ export default function PostTask() {
                           className="control"
                         >
                           <option value="">Select a service</option>
-                          {categories?.allCat?.map((ele) => (
-                            <option key={ele?._id} value={ele?._id}>
-                              {ele?.service_category_name}
+                          {categoryList.map((ele) => (
+                            <option key={ele._id} value={ele._id}>
+                              {ele.service_category_name}
                             </option>
                           ))}
                         </Field>

@@ -8,10 +8,11 @@ import ServiceActions from "../Redux/Actions/ServiceActions";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import moment from "moment";
 import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirmationModal";
 import CancelModal from "../CommanComponents/Modals/CancelModal";
 import SimbaPager from "../CommanComponents/SimbaPager";
-import moment from "moment";
+import { bookingDetailPath } from "../utils/normalizeMongoId";
 import { SimbaTaskTimeline } from "../CommanComponents/TaskDetail/SimbaTaskDetailParts";
 import {
   formatDisplayTitle,
@@ -274,13 +275,13 @@ export default function ServiceTasks() {
 
   // Handle reject button
   const handleConfirmCancel = () => {
-    navigate(`/requestdetail/${ids}?service=reject`);
+    navigate(bookingDetailPath(ids, "service=reject"));
     setShowModalCancel(false);
   };
 
   // Close cancel modal with navigation
   const handleCloseModalCancel = () => {
-    navigate(`/requestdetail/${ids}`);
+    navigate(bookingDetailPath(ids));
     setShowModalCancel(false);
   };
 

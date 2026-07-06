@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import CustomerActions from "../Actions/CustomerActions";
+import { normalizeCategoryResponseData } from "../../utils/normalizeCategory";
 
 const UserSlice = createSlice({
   name: "service",
@@ -110,7 +111,9 @@ const UserSlice = createSlice({
       CustomerActions.getAllCategories.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.allUserCategories = action.payload?.data;
+        state.allUserCategories = normalizeCategoryResponseData(
+          action.payload?.data
+        );
       }
     );
 
@@ -131,7 +134,7 @@ const UserSlice = createSlice({
       CustomerActions.getCategories.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.categories = action.payload?.data;
+        state.categories = normalizeCategoryResponseData(action.payload?.data);
       }
     );
 

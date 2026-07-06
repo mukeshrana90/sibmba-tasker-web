@@ -10,12 +10,14 @@ import {
 } from "../../utils/landingUtils";
 import { resolveCoordsForCorporateSearch } from "../../utils/landingGeocode";
 
+import { normalizeMongoId } from "../../utils/normalizeMongoId";
+
 function resolveCategoryId(customerData) {
-  return (
+  return normalizeMongoId(
     customerData?.category_id?._id ??
-    customerData?.category_id ??
-    customerData?.serviceCategory ??
-    undefined
+      customerData?.category_id ??
+      customerData?.serviceCategory ??
+      undefined
   );
 }
 

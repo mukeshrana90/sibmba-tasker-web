@@ -16,6 +16,7 @@ import {
   handleCategoryImageError,
   serviceImageUrl,
 } from "../utils/landingUtils";
+import { normalizeMongoId } from "../utils/normalizeMongoId";
 
 export default function ServiceReject() {
 
@@ -32,7 +33,8 @@ export default function ServiceReject() {
     };
 
     const dispatch = useDispatch()
-    const { id } = useParams()
+    const { id: routeId } = useParams()
+    const bookingId = normalizeMongoId(routeId)
 
     const [show, setShow] = useState(false);
     const [showReschedule, setShowReschedule] = useState(false);
@@ -79,8 +81,9 @@ export default function ServiceReject() {
     };
 
     useEffect(() => {
-        dispatch(ServiceActions.getBookingReqDetailById({ id: id }))
-    }, [dispatch, id])
+        if (!bookingId) return;
+        dispatch(ServiceActions.getBookingReqDetailById({ id: bookingId }))
+    }, [dispatch, bookingId])
 
 
     return (
@@ -255,7 +258,7 @@ export default function ServiceReject() {
             <ServiceRescheduleModal
                 show={showReschedule}
                 setShow={setShowReschedule}
-                service_id={id}
+                service_id={bookingId}
             />
         </Layout>
     );

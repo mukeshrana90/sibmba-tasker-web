@@ -14,6 +14,7 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import AddressAutocomplete from "../CommanComponents/AddressAutocomplete";
 import moment from "moment";
 import { taskImageUrl } from "../utils/landingUtils";
+import { normalizeCategoryList } from "../utils/normalizeCategory";
 
 const validationSchema = Yup.object({
   need_done: Yup.string().required("Task description is required"),
@@ -120,6 +121,9 @@ export default function EditTask() {
   };
 
   const categories = useSelector((e) => e.UserSlice.categories);
+  const categoryList = normalizeCategoryList(
+    categories?.allCat || categories?.data?.allCat || []
+  );
 
   useEffect(() => {
     const fetchCategoryAndServices = async () => {
@@ -233,8 +237,10 @@ export default function EditTask() {
                             as={Form.Select}
                           >
                             <option value="">Select a service</option>
-                            {categories?.allCat?.map((ele, index) => (
-                              <option value={ele?._id}>{ele?.service_category_name}</option>
+                            {categoryList.map((ele) => (
+                              <option key={ele._id} value={ele._id}>
+                                {ele.service_category_name}
+                              </option>
                             ))}
 
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -30,6 +30,10 @@ import {
   getBookingFlowDescription,
   JOB_FLOW_STEP_LABELS,
 } from "../utils/jobFlowStatus";
+import {
+  bookingDetailPath,
+  normalizeMongoId,
+} from "../utils/normalizeMongoId";
 
 export default function ServiceRequest() {
   const SERVICE_REQUEST_STATUS_TOAST_ID = "service-request-status-update";
@@ -56,7 +60,8 @@ export default function ServiceRequest() {
   const dropdownRefs = useRef({});
   const Navigate = useNavigate();
   const dispatch = useDispatch();
-  const { id } = useParams();
+  const { id: routeId } = useParams();
+  const bookingId = useMemo(() => normalizeMongoId(routeId), [routeId]);
   const [dropdownStates, setDropdownStates] = useState({});
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -137,10 +142,15 @@ export default function ServiceRequest() {
   };
 
   useEffect(() => {
-    dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
-  }, [dispatch, id]);
+    if (!bookingId) {
+      toast.error("Invalid booking link.");
+      Navigate("/requests");
+      return;
+    }
+    dispatch(ServiceActions.getBookingReqDetailById({ id: bookingId }));
+  }, [dispatch, bookingId, Navigate]);
   useEffect(() => {
-    if (!id) return;
+    if (!bookingId) return;
     const pollable = [
       bookingStatus.ACCEPTED,
       bookingStatus.ON_THE_WAY,
@@ -149,10 +159,10 @@ export default function ServiceRequest() {
     if (!pollable.includes(bookingCurrentStatus)) return;
     const intervalId = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
-      dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
+      dispatch(ServiceActions.getBookingReqDetailById({ id: bookingId }));
     }, 15000);
     return () => window.clearInterval(intervalId);
-  }, [dispatch, id, bookingCurrentStatus]);
+  }, [dispatch, bookingId, bookingCurrentStatus]);
   useEffect(() => {
     if (!navigator?.geolocation) return;
     navigator.geolocation.getCurrentPosition(
@@ -176,7 +186,7 @@ export default function ServiceRequest() {
   
     dispatch(
       ServiceActions.updateBookingStatus({
-        booking_id: id,
+        booking_id: bookingId,
         status: 2,
       })
     )
@@ -187,8 +197,10 @@ export default function ServiceRequest() {
           if (selectedCorporate && selectedCorporate.length > 0) {
             dispatch(
               CustomerActions.createCorporateSuggestionsForTask({
-                bookingId: id,
-                corporateIds: selectedCorporate.map((corp) => corp?._id),
+                bookingId: bookingId,
+                corporateIds: selectedCorporate.map((corp) =>
+                  normalizeMongoId(corp?._id)
+                ),
               })
             );
           }
@@ -210,7 +222,7 @@ export default function ServiceRequest() {
     setJobDoneSubmitting(true);
     dispatch(
       ServiceActions.updateBookingStatus({
-        booking_id: id,
+        booking_id: bookingId,
         status: targetStatus,
       })
     ).then((res) => {
@@ -222,7 +234,7 @@ export default function ServiceRequest() {
             ? "Marked as in progress."
             : "Job marked as done.";
         showSingleStatusToast(msg);
-        dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
+        dispatch(ServiceActions.getBookingReqDetailById({ id: bookingId }));
       }
     }).finally(() => {
       setJobDoneSubmitting(false);
@@ -233,13 +245,13 @@ export default function ServiceRequest() {
     setCancelSubmitting(true);
     dispatch(
       ServiceActions.updateBookingStatus({
-        booking_id: id,
+        booking_id: bookingId,
         status: bookingStatus.CANCELLED,
       })
     ).then((res) => {
       if (res?.payload?.success) {
         showSingleStatusToast("Booking cancelled successfully.");
-        dispatch(ServiceActions.getBookingReqDetailById({ id: id }));
+        dispatch(ServiceActions.getBookingReqDetailById({ id: bookingId }));
       } else {
         toast.error(res?.payload?.message || "Could not cancel booking.");
       }
@@ -283,7 +295,7 @@ export default function ServiceRequest() {
 
     dispatch(
       ServiceActions.updateBookingStatus({
-        booking_id: id,
+        booking_id: bookingId,
         status: 3, // Rejected
         reasonForCancel: cancelReason,
         message: cancelNotes,
@@ -418,13 +430,13 @@ export default function ServiceRequest() {
                         className="chat-btn-card"
                         style={{ position: "relative" }}
                         ref={(el) =>
-                          (dropdownRefs.current[bookingReqDetail?._id] = el)
+                          (dropdownRefs.current[bookingId] = el)
                         }
                       >
                         <button
                           className="btn"
                           onClick={() =>
-                            handleButtonClick(bookingReqDetail?._id)
+                            handleButtonClick(bookingId)
                           }
                         >
                           <svg
@@ -448,7 +460,7 @@ export default function ServiceRequest() {
                             />
                           </svg>
                         </button>
-                        {dropdownStates[bookingReqDetail?._id] && (
+                        {dropdownStates[bookingId] && (
                           <div
                             style={{
                               position: "absolute",
@@ -476,9 +488,9 @@ export default function ServiceRequest() {
                                 fontSize: "14px",
                               }}
                               onClick={() => {
-                                handleButtonClick(bookingReqDetail?._id);
+                                handleButtonClick(bookingId);
                                 Navigate(
-                                  `/requestdetail/${bookingReqDetail?._id}?service=reject`
+                                  bookingDetailPath(bookingId, "service=reject")
                                 );
                               }}
                             >
@@ -490,7 +502,7 @@ export default function ServiceRequest() {
                     )}
                   </div>
 
-                  <span>{`${bookingReqDetail?.slotTime[0]}, ${moment(
+                  <span>{`${bookingReqDetail?.slotTime?.[0] || "Not specified"}, ${moment(
                     bookingReqDetail?.date
                   ).format("DD MMM")}`}</span>
                   <p>
@@ -808,7 +820,7 @@ export default function ServiceRequest() {
                             </h3>
                             <JobFlowStepper mode="booking" status={bookingReqDetail?.status} />
                             <p>{description}</p>
-                            <h4>{`${bookingReqDetail?.slotTime[0]}, ${moment(
+                            <h4>{`${bookingReqDetail?.slotTime?.[0] || "Not specified"}, ${moment(
                               bookingReqDetail?.date
                             ).format("DD MMM")}`}</h4>
                           </>
@@ -968,7 +980,7 @@ export default function ServiceRequest() {
       <ServiceRescheduleModal
         show={showReschedule}
         setShow={setShowReschedule}
-        service_id={id}
+        service_id={bookingId}
       />
 
       <BookingCancelled

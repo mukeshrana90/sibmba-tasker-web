@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import ServiceActions from "../Actions/ServiceActions";
 import CustomerActions from "../Actions/CustomerActions";
+import { normalizeBookingList } from "../../utils/normalizeApiDocument";
 
 const serviceSlice = createSlice({
   name: "service",
@@ -143,7 +144,7 @@ const serviceSlice = createSlice({
       ServiceActions.getRequestList.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.getServiceRequestList = action.payload.data;
+        state.getServiceRequestList = normalizeBookingList(action.payload?.data);
       }
     );
 
@@ -164,7 +165,7 @@ const serviceSlice = createSlice({
       ServiceActions.getBookingReqDetailById.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.getBookingRequestList = action.payload.data;
+        state.getBookingRequestList = normalizeBookingList(action.payload?.data);
       }
     );
 

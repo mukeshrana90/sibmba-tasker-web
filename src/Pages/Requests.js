@@ -13,6 +13,7 @@ import BookingConfirmationModal from "../CommanComponents/Modals/BookingConfirma
 import CancelModal from "../CommanComponents/Modals/CancelModal";
 import JobFlowStepper from "../CommanComponents/JobFlowStepper";
 import { bookingStatus } from "../utils/jobFlowStatus";
+import { bookingDetailPath } from "../utils/normalizeMongoId";
 
 export default function Requests() {
   const Navigate = useNavigate();
@@ -132,12 +133,12 @@ export default function Requests() {
     //   .catch(() => {
     //     toast.error("Failed to reject booking.");
     //   });
-    Navigate(`/requestdetail/${ids}?service=reject`);
+    Navigate(bookingDetailPath(ids, "service=reject"));
     setShowModalCancel(false);
   };
 
   const handleCloseModalCancel = () => {
-    Navigate(`/requestdetail/${ids}`);
+    Navigate(bookingDetailPath(ids));
     setShowModalCancel(false);
   };
 
@@ -282,7 +283,7 @@ export default function Requests() {
                                         style={{ cursor: "pointer" }}
                                         onClick={() =>
                                           Navigate(
-                                            `/requestdetail/${request?._id}`
+                                            bookingDetailPath(request?._id)
                                           )
                                         }
                                       >
@@ -424,7 +425,10 @@ export default function Requests() {
                                         style={{ cursor: "pointer" }}
                                         onClick={() =>
                                           Navigate(
-                                            `/requestdetail/${request?._id}?service=approved`
+                                            bookingDetailPath(
+                                              request?._id,
+                                              "service=approved"
+                                            )
                                           )
                                         }
                                       >
@@ -632,7 +636,12 @@ export default function Requests() {
                                       <h3
                                         style={{ cursor: "pointer" }}
                                         onClick={() =>
-                                          Navigate(`/requestdetail/${request?._id}?service=completed`)
+                                          Navigate(
+                                            bookingDetailPath(
+                                              request?._id,
+                                              "service=completed"
+                                            )
+                                          )
                                         }
                                       >
                                         {request.serviceSubCategory?.serviceSubCategoryName || "Service"}
