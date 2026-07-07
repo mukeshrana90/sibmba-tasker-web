@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
+import { normalizeMongoId, otpVerificationPath } from "../utils/normalizeMongoId";
 
 const AUTH_VISUAL_IMG =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
@@ -39,7 +40,7 @@ export default function ForgotPassword() {
         CustomerActions.forgotPassword({ email, type: 1 })
       );
       if (res?.payload?.success) {
-        setUserId(res.payload.data?._id);
+        setUserId(normalizeMongoId(res.payload.data?._id));
         setPhoneNumber(res.payload.data?.phone_number || null);
         setCountryCode(res.payload.data?.country_code || null);
         setShowOtpModal(true);
@@ -69,7 +70,7 @@ export default function ForgotPassword() {
         toast.success(res?.payload?.message || "OTP sent successfully");
         setShowOtpModal(false);
         navigate(
-          `/otp-varification?userId=${userId}&type=forgot&otpType=${otpType}`,
+          otpVerificationPath(userId, { type: "forgot", otpType }),
           { replace: true }
         );
       } else {

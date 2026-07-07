@@ -12,7 +12,7 @@ import { consumeAuthReturnUrl } from "../utils/authRedirect";
 import { autoCompleteCustomerProfile } from "../utils/customerProfileAutoComplete";
 import { Roles } from "../utils/Roles";
 import { emit } from "../utils/socketService";
-import { persistUserId } from "../utils/normalizeMongoId";
+import { persistUserId, normalizeMongoId, resetPasswordPath } from "../utils/normalizeMongoId";
 
 export default function OtpVarification() {
 
@@ -40,7 +40,7 @@ export default function OtpVarification() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const query = useQuery();
-  const userId = query.get("userId");
+  const userId = normalizeMongoId(query.get("userId"));
   const type = query.get("type");
   const otpType = query.get("otpType") || "1"; // Default to 1 (email) if not provided
   const [otp, setOtp] = useState("");
@@ -158,25 +158,25 @@ export default function OtpVarification() {
     if (res?.payload?.success) {
       toast.success(res?.payload?.message);
       const token = res?.payload?.data?.token;
-      const userId = res?.payload?.data?._id;
+      const verifiedUserId = persistUserId(res?.payload?.data?._id);
       const userRole = res?.payload?.data?.role;
       // Set expiration (7 days)
       const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
       if (type === "forgot") {
-        navigate(`/reset-password?userId=${userId}`, { replace: true });
+        navigate(resetPasswordPath(verifiedUserId), { replace: true });
       } else if (
         Number(res?.payload?.data?.is_completeProfile) === 0 &&
         Number(userRole) === Roles.CUSTOMER
       ) {
         localStorage.setItem("temptoken", token);
-        persistUserId(userId);
+        persistUserId(verifiedUserId);
         localStorage.setItem("expiresAt", expiresAt);
 
         const profileResult = await autoCompleteCustomerProfile(dispatch, {
           email: res?.payload?.data?.email,
           token,
-          userId,
+          userId: verifiedUserId,
           role: userRole,
           expiresAt,
         });
@@ -184,19 +184,19 @@ export default function OtpVarification() {
         if (!profileResult.ok) {
           toast.error(profileResult.message);
         } else {
-          emit("new_user_connect", { userid: userId });
+          emit("new_user_connect", { userid: verifiedUserId });
         }
 
         navigate(consumeAuthReturnUrl() || "/", { replace: true });
       } else if (Number(userRole) === 2 || Number(userRole) === 3) {
         localStorage.setItem("temptoken", token);
-        persistUserId(userId);
+        persistUserId(verifiedUserId);
         localStorage.setItem("expiresAt", expiresAt);
         navigate(`/provider?role=${userRole}`, { replace: true });
       } else {
         localStorage.removeItem("temptoken");
         localStorage.setItem("token", token);
-        persistUserId(userId);
+        persistUserId(verifiedUserId);
         localStorage.setItem("role", userRole);
         localStorage.setItem("expiresAt", expiresAt);
         navigate(consumeAuthReturnUrl() || "/", { replace: true });

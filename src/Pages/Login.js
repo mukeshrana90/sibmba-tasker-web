@@ -14,7 +14,7 @@ import { getFirebaseToken } from "../utils/fireBaseConfig";
 import { expiresAt } from "../utils/CommonFunction";
 import { Roles } from "../utils/Roles";
 import { autoCompleteCustomerProfile } from "../utils/customerProfileAutoComplete";
-import { persistUserId } from "../utils/normalizeMongoId";
+import { persistUserId, otpVerificationPath } from "../utils/normalizeMongoId";
 
 const AUTH_VISUAL_IMG =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
@@ -147,7 +147,7 @@ export default function Login() {
       localStorage.setItem("expiresAt", expiresAt);
 
       if (Number(response?.payload?.data?.email_verified) === 0) {
-        navigate(`/otp-varification?userId=${userId}`, { replace: true });
+        navigate(otpVerificationPath(userId), { replace: true });
         toast.success(response?.payload?.message);
       } else if (
         Number(response?.payload?.data?.is_completeProfile) === 0 &&

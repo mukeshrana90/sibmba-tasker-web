@@ -10,11 +10,12 @@ import { toast } from "react-toastify";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import eyeOpenIcon from "../Assets/Images/eye-fill.svg";
 import eyeClosedIcon from "../Assets/Images/eye-off-fill.svg";
+import { normalizeMongoId } from "../utils/normalizeMongoId";
 export default function ResetPassword() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const query = useQuery();
-  const userId = query.get("userId");
+  const userId = normalizeMongoId(query.get("userId"));
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",

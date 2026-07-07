@@ -10,6 +10,7 @@ import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
 import { toast } from "react-toastify";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
 import { safeReturnUrl, setAuthReturnUrl } from "../utils/authRedirect";
+import { otpVerificationPath } from "../utils/normalizeMongoId";
 
 const ROLE_COPY = {
   1: {
@@ -230,7 +231,10 @@ export default function SignUp() {
       toast.success(response?.payload?.message || "Registration successful");
       setShowOtpModal(false);
       navigate(
-        `/otp-varification?userId=${response?.payload?.data?._id}&role=${selectedRole}&otpType=${otpType}`
+        otpVerificationPath(response?.payload?.data?._id, {
+          role: selectedRole,
+          otpType,
+        })
       );
     } else {
       toast.error(response?.payload?.message || "Registration failed");

@@ -124,3 +124,19 @@ export function serviceProCategoryDetailPath(serviceId) {
   const id = normalizeMongoId(serviceId);
   return id ? `/serviceprocategorydetail/${id}` : "/service-pro";
 }
+
+export function otpVerificationPath(userId, extraParams = {}) {
+  const id = normalizeMongoId(userId);
+  if (!id) return "/login";
+  const params = new URLSearchParams({ userId: id });
+  Object.entries(extraParams || {}).forEach(([key, value]) => {
+    if (value == null || value === "") return;
+    params.set(key, String(value));
+  });
+  return `/otp-varification?${params.toString()}`;
+}
+
+export function resetPasswordPath(userId) {
+  const id = normalizeMongoId(userId);
+  return id ? `/reset-password?userId=${encodeURIComponent(id)}` : "/forgot-password";
+}
