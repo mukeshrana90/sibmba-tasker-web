@@ -6086,6 +6086,12 @@ button.read-more-btn {
   gap: 20px;
 }
 
+.service-detail-card3 .booked-services-slide,
+.service-approved-detail-card .booked-services-slide {
+  overflow: hidden;
+  min-width: 0;
+}
+
 .service-detail-card3 img {
   border-radius: 8px;
   height: 225px;
@@ -6818,6 +6824,33 @@ section.page-mt {
     background: #fff;
     border-top: 1px solid #dee2e6;
     display: flex;
+    padding: 16px 24px 20px;
+  }
+
+  .modal-footer-fixed .btn-primary {
+    min-width: 220px;
+    padding: 14px 28px;
+    border-radius: 100px;
+    background: var(--primary) !important;
+    border: none !important;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow: 0 8px 20px -6px rgba(15, 92, 76, 0.5);
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s,
+      background 0.25s;
+  }
+
+  .modal-footer-fixed .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: var(--primary-2) !important;
+    box-shadow: 0 14px 28px -8px rgba(15, 92, 76, 0.6);
+  }
+
+  .modal-footer-fixed .btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 
   .corp-suggest-selected {
@@ -7799,7 +7832,15 @@ footer .logo{color:#fff;margin-bottom:16px}
   header.nav .menu-btn{display:block}
 }
 @media(max-width:980px){
-  .foot-grid{grid-template-columns:1fr 1fr;gap:32px}
+  .foot-grid{grid-template-columns:repeat(3,1fr);gap:28px 32px}
+  .foot-about{grid-column:1/-1}
+  .foot-about p{max-width:480px}
+}
+@media(max-width:768px){
+  .foot-bottom{flex-direction:column;text-align:center;align-items:center;gap:10px}
+}
+@media(max-width:600px){
+  .foot-grid{grid-template-columns:1fr 1fr;gap:24px}
 }
 @media(max-width:440px){
   .foot-grid{grid-template-columns:1fr}
@@ -8486,12 +8527,20 @@ footer .logo{color:#fff;margin-bottom:16px}
 .p-bookings{
   .wrap{max-width:1080px}
   .page{padding:38px 0 80px}
-  .tabs{display:flex;gap:30px;border-bottom:1px solid var(--line);margin-bottom:26px}
-  .tab{padding:0 2px 14px;font-weight:700;font-size:1rem;color:var(--muted);cursor:pointer;position:relative;background:none;border:none;font-family:var(--font-body);transition:color .2s}
+  .tabs{display:flex;gap:30px;border-bottom:1px solid var(--line);margin-bottom:26px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:0 2px 14px;font-weight:700;font-size:1rem;color:var(--muted);cursor:pointer;position:relative;background:none;border:none;font-family:var(--font-body);transition:color .2s;flex-shrink:0;white-space:nowrap}
   .tab::after{content:"";position:absolute;left:0;bottom:-1px;width:0;height:3px;background:var(--primary);border-radius:3px 3px 0 0;transition:width .25s}
   .tab:hover{color:var(--ink)}
   .tab.active{color:var(--primary)}
   .tab.active::after{width:100%}
+  @media(max-width:860px){
+    .tabs{gap:20px}
+  }
+  @media(max-width:520px){
+    .tabs{gap:16px}
+    .tab{font-size:.9rem}
+  }
   .seg-row{display:flex;justify-content:flex-end;margin-bottom:22px}
   .seg{display:inline-flex;gap:4px;background:var(--surface);border:1px solid var(--line);padding:5px;border-radius:100px;box-shadow:var(--shadow-sm)}
   .seg button{font-family:var(--font-body);font-weight:700;font-size:.86rem;padding:9px 18px;border-radius:100px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .22s}
@@ -8533,8 +8582,9 @@ footer .logo{color:#fff;margin-bottom:16px}
   .wrap{max-width:1080px}
   .page{padding:38px 0 70px;min-height:calc(100vh - 72px)}
   .head-row{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:8px}
-  .tabs{display:flex;gap:30px;border-bottom:1px solid var(--line);flex:1}
-  .tab{padding:0 2px 14px;font-weight:700;font-size:1rem;color:var(--muted);cursor:pointer;position:relative;background:none;border:none;font-family:var(--font-body);transition:color .2s}
+  .tabs{display:flex;gap:30px;border-bottom:1px solid var(--line);flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:0 2px 14px;font-weight:700;font-size:1rem;color:var(--muted);cursor:pointer;position:relative;background:none;border:none;font-family:var(--font-body);transition:color .2s;flex-shrink:0;white-space:nowrap}
   .tab::after{content:"";position:absolute;left:0;bottom:-1px;width:0;height:3px;background:var(--primary);border-radius:3px 3px 0 0;transition:width .25s}
   .tab:hover{color:var(--ink)}
   .tab.active{color:var(--primary)}
@@ -9166,8 +9216,9 @@ footer .logo{color:#fff;margin-bottom:16px}
   .wrap{max-width:1180px}
   .page{padding:30px 0 80px}
   .page h1{font-size:var(--page-title-size);font-weight:800;margin-bottom:14px}
-  .tabs{display:flex;gap:30px;border-bottom:1px solid var(--line);margin-bottom:28px}
-  .tab{padding:0 2px 14px;font-weight:700;font-size:1rem;color:var(--muted);cursor:pointer;position:relative;background:none;border:none;font-family:var(--font-body);transition:color .2s}
+  .tabs{display:flex;gap:30px;border-bottom:1px solid var(--line);margin-bottom:28px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:0 2px 14px;font-weight:700;font-size:1rem;color:var(--muted);cursor:pointer;position:relative;background:none;border:none;font-family:var(--font-body);transition:color .2s;flex-shrink:0;white-space:nowrap}
   .tab::after{content:"";position:absolute;left:0;bottom:-1px;width:0;height:3px;background:var(--primary);border-radius:3px 3px 0 0;transition:width .25s}
   .tab:hover{color:var(--ink)}
   .tab.active{color:var(--primary)}

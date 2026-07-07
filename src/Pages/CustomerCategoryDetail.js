@@ -10,6 +10,10 @@ import {
   formatDisplayTitle,
   serviceImageUrl,
 } from "../utils/landingUtils";
+import {
+  customerServiceDetailPath,
+  normalizeMongoId,
+} from "../utils/normalizeMongoId";
 
 function PlaceholderIcon() {
   return (
@@ -36,7 +40,7 @@ export default function CustomerCategoryDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const categoryId = searchParams.get("categoryId");
+  const categoryId = normalizeMongoId(searchParams.get("categoryId"));
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -97,7 +101,7 @@ export default function CustomerCategoryDetail() {
   }, [debouncedSearch]);
 
   const handleServiceClick = (serviceId) => {
-    navigate(`/customer-service-detail?service_id=${serviceId}`);
+    navigate(customerServiceDetailPath(serviceId));
   };
 
   return (

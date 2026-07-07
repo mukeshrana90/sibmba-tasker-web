@@ -16,6 +16,7 @@ import {
   providerLocation,
   renderStars,
 } from "../utils/landingUtils";
+import { serviceProviderPath } from "../utils/normalizeMongoId";
 
 const PAGE_LIMIT = 9;
 
@@ -90,9 +91,7 @@ function NearbyProviderCard({ item, onMap, onMessage, onProfileClick }) {
   const name = providerDisplayName(item.serviceProvider);
   const color = avatarColor(name);
   const profilePath = item.providerId
-    ? item.serviceId
-      ? `/service-provider/${item.providerId}?serviceId=${item.serviceId}`
-      : `/service-provider/${item.providerId}`
+    ? serviceProviderPath(item.providerId, item.serviceId)
     : null;
 
   return (

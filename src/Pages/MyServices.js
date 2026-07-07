@@ -6,9 +6,14 @@ import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import Loader from "../CommanComponents/Loader";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import {
-  handleCategoryImageError,
-  serviceImageUrl,
+  handleServiceImageError,
+  resolveServiceListImageSrc,
 } from "../utils/landingUtils";
+import {
+  normalizeMongoId,
+  serviceDetailPath,
+  serviceEditPath,
+} from "../utils/normalizeMongoId";
 
 function PlaceholderThumbIcon() {
   return (
@@ -49,16 +54,18 @@ function EmptyState() {
 
 function ServiceCard({ service, menuOpen, onToggleMenu, onEdit, onView, menuRef }) {
   const imageSrc = service.images?.length ? service.images[0] : null;
+  const thumbFromApi = service.images_thumb?.[0];
+  const displaySrc = resolveServiceListImageSrc(imageSrc, thumbFromApi);
 
   return (
     <div className="scard">
       <button type="button" className="scard-main" onClick={onView}>
         <div className={`tthumb${imageSrc ? " tthumb--photo" : ""}`}>
-          {imageSrc ? (
+          {displaySrc ? (
             <img
-              src={serviceImageUrl(imageSrc)}
+              src={displaySrc}
               alt={service.serviceSubCategoryName || "Service"}
-              onError={handleCategoryImageError}
+              onError={(e) => handleServiceImageError(e, imageSrc)}
             />
           ) : (
             <PlaceholderThumbIcon />
@@ -172,24 +179,27 @@ export default function MyServices() {
         <EmptyState />
       ) : (
         <div className="svc-list">
-          {myservices.map((service) => (
+          {myservices.map((service) => {
+            const serviceId = normalizeMongoId(service._id);
+            return (
             <ServiceCard
-              key={service._id}
+              key={serviceId}
               service={service}
-              menuOpen={!!dropdownStates[service._id]}
+              menuOpen={!!dropdownStates[serviceId]}
               menuRef={(el) => {
-                dropdownRefs.current[service._id] = el;
+                dropdownRefs.current[serviceId] = el;
               }}
               onToggleMenu={() =>
                 setDropdownStates((prev) => ({
                   ...prev,
-                  [service._id]: !prev[service._id],
+                  [serviceId]: !prev[serviceId],
                 }))
               }
-              onView={() => navigate(`/service-details/${service._id}`)}
-              onEdit={() => navigate(`/service/edit?service_id=${service._id}`)}
+              onView={() => navigate(serviceDetailPath(service._id))}
+              onEdit={() => navigate(serviceEditPath(service._id))}
             />
-          ))}
+          );
+          })}
         </div>
       )}
 

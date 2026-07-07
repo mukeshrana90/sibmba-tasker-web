@@ -1,3 +1,5 @@
+import { persistUserId } from "./normalizeMongoId";
+
 export function emailUsernameFromEmail(email) {
   if (email == null || email === "") return "User";
   const raw = String(email).trim();
@@ -46,7 +48,7 @@ export function buildMinimalCustomerProfileFormData(fullName) {
 
 export function finalizeCustomerSession({ token, userId, role = 1, expiresAt }) {
   localStorage.setItem("token", token);
-  localStorage.setItem("userId", userId);
+  persistUserId(userId);
   localStorage.setItem("role", String(role));
   if (expiresAt != null) {
     localStorage.setItem("expiresAt", String(expiresAt));

@@ -1,7 +1,11 @@
+import { normalizeMongoId } from "./normalizeMongoId";
+
 export function normalizeChatUserId(id) {
   if (id == null) return "";
-  if (typeof id === "object" && id._id != null) return String(id._id);
-  return String(id);
+  if (typeof id === "object" && id._id != null) {
+    return normalizeMongoId(id._id);
+  }
+  return normalizeMongoId(id);
 }
 
 export function getChatPeerId(chat, currentUserId) {

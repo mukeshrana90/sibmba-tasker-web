@@ -11,6 +11,7 @@ import {
   defaultImage,
   formatDisplayTitle,
 } from "../utils/landingUtils";
+import { customerCategoryDetailPath } from "../utils/normalizeMongoId";
 
 export default function Services() {
   const dispatch = useDispatch();
@@ -61,7 +62,7 @@ export default function Services() {
       navigate("/login");
       return;
     }
-    navigate(`/customer-category-detail?categoryId=${categoryId}`, {
+    navigate(customerCategoryDetailPath(categoryId), {
       state: { categoryName },
     });
   };

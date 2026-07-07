@@ -13,6 +13,10 @@ import {
 import { formatTaskWhenDoneDisplay } from "../utils/CommonFunction";
 import { Roles } from "../utils/Roles";
 import {
+  serviceProviderPath,
+  taskDetailPath,
+} from "../utils/normalizeMongoId";
+import {
   handleCategoryImageError,
   handleUserImageError,
   taskImageUrl,
@@ -251,7 +255,7 @@ export default function QuotationsDetail() {
                           type="button"
                           className="btn btn-ghost btn-sm"
                           onClick={() =>
-                            navigate(`/service-provider/${provider._id}`)
+                            navigate(serviceProviderPath(provider._id))
                           }
                         >
                           View profile
@@ -280,7 +284,7 @@ export default function QuotationsDetail() {
                           className="btn btn-ghost btn-sm"
                           onClick={() => {
                             if (isCustomerPoster) {
-                              navigate(`/task-detail/${task._id}`);
+                              navigate(taskDetailPath(task._id));
                             } else if (
                               String(role) === String(Roles.SERVICE_PROVIDER)
                             ) {

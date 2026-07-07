@@ -18,6 +18,11 @@ import {
   verificationPillClass,
   verificationLabel,
 } from "../utils/landingUtils";
+import {
+  messagesPath,
+  normalizeMongoId,
+  persistReceiverId,
+} from "../utils/normalizeMongoId";
 
 function VerificationRow({ label, verified }) {
   return (
@@ -33,7 +38,8 @@ function VerificationRow({ label, verified }) {
 export default function ServiceProCategoryDetail() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { id } = useParams();
+  const { id: routeId } = useParams();
+  const id = normalizeMongoId(routeId);
   const categoryDetail = useSelector((e) => e.service.categoryData);
   const sp = categoryDetail?.serviceProviderId;
 
@@ -51,8 +57,8 @@ export default function ServiceProCategoryDetail() {
 
   const handleChat = () => {
     if (!sp?._id) return;
-    navigate(`/messages?userID=${sp._id}`);
-    localStorage.setItem("reciverID", sp._id);
+    navigate(messagesPath(sp._id));
+    persistReceiverId(sp._id);
   };
 
   return (

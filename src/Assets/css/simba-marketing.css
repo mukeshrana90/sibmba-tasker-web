@@ -63,6 +63,43 @@
   text-decoration: none;
 }
 
+@media (max-width: 980px) {
+  .simba-marketing-layout footer.simba-footer .foot-about {
+    grid-column: 1 / -1;
+  }
+
+  .simba-marketing-layout footer.simba-footer .foot-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .simba-marketing-layout footer.simba-footer {
+    padding: 48px 0 24px;
+  }
+
+  .simba-marketing-layout footer.simba-footer .foot-bottom {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .simba-marketing-layout footer.simba-footer .foot-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 440px) {
+  .simba-marketing-layout footer.simba-footer .foot-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .simba-marketing-layout .simba-page .btn {
   display: inline-flex;
   align-items: center;

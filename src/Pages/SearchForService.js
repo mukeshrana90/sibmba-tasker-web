@@ -15,6 +15,7 @@ import {
   formatDisplayTitle,
   serviceImageUrl,
 } from "../utils/landingUtils";
+import { customerServiceDetailPath } from "../utils/normalizeMongoId";
 
 export default function SearchForService() {
   const dispatch = useDispatch();
@@ -165,7 +166,9 @@ export default function SearchForService() {
                                 <li className="mb-4">
                                   <div
                                     className="search-results-card"
-                                    onClick={() => Navigate(`/customer-service-detail?service_id=${ele?._id}`)}
+                                    onClick={() =>
+                                      Navigate(customerServiceDetailPath(ele?._id))
+                                    }
                                   >
                                     {Array.isArray(ele?.images) &&
                                       ele.images.length > 0 && (

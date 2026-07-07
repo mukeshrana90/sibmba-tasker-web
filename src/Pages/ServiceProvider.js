@@ -20,6 +20,12 @@ import {
   userImageUrl,
 } from "../utils/landingUtils";
 import { isLoggedIn, redirectToLogin } from "../utils/authRedirect";
+import {
+  customerServiceDetailPath,
+  messagesPath,
+  persistReceiverId,
+  serviceProviderPath,
+} from "../utils/normalizeMongoId";
 
 function starsText(rating) {
   const filled = Math.round(Number(rating) || 0);
@@ -268,18 +274,18 @@ export default function ServiceProvider() {
 
   const openServiceDetail = (svcId) => {
     if (!svcId) return;
-    navigate(`/customer-service-detail?service_id=${svcId}`);
+    navigate(customerServiceDetailPath(svcId));
   };
 
   const handleMessage = () => {
     if (!provider?._id) return;
-    const returnPath = `/messages?userID=${provider._id}`;
+    const returnPath = messagesPath(provider._id);
     if (!isLoggedIn()) {
       redirectToLogin(navigate, returnPath);
       return;
     }
     navigate(returnPath);
-    localStorage.setItem("reciverID", provider._id);
+    persistReceiverId(provider._id);
   };
 
   const handleBook = () => {
@@ -1048,9 +1054,7 @@ export default function ServiceProvider() {
                             cursor: "pointer",
                           }}
                           onClick={() =>
-                            navigate(
-                              `/service-provider/${pid}?serviceId=${sid}`
-                            )
+                            navigate(serviceProviderPath(pid, sid))
                           }
                         >
                           View profile

@@ -25,6 +25,7 @@ import {
   buildSearchProvidersParams,
   parseSearchProvidersQuery,
 } from "../utils/searchProvidersUrl";
+import { serviceProviderPath } from "../utils/normalizeMongoId";
 
 const PAGE_SIZE = 10;
 const RATE_MAX = 40;
@@ -51,9 +52,7 @@ function providerProfilePath(item) {
   const pid = item.providerId || item.serviceProvider?._id;
   const sid = item.serviceId;
   if (!pid) return null;
-  return sid
-    ? `/service-provider/${pid}?serviceId=${sid}`
-    : `/service-provider/${pid}`;
+  return serviceProviderPath(pid, sid);
 }
 
 function availabilityDisplay(item) {

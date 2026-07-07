@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { ChatContext } from '../context/ChatProvider';
 import moment from 'moment';
 import {
@@ -7,10 +8,12 @@ import {
   formatDisplayTitle,
 } from '../utils/landingUtils';
 import { getChatPeerId, getLastMessagePreview, normalizeChatUserId } from '../utils/chatUtils';
+import { getStoredUserId } from '../utils/normalizeMongoId';
 
 const ChatList = ({ onSelect }) => {
   const { chatList, selectedUser, setSelectedUser, setChatList } = useContext(ChatContext);
-  const currentUserId = localStorage.getItem('userId');
+  const customerDetails = useSelector((state) => state.login.customerDetails);
+  const currentUserId = getStoredUserId(customerDetails?._id);
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleChatSelect = (peerId, chatIndex) => {

@@ -12,6 +12,7 @@ import {
   useLocationPredictions,
 } from "../../utils/landingLocationPredictions";
 import { searchProvidersPath } from "../../utils/searchProvidersUrl";
+import { serviceProviderPath } from "../../utils/normalizeMongoId";
 import { Roles } from "../../utils/Roles";
 import LandingLocationInput, {
   resolveLocationCoords,
@@ -254,10 +255,7 @@ export default function UnifiedSearch() {
     const sid = item._id;
     if (!pid) return;
     setShowPopup(false);
-    const path = sid
-      ? `/service-provider/${pid}?serviceId=${sid}`
-      : `/service-provider/${pid}`;
-    navigate(path);
+    navigate(serviceProviderPath(pid, sid));
   };
 
   const handleNearbyToggle = async (e) => {

@@ -10,6 +10,7 @@ import {
   defaultImage,
   formatDisplayTitle,
 } from "../utils/landingUtils";
+import { serviceProCategoryPath } from "../utils/normalizeMongoId";
 
 export default function ServicePro() {
   const navigate = useNavigate();
@@ -107,7 +108,7 @@ export default function ServicePro() {
                 key={category._id}
                 type="button"
                 className="cat-tile"
-                onClick={() => navigate(`/serviceprocategory/${category._id}`)}
+                onClick={() => navigate(serviceProCategoryPath(category._id))}
               >
                 <div className="cat-thumb">
                   <img

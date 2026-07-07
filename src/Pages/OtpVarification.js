@@ -12,6 +12,7 @@ import { consumeAuthReturnUrl } from "../utils/authRedirect";
 import { autoCompleteCustomerProfile } from "../utils/customerProfileAutoComplete";
 import { Roles } from "../utils/Roles";
 import { emit } from "../utils/socketService";
+import { persistUserId } from "../utils/normalizeMongoId";
 
 export default function OtpVarification() {
 
@@ -169,7 +170,7 @@ export default function OtpVarification() {
         Number(userRole) === Roles.CUSTOMER
       ) {
         localStorage.setItem("temptoken", token);
-        localStorage.setItem("userId", userId);
+        persistUserId(userId);
         localStorage.setItem("expiresAt", expiresAt);
 
         const profileResult = await autoCompleteCustomerProfile(dispatch, {
@@ -189,13 +190,13 @@ export default function OtpVarification() {
         navigate(consumeAuthReturnUrl() || "/", { replace: true });
       } else if (Number(userRole) === 2 || Number(userRole) === 3) {
         localStorage.setItem("temptoken", token);
-        localStorage.setItem("userId", userId);
+        persistUserId(userId);
         localStorage.setItem("expiresAt", expiresAt);
         navigate(`/provider?role=${userRole}`, { replace: true });
       } else {
         localStorage.removeItem("temptoken");
         localStorage.setItem("token", token);
-        localStorage.setItem("userId", userId);
+        persistUserId(userId);
         localStorage.setItem("role", userRole);
         localStorage.setItem("expiresAt", expiresAt);
         navigate(consumeAuthReturnUrl() || "/", { replace: true });

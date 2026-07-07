@@ -34,6 +34,7 @@ import {
   PaymentSummaryCard,
   ProviderBlockCard,
 } from "../CommanComponents/BookingDetail/SimbaBookingDetailParts";
+import { customerServiceDetailPath } from "../utils/normalizeMongoId";
 
 export default function UserBookingDetailMain({
   task,
@@ -88,7 +89,9 @@ export default function UserBookingDetailMain({
 }) {
   const isTask = Boolean(task);
   const rebookServiceUrl = bookingState?.serviceSubCategory?._id
-    ? `/customer-service-detail?service_id=${bookingState.serviceSubCategory._id}&openBooking=1`
+    ? customerServiceDetailPath(bookingState.serviceSubCategory._id, {
+        openBooking: 1,
+      })
     : null;
 
   const renderSidebarActions = () => {

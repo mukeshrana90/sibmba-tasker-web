@@ -1,7 +1,13 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
 import { getChatPeerId, normalizeChatUserId } from '../utils/chatUtils';
+import {
+  getStoredUserId,
+  normalizeMongoId,
+  persistReceiverId,
+} from '../utils/normalizeMongoId';
 
 export const ChatContext = createContext();
 
@@ -9,7 +15,8 @@ let socket;
 
 export const ChatProvider = ({ children }) => {
   const BASE_URL = process.env.REACT_APP_API_URLL;
-  const sender_id = normalizeChatUserId(localStorage.getItem('userId'));
+  const customerDetails = useSelector((state) => state.login.customerDetails);
+  const sender_id = getStoredUserId(customerDetails?._id);
   const token = localStorage.getItem('token');
   const [searchParams] = useSearchParams();
 
@@ -25,11 +32,13 @@ export const ChatProvider = ({ children }) => {
   }, [selectedUser]);
 
   useEffect(() => {
-    const userID = searchParams.get('userID');
+    const userID = searchParams.get('userID') || searchParams.get('userId');
     if (userID) {
-      const normalized = normalizeChatUserId(userID);
-      localStorage.setItem('reciverID', normalized);
-      setSelectedUser(normalized);
+      const normalized = normalizeMongoId(userID);
+      if (normalized) {
+        persistReceiverId(normalized);
+        setSelectedUser(normalized);
+      }
     }
   }, [searchParams]);
 

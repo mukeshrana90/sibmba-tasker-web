@@ -29,6 +29,7 @@ import { SimbaFeedbackModalBody, SimbaFeedbackThankYou } from "../CommanComponen
 import UserBookingDetailMain from "./UserBookingDetailMain";
 import ShareLocationModal from "../CommanComponents/Modals/ShareLocationModal";
 import { tryNativeLocationShare } from "../utils/shareLocation";
+import { normalizeMongoId } from "../utils/normalizeMongoId";
 
 export default function UserBookingDetails() {
   const dispatch = useDispatch();
@@ -537,12 +538,13 @@ export default function UserBookingDetails() {
   };
 
   const handleSeekerConfirmBooking = async () => {
-    if (!bookingState?._id) return false;
+    const bookingId = normalizeMongoId(bookingState?._id);
+    if (!bookingId) return false;
     setJobDoneSubmitting(true);
     try {
       const res = await dispatch(
         CustomerActions.seekerConfirmBookingComplete({
-          booking_id: bookingState._id,
+          booking_id: bookingId,
         })
       );
       const ok =
@@ -568,11 +570,12 @@ export default function UserBookingDetails() {
   };
 
   const handleSeekerConfirmTask = async () => {
-    if (!task?._id) return false;
+    const taskId = normalizeMongoId(task?._id);
+    if (!taskId) return false;
     setJobDoneSubmitting(true);
     try {
       const res = await dispatch(
-        CustomerActions.seekerConfirmTaskComplete({ task_id: task._id })
+        CustomerActions.seekerConfirmTaskComplete({ task_id: taskId })
       );
       const ok =
         Boolean(res?.payload?.success) || res?.payload?.status_code === 200;

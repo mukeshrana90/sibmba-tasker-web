@@ -1,19 +1,18 @@
+import { customerServiceDetailPath, normalizeMongoId } from "./normalizeMongoId";
+
 const DRAFT_KEY = "serviceBookingDraft";
 
 export function buildServiceDetailBookingPath(serviceId) {
-  const params = new URLSearchParams({
-    service_id: serviceId,
-    openBooking: "1",
-  });
-  return `/customer-service-detail?${params.toString()}`;
+  return customerServiceDetailPath(serviceId, { openBooking: "1" });
 }
 
 export function saveBookingDraft(draft) {
-  if (!draft?.serviceId) return;
+  const serviceId = normalizeMongoId(draft?.serviceId);
+  if (!serviceId) return;
   sessionStorage.setItem(
     DRAFT_KEY,
     JSON.stringify({
-      serviceId: draft.serviceId,
+      serviceId,
       selectedDate: draft.selectedDate || "",
       timeState: draft.timeState || "",
       msgState: draft.msgState || "",
@@ -39,7 +38,9 @@ export function clearBookingDraft() {
 
 export function hasBookingDraftForService(serviceId) {
   const draft = loadBookingDraft();
-  return Boolean(draft && draft.serviceId === serviceId);
+  return Boolean(
+    draft && normalizeMongoId(draft.serviceId) === normalizeMongoId(serviceId)
+  );
 }
 
 export function parseDraftDate(value) {

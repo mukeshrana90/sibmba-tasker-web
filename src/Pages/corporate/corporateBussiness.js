@@ -17,6 +17,12 @@ import {
   avatarColor,
   providerInitials,
 } from "../../utils/landingUtils";
+import {
+  messagesPath,
+  normalizeMongoId,
+  persistReceiverId,
+  persistUserId,
+} from "../../utils/normalizeMongoId";
 import facebookLogo from "../../Assets/Images/facebook.svg";
 import instagramLogo from "../../Assets/Images/instagram.svg";
 import link from "../../Assets/Images/link.png";
@@ -59,7 +65,9 @@ export default function CorporateBusinessPage() {
         CustomerActions.getProfileWithSuscription()
       );
       if (apiRes?.payload?.success) {
-        dispatch(setCustomer(apiRes?.payload?.data.user));
+        const user = apiRes?.payload?.data.user;
+        dispatch(setCustomer(user));
+        persistUserId(user?._id);
       }
       setPackageDetails(apiRes?.payload?.data?.subscriptionDetail);
     } catch (error) {
@@ -123,8 +131,10 @@ export default function CorporateBusinessPage() {
       setShowPlanModal(true);
       return;
     }
-    navigate(`/messages?userID=${profile?._id}`);
-    localStorage.setItem("reciverID", profile._id);
+    const peerId = normalizeMongoId(profile?._id);
+    if (!peerId) return;
+    persistReceiverId(peerId);
+    navigate(messagesPath(peerId));
   };
 
   const handleCall = (e) => {

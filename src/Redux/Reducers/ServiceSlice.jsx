@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import ServiceActions from "../Actions/ServiceActions";
 import CustomerActions from "../Actions/CustomerActions";
 import { normalizeBookingList } from "../../utils/normalizeApiDocument";
+import { normalizeCategoryList } from "../../utils/normalizeCategory";
 
 const serviceSlice = createSlice({
   name: "service",
@@ -39,7 +40,15 @@ const serviceSlice = createSlice({
       ServiceActions.getCategoryList.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.category = action.payload;
+        const payload = action.payload;
+        if (Array.isArray(payload?.data)) {
+          state.category = {
+            ...payload,
+            data: normalizeCategoryList(payload.data),
+          };
+        } else {
+          state.category = payload;
+        }
       }
     );
 
@@ -81,7 +90,7 @@ const serviceSlice = createSlice({
       ServiceActions.getMyServicesList.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.myservices = action.payload.data;
+        state.myservices = normalizeBookingList(action.payload?.data);
       }
     );
 
@@ -123,7 +132,7 @@ const serviceSlice = createSlice({
       ServiceActions.getMyServiceDetailById.fulfilled,
       (state, action) => {
         state.loading = false;
-        state.serviceDetail = action.payload.data;
+        state.serviceDetail = normalizeBookingList(action.payload?.data);
       }
     );
 

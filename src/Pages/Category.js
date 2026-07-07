@@ -12,6 +12,10 @@ import {
   formatDisplayTitle,
   handleCategoryImageError,
 } from "../utils/landingUtils";
+import {
+  customerCategoryDetailPath,
+  customerServiceDetailPath,
+} from "../utils/normalizeMongoId";
 
 export default function Category() {
   const dispatch = useDispatch();
@@ -35,9 +39,9 @@ export default function Category() {
   const handleProfiles = (type, id) => {
     if (token) {
       if (type === "services") {
-        Navigate(`/customer-service-detail?service_id=${id}`);
+        Navigate(customerServiceDetailPath(id));
       } else {
-        Navigate(`/customer-category-detail?categoryId=${id}`);
+        Navigate(customerCategoryDetailPath(id));
       }
     } else {
       Navigate("/login");

@@ -186,9 +186,10 @@ const SuggestCorporateModal = ({
           )}
         </div>
 
-        <div className="modal-footer-fixed px-4 pb-3 pt-2">
+        <div className="modal-footer-fixed">
           <button
-            className="btn btn-primary mt-2"
+            type="button"
+            className="btn btn-primary"
             disabled={selectedCorps.length === 0}
             onClick={() => {
               onSave(selectedCorps);

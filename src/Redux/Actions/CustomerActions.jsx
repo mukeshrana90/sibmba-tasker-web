@@ -1,6 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import Api from "../../Services/api";
 import { constructQueryString } from "../../utils/CommonFunction";
+import { normalizeMongoId } from "../../utils/normalizeMongoId";
 
 const CustomerActions = {
   // MARK: - Create Customer
@@ -78,7 +79,10 @@ const CustomerActions = {
   getServiceDetail: createAsyncThunk(
     "/customer/getServicewith_reviews",
     async (reqBody) => {
-      const queryString = constructQueryString(reqBody);
+      const queryString = constructQueryString({
+        ...reqBody,
+        service_id: normalizeMongoId(reqBody?.service_id),
+      });
       const response = await Api.get(
         `/customer/getServicewith_reviews?${queryString}`
       );
@@ -310,7 +314,9 @@ const CustomerActions = {
   getBookingById: createAsyncThunk(
     "customer/getBookingById",
     async ({ id, type }) => {
-      const bookingId = typeof id === "object" ? id._id || id.id : id;
+      const bookingId = normalizeMongoId(
+        typeof id === "object" ? id?._id || id?.id || id : id
+      );
 
       const route =
         type === "task"
@@ -546,7 +552,7 @@ const CustomerActions = {
     async (reqBody) => {
       const response = await Api.get(`/customer/getServicewith_reviews`, {
         params: {
-          service_id: reqBody.id,
+          service_id: normalizeMongoId(reqBody.id),
         },
       });
       return response.data;

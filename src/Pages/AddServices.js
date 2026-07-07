@@ -13,12 +13,13 @@ import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "../utils/CommonFunction";
 import { serviceImageUrl } from "../utils/landingUtils";
+import { normalizeMongoId } from "../utils/normalizeMongoId";
 
 const AddService = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const getQueryURL = useQuery();
-    const searchValFromUrl = getQueryURL.get("service_id");
+    const searchValFromUrl = normalizeMongoId(getQueryURL.get("service_id"));
 
     const categoryList = useSelector((e) => e.service.category);
     const serviceDetail = useSelector((e) => e.service.serviceDetail);
@@ -63,7 +64,10 @@ const AddService = () => {
     const initialValues = searchValFromUrl && serviceDetail ? {
         images: [], // Only new files go here
         dayAvailability: serviceDetail.availability || [{ day: [], timeArr: [] }],
-        serviceCategoryId: serviceDetail.serviceCategoryId?._id || "",
+        serviceCategoryId:
+          normalizeMongoId(
+            serviceDetail.serviceCategoryId?._id ?? serviceDetail.serviceCategoryId
+          ) || "",
         serviceSubCategoryName: serviceDetail.serviceSubCategoryName || "",
         price: serviceDetail.price || "",
         desc: serviceDetail.desc || "",

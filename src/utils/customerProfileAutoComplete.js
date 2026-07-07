@@ -6,6 +6,7 @@ import {
   finalizeCustomerSession,
   resolveCustomerEmail,
 } from "./customerProfileUtils";
+import { persistUserId } from "./normalizeMongoId";
 
 export {
   buildMinimalCustomerProfileFormData,
@@ -25,7 +26,7 @@ export async function autoCompleteCustomerProfile(
   }
 
   localStorage.setItem("temptoken", token);
-  localStorage.setItem("userId", userId);
+  persistUserId(userId);
   if (expiresAt != null) {
     localStorage.setItem("expiresAt", String(expiresAt));
   }

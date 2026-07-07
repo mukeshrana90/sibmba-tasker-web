@@ -14,7 +14,10 @@ import { toast } from "react-toastify";
 import StarRating from "../CommanComponents/StarRating";
 import { formatDate } from "fullcalendar/index.js";
 import DeleteConfirmation from "../CommanComponents/Modals/DeleteConfirmation";
-import { chunk } from "lodash";
+import {
+  buildImageSliderSettings,
+  buildReviewSliderSettings,
+} from "../utils/imageSliderSettings";
 import { timeSchedule, weekDays } from "../utils/rawjson";
 import {
   handleCategoryImageError,
@@ -22,11 +25,16 @@ import {
   serviceImageUrl,
   userImageUrl,
 } from "../utils/landingUtils";
+import {
+  normalizeMongoId,
+  serviceEditPath,
+} from "../utils/normalizeMongoId";
 
 export default function ServiceDetails() {
   const Navigate = useNavigate();
   const dispatch = useDispatch()
-  const { id } = useParams()
+  const { id: routeId } = useParams()
+  const serviceId = normalizeMongoId(routeId);
   const [show, setShow] = useState(false);
 
   const serviceDetail = useSelector((e) => e.service.serviceDetail)
@@ -37,72 +45,20 @@ export default function ServiceDetails() {
   const handleClose = () => setShow(false);
 
   const feedbackCount = serviceDetail?.feedbacks?.length || 0;
-
-  const settings = {
-    dots: true,
-    infinite: feedbackCount > 3,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    arrows: true,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          infinite: true,
-        },
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
-    ],
-  };
-
-  const sliderSettings = {
-    dots: true,
-    arrows: false,
-    infinite: serviceDetail?.images?.length > 1,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 1,
-          infinite: true,
-          arrows: false,
-        },
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          arrows: false,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          arrows: false,
-        },
-      },
-    ],
-  };
+  const groupedFeedbacks = (serviceDetail?.feedbacks || []).map((feedback) => [
+    feedback,
+  ]);
+  const reviewSliderSettings = buildReviewSliderSettings(
+    groupedFeedbacks.length
+  );
+  const sliderSettings = buildImageSliderSettings(
+    serviceDetail?.images?.length || 0
+  );
 
   useEffect(() => {
-    dispatch(ServiceActions.getMyServiceDetailById({ id: id }))
-  }, [dispatch, id])
+    if (!serviceId) return;
+    dispatch(ServiceActions.getMyServiceDetailById({ id: serviceId }))
+  }, [dispatch, serviceId])
 
   // const handleDelete = () => {
 
@@ -121,7 +77,7 @@ export default function ServiceDetails() {
   const handleDelete = () => {
     if (serviceDetail?._id) {
       setIsDeleting(true);
-      dispatch(ServiceActions.deleteMyServices({ service_id: serviceDetail._id }))
+      dispatch(ServiceActions.deleteMyServices({ service_id: normalizeMongoId(serviceDetail._id) }))
         .then((res) => {
           if (res?.payload.success) {
             toast.success(res?.payload?.message);
@@ -137,8 +93,6 @@ export default function ServiceDetails() {
     }
   };
 
-
-  const groupedFeedbacks = chunk(serviceDetail?.feedbacks || [], 3); // chunks of 3
 
   const sortedDays = Array.isArray(serviceDetail?.availability[0]?.day)
     ? [...serviceDetail?.availability[0]?.day]?.sort((a, b) => {
@@ -194,11 +148,7 @@ export default function ServiceDetails() {
                     </button>
                     {/* <button onClick={handleShow}>Edit</button> */}
                     <button
-                      onClick={() =>
-                        Navigate(
-                          `/service/edit?service_id=${serviceDetail?._id}`
-                        )
-                      }
+                      onClick={() => Navigate(serviceEditPath(serviceDetail?._id))}
                     >
                       Edit
                     </button>
@@ -286,7 +236,7 @@ export default function ServiceDetails() {
 
             <div className="booked-services-slide">
               {feedbackCount > 0 ? (
-                <Slider {...settings}>
+                <Slider {...reviewSliderSettings}>
                   {groupedFeedbacks?.map((group, index) => (
                     <div key={index} className="review-slide-group">
                       <div className="d-flex gap-4">

@@ -120,6 +120,50 @@ export function handleCategoryImageError(e) {
   }
 }
 
+const THUMB_PREFIX = "thumb_";
+
+/** Build thumb path from stored image path (e.g. file.jpg → thumb_file.jpg). */
+export function getThumbImagePath(imagePath) {
+  if (!imagePath || typeof imagePath !== "string") return null;
+
+  let normalized = imagePath.trim().replace(/\\/g, "/");
+  if (!normalized || normalized === "undefined" || normalized === "null") return null;
+
+  const parts = normalized.split("/");
+  const filename = parts.pop();
+  if (!filename || filename.startsWith(THUMB_PREFIX)) return normalized;
+
+  const thumbName = `${THUMB_PREFIX}${filename}`;
+  return parts.length ? `${parts.join("/")}/${thumbName}` : thumbName;
+}
+
+export function serviceImageThumbUrl(filename) {
+  const thumbPath = getThumbImagePath(filename);
+  if (!thumbPath) return null;
+  return serviceImageUrl(thumbPath);
+}
+
+/** Try thumb first; on 404 fall back to full image, then placeholder. */
+export function handleServiceImageError(e, originalFilename) {
+  if (!e?.currentTarget) return;
+
+  const fullSrc = originalFilename ? serviceImageUrl(originalFilename) : null;
+  if (fullSrc && e.currentTarget.src !== fullSrc) {
+    e.currentTarget.onerror = () => handleCategoryImageError(e);
+    e.currentTarget.src = fullSrc;
+    return;
+  }
+  handleCategoryImageError(e);
+}
+
+export function resolveServiceListImageSrc(imagePath, thumbPathFromApi) {
+  if (!imagePath) return null;
+  if (thumbPathFromApi) {
+    return serviceImageUrl(thumbPathFromApi);
+  }
+  return serviceImageThumbUrl(imagePath) || serviceImageUrl(imagePath);
+}
+
 export function serviceImageUrl(filename) {
   if (!filename || filename === "undefined" || filename === "null") {
     return defaultImage;

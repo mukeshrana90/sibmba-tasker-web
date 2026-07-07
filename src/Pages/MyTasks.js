@@ -23,6 +23,7 @@ import {
   resolveParentTaskForQuotationMerge,
 } from "../utils/quotationPosterDecision";
 import { taskStatus } from "../utils/jobFlowStatus";
+import { taskDetailPath } from "../utils/normalizeMongoId";
 
 function ClockIcon() {
   return (
@@ -135,7 +136,7 @@ function TaskCard({ post, taskIdsWithQuotations }) {
   const imageSrc = post?.images?.length ? post.images[0] : null;
 
   return (
-    <Link to={`/task-detail/${post._id}`} className="tcard">
+    <Link to={taskDetailPath(post._id)} className="tcard">
       <div className={`tthumb${imageSrc ? " tthumb--photo" : ""}`}>
         {imageSrc ? (
           <img
@@ -300,7 +301,7 @@ function QuotationCard({
             )}
           </div>
           {taskId && (
-            <Link to={`/task-detail/${taskId}`} className="qcard-task-ref__link">
+            <Link to={taskDetailPath(taskId)} className="qcard-task-ref__link">
               View task <ArrowIcon />
             </Link>
           )}

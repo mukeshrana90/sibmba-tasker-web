@@ -15,6 +15,7 @@ import {
   providerLocation,
   renderStars,
 } from "../../utils/landingUtils";
+import { serviceProviderPath } from "../../utils/normalizeMongoId";
 
 export default function TopProviders() {
   const dispatch = useDispatch();
@@ -88,7 +89,7 @@ export default function TopProviders() {
     const pid = item.serviceProvider?._id;
     const sid = item._id;
     if (!pid) return;
-    navigate(`/service-provider/${pid}?serviceId=${sid}`);
+    navigate(serviceProviderPath(pid, sid));
   };
 
   return (

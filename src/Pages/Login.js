@@ -14,6 +14,7 @@ import { getFirebaseToken } from "../utils/fireBaseConfig";
 import { expiresAt } from "../utils/CommonFunction";
 import { Roles } from "../utils/Roles";
 import { autoCompleteCustomerProfile } from "../utils/customerProfileAutoComplete";
+import { persistUserId } from "../utils/normalizeMongoId";
 
 const AUTH_VISUAL_IMG =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
@@ -138,11 +139,10 @@ export default function Login() {
 
     if (response?.payload?.status_code === 200) {
       const token = response?.payload?.data?.token;
-      const userId = response?.payload?.data?._id;
+      const userId = persistUserId(response?.payload?.data?._id);
       const role = response?.payload?.data?.role;
 
       localStorage.setItem("token", token);
-      localStorage.setItem("userId", userId);
       localStorage.setItem("role", role);
       localStorage.setItem("expiresAt", expiresAt);
 
@@ -154,7 +154,7 @@ export default function Login() {
         Number(role) === Roles.CUSTOMER
       ) {
         localStorage.setItem("temptoken", token);
-        localStorage.setItem("userId", userId);
+        persistUserId(userId);
         localStorage.setItem("expiresAt", expiresAt);
 
         const profileResult = await autoCompleteCustomerProfile(dispatch, {
@@ -175,7 +175,7 @@ export default function Login() {
       } else if (response?.payload?.data?.is_completeProfile === 0) {
         if (Number(role) === Roles.SERVICE_PROVIDER || Number(role) === Roles.CORPORATE) {
           localStorage.setItem("temptoken", token);
-          localStorage.setItem("userId", userId);
+          persistUserId(userId);
           navigate(`/provider?role=${role}`, { replace: true });
           toast.success("Please Complete Your Profile.");
         }

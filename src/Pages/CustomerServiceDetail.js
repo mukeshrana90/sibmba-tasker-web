@@ -22,6 +22,13 @@ import {
 } from "../utils/landingUtils";
 import { isLoggedIn, redirectToLogin } from "../utils/authRedirect";
 import { hasBookingDraftForService } from "../utils/bookingDraft";
+import {
+  customerServiceDetailPath,
+  messagesPath,
+  normalizeMongoId,
+  persistReceiverId,
+  serviceProviderPath,
+} from "../utils/normalizeMongoId";
 
 function PlaceholderImageIcon({ size = 46 }) {
   return (
@@ -69,7 +76,7 @@ export default function CustomerServiceDetail() {
   const dispatch = useDispatch();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const service_id = searchParams.get("service_id");
+  const service_id = normalizeMongoId(searchParams.get("service_id"));
 
   const [show, setShow] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
@@ -77,9 +84,7 @@ export default function CustomerServiceDetail() {
   const serviceDetail = useSelector((e) => e.UserSlice.serviceDetail);
   const customerDetails = useSelector((e) => e.login.customerDetails);
 
-  const detailReturnPath = service_id
-    ? `/customer-service-detail?service_id=${service_id}`
-    : "/customer-service-detail";
+  const detailReturnPath = customerServiceDetailPath(service_id);
 
   const buildWhatsAppUrl = () => {
     const sp = serviceDetail?.serviceProviderId;
@@ -127,13 +132,13 @@ export default function CustomerServiceDetail() {
   const handleMessageClick = () => {
     const providerId = serviceDetail?.serviceProviderId?._id;
     if (!providerId) return;
-    const returnPath = `/messages?userID=${providerId}`;
+    const returnPath = messagesPath(providerId);
     if (!isLoggedIn()) {
       redirectToLogin(navigate, returnPath);
       return;
     }
     navigate(returnPath);
-    localStorage.setItem("reciverID", providerId);
+    persistReceiverId(providerId);
   };
 
   const handleWhatsAppClick = (e) => {
@@ -297,10 +302,10 @@ export default function CustomerServiceDetail() {
                         className="prov-block svc-prov-click"
                         role="button"
                         tabIndex={0}
-                        onClick={() => navigate(`/service-provider/${sp._id}`)}
+                        onClick={() => navigate(serviceProviderPath(sp._id))}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
-                            navigate(`/service-provider/${sp._id}`);
+                            navigate(serviceProviderPath(sp._id));
                           }
                         }}
                       >

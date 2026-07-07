@@ -1,16 +1,19 @@
 import { useState } from "react";
 import io from "socket.io-client";
+import { useSelector } from "react-redux";
 import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import ChatList from "../Components/ChatList";
 import MainChat from "../Components/MainChat";
 import { ChatProvider, ChatContext } from "../context/ChatProvider";
 import { useContext, useEffect } from "react";
+import { getStoredUserId } from "../utils/normalizeMongoId";
 
 const socket = io(`${process.env.REACT_APP_API_URLL}`);
 
 function MessagesContent() {
   const { selectedUser } = useContext(ChatContext);
-  const sender_id = localStorage.getItem("userId");
+  const customerDetails = useSelector((state) => state.login.customerDetails);
+  const sender_id = getStoredUserId(customerDetails?._id);
   const reciverID = localStorage.getItem("reciverID");
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
 

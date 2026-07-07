@@ -9,6 +9,10 @@ import {
   handleCategoryImageError,
   serviceImageUrl,
 } from "../utils/landingUtils";
+import {
+  normalizeMongoId,
+  serviceProCategoryDetailPath,
+} from "../utils/normalizeMongoId";
 
 export default function ServiceProCategory() {
     const navigate = useNavigate();
@@ -17,7 +21,8 @@ export default function ServiceProCategory() {
 
     const [, setDropdownStates] = useState({});
 
-    const { id } = useParams()
+    const { id: routeId } = useParams()
+    const id = normalizeMongoId(routeId);
 
     const myservices = useSelector((e) => e.service.getServiceProviderCategory)
 
@@ -26,7 +31,7 @@ export default function ServiceProCategory() {
     }, [dispatch, id])
 
     const handleServiceClick = (id) => {
-        navigate(`/serviceprocategorydetail/${id}`);
+        navigate(serviceProCategoryDetailPath(id));
     };
 
 
