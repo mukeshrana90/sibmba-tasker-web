@@ -93,6 +93,55 @@ export default function UserBookingDetails() {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
+  const handleConfirmCancel = async () => {
+    const isTaskCancel = Boolean(type === "task" || (!bookingState && task));
+    const bookingId = normalizeMongoId(bookingState?._id);
+    const taskId = normalizeMongoId(task?._id);
+
+    if (isTaskCancel) {
+      if (!taskId) {
+        toast.error("Task id not found.");
+        return;
+      }
+      try {
+        const res = await dispatch(CustomerActions.deleteTasks(taskId));
+        if (res?.payload?.success) {
+          toast.success(res?.payload?.message || "Task cancelled successfully.");
+          handleClose();
+          navigate("/my-task");
+          return;
+        }
+        toast.error(res?.payload?.message || "Could not cancel task.");
+      } catch {
+        toast.error("Could not cancel task.");
+      }
+      return;
+    }
+
+    if (!bookingId) {
+      toast.error("Booking id not found.");
+      return;
+    }
+
+    try {
+      const res = await dispatch(
+        ServiceActions.updateBookingStatus({
+          booking_id: bookingId,
+          status: 3,
+        })
+      );
+      if (res?.payload?.success) {
+        toast.success(res?.payload?.message || "Booking cancelled successfully.");
+        handleClose();
+        setRefetchToggle((prev) => !prev);
+        return;
+      }
+      toast.error(res?.payload?.message || "Could not cancel booking.");
+    } catch {
+      toast.error("Could not cancel booking.");
+    }
+  };
+
   const fetchBookingDetails = useCallback(() => {
     dispatch(CustomerActions.getBookingById({ id, type })).then((res) => {
       if (res?.payload?.success && !type) {
@@ -800,24 +849,19 @@ export default function UserBookingDetails() {
                 />
               </svg>
             </div>
-            <h3>Are you sure about canceling this booking ?</h3>
+            <h3>
+              Are you sure about canceling this{" "}
+              {type === "task" || (!bookingState && task) ? "task" : "booking"}?
+            </h3>
             <div className="comman-pop-action-double">
               <button
                 className="btn-outline"
-                onClick={() => {
-                  dispatch(
-                    ServiceActions.updateBookingStatus({
-                      booking_id: bookingState._id,
-                      status: 3, // Accepted
-                    })
-                  );
-                  // setShow(false)
-                  window.location.reload();
-                }}
+                type="button"
+                onClick={handleConfirmCancel}
               >
                 Cancel Anyway
               </button>
-              <button onClick={() => handleClose()} className="btn-fill">
+              <button type="button" onClick={() => handleClose()} className="btn-fill">
                 No
               </button>
             </div>
