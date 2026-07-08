@@ -9,7 +9,17 @@ const NAV_LINKS = [
   { label: "Service", path: "/allmyservices" },
   { label: "Tasks", path: "/taskslist" },
   { label: "Service Pro", path: "/service-pro" },
-  { label: "Corporate Pro", path: "/browse-corporate-category" },
+  {
+    label: "Corporate Pro",
+    path: "/corporate-list",
+    matchPaths: [
+      "/corporate-list",
+      "/browse-corporate-category",
+      "/get-corporate",
+      "/corporate-category-detail",
+      "/near-by-corporate",
+    ],
+  },
 ];
 
 function getInitials(name) {
@@ -68,9 +78,14 @@ function MenuIcon() {
   );
 }
 
-function isNavActive(path, currentPath, exact) {
-  if (exact) return currentPath === path;
-  return currentPath === path || currentPath.startsWith(`${path}/`);
+function isNavActive(route, currentPath) {
+  if (route.exact) return currentPath === route.path;
+  if (Array.isArray(route.matchPaths)) {
+    return route.matchPaths.some(
+      (p) => currentPath === p || currentPath.startsWith(`${p}/`)
+    );
+  }
+  return currentPath === route.path || currentPath.startsWith(`${route.path}/`);
 }
 
 export default function ServiceProviderAppNav({
@@ -135,9 +150,7 @@ export default function ServiceProviderAppNav({
             <Link
               key={route.path}
               to={route.path}
-              className={
-                isNavActive(route.path, currentPath, route.exact) ? "active" : ""
-              }
+              className={isNavActive(route, currentPath) ? "active" : ""}
             >
               {route.label}
             </Link>
@@ -307,9 +320,7 @@ export default function ServiceProviderAppNav({
               <Link
                 key={route.path}
                 to={route.path}
-                className={
-                  isNavActive(route.path, currentPath, route.exact) ? "active" : ""
-                }
+                className={isNavActive(route, currentPath) ? "active" : ""}
               >
                 {route.label}
               </Link>

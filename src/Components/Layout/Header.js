@@ -26,7 +26,17 @@ const serviceProviderRoutes = [
   { label: "Service", path: "/allmyservices" },
   { label: "Tasks", path: "/taskslist" },
   { label: "Service Pro", path: "/service-pro" },
-  { label: "Corporate Pro", path: "/browse-corporate-category" },
+  {
+    label: "Corporate Pro",
+    path: "/corporate-list",
+    matchPaths: [
+      "/corporate-list",
+      "/browse-corporate-category",
+      "/get-corporate",
+      "/corporate-category-detail",
+      "/near-by-corporate",
+    ],
+  },
 ];
 
 const corporateRoutes = [
@@ -278,19 +288,27 @@ export default function Header({ isGuestLanding = false }) {
 
                   <Nav className="ms-auto my-2 my-lg-0 me-3" navbarScroll>
                     {token &&
-                      getNavRoutes().map((route) => (
-                        <Link
-                          key={route.path}
-                          to={route.path}
-                          className={
-                            currentPath === route.path
-                              ? "nav-link active"
-                              : "nav-link"
-                          }
-                        >
-                          {route.label}
-                        </Link>
-                      ))}
+                      getNavRoutes().map((route) => {
+                        const isActive = Array.isArray(route.matchPaths)
+                          ? route.matchPaths.some(
+                              (p) =>
+                                currentPath === p ||
+                                currentPath.startsWith(`${p}/`)
+                            )
+                          : currentPath === route.path ||
+                            currentPath.startsWith(`${route.path}/`);
+                        return (
+                          <Link
+                            key={route.path}
+                            to={route.path}
+                            className={
+                              isActive ? "nav-link active" : "nav-link"
+                            }
+                          >
+                            {route.label}
+                          </Link>
+                        );
+                      })}
 
                     {!token && (
                       <>
