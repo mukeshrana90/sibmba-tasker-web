@@ -294,6 +294,7 @@ const serviceSlice = createSlice({
     /////////////////////////////////////////////////////////////
     builder.addCase(ServiceActions.getServiceCategoryDetailId.pending, (state) => {
       state.loading = true;
+      state.categoryData = null;
     });
 
     builder.addCase(

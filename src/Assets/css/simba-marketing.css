@@ -4753,17 +4753,103 @@ header.appnav .avatar-menu .am-item {
   color: #b4302c;
 }
 
+.simba-page.p-sp-category-detail .sp-cat-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 48px 20px;
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.simba-page.p-sp-category-detail .sp-cat-detail-shimmer {
+  pointer-events: none;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-shimmer-avatar {
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 4 / 3;
+  border-radius: 20px;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-shimmer-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-shimmer-line {
+  height: 14px;
+  border-radius: 999px;
+  width: 72%;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-shimmer-line.title {
+  height: 28px;
+  width: 48%;
+  border-radius: 10px;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-shimmer-line.subtitle {
+  width: 32%;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-shimmer-line.section-title {
+  height: 18px;
+  width: 56%;
+  margin-bottom: 14px;
+  border-radius: 8px;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-shimmer-line.short {
+  width: 44%;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-shimmer-btn {
+  width: 120px;
+  height: 44px;
+  border-radius: 100px;
+  margin-top: 6px;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-info-card .sp-cat-shimmer-line {
+  margin-bottom: 14px;
+}
+
+.simba-page.p-sp-category-detail .sp-cat-info-card .sp-cat-shimmer-line:last-child {
+  margin-bottom: 0;
+}
+
+.simba-page.p-sp-category-detail .shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--line) 0%,
+    #f4f1ea 45%,
+    var(--line) 90%
+  );
+  background-size: 200% 100%;
+  animation: simba-shimmer 1.25s ease-in-out infinite;
+}
+
 @media (max-width: 768px) {
   .simba-page.p-sp-category-detail .sp-cat-hero-card {
     grid-template-columns: 1fr;
     text-align: center;
   }
 
-  .simba-page.p-sp-category-detail .sp-cat-hero-avatar {
+  .simba-page.p-sp-category-detail .sp-cat-hero-avatar,
+  .simba-page.p-sp-category-detail .sp-cat-shimmer-avatar {
     margin: 0 auto;
   }
 
-  .simba-page.p-sp-category-detail .sp-cat-chat-btn {
+  .simba-page.p-sp-category-detail .sp-cat-shimmer-hero-info {
+    align-items: center;
+  }
+
+  .simba-page.p-sp-category-detail .sp-cat-chat-btn,
+  .simba-page.p-sp-category-detail .sp-cat-shimmer-btn {
     width: 100%;
     justify-content: center;
   }
