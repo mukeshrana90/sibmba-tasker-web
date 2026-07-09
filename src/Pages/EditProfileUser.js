@@ -196,7 +196,7 @@ export default function EditProfileUser() {
 
 
   return (
-    <Layout>
+    <Layout footerVariant="marketing">
       <div className="p-2 p-md-5 mt-5">
         <Container fluid className="">
           <div className="row">
