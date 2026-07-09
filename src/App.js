@@ -66,7 +66,7 @@ function App() {
     const initializeSocket = async () => {
       try {
         await io(BASE_URL);
-        console.log("Socket connected");
+        // console.log("Socket connected");
       } catch (error) {
         console.error("Socket connection failed:", error);
       }
