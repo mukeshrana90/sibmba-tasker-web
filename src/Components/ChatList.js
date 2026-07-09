@@ -5,9 +5,13 @@ import moment from 'moment';
 import {
   handleUserImageError,
   userImageUrl,
-  formatDisplayTitle,
 } from '../utils/landingUtils';
-import { getChatPeerId, getLastMessagePreview, normalizeChatUserId } from '../utils/chatUtils';
+import {
+  getChatPeerId,
+  getLastMessagePreview,
+  normalizeChatUserId,
+  chatPeerDisplayName,
+} from '../utils/chatUtils';
 import { getStoredUserId } from '../utils/normalizeMongoId';
 
 const ChatList = ({ onSelect }) => {
@@ -32,9 +36,14 @@ const ChatList = ({ onSelect }) => {
   };
 
   const filteredChatList = Array.isArray(chatList)
-    ? chatList.filter((ele) =>
-        ele?.receiver?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? chatList.filter((ele) => {
+        const peerLabel = chatPeerDisplayName({
+          name: ele?.receiver?.name,
+          full_name: ele?.receiver?.name,
+          email: ele?.receiver?.email,
+        }).toLowerCase();
+        return peerLabel.includes(searchTerm.toLowerCase());
+      })
     : [];
 
   return (
@@ -101,7 +110,13 @@ const ChatList = ({ onSelect }) => {
                       onError={handleUserImageError}
                     />
                     <div>
-                      <h5>{formatDisplayTitle(ele?.receiver?.name, 'User')}</h5>
+                      <h5>
+                        {chatPeerDisplayName({
+                          name: ele?.receiver?.name,
+                          full_name: ele?.receiver?.name,
+                          email: ele?.receiver?.email,
+                        })}
+                      </h5>
                       <p>{getLastMessagePreview(ele?.lastMessage)}</p>
                     </div>
                   </div>

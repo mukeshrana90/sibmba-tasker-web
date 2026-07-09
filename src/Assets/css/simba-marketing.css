@@ -3246,9 +3246,55 @@ header.appnav .avatar-menu .am-item {
   border-color: #25d366;
 }
 
+.simba-page.p-servicedetail .svc-wa-btn__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
+  display: block;
+}
+
 .simba-page.p-servicedetail .svc-wa-btn:hover {
   background: #e8faf0;
   color: #1da851;
+}
+
+.simba-page.p-profile .svc-wa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: #25d366;
+  border: 1px solid #25d366;
+  color: #fff !important;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.simba-page.p-profile .svc-wa-btn:hover {
+  background: #1da851;
+  border-color: #1da851;
+  color: #fff !important;
+}
+
+.simba-page.p-profile .svc-wa-btn__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+.simba-page.p-profile .phero-actions .svc-wa-btn,
+.simba-page.p-profile .book-actions .svc-wa-btn {
+  margin-top: 0;
 }
 
 /* Corporate categories & list */

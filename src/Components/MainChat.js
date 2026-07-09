@@ -11,13 +11,13 @@ import { useDispatch } from "react-redux";
 import {
   handleCategoryImageError,
   taskImageUrl,
-  providerDisplayName,
 } from "../utils/landingUtils";
 import {
   getChatPeerId,
   isMessageForChat,
   normalizeChatMessages,
   normalizeChatUserId,
+  chatPeerDisplayName,
 } from "../utils/chatUtils";
 import { fetchChatHistory } from "../utils/chatMessagesApi";
 
@@ -318,7 +318,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
           <div>
             <h4>
               {receiverDetail
-                ? providerDisplayName(receiverDetail)
+                ? chatPeerDisplayName(receiverDetail)
                 : loading && receiver_id
                   ? "Loading…"
                   : "Select a conversation"}

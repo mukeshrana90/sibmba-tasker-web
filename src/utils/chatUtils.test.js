@@ -5,6 +5,7 @@ import {
   isMessageForChat,
   normalizeChatMessages,
   normalizeChatUserId,
+  chatPeerDisplayName,
 } from "./chatUtils";
 
 describe("chatUtils", () => {
@@ -73,5 +74,17 @@ describe("chatUtils", () => {
         message: "This is a very long preview message",
       })
     ).toBe("This is a very long previ...");
+  });
+
+  test("chatPeerDisplayName prefers name then email local part", () => {
+    expect(chatPeerDisplayName({ full_name: "Jane Doe" })).toBe("Jane Doe");
+    expect(
+      chatPeerDisplayName({ full_name: "undefined", email: "mrmagaisa@gmail.com" })
+    ).toBe("Mrmagaisa");
+    expect(chatPeerDisplayName({ email: "mrmagaisa@gmail.com" })).toBe(
+      "Mrmagaisa"
+    );
+    expect(chatPeerDisplayName({ name: "undefined" })).toBe("User");
+    expect(chatPeerDisplayName(null)).toBe("User");
   });
 });

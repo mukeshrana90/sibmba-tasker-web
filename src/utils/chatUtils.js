@@ -1,4 +1,26 @@
 import { normalizeMongoId } from "./normalizeMongoId";
+import {
+  emailUsernameFromEmail,
+  sanitizeProfileValue,
+} from "./customerProfileUtils";
+
+export function chatPeerDisplayName(user, fallback = "User") {
+  if (!user) return fallback;
+
+  const company = sanitizeProfileValue(user.company_name);
+  if (company) return company;
+
+  const fullName = sanitizeProfileValue(user.full_name);
+  if (fullName) return fullName;
+
+  const name = sanitizeProfileValue(user.name);
+  if (name) return name;
+
+  const email = sanitizeProfileValue(user.email);
+  if (email) return emailUsernameFromEmail(email);
+
+  return fallback;
+}
 
 export function normalizeChatUserId(id) {
   if (id == null) return "";

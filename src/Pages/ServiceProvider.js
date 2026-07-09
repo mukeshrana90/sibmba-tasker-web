@@ -22,10 +22,14 @@ import {
 import { isLoggedIn, redirectToLogin } from "../utils/authRedirect";
 import {
   customerServiceDetailPath,
-  messagesPath,
-  persistReceiverId,
   serviceProviderPath,
 } from "../utils/normalizeMongoId";
+import whatsappLogo from "../Assets/Images/whatsapp.png";
+import {
+  buildWhatsAppQuoteMessage,
+  buildWhatsAppQuoteUrl,
+  resolveUserLocation,
+} from "../utils/whatsappQuote";
 
 function starsText(rating) {
   const filled = Math.round(Number(rating) || 0);
@@ -73,6 +77,7 @@ export default function ServiceProvider() {
 
   const profile = useSelector((e) => e.UserSlice.serviceProviderProfile);
   const loading = useSelector((e) => e.UserSlice.loading);
+  const customerDetails = useSelector((e) => e.login.customerDetails);
   const [showMapModal, setShowMapModal] = React.useState(false);
   const [showGalleryModal, setShowGalleryModal] = React.useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = React.useState(0);
@@ -277,16 +282,50 @@ export default function ServiceProvider() {
     navigate(customerServiceDetailPath(svcId));
   };
 
-  const handleMessage = () => {
+  const pageReturnPath = serviceProviderPath(provider?._id, bookServiceId);
+
+  const currentServiceName =
+    selectedService?.serviceSubCategoryName ||
+    selectedService?.serviceCategoryId?.service_category_name ||
+    primaryCategory ||
+    "a service";
+
+  const buildWhatsAppUrl = () => {
+    if (!provider) return "";
+    const message = buildWhatsAppQuoteMessage({
+      providerName: providerDisplayName(provider),
+      serviceName: currentServiceName,
+      userLocation: resolveUserLocation(customerDetails),
+    });
+    return buildWhatsAppQuoteUrl(provider, message);
+  };
+
+  const handleWhatsAppClick = (e) => {
     if (!provider?._id) return;
-    const returnPath = messagesPath(provider._id);
     if (!isLoggedIn()) {
-      redirectToLogin(navigate, returnPath);
+      e.preventDefault();
+      redirectToLogin(navigate, pageReturnPath);
       return;
     }
-    navigate(returnPath);
-    persistReceiverId(provider._id);
+    if (!provider?.phone_number) {
+      e.preventDefault();
+      return;
+    }
+    const categoryId =
+      selectedService?.serviceCategoryId?._id ||
+      services[0]?.serviceCategoryId?._id;
+    dispatch(
+      CustomerActions.logProviderEvent({
+        provider_id: provider._id,
+        serviceCategoryId: categoryId,
+        source: "profile",
+      })
+    ).catch(() => {});
   };
+
+  const showWhatsAppButton =
+    Boolean(provider?._id) &&
+    (!isLoggedIn() || Boolean(provider?.phone_number));
 
   const handleBook = () => {
     if (!bookServiceId) return;
@@ -460,25 +499,24 @@ export default function ServiceProvider() {
                   >
                     Book now
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={handleMessage}
-                  >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  {showWhatsAppButton ? (
+                    <a
+                      href={isLoggedIn() ? buildWhatsAppUrl() : "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-block svc-wa-btn"
+                      onClick={handleWhatsAppClick}
                     >
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
-                    </svg>
-                    Message
-                  </button>
+                      <img
+                        src={whatsappLogo}
+                        alt=""
+                        className="svc-wa-btn__icon"
+                        width={20}
+                        height={20}
+                      />
+                      Get quote on WhatsApp
+                    </a>
+                  ) : null}
                 </div>
               </div>
 
@@ -853,25 +891,24 @@ export default function ServiceProvider() {
                   >
                     Book this provider
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-block"
-                    onClick={handleMessage}
-                  >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  {showWhatsAppButton ? (
+                    <a
+                      href={isLoggedIn() ? buildWhatsAppUrl() : "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-block svc-wa-btn"
+                      onClick={handleWhatsAppClick}
                     >
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
-                    </svg>
-                    Message provider
-                  </button>
+                      <img
+                        src={whatsappLogo}
+                        alt=""
+                        className="svc-wa-btn__icon"
+                        width={20}
+                        height={20}
+                      />
+                      Get quote on WhatsApp
+                    </a>
+                  ) : null}
                   {provider?.location?.coordinates && (
                     <button
                       type="button"
