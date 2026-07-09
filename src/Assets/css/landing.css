@@ -690,6 +690,13 @@
   text-align: left;
 }
 
+.landing-search__popup--fixed {
+  position: fixed;
+  top: auto;
+  left: auto;
+  right: auto;
+}
+
 .landing-search__loading {
   padding: 8px 12px;
   font-size: 0.88rem;
@@ -1572,7 +1579,8 @@
 
   .landing-hero {
     padding: 48px 0 60px;
-    overflow: hidden;
+    overflow: visible;
+    z-index: 5;
   }
 
   .landing-hero h1 {
@@ -1602,8 +1610,12 @@
   .landing-searchbar {
     padding: 8px;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 16px 40px -16px rgba(10, 67, 56, 0.28);
+  }
+
+  .landing-search {
+    z-index: 50;
   }
 
   .landing-search-field:not(:last-of-type) {

@@ -17,42 +17,17 @@ export default function SimbaPager({ page, totalPages, onPageChange }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const items = [];
-  items.push(
-    <button
-      key="first"
-      type="button"
-      className="pg"
-      disabled={page === 1}
-      aria-label="First page"
-      onClick={() => go(1)}
-    >
-      «
-    </button>
-  );
-  items.push(
-    <button
-      key="prev"
-      type="button"
-      className="pg"
-      disabled={page === 1}
-      aria-label="Previous page"
-      onClick={() => go(page - 1)}
-    >
-      ‹
-    </button>
-  );
-
+  const pageItems = [];
   let prev = 0;
   sorted.forEach((n) => {
     if (n - prev > 1) {
-      items.push(
+      pageItems.push(
         <span key={`dots-${n}`} className="pg dots">
           …
         </span>
       );
     }
-    items.push(
+    pageItems.push(
       <button
         key={n}
         type="button"
@@ -65,30 +40,51 @@ export default function SimbaPager({ page, totalPages, onPageChange }) {
     prev = n;
   });
 
-  items.push(
-    <button
-      key="next"
-      type="button"
-      className="pg"
-      disabled={page === totalPages}
-      aria-label="Next page"
-      onClick={() => go(page + 1)}
-    >
-      ›
-    </button>
-  );
-  items.push(
-    <button
-      key="last"
-      type="button"
-      className="pg"
-      disabled={page === totalPages}
-      aria-label="Last page"
-      onClick={() => go(totalPages)}
-    >
-      »
-    </button>
-  );
+  return (
+    <div className="pager">
+      <div className="pager-edge pager-edge--start">
+        <button
+          type="button"
+          className="pg"
+          disabled={page === 1}
+          aria-label="First page"
+          onClick={() => go(1)}
+        >
+          «
+        </button>
+        <button
+          type="button"
+          className="pg"
+          disabled={page === 1}
+          aria-label="Previous page"
+          onClick={() => go(page - 1)}
+        >
+          ‹
+        </button>
+      </div>
 
-  return <div className="pager">{items}</div>;
+      <div className="pager-pages">{pageItems}</div>
+
+      <div className="pager-edge pager-edge--end">
+        <button
+          type="button"
+          className="pg"
+          disabled={page === totalPages}
+          aria-label="Next page"
+          onClick={() => go(page + 1)}
+        >
+          ›
+        </button>
+        <button
+          type="button"
+          className="pg"
+          disabled={page === totalPages}
+          aria-label="Last page"
+          onClick={() => go(totalPages)}
+        >
+          »
+        </button>
+      </div>
+    </div>
+  );
 }

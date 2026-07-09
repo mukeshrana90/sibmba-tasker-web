@@ -52,6 +52,8 @@ export default function UnifiedSearch() {
   const navigate = useNavigate();
   const popupRef = useRef(null);
   const debounceRef = useRef(null);
+  const [useFixedPopup, setUseFixedPopup] = useState(false);
+  const [popupFixedStyle, setPopupFixedStyle] = useState(null);
 
   const {
     selectCategory,
@@ -245,6 +247,37 @@ export default function UnifiedSearch() {
     };
   }, [showPopup]);
 
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 980px)");
+    const sync = () => setUseFixedPopup(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const updatePopupPosition = useCallback(() => {
+    const el = popupRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setPopupFixedStyle({
+      position: "fixed",
+      top: rect.bottom + 10,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 5000,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!showPopup || !useFixedPopup) {
+      setPopupFixedStyle(null);
+      return undefined;
+    }
+    updatePopupPosition();
+    window.addEventListener("resize", updatePopupPosition);
+    return () => window.removeEventListener("resize", updatePopupPosition);
+  }, [showPopup, useFixedPopup, updatePopupPosition]);
+
   const handleCategoryClick = (cat) => {
     selectCategory(cat._id);
     setShowPopup(false);
@@ -304,6 +337,21 @@ export default function UnifiedSearch() {
   const popupOpen =
     showPopup &&
     (showLocationList || showSearchResults || searching || locationLoading);
+
+  useEffect(() => {
+    if (!popupOpen || !useFixedPopup) return undefined;
+    updatePopupPosition();
+    return undefined;
+  }, [
+    popupOpen,
+    useFixedPopup,
+    updatePopupPosition,
+    locationPredictions.length,
+    categories.length,
+    providers.length,
+    searching,
+    locationLoading,
+  ]);
 
   return (
     <div className="landing-search" ref={popupRef}>
@@ -377,7 +425,10 @@ export default function UnifiedSearch() {
 
       {popupOpen && (
         <div
-          className="landing-search__popup"
+          className={`landing-search__popup${
+            useFixedPopup && popupFixedStyle ? " landing-search__popup--fixed" : ""
+          }`}
+          style={useFixedPopup ? popupFixedStyle || undefined : undefined}
           onMouseDown={(e) => e.stopPropagation()}
         >
           {showLocationList && (

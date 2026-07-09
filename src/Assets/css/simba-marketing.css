@@ -3757,6 +3757,21 @@ header.appnav .avatar-menu .am-item {
 .simba-book-modal .bk-datepicker-wrap .react-datepicker__day--keyboard-selected {
   background: var(--primary);
   border-radius: 10px;
+  color: #fff;
+}
+
+.simba-book-modal .bk-datepicker-wrap .react-datepicker__day--keyboard-selected:not(.react-datepicker__day--selected) {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.simba-book-modal .bk-datepicker-wrap .react-datepicker__day--today {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.simba-book-modal .bk-datepicker-wrap .react-datepicker__today-button {
+  color: var(--primary);
 }
 
 .simba-book-modal .bk-times {

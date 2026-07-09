@@ -15,6 +15,7 @@ import AddressAutocomplete from "../CommanComponents/AddressAutocomplete";
 import moment from "moment";
 import { taskImageUrl } from "../utils/landingUtils";
 import { normalizeCategoryList } from "../utils/normalizeCategory";
+import SimbaDatePicker from "../CommanComponents/SimbaDatePicker";
 
 const validationSchema = Yup.object({
   need_done: Yup.string().required("Task description is required"),
@@ -413,12 +414,22 @@ export default function EditTask() {
                       <div>
                         <Form.Group className="mb-3" controlId="formBasicEmail">
                           <Form.Label>When do you need this done?</Form.Label>
-                          <Field
-                            name="when_done"
-                            as={Form.Control}
-                            type="date"
-                            min={new Date().toISOString().split('T')[0]}
-                          />
+                          <Field name="when_done">
+                            {({ field, form }) => (
+                              <SimbaDatePicker
+                                id="when_done"
+                                selected={field.value}
+                                onChange={(date) =>
+                                  form.setFieldValue("when_done", date)
+                                }
+                                onBlur={() =>
+                                  form.setFieldTouched("when_done", true)
+                                }
+                                minDate={new Date()}
+                                className="form-control"
+                              />
+                            )}
+                          </Field>
                           <ErrorMessage
                             name="when_done"
                             component="div"

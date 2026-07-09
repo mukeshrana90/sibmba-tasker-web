@@ -8,7 +8,6 @@ import moment from "moment";
 import Layout from "../Components/Layout/Layout";
 import AddressAutocomplete from "../CommanComponents/AddressAutocomplete";
 import CustomerActions from "../Redux/Actions/CustomerActions";
-import { today } from "../utils/CommonFunction";
 import { Roles } from "../utils/Roles";
 import {
   redirectToLogin,
@@ -20,6 +19,7 @@ import {
   savePostTaskDraft,
 } from "../utils/postTaskDraft";
 import { normalizeCategoryList } from "../utils/normalizeCategory";
+import SimbaDatePicker from "../CommanComponents/SimbaDatePicker";
 
 const TIME_SLOTS = [
   {
@@ -541,13 +541,21 @@ export default function PostTask() {
                           When do you need this done?{" "}
                           <span className="req">*</span>
                         </label>
-                        <Field
-                          id="when_done"
-                          name="when_done"
-                          type="date"
-                          className="control"
-                          min={today}
-                        />
+                        <Field name="when_done">
+                          {({ field, form }) => (
+                            <SimbaDatePicker
+                              id="when_done"
+                              selected={field.value}
+                              onChange={(date) =>
+                                form.setFieldValue("when_done", date)
+                              }
+                              onBlur={() =>
+                                form.setFieldTouched("when_done", true)
+                              }
+                              minDate={new Date()}
+                            />
+                          )}
+                        </Field>
                         <FieldError name="when_done" />
                       </div>
 

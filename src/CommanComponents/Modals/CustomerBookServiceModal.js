@@ -318,7 +318,7 @@ const CustomerBookServiceModal = ({ show, setShow, service_id, data }) => {
                   minDate={new Date()}
                   filterDate={isDateAvailable}
                   inline
-                  calendarClassName="bk-datepicker"
+                  calendarClassName="simba-datepicker bk-datepicker"
                 />
               </div>
             </div>

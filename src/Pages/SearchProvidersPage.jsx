@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../Components/Layout/Layout";
@@ -29,6 +29,8 @@ import { serviceProviderPath } from "../utils/normalizeMongoId";
 
 const PAGE_SIZE = 10;
 const RATE_MAX = 40;
+const FILTER_FEEDBACK_MS = 1000;
+const MOBILE_FILTERS_MQ = "(max-width: 980px)";
 
 function SearchIcon() {
   return (
@@ -161,6 +163,29 @@ function SearchProvidersContent({ variant = "visitor" }) {
       : null
   );
   const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [filterFeedbackLoading, setFilterFeedbackLoading] = useState(false);
+  const filterFeedbackTimerRef = useRef(null);
+
+  const showMobileFilterFeedback = useCallback(() => {
+    if (!window.matchMedia(MOBILE_FILTERS_MQ).matches) return;
+    setFilterFeedbackLoading(true);
+    if (filterFeedbackTimerRef.current) {
+      clearTimeout(filterFeedbackTimerRef.current);
+    }
+    filterFeedbackTimerRef.current = window.setTimeout(() => {
+      setFilterFeedbackLoading(false);
+      filterFeedbackTimerRef.current = null;
+    }, FILTER_FEEDBACK_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (filterFeedbackTimerRef.current) {
+        clearTimeout(filterFeedbackTimerRef.current);
+      }
+    },
+    []
+  );
 
   const homeLink = "/";
   const homeLabel = variant === "customer" ? "Home" : "Home";
@@ -180,7 +205,8 @@ function SearchProvidersContent({ variant = "visitor" }) {
   }, [parsed.search, parsed.location, parsed.lat, parsed.lng]);
 
   const pushFilters = useCallback(
-    (patch) => {
+    (patch, { feedback = true } = {}) => {
+      if (feedback) showMobileFilterFeedback();
       const next = { ...parsed, ...patch };
       const params = buildSearchProvidersParams({
         ...next,
@@ -188,7 +214,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
       });
       setSearchParams(params, { replace: false });
     },
-    [parsed, setSearchParams]
+    [parsed, setSearchParams, showMobileFilterFeedback]
   );
 
   const fetchResults = useCallback(async () => {
@@ -353,6 +379,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
   };
 
   const clearFilters = () => {
+    showMobileFilterFeedback();
     setSearchInput("");
     setLocationInput("");
     setLocationCoords(null);
@@ -459,6 +486,12 @@ function SearchProvidersContent({ variant = "visitor" }) {
       <section className="listing">
         <div className="wrap listing-grid">
           <aside className="filters">
+            {filterFeedbackLoading && (
+              <div className="search-filter-loading" role="status" aria-live="polite">
+                <div className="spinner" aria-hidden="true" />
+                <span>Updating results…</span>
+              </div>
+            )}
             <div className="filters-head">
               <h3>Filters</h3>
               <button type="button" onClick={clearFilters}>
@@ -656,7 +689,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
               page={parsed.page}
               totalPages={totalPages}
               onPageChange={(p) => {
-                pushFilters({ page: p });
+                pushFilters({ page: p }, { feedback: false });
                 document.querySelector(".p-search .listing")?.scrollIntoView({
                   behavior: "smooth",
                   block: "start",
