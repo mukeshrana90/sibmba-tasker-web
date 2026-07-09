@@ -3155,14 +3155,24 @@ header.appnav .avatar-menu .am-item {
 .simba-page.p-corp-profile .corp-tab-nav {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   margin-bottom: 24px;
-  padding: 6px;
+  padding: 6px 10px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 100px;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-padding-inline: 10px;
+  box-sizing: border-box;
+}
+
+.simba-page.p-corp-profile .corp-tab-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .simba-page.p-corp-profile .corp-tab {
@@ -3172,10 +3182,15 @@ header.appnav .avatar-menu .am-item {
   font-family: var(--font-body);
   font-weight: 700;
   font-size: 0.9rem;
-  padding: 11px 20px;
+  padding: 12px 18px;
   border-radius: 100px;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.25;
 }
 
 .simba-page.p-corp-profile .corp-tab.active,
@@ -3355,17 +3370,45 @@ header.appnav .avatar-menu .am-item {
   width: 100%;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .simba-page.p-corp-profile .corp-profile-topbar {
     flex-direction: column;
     align-items: flex-start;
   }
 
+  .simba-page.p-corp-profile .wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .simba-page.p-corp-profile .pbody {
+    padding-top: 28px;
+    padding-bottom: 48px;
+  }
+
+  .simba-page.p-corp-profile .phero-card {
+    padding: 24px 20px;
+  }
+
+  .simba-page.p-corp-profile .card {
+    padding: 20px 18px;
+    margin-bottom: 16px;
+  }
+
   .simba-page.p-corp-profile .corp-tab-nav {
-    width: 100%;
-    border-radius: var(--radius);
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    border-radius: 16px;
+    gap: 6px;
+    padding: 8px 10px;
+    margin-bottom: 18px;
+    justify-content: flex-start;
+    scroll-padding-inline: 10px;
+  }
+
+  .simba-page.p-corp-profile .corp-tab {
+    flex: 0 0 auto;
+    min-width: max-content;
+    font-size: 0.84rem;
+    padding: 11px 16px;
   }
 
   .simba-page.p-corp-profile .corp-detail-layout {
@@ -3381,9 +3424,45 @@ header.appnav .avatar-menu .am-item {
     grid-template-columns: 1fr;
   }
 
+  .simba-page.p-corp-profile .corp-detail-actions {
+    flex-wrap: wrap;
+  }
+
   .simba-page.p-corp-profile .corp-detail-actions .btn {
-    flex: 1;
+    flex: 1 1 calc(50% - 6px);
     min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .simba-page.p-corp-profile .wrap {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .simba-page.p-corp-profile .phero-card {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+
+  .simba-page.p-corp-profile .card {
+    padding: 18px 16px;
+    border-radius: 18px;
+  }
+
+  .simba-page.p-corp-profile .corp-tab-nav {
+    border-radius: 14px;
+    padding: 7px 8px;
+    gap: 5px;
+  }
+
+  .simba-page.p-corp-profile .corp-tab {
+    font-size: 0.8rem;
+    padding: 10px 14px;
+  }
+
+  .simba-page.p-corp-profile .corp-detail-actions .btn {
+    flex: 1 1 100%;
   }
 }
 
