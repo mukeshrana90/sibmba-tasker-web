@@ -1690,6 +1690,26 @@ header.appnav .avatar-menu .am-item {
   display: flex;
   flex-direction: column;
   gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.simba-page.p-taskstatus .qcard-stack:has(.qcard.accepted) {
+  border-color: #bbe3cc;
+  background: #f2fbf6;
+}
+
+.simba-page.p-taskstatus .qcard-stack .qcard {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.simba-page.p-taskstatus .qcard-stack .qcard:hover {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .simba-page.p-taskstatus .qcard {
@@ -1749,17 +1769,101 @@ header.appnav .avatar-menu .am-item {
 
 .simba-page.p-taskstatus .qcard-corporate {
   padding: 0 18px 18px;
-  border: 1px solid var(--line);
-  border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius);
-  background: var(--surface);
-  margin-top: -1px;
+  border: none;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: inherit;
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 .simba-page.p-taskstatus .qcard-corporate h5 {
   margin: 14px 0 10px;
   font-size: 0.95rem;
   color: var(--ink);
+}
+
+.simba-page.p-taskstatus .qcard-corporate .state-note,
+.simba-page.p-taskstatus .qcard-corporate .modal-scrollable-list,
+.simba-page.p-taskstatus .qcard-corporate > .d-flex {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.simba-page.p-taskstatus .qcard-corporate .corporate-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.simba-page.p-taskstatus .qcard-corporate .corporate-item:last-child {
+  border-bottom: none;
+}
+
+.simba-page.p-taskstatus .qcard-corporate .corporate-item .flex-grow-1 {
+  min-width: 0;
+}
+
+.simba-page.p-taskstatus .qcard-corporate .corporate-item .fw-bold {
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+@media (max-width: 620px) {
+  .simba-page.p-taskstatus .qcard-stack .qcard {
+    align-items: flex-start;
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .simba-page.p-taskstatus .qinfo {
+    width: 100%;
+  }
+
+  .simba-page.p-taskstatus .qcard-stack .qright {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .simba-page.p-taskstatus .qactions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  .simba-page.p-taskstatus .qcard-corporate {
+    padding: 0 14px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .simba-page.p-taskstatus .qactions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .simba-page.p-taskstatus .qactions .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .simba-page.p-taskstatus .qcard-corporate .corporate-item {
+    flex-wrap: wrap;
+  }
+
+  .simba-page.p-taskstatus .qcard-corporate .corporate-item img {
+    flex-shrink: 0;
+  }
 }
 
 .simba-page.p-taskstatus .no-upcoming-bookings {
@@ -2415,6 +2519,194 @@ header.appnav .avatar-menu .am-item {
 .simba-page.p-taskdetails .tgallery--single,
 .simba-page.p-servicedetail .tgallery--single {
   grid-template-columns: 1fr;
+}
+
+/* Booking / task detail — mobile (iPhone 12 Pro, SE, similar) */
+@media (max-width: 860px) {
+  .simba-page.p-taskdetails .page {
+    padding: 16px 0 48px;
+  }
+
+  .simba-page.p-taskdetails .wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .simba-page.p-taskdetails .crumbs {
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+  }
+
+  .simba-page.p-taskdetails .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .simba-page.p-taskdetails .page-head h1 {
+    font-size: clamp(1.35rem, 6vw, 1.75rem) !important;
+  }
+
+  .simba-page.p-taskdetails .page-head .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .simba-page.p-taskdetails .tgrid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Flatten main so payment sidebar can sit after booking info */
+  .simba-page.p-taskdetails .tgrid .main {
+    display: contents;
+  }
+
+  .simba-page.p-taskdetails .tgrid .tgallery {
+    order: 1;
+    margin-bottom: 0;
+  }
+
+  .simba-page.p-taskdetails .tgrid .main > .tgallery + .card {
+    order: 2;
+  }
+
+  .simba-page.p-taskdetails .tgrid .side {
+    order: 3;
+    position: static;
+    gap: 14px;
+  }
+
+  .simba-page.p-taskdetails .tgrid .main > * {
+    order: 4;
+  }
+
+  .simba-page.p-taskdetails .tgrid .tgallery {
+    order: 1;
+  }
+
+  .simba-page.p-taskdetails .tgrid .main > .tgallery + .card {
+    order: 2;
+  }
+
+  .simba-page.p-taskdetails .card,
+  .simba-page.p-taskdetails .summary {
+    padding: 18px 16px;
+    margin-bottom: 0;
+    border-radius: 18px;
+  }
+
+  .simba-page.p-taskdetails .tgallery .big {
+    aspect-ratio: 16 / 9;
+    max-height: 220px;
+  }
+
+  .simba-page.p-taskdetails .card h2 {
+    font-size: 1.1rem;
+  }
+
+  .simba-page.p-taskdetails .meta-row {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .simba-page.p-taskdetails .meta-row .mi {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .simba-page.p-taskdetails .meta-row .mtxt {
+    min-width: 0;
+  }
+
+  .simba-page.p-taskdetails .meta-row .mtxt b {
+    word-break: break-word;
+    font-size: 0.92rem;
+  }
+
+  .simba-page.p-taskdetails .prov-block {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .simba-page.p-taskdetails .prov-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .simba-page.p-taskdetails .sum-total b {
+    font-size: 1.35rem;
+  }
+
+  .simba-page.p-taskdetails .side-actions {
+    margin-top: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .simba-page.p-taskdetails .wrap {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .simba-page.p-taskdetails .page {
+    padding-bottom: 40px;
+  }
+
+  .simba-page.p-taskdetails .card,
+  .simba-page.p-taskdetails .summary {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .simba-page.p-taskdetails .tgallery .big {
+    aspect-ratio: 4 / 3;
+    max-height: 200px;
+    border-radius: 14px;
+  }
+
+  .simba-page.p-taskdetails .tag-status {
+    top: 10px;
+    left: 10px;
+  }
+
+  .simba-page.p-taskdetails .crumbs {
+    display: none;
+  }
+
+  .simba-page.p-taskdetails .page-head {
+    margin-bottom: 14px;
+  }
+
+  .simba-page.p-taskdetails .meta-row .mi {
+    width: 32px;
+    height: 32px;
+  }
+
+  .simba-page.p-taskdetails .meta-row .mtxt small {
+    font-size: 0.72rem;
+  }
+
+  .simba-page.p-taskdetails .done-banner {
+    flex-direction: column;
+    padding: 14px;
+  }
+}
+
+/* Prevent sticky app header from covering scrolled content */
+.simba-marketing-layout {
+  scroll-padding-top: 72px;
+}
+
+@media (max-width: 860px) {
+  .simba-marketing-layout {
+    scroll-padding-top: 64px;
+  }
 }
 
 .simba-page.p-servicedetail .pav {
