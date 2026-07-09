@@ -8691,12 +8691,13 @@ footer .logo{color:#fff;margin-bottom:16px}
   .tab:hover{color:var(--ink)}
   .tab.active{color:var(--primary)}
   .tab.active::after{width:100%}
-  @media(max-width:860px){
-    .tabs{gap:20px}
+  @media(max-width:600px){
+    .tabs{gap:18px}
+    .tab{font-size:.88rem;padding-left:4px;padding-right:4px;flex:0 0 auto;min-width:max-content;max-width:none;overflow:visible;text-overflow:clip}
   }
-  @media(max-width:520px){
-    .tabs{gap:16px}
-    .tab{font-size:.9rem}
+  @media(max-width:380px){
+    .tabs{gap:14px}
+    .tab{font-size:.84rem}
   }
   .seg-row{display:flex;justify-content:flex-end;margin-bottom:22px}
   .seg{display:inline-flex;gap:4px;background:var(--surface);border:1px solid var(--line);padding:5px;border-radius:100px;box-shadow:var(--shadow-sm)}
@@ -9015,9 +9016,14 @@ footer .logo{color:#fff;margin-bottom:16px}
   .fb-tools button:hover{background:var(--primary-soft)}
   .rate-hint{text-align:center;font-size:.82rem;color:var(--muted);font-weight:600;margin:-12px 0 16px;min-height:1em}
 
-  @media(max-width:860px){
-    .tgrid{grid-template-columns:1fr;gap:16px}
+  @media(max-width:1024px){
+    .tgrid{grid-template-columns:1fr;gap:24px;width:100%}
+    .tgrid .main,.tgrid .side{display:flex;flex-direction:column;gap:20px;width:100%;min-width:0;max-width:100%}
     .side{position:static}
+    .card,.tgallery{margin-bottom:0}
+    .tgallery .big{max-height:320px}
+  }
+  @media(max-width:600px){
     .page{padding:16px 0 48px}
     .wrap{padding-left:16px;padding-right:16px}
     .card,.summary{padding:18px 16px;margin-bottom:0}
