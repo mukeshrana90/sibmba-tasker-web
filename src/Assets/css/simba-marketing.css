@@ -523,11 +523,27 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Completed request cards — prevent horizontal overflow on narrow viewports */
+/* Portal page container — keep desktop gutters; min-width:0 for mobile overflow */
+.simba-marketing-layout .simba-page.p-corporate-portal.p-sp-requests .page .wrap.corp-portal-content,
+.simba-marketing-layout .simba-page.p-corporate-portal.p-browsetask .page .wrap.corp-portal-content,
 .simba-page.p-sp-requests .corp-portal-content,
 .simba-page.p-browsetask .corp-portal-content {
   min-width: 0;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .simba-page.p-sp-requests .corp-portal-content,
+  .simba-page.p-browsetask .corp-portal-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
 }
 
 .simba-page.p-sp-requests .tab-content,
@@ -544,12 +560,35 @@
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  align-items: stretch;
+  align-items: center;
+}
+
+.simba-page.p-sp-requests .quotation-requests > div:first-child,
+.simba-page.p-browsetask .quotation-requests > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.simba-page.p-sp-requests .quotation-requests .corporate_inner,
+.simba-page.p-browsetask .quotation-requests .corporate_inner {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  height: auto;
+  min-height: 0;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .simba-page.p-sp-requests .quotation-requests--completed,
 .simba-page.p-browsetask .quotation-requests--completed {
-  overflow: hidden;
+  align-items: flex-start;
 }
 
 .simba-page.p-sp-requests .requests-completed-main,

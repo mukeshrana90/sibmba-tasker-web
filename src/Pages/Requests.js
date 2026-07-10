@@ -249,7 +249,7 @@ export default function Requests() {
     <>
       <CorporatePageShell
         title="Requests"
-        pageClass="p-bookings p-sp-requests"
+        pageClass="p-corporate-portal p-bookings p-sp-requests"
         showBanner={false}
       >
         <div className="tabs">
