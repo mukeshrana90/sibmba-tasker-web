@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import {
+  PhoneInput,
+  defaultCountries,
+  parseCountry,
+} from "react-international-phone";
+import "react-international-phone/style.css";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import { useQuery } from "../utils/CommonFunction";
@@ -108,6 +114,22 @@ function EyeClosedIcon() {
   );
 }
 
+function countryCodeToIso(dialCode) {
+  const digits = String(dialCode || "+263").replace(/\D/g, "");
+  for (const entry of defaultCountries) {
+    const country = parseCountry(entry);
+    if (country.dialCode === digits) return country.iso2;
+  }
+  return "zw";
+}
+
+function buildPhoneInputValue(countryCode, phone) {
+  const local = String(phone || "").replace(/\D/g, "");
+  if (!local) return "";
+  const cc = String(countryCode || "+263").replace(/\D/g, "");
+  return `+${cc}${local}`;
+}
+
 const SIGNUP_DEFAULT_VALUES = {
   email: "",
   phone: "",
@@ -153,7 +175,7 @@ export default function SignUp() {
         .required("Email is Required"),
       phone: Yup.string()
         .transform((value) => value.replace(/\D/g, ""))
-        .matches(/^\d{9,10}$/, "Phone number must be between 9 and 10 digits")
+        .matches(/^\d{7,15}$/, "Please enter a valid phone number")
         .required("Phone number is required"),
       password: Yup.string()
         .min(6, "Password must be at least 6 characters")
@@ -163,12 +185,40 @@ export default function SignUp() {
         .required("Confirm password is Required"),
       terms: Yup.boolean().oneOf([true], "You must accept the terms"),
     }),
-    onSubmit: async () => {
-      if (!formik.isValid) return;
-      localStorage.setItem("signupFormData", JSON.stringify(formik.values));
+    onSubmit: async (values) => {
+      localStorage.setItem("signupFormData", JSON.stringify(values));
       setShowOtpModal(true);
     },
   });
+
+  const defaultPhoneCountry = useMemo(
+    () => countryCodeToIso(formik.values.country_code),
+    [formik.values.country_code]
+  );
+
+  const phoneInputValue = buildPhoneInputValue(
+    formik.values.country_code,
+    formik.values.phone
+  );
+
+  const handlePhoneChange = (phone, meta) => {
+    const dialCode = meta?.country?.dialCode || "";
+    const countryCode = dialCode
+      ? `+${dialCode}`
+      : formik.values.country_code || "+263";
+
+    let localNumber = phone;
+    if (dialCode && phone.startsWith(`+${dialCode}`)) {
+      localNumber = phone.slice(`+${dialCode}`.length);
+    } else if (phone.startsWith("+")) {
+      localNumber = phone.replace(/^\+/, "");
+    }
+    localNumber = localNumber.replace(/\D/g, "");
+
+    formik.setFieldValue("country_code", countryCode);
+    formik.setFieldValue("phone", localNumber);
+    formik.setFieldTouched("phone", true, false);
+  };
 
   useEffect(() => {
     setSelectedRole(parseRoleFromQuery(queryRole));
@@ -343,37 +393,16 @@ export default function SignUp() {
                   {fieldError("email")}
                 </div>
 
-                <div className="field">
+                <div className="field signup-phone-field">
                   <label htmlFor="phone">Phone Number</label>
                   <div className="input-shell">
-                    <span className="phone-cc">
-                      <span className="flag">🇿🇼</span>
-                      <span>+263</span>
-                      <svg
-                        className="chev"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </span>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
+                    <PhoneInput
+                      defaultCountry={defaultPhoneCountry}
+                      value={phoneInputValue}
+                      onChange={handlePhoneChange}
+                      onBlur={() => formik.setFieldTouched("phone", true)}
                       placeholder="77 123 4567"
-                      value={formik.values.phone}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, "");
-                        formik.setFieldValue("phone", digits);
-                        formik.setFieldValue("country_code", "+263");
-                      }}
-                      onBlur={formik.handleBlur}
+                      inputProps={{ id: "phone", name: "phone" }}
                     />
                   </div>
                   {fieldError("phone")}
