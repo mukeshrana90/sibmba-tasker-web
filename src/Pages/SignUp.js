@@ -217,7 +217,6 @@ export default function SignUp() {
 
     formik.setFieldValue("country_code", countryCode);
     formik.setFieldValue("phone", localNumber);
-    formik.setFieldTouched("phone", true, false);
   };
 
   useEffect(() => {
