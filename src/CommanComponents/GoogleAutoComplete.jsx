@@ -3,6 +3,7 @@ import GooglePlacesAutocomplete, {
   geocodeByAddress,
   getLatLng,
 } from "react-google-places-autocomplete";
+import { getGoogleMapsApiKey } from "../utils/landingPlaces";
 
 const GoogleAutoComplete = ({ intialState, setIntialState }) => {
   const handleSelect = async (place) => {
@@ -32,7 +33,7 @@ const GoogleAutoComplete = ({ intialState, setIntialState }) => {
   return (
     <>
       <GooglePlacesAutocomplete
-        apiKey={"AIzaSyBY7WePV2Eg7cigEfbsFvjs1GzEHx6GXVA"}
+        apiKey={getGoogleMapsApiKey()}
         selectProps={{
           value: intialState,
           onChange: handleSelect,

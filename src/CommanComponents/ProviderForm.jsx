@@ -11,6 +11,7 @@ import PhoneNumberInput from "./PhoneNumberInput";
 import SuccessModal from "./Modals/SuccessModal";
 import AddressAutocomplete from "./AddressAutocomplete";
 import MapComponent from "./MapComponent";
+import CountrySelect, { findCountryOption } from "./CountrySelect";
 import { getGoogleMapsApiKey } from "../utils/landingPlaces";
 import { toast } from "react-toastify";
 import { timeSchedule, weekDays } from "../utils/rawjson";
@@ -122,7 +123,14 @@ const ProviderForm = ({
       lat: locationCoordsValidation,
       long: locationCoordsValidation,
       suburbs: Yup.string().trim().nullable(),
-      country: Yup.string().trim().nullable(),
+      country: Yup.string()
+        .trim()
+        .nullable()
+        .test(
+          "valid-country",
+          "Please select a valid country from the list",
+          (value) => !value || !!findCountryOption(value)
+        ),
       post_code_or_po_box: Yup.string().trim().nullable(),
       landmark: Yup.string().trim().nullable(),
     }),
@@ -392,7 +400,10 @@ const ProviderForm = ({
       setFieldValue("house_number", streetNumber || "");
     }
     setFieldValue("suburbs", suburb || sublocality || city);
-    setFieldValue("country", country);
+    setFieldValue(
+      "country",
+      findCountryOption(country)?.value || country || ""
+    );
     setFieldValue("post_code_or_po_box", postalCode);
     if (geometry) {
       setFieldValue(
@@ -503,8 +514,17 @@ const ProviderForm = ({
   };
 
   const filterApiPayload = (values) => {
-    const { suburbs, country, post_code_or_po_box, ...filteredValues } = values;
-    return filteredValues;
+    const { suburbs, country, post_code_or_po_box, landmark, ...filteredValues } =
+      values;
+
+    // Map form keys to DB keys for edit-profile (/edit-profile-company).
+    return {
+      ...filteredValues,
+      ...(suburbs ? { suburbs } : {}),
+      ...(country ? { country } : {}),
+      ...(post_code_or_po_box ? { post_code: post_code_or_po_box } : {}),
+      ...(landmark ? { landMark: landmark } : {}),
+    };
   };
 
   const createServicePayload = (values) => {
@@ -892,11 +912,21 @@ const ProviderForm = ({
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formCountry">
                     <Form.Label>Country</Form.Label>
-                    <Field
+                    <CountrySelect
                       name="country"
-                      as={Form.Control}
-                      type="text"
-                      placeholder="Country"
+                      value={values.country}
+                      onChange={(country) => {
+                        setFieldValue("country", country);
+                        setFieldTouched("country", true, false);
+                      }}
+                      onBlur={() => setFieldTouched("country", true)}
+                      placeholder="Search and select country"
+                      variant="provider"
+                    />
+                    <ErrorMessage
+                      name="country"
+                      component="div"
+                      className="text-danger"
                     />
                   </Form.Group>
                 </div>

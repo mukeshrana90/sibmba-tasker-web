@@ -15,8 +15,10 @@ import { useQuery } from "../utils/CommonFunction";
 import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
 import { toast } from "react-toastify";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
-import { safeReturnUrl, setAuthReturnUrl } from "../utils/authRedirect";
+import { safeReturnUrl, setAuthReturnUrl, resolvePostAuthPath } from "../utils/authRedirect";
 import { otpVerificationPath } from "../utils/normalizeMongoId";
+import GoogleSignInButton from "../CommanComponents/GoogleSignInButton";
+import { handleAuthSuccess } from "../utils/handleAuthSuccess";
 
 const ROLE_COPY = {
   1: {
@@ -166,6 +168,7 @@ export default function SignUp() {
   const [signupLoading, setSignupLoading] = useState(false);
 
   const roleCopy = ROLE_COPY[selectedRole] || ROLE_COPY[1];
+  const returnUrl = resolvePostAuthPath(query.get("returnUrl"));
 
   const formik = useFormik({
     initialValues: getSignupInitialValues(),
@@ -532,6 +535,20 @@ export default function SignUp() {
                     </svg>
                   )}
                 </button>
+
+                <GoogleSignInButton
+                  role={selectedRole}
+                  disabled={signupLoading}
+                  label="Sign up with Google"
+                  onSuccess={(payload) =>
+                    handleAuthSuccess({
+                      payload,
+                      dispatch,
+                      navigate,
+                      returnUrl,
+                    })
+                  }
+                />
               </form>
 
               <p className="alt">

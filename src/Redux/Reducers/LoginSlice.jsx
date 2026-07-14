@@ -37,6 +37,17 @@ const loginSlice = createSlice({
       state.error = action.payload;
     //   toast.error(action.payload?.message || "Something went wrong");
     });
+    builder.addCase(CustomerActions.socialLogin.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(CustomerActions.socialLogin.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.data = action.payload;
+    });
+    builder.addCase(CustomerActions.socialLogin.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    });
   },
 });
 

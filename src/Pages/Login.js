@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  consumeAuthReturnUrl,
   resolvePostAuthPath,
   setAuthReturnUrl,
 } from "../utils/authRedirect";
@@ -9,12 +8,11 @@ import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
-import { emit } from "../utils/socketService";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
-import { expiresAt } from "../utils/CommonFunction";
-import { Roles } from "../utils/Roles";
-import { autoCompleteCustomerProfile } from "../utils/customerProfileAutoComplete";
-import { persistUserId, otpVerificationPath } from "../utils/normalizeMongoId";
+import { Roles, normalizeRole } from "../utils/Roles";
+import GoogleSignInButton from "../CommanComponents/GoogleSignInButton";
+import RoleSelectModal from "../CommanComponents/Modals/RoleSelectModal";
+import { handleAuthSuccess } from "../utils/handleAuthSuccess";
 
 const AUTH_VISUAL_IMG =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
@@ -74,7 +72,10 @@ export default function Login() {
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   const returnUrl = resolvePostAuthPath(searchParams.get("returnUrl"));
+  const loginRole = normalizeRole(searchParams.get("role")) || Roles.CUSTOMER;
   const [localLoading, setLocalLoading] = useState(false);
+  const [pendingGoogle, setPendingGoogle] = useState(null);
+  const [roleModalLoading, setRoleModalLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -138,65 +139,49 @@ export default function Login() {
     const response = await dispatch(CustomerActions.loginCustomer(payload));
 
     if (response?.payload?.status_code === 200) {
-      const token = response?.payload?.data?.token;
-      const userId = persistUserId(response?.payload?.data?._id);
-      const role = response?.payload?.data?.role;
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("role", role);
-      localStorage.setItem("expiresAt", expiresAt);
-
-      if (Number(response?.payload?.data?.email_verified) === 0) {
-        navigate(otpVerificationPath(userId), { replace: true });
-        toast.success(response?.payload?.message);
-      } else if (
-        Number(response?.payload?.data?.is_completeProfile) === 0 &&
-        Number(role) === Roles.CUSTOMER
-      ) {
-        localStorage.setItem("temptoken", token);
-        persistUserId(userId);
-        localStorage.setItem("expiresAt", expiresAt);
-
-        const profileResult = await autoCompleteCustomerProfile(dispatch, {
-          email: response?.payload?.data?.email || formData.email,
-          token,
-          userId,
-          role,
-          expiresAt,
-        });
-
-        emit("new_user_connect", { userid: userId });
-        navigate(consumeAuthReturnUrl() || returnUrl || "/");
-        toast.success(
-          profileResult.ok
-            ? response?.payload?.message
-            : profileResult.message || "Please try again later."
-        );
-      } else if (response?.payload?.data?.is_completeProfile === 0) {
-        if (Number(role) === Roles.SERVICE_PROVIDER || Number(role) === Roles.CORPORATE) {
-          localStorage.setItem("temptoken", token);
-          persistUserId(userId);
-          navigate(`/provider?role=${role}`, { replace: true });
-          toast.success("Please Complete Your Profile.");
-        }
-      } else {
-        localStorage.removeItem("temptoken");
-        if (Number(role) === Roles.CUSTOMER) {
-          emit("new_user_connect", { userid: userId });
-          navigate(consumeAuthReturnUrl() || returnUrl || "/");
-        } else if (Number(role) === Roles.SERVICE_PROVIDER) {
-          navigate("/requests");
-          emit("new_user_connect", { userid: userId });
-        } else if (Number(role) === Roles.CORPORATE) {
-          navigate("/corporate");
-          emit("new_user_connect", { userid: userId });
-        }
-        toast.success(response?.payload?.message);
-      }
+      await handleAuthSuccess({
+        payload: response.payload,
+        dispatch,
+        navigate,
+        returnUrl,
+        fallbackEmail: formData.email,
+      });
     } else {
       toast.error(response?.payload?.message);
     }
     setLocalLoading(false);
+  };
+
+  const handleGoogleNeedRole = (pending) => {
+    setPendingGoogle(pending);
+  };
+
+  const handleRoleSelected = async (role) => {
+    if (!pendingGoogle) return;
+
+    setRoleModalLoading(true);
+    const response = await dispatch(
+      CustomerActions.socialLogin({
+        type: 1,
+        social_token: pendingGoogle.socialToken,
+        role: Number(role),
+        device_type: "web",
+        device_token: pendingGoogle.deviceToken || undefined,
+        allow_create: true,
+      })
+    );
+
+    const ok = await handleAuthSuccess({
+      payload: response?.payload,
+      dispatch,
+      navigate,
+      returnUrl,
+    });
+
+    setRoleModalLoading(false);
+    if (ok) {
+      setPendingGoogle(null);
+    }
   };
 
   return (
@@ -339,6 +324,21 @@ export default function Login() {
                     </svg>
                   )}
                 </button>
+
+                <GoogleSignInButton
+                  role={loginRole}
+                  disabled={localLoading}
+                  allowCreate={false}
+                  onNeedRole={handleGoogleNeedRole}
+                  onSuccess={(payload) =>
+                    handleAuthSuccess({
+                      payload,
+                      dispatch,
+                      navigate,
+                      returnUrl,
+                    })
+                  }
+                />
               </form>
 
               <p className="alt">
@@ -366,6 +366,13 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      <RoleSelectModal
+        show={!!pendingGoogle}
+        onHide={() => setPendingGoogle(null)}
+        onSelect={handleRoleSelected}
+        isLoading={roleModalLoading}
+      />
     </div>
   );
 }

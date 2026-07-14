@@ -70,58 +70,102 @@ function ReadOnlyMap({ coordinates, address }) {
   return <MapEmbed url={embedUrl} />;
 }
 
-const GoogleMap = ({ coordinates, address, onMapClick }) => {
+function MapUnavailable({ message }) {
+  return (
+    <div
+      className="d-flex flex-column align-items-center justify-content-center text-muted text-center px-3"
+      style={{ height: 400, background: "#f8f9fa", borderRadius: 8 }}
+    >
+      <p className="mb-1 fw-semibold" style={{ color: "#444" }}>
+        Map unavailable
+      </p>
+      <p className="mb-0 small" style={{ maxWidth: 360 }}>
+        {message ||
+          "Google Maps could not load. Search for an address above, or try again later."}
+      </p>
+    </div>
+  );
+}
+
+const GoogleMap = ({ coordinates, address, onMapClick, onInitError }) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const onMapClickRef = useRef(onMapClick);
+  const onInitErrorRef = useRef(onInitError);
 
   onMapClickRef.current = onMapClick;
+  onInitErrorRef.current = onInitError;
 
   const position = parseCoordinates(coordinates);
 
   useEffect(() => {
-    if (!mapRef.current || !position || !window.google?.maps) return;
+    if (!position || !window.google?.maps) return undefined;
 
-    if (!mapInstanceRef.current) {
-      const googleMap = new window.google.maps.Map(mapRef.current, {
-        center: position,
-        zoom: 13,
-        mapTypeControl: false,
-        streetViewControl: false,
-      });
+    let cancelled = false;
+    let resizeTimer = null;
 
-      const newMarker = new window.google.maps.Marker({
-        position,
-        map: googleMap,
-        title: address || "",
-      });
-
-      mapInstanceRef.current = googleMap;
-      markerRef.current = newMarker;
-
-      googleMap.addListener("click", (event) => {
-        const clickedPosition = {
-          lat: event.latLng.lat(),
-          lng: event.latLng.lng(),
-        };
-        markerRef.current?.setPosition(clickedPosition);
-        onMapClickRef.current?.(clickedPosition);
-      });
-    }
-
-    markerRef.current?.setPosition(position);
-    mapInstanceRef.current.setCenter(position);
-
-    const resizeTimer = window.setTimeout(() => {
-      if (mapInstanceRef.current) {
-        window.google.maps.event.trigger(mapInstanceRef.current, "resize");
-        mapInstanceRef.current.setCenter(position);
+    const init = () => {
+      if (cancelled) return;
+      const el = mapRef.current;
+      if (!(el instanceof HTMLElement)) {
+        resizeTimer = window.setTimeout(init, 50);
+        return;
       }
-    }, 150);
 
-    return () => window.clearTimeout(resizeTimer);
-    // position derived from coordinates prop via lat/lng deps
+      try {
+        if (!mapInstanceRef.current) {
+          const googleMap = new window.google.maps.Map(el, {
+            center: position,
+            zoom: 13,
+            mapTypeControl: false,
+            streetViewControl: false,
+          });
+
+          const newMarker = new window.google.maps.Marker({
+            position,
+            map: googleMap,
+            title: address || "",
+          });
+
+          mapInstanceRef.current = googleMap;
+          markerRef.current = newMarker;
+
+          googleMap.addListener("click", (event) => {
+            if (!event?.latLng) return;
+            const clickedPosition = {
+              lat: event.latLng.lat(),
+              lng: event.latLng.lng(),
+            };
+            markerRef.current?.setPosition(clickedPosition);
+            onMapClickRef.current?.(clickedPosition);
+          });
+        }
+
+        markerRef.current?.setPosition(position);
+        mapInstanceRef.current.setCenter(position);
+
+        resizeTimer = window.setTimeout(() => {
+          if (!mapInstanceRef.current || !window.google?.maps?.event) return;
+          window.google.maps.event.trigger(mapInstanceRef.current, "resize");
+          mapInstanceRef.current.setCenter(position);
+        }, 150);
+      } catch (err) {
+        console.error("MapComponent: failed to init map", err);
+        onInitErrorRef.current?.(err);
+      }
+    };
+
+    // Wait a frame so the modal has painted the map container.
+    const raf = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(init);
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf);
+      if (resizeTimer) window.clearTimeout(resizeTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position?.lat, position?.lng, address]);
 
@@ -133,7 +177,7 @@ const GoogleMap = ({ coordinates, address, onMapClick }) => {
   }, []);
 
   if (!position) {
-    return <div>No location data available</div>;
+    return <MapUnavailable message="No location data available yet. Search or click the map after it loads." />;
   }
 
   return (
@@ -145,10 +189,9 @@ const GoogleMap = ({ coordinates, address, onMapClick }) => {
 };
 
 const InteractiveMap = ({ coordinates, address, onMapClick }) => {
-  const [ready, setReady] = useState(
-    () => typeof window !== "undefined" && !!window.google?.maps
-  );
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [resolvedCoordinates, setResolvedCoordinates] = useState(null);
   const [geocoding, setGeocoding] = useState(false);
 
@@ -159,30 +202,54 @@ const InteractiveMap = ({ coordinates, address, onMapClick }) => {
 
   useEffect(() => {
     const previousAuthFailure = window.gm_authFailure;
-    window.gm_authFailure = () => setError(true);
+    window.gm_authFailure = () => {
+      setError(true);
+      setErrorMessage(
+        "Google Maps API key is invalid or the Maps project was deleted. Update REACT_APP_GOOGLE_MAPS_API_KEY."
+      );
+      setReady(false);
+      previousAuthFailure?.();
+    };
     return () => {
       window.gm_authFailure = previousAuthFailure;
     };
   }, []);
 
   useEffect(() => {
-    if (ready) return undefined;
-
     let cancelled = false;
 
     const boot = async () => {
       try {
-        if (window.google?.maps) {
+        if (!getGoogleMapsApiKey()) {
+          if (!cancelled) {
+            setError(true);
+            setErrorMessage("Missing REACT_APP_GOOGLE_MAPS_API_KEY.");
+          }
+          return;
+        }
+
+        if (window.google?.maps?.Map) {
           if (!cancelled) setReady(true);
           return;
         }
-        if (getGoogleMapsApiKey()) {
-          await loadGooglePlaces();
+
+        await loadGooglePlaces();
+        if (cancelled) return;
+
+        if (!window.google?.maps?.Map) {
+          setError(true);
+          setErrorMessage("Google Maps failed to load.");
+          return;
         }
-        if (!cancelled) setReady(true);
+        setReady(true);
       } catch (err) {
         console.error("MapComponent: failed to load Google Maps", err);
-        if (!cancelled) setError(true);
+        if (!cancelled) {
+          setError(true);
+          setErrorMessage(
+            err?.message || "Google Maps failed to load. Check your API key."
+          );
+        }
       }
     };
 
@@ -191,7 +258,7 @@ const InteractiveMap = ({ coordinates, address, onMapClick }) => {
     return () => {
       cancelled = true;
     };
-  }, [ready]);
+  }, []);
 
   useEffect(() => {
     const direct = parseCoordinates(coordinates);
@@ -235,16 +302,15 @@ const InteractiveMap = ({ coordinates, address, onMapClick }) => {
     if (embedFallbackUrl) {
       return <MapEmbed url={embedFallbackUrl} />;
     }
-    return (
-      <div className="d-flex align-items-center justify-content-center h-100 text-muted">
-        Unable to load map. You can still pick an address from Google search.
-      </div>
-    );
+    return <MapUnavailable message={errorMessage} />;
   }
 
   if (!ready || geocoding) {
     return (
-      <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+      <div
+        className="d-flex align-items-center justify-content-center text-muted"
+        style={{ height: 400 }}
+      >
         Loading map…
       </div>
     );
@@ -252,9 +318,15 @@ const InteractiveMap = ({ coordinates, address, onMapClick }) => {
 
   return (
     <GoogleMap
-      coordinates={resolvedCoordinates}
+      coordinates={resolvedCoordinates || coordinates}
       address={address}
       onMapClick={onMapClick}
+      onInitError={() => {
+        setError(true);
+        setErrorMessage(
+          "Could not initialize the map. Search for an address above, or check the Google Maps API key."
+        );
+      }}
     />
   );
 };

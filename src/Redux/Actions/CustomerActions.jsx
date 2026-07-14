@@ -141,6 +141,22 @@ const CustomerActions = {
     }
   ),
 
+  // MARK: - SOCIAL LOGIN (Google / Apple)
+  socialLogin: createAsyncThunk(
+    "/auth/socialLogin",
+    async (payload) => {
+      const { role, ...data } = payload;
+      const endpoint =
+        Number(role) === 2
+          ? "/service/auth/socialLogin"
+          : Number(role) === 3
+            ? "/corporate/auth/socialLogin"
+            : "/customer/auth/socialLogin";
+      const response = await Api.post(endpoint, { ...data, role });
+      return response.data;
+    }
+  ),
+
   // MARK: - GET CUSTOMER
   getProfile: createAsyncThunk("/customer/getProfile", async (reqBody) => {
     const response = await Api.get(`/customer/getProfile`);
