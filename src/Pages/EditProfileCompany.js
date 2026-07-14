@@ -34,15 +34,6 @@ function hasValidLocationCoords(lat, lng) {
   return true;
 }
 
-const locationCoordsValidation = Yup.mixed().test(
-  "pick-location",
-  "Please search or pin your location on the map",
-  function validateCoords() {
-    const { lat, long } = this.parent;
-    return hasValidLocationCoords(lat, long);
-  }
-);
-
 const DEFAULT_ZIMBABWE_LOCATION = {
   lat: -17.8292,
   lng: 31.0522,
@@ -133,7 +124,12 @@ export default function EditProfileCompany() {
     suburbs: customerDetails?.suburbs || "",
     country: findCountryOption(customerDetails?.country)?.value || "",
     post_code: customerDetails?.post_code || "",
-    landMark: customerDetails?.landMark || "",
+    landMark:
+      customerDetails?.landMark &&
+      customerDetails.landMark !== "undefined" &&
+      customerDetails.landMark !== "null"
+        ? customerDetails.landMark
+        : "",
     lat: existingLat,
     long: existingLong,
     profile_image: null,
@@ -155,34 +151,27 @@ export default function EditProfileCompany() {
     phone_number: Yup.string()
       .trim()
       .required("Phone number is required"),
-    house_number: Yup.string().trim().required("House Number is required"),
-    address: Yup.string().trim().required("Street Address is required"),
-    suburbs: Yup.string().trim().required("Suburbs is required"),
+    house_number: Yup.string().trim().nullable(),
+    address: Yup.string().trim().nullable(),
+    suburbs: Yup.string().trim().nullable(),
     country: Yup.string()
       .trim()
-      .required("Country is required")
+      .nullable()
       .test(
         "valid-country",
         "Please select a valid country from the list",
-        (value) => !!findCountryOption(value)
+        (value) => !value || !!findCountryOption(value)
       ),
-    post_code: Yup.string().trim().required("Post Code or PO Box is required"),
-    lat: locationCoordsValidation,
-    long: locationCoordsValidation,
+    post_code: Yup.string().trim().nullable(),
+    lat: Yup.mixed().nullable(),
+    long: Yup.mixed().nullable(),
     ...(isCorporate
       ? {
-          corporateCategoryId: Yup.string().required(
-            "Business category is required"
-          ),
+          corporateCategoryId: Yup.string().nullable(),
         }
       : {
-          identify_yourself: Yup.string().required(
-            "Identify yourself is required"
-          ),
-          company_name: Yup.string()
-            .trim()
-            .required("Company Name is required")
-            .notOneOf(["-", "undefined"], "Company Name is required"),
+          identify_yourself: Yup.string().nullable(),
+          company_name: Yup.string().trim().nullable(),
         }),
   });
 
@@ -195,11 +184,6 @@ export default function EditProfileCompany() {
     onSubmit: async (values) => {
       if (!values?.profile_image && !customerDetails?.profile_image) {
         return toast.warn("Please add profile image");
-      }
-      if (!hasValidLocationCoords(values.lat, values.long)) {
-        return toast.error(
-          "Please search or pin your location on the map before saving"
-        );
       }
       const formData = new FormData();
       Object.keys(values).forEach((key) => {
@@ -258,15 +242,16 @@ export default function EditProfileCompany() {
       if (types.includes("postal_code")) postalCode = component.long_name;
     });
 
-    const streetLine =
-      route ||
+    const fullAddress =
+      place?.formatted_address ||
+      place?.name ||
+      [streetNumber, route].filter(Boolean).join(" ").trim() ||
       premise ||
       neighborhood ||
       sublocality ||
-      place?.formatted_address?.split(",")[0]?.trim() ||
       "";
 
-    setFieldValue("address", streetLine);
+    setFieldValue("address", fullAddress);
     if (!values?.house_number || !String(values.house_number).trim()) {
       setFieldValue("house_number", streetNumber || "");
     }
@@ -367,15 +352,15 @@ export default function EditProfileCompany() {
         formik.setFieldTouched,
         formik.values
       );
-    } else {
-      const label =
-        selectedAddress.place.formatted_address ||
-        selectedAddress.label ||
-        selectedAddress.value?.description;
-      if (label) {
-        formik.setFieldValue("address", label);
-        formik.setFieldTouched("address", true);
-      }
+    }
+
+    const label =
+      selectedAddress.place.formatted_address ||
+      selectedAddress.label ||
+      selectedAddress.value?.description;
+    if (label) {
+      formik.setFieldValue("address", label);
+      formik.setFieldTouched("address", true);
     }
 
     formik.setFieldValue("lat", selectedAddress.lat);
@@ -603,9 +588,7 @@ export default function EditProfileCompany() {
                             return acc;
                           }, {})
                         );
-                        toast.error(
-                          "Please fill all required fields and set your location on the map"
-                        );
+                        toast.error("Please fill all required fields");
                         return;
                       }
                       formik.handleSubmit();
@@ -629,7 +612,7 @@ export default function EditProfileCompany() {
                       <Row>
                         <Col lg={6}>
                           <Form.Group className="mb-3">
-                            <Form.Label>Identify Yourself*</Form.Label>
+                            <Form.Label>Identify Yourself</Form.Label>
                             <Form.Control
                               as="select"
                               name="identify_yourself"
@@ -651,7 +634,7 @@ export default function EditProfileCompany() {
 
                         <Col lg={6}>
                           <Form.Group className="mb-3">
-                            <Form.Label>Company Name*</Form.Label>
+                            <Form.Label>Company Name</Form.Label>
                             <Form.Control
                               type="text"
                               name="company_name"
@@ -670,7 +653,7 @@ export default function EditProfileCompany() {
                       <Row>
                         <Col lg={12}>
                           <Form.Group className="mb-3">
-                            <Form.Label>Business Category*</Form.Label>
+                            <Form.Label>Business Category</Form.Label>
                             <Form.Control
                               as="select"
                               name="corporateCategoryId"
@@ -731,12 +714,12 @@ export default function EditProfileCompany() {
                     </Row>
 
                     <div>
-                      <h6>Address*</h6>
+                      <h6>Address</h6>
                     </div>
                     <Row>
                       <Col lg={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>House Number*</Form.Label>
+                          <Form.Label>House Number</Form.Label>
                           <Form.Control
                             type="text"
                             name="house_number"
@@ -751,7 +734,7 @@ export default function EditProfileCompany() {
                       <Col lg={6}>
                         <Form.Group className="mb-3">
                           <div className="d-flex justify-content-between align-items-center mb-1">
-                            <Form.Label className="mb-0">Street Address*</Form.Label>
+                            <Form.Label className="mb-0">Street Address</Form.Label>
                             <button
                               type="button"
                               className="btn btn-link p-0 text-decoration-none"
@@ -789,7 +772,7 @@ export default function EditProfileCompany() {
                       </Col>
                       <Col lg={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Suburbs*</Form.Label>
+                          <Form.Label>Suburbs</Form.Label>
                           <Form.Control
                             type="text"
                             name="suburbs"
@@ -803,7 +786,7 @@ export default function EditProfileCompany() {
                       </Col>
                       <Col lg={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Country*</Form.Label>
+                          <Form.Label>Country</Form.Label>
                           <CountrySelect
                             name="country"
                             value={formik.values.country}
@@ -819,7 +802,7 @@ export default function EditProfileCompany() {
                       </Col>
                       <Col lg={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Post Code or PO Box*</Form.Label>
+                          <Form.Label>Post Code or PO Box</Form.Label>
                           <Form.Control
                             type="text"
                             name="post_code"

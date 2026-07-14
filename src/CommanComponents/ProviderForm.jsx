@@ -27,15 +27,6 @@ function hasValidLocationCoords(lat, lng) {
   return true;
 }
 
-const locationCoordsValidation = Yup.mixed().test(
-  "pick-location",
-  "Please use Pick on map to select your business location",
-  function validateCoords(_value) {
-    const { lat, long } = this.parent;
-    return hasValidLocationCoords(lat, long);
-  }
-);
-
 const DEFAULT_ZIMBABWE_LOCATION = {
   lat: -17.8292,
   lng: 31.0522,
@@ -99,29 +90,20 @@ const ProviderForm = ({
     }),
     // Step 1: Company Details
     Yup.object({
-
       ...(isCorporate
         ? {
-            corporateCategoryId: Yup.string().required(
-              "Business category is required"
-            ),
-            address: Yup.string()
-              .trim()
-              .required("Company address is required"),
+            corporateCategoryId: Yup.string().nullable(),
+            address: Yup.string().trim().nullable(),
           }
         : {
-            company_name: Yup.string()
-              .trim()
-              .required("Company Name is required"),
-            identify_yourself: Yup.string().required("Identify yourself is required"),
+            company_name: Yup.string().trim().nullable(),
+            identify_yourself: Yup.string().nullable(),
           }),
 
-      house_number: Yup.string().trim().required("House Number is required"),
-      street_address: Yup.string()
-        .trim()
-        .required("Street Address is required"),
-      lat: locationCoordsValidation,
-      long: locationCoordsValidation,
+      house_number: Yup.string().trim().nullable(),
+      street_address: Yup.string().trim().nullable(),
+      lat: Yup.mixed().nullable(),
+      long: Yup.mixed().nullable(),
       suburbs: Yup.string().trim().nullable(),
       country: Yup.string()
         .trim()
@@ -387,15 +369,16 @@ const ProviderForm = ({
       if (types.includes("postal_code")) postalCode = component.long_name;
     });
 
-    const streetLine =
-      route ||
+    const fullAddress =
+      place?.formatted_address ||
+      place?.name ||
+      [streetNumber, route].filter(Boolean).join(" ").trim() ||
       premise ||
       neighborhood ||
       sublocality ||
-      place?.formatted_address?.split(",")[0]?.trim() ||
       "";
 
-    setFieldValue("street_address", streetLine);
+    setFieldValue("street_address", fullAddress);
     if (!values.house_number || !values.house_number.trim()) {
       setFieldValue("house_number", streetNumber || "");
     }
@@ -486,9 +469,14 @@ const ProviderForm = ({
     setFieldTouched("lat", true);
     setFieldTouched("long", true);
 
-    if (isCorporate && addressModalTarget === "address") {
-      setFieldValue("address", label);
-      setFieldTouched("address", true);
+    if (label) {
+      if (isCorporate && addressModalTarget === "address") {
+        setFieldValue("address", label);
+        setFieldTouched("address", true);
+      } else {
+        setFieldValue("street_address", label);
+        setFieldTouched("street_address", true);
+      }
     }
 
     closeAddressModal();
@@ -740,8 +728,8 @@ const ProviderForm = ({
                   <Form.Group className="mb-3" controlId="formIdentifyYourself">
                     <Form.Label>
                       {isCorporate
-                        ? "Business Category*"
-                        : "Identify yourself*"}
+                        ? "Business Category"
+                        : "Identify yourself"}
                     </Form.Label>
 
                     {isCorporate ? (
@@ -789,7 +777,7 @@ const ProviderForm = ({
                   <div className="form-set">
                     <Form.Group className="mb-3" controlId="formShopName">
                       <Form.Label className="d-flex align-items-center justify-content-between gap-2">
-                        <span>Company Address*</span>
+                        <span>Company Address</span>
                         <button
                           type="button"
                           className="btn btn-link btn-sm p-0 text-decoration-none"
@@ -819,7 +807,7 @@ const ProviderForm = ({
                 <Col lg={6}>
                   <div className="form-set">
                     <Form.Group className="mb-3" controlId="formCompanyName">
-                      <Form.Label>Company Name*</Form.Label>
+                      <Form.Label>Company Name</Form.Label>
                       <Field
                         name="company_name"
                         as={Form.Control}
@@ -839,7 +827,7 @@ const ProviderForm = ({
               <Col lg={6}>
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formHouseNumber">
-                    <Form.Label>House Number*</Form.Label>
+                    <Form.Label>House Number</Form.Label>
                     <Field
                       name="house_number"
                       as={Form.Control}
@@ -862,7 +850,7 @@ const ProviderForm = ({
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formStreetAddress">
                     <Form.Label className="d-flex align-items-center justify-content-between gap-2">
-                      <span>Street Address*</span>
+                      <span>Street Address</span>
                       <button
                         type="button"
                         className="btn btn-link btn-sm p-0 text-decoration-none"
