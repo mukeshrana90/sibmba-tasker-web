@@ -10,7 +10,7 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import { toast } from "react-toastify";
 import AddressAutocomplete from "../CommanComponents/AddressAutocomplete";
 import MapComponent from "../CommanComponents/MapComponent";
-import { getGoogleMapsApiKey } from "../utils/landingPlaces";
+import { getGoogleMapsApiKey, loadGooglePlaces } from "../utils/landingPlaces";
 import defaultSilhouette from "../Assets/Images/silhotte.svg";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import Layout from "../Components/Layout/Layout";
@@ -33,6 +33,20 @@ function hasValidLocationCoords(lat, lng) {
   if (latN === 0 && lngN === 0) return false;
   return true;
 }
+
+function formatLocationDisplay(address, lat, lng) {
+  if (!hasValidLocationCoords(lat, lng)) return "";
+  return `latitude: ${Number(lat).toFixed(6)}, longitude: ${Number(lng).toFixed(6)}`;
+}
+
+const locationCoordsRequired = Yup.mixed().test(
+  "pick-location",
+  "Location is required",
+  function validateCoords() {
+    const { lat, long } = this.parent;
+    return hasValidLocationCoords(lat, long);
+  }
+);
 
 const DEFAULT_ZIMBABWE_LOCATION = {
   lat: -17.8292,
@@ -65,6 +79,7 @@ export default function EditProfileCompany() {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [hasExistingAddress, setHasExistingAddress] = useState(false);
+  const locationAutoDetectTried = useRef(false);
   const [role, setRole] = useState(() => localStorage.getItem("role") || "");
   const corporateCategory = useSelector((e) => e.service.corporateCategory);
   const userRole = Number(role);
@@ -152,7 +167,7 @@ export default function EditProfileCompany() {
       .trim()
       .required("Phone number is required"),
     house_number: Yup.string().trim().nullable(),
-    address: Yup.string().trim().nullable(),
+    address: Yup.string().trim().required("Location is required"),
     suburbs: Yup.string().trim().nullable(),
     country: Yup.string()
       .trim()
@@ -163,8 +178,8 @@ export default function EditProfileCompany() {
         (value) => !value || !!findCountryOption(value)
       ),
     post_code: Yup.string().trim().nullable(),
-    lat: Yup.mixed().nullable(),
-    long: Yup.mixed().nullable(),
+    lat: locationCoordsRequired,
+    long: locationCoordsRequired,
     ...(isCorporate
       ? {
           corporateCategoryId: Yup.string().nullable(),
@@ -370,6 +385,81 @@ export default function EditProfileCompany() {
 
     closeAddressModal();
   };
+
+  useEffect(() => {
+    if (!isServiceProvider || locationAutoDetectTried.current) return;
+    // Wait until profile is loaded so we don't overwrite saved address via reinitialize
+    if (!customerDetails?._id) return;
+
+    const savedAddress =
+      customerDetails?.address || customerDetails?.street_address || "";
+    const savedCoords = customerDetails?.location?.coordinates;
+    const hasSavedCoords =
+      Array.isArray(savedCoords) &&
+      savedCoords.length >= 2 &&
+      hasValidLocationCoords(savedCoords[1], savedCoords[0]);
+
+    if ((savedAddress && String(savedAddress).trim()) || hasSavedCoords) {
+      locationAutoDetectTried.current = true;
+      return;
+    }
+
+    locationAutoDetectTried.current = true;
+
+    const applyCoords = async (lat, lng) => {
+      try {
+        await loadGooglePlaces();
+        if (!window.google?.maps?.Geocoder) return;
+        const geocoder = new window.google.maps.Geocoder();
+        const results = await new Promise((resolve) => {
+          geocoder.geocode({ location: { lat, lng } }, (res, status) => {
+            resolve(status === "OK" && res?.[0] ? res : null);
+          });
+        });
+        if (results?.[0]) {
+          handlePlaceSelect(
+            results[0],
+            formik.setFieldValue,
+            formik.setFieldTouched,
+            formik.values
+          );
+          return;
+        }
+      } catch (err) {
+        console.error("Reverse geocode failed:", err);
+      }
+      const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      formik.setFieldValue("address", fallback);
+      formik.setFieldValue("lat", lat);
+      formik.setFieldValue("long", lng);
+    };
+
+    if (!navigator.geolocation) {
+      toast.info(
+        "Location access is not available in this browser. Please use Pick on map to set your location."
+      );
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setCurrentLocation({ lat, lng });
+        applyCoords(lat, lng);
+      },
+      (error) => {
+        const denied = error?.code === 1;
+        toast.warn(
+          denied
+            ? "Please allow location access so we can fill your Location, or use Pick on map."
+            : "Could not detect your location. Please allow location access or use Pick on map."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once after profile loads if location empty
+  }, [isServiceProvider, customerDetails?._id]);
 
   useEffect(() => {
     if (
@@ -717,7 +807,7 @@ export default function EditProfileCompany() {
                       <h6>Address</h6>
                     </div>
                     <Row>
-                      <Col lg={6}>
+                      <Col lg={6} className="d-none">
                         <Form.Group className="mb-3">
                           <Form.Label>House Number</Form.Label>
                           <Form.Control
@@ -731,10 +821,10 @@ export default function EditProfileCompany() {
                           <FieldError formik={formik} name="house_number" />
                         </Form.Group>
                       </Col>
-                      <Col lg={6}>
+                      <Col lg={12}>
                         <Form.Group className="mb-3">
                           <div className="d-flex justify-content-between align-items-center mb-1">
-                            <Form.Label className="mb-0">Street Address</Form.Label>
+                            <Form.Label className="mb-0">Location*</Form.Label>
                             <button
                               type="button"
                               className="btn btn-link p-0 text-decoration-none"
@@ -751,9 +841,13 @@ export default function EditProfileCompany() {
                           <Form.Control
                             type="text"
                             name="address"
-                            value={formik.values.address}
+                            value={formatLocationDisplay(
+                              formik.values.address,
+                              formik.values.lat,
+                              formik.values.long
+                            )}
                             readOnly
-                            placeholder="Use Pick on map to select address"
+                            placeholder="Allow location access or use Pick on map"
                             onClick={openAddressModal}
                             onBlur={formik.handleBlur}
                             style={{ cursor: "pointer", background: "#fafafa" }}
@@ -765,12 +859,13 @@ export default function EditProfileCompany() {
                                 className="text-danger small mt-1"
                                 style={{ fontWeight: 600 }}
                               >
-                                Please search or pin your location on the map
+                                Location is required. Allow access or use Pick
+                                on map.
                               </div>
                             )}
                         </Form.Group>
                       </Col>
-                      <Col lg={6}>
+                      <Col lg={6} className="d-none">
                         <Form.Group className="mb-3">
                           <Form.Label>Suburbs</Form.Label>
                           <Form.Control
@@ -784,7 +879,7 @@ export default function EditProfileCompany() {
                           <FieldError formik={formik} name="suburbs" />
                         </Form.Group>
                       </Col>
-                      <Col lg={6}>
+                      <Col lg={6} className="d-none">
                         <Form.Group className="mb-3">
                           <Form.Label>Country</Form.Label>
                           <CountrySelect
@@ -800,7 +895,7 @@ export default function EditProfileCompany() {
                           <FieldError formik={formik} name="country" />
                         </Form.Group>
                       </Col>
-                      <Col lg={6}>
+                      <Col lg={6} className="d-none">
                         <Form.Group className="mb-3">
                           <Form.Label>Post Code or PO Box</Form.Label>
                           <Form.Control

@@ -12,7 +12,7 @@ import SuccessModal from "./Modals/SuccessModal";
 import AddressAutocomplete from "./AddressAutocomplete";
 import MapComponent from "./MapComponent";
 import CountrySelect, { findCountryOption } from "./CountrySelect";
-import { getGoogleMapsApiKey } from "../utils/landingPlaces";
+import { getGoogleMapsApiKey, loadGooglePlaces } from "../utils/landingPlaces";
 import { toast } from "react-toastify";
 import { timeSchedule, weekDays } from "../utils/rawjson";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,11 +27,43 @@ function hasValidLocationCoords(lat, lng) {
   return true;
 }
 
+function formatLocationDisplay(address, lat, lng) {
+  if (!hasValidLocationCoords(lat, lng)) return "";
+  return `latitude: ${Number(lat).toFixed(6)}, longitude: ${Number(lng).toFixed(6)}`;
+}
+
+const locationCoordsRequired = Yup.mixed().test(
+  "pick-location",
+  "Location is required",
+  function validateCoords() {
+    const { lat, long } = this.parent;
+    return hasValidLocationCoords(lat, long);
+  }
+);
+
 const DEFAULT_ZIMBABWE_LOCATION = {
   lat: -17.8292,
   lng: 31.0522,
   address: "Harare, Zimbabwe",
 };
+
+function ProviderLocationAutoDetect({
+  currentStep,
+  values,
+  setFieldValue,
+  setFieldTouched,
+  detectAndFillCurrentLocation,
+  triedRef,
+}) {
+  useEffect(() => {
+    if (currentStep !== 1 || triedRef.current) return;
+    triedRef.current = true;
+    detectAndFillCurrentLocation(setFieldValue, setFieldTouched, values);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when company-details step opens
+  }, [currentStep]);
+
+  return null;
+}
 
 const ProviderForm = ({
   currentStep,
@@ -93,17 +125,19 @@ const ProviderForm = ({
       ...(isCorporate
         ? {
             corporateCategoryId: Yup.string().nullable(),
-            address: Yup.string().trim().nullable(),
+            address: Yup.string().trim().required("Location is required"),
+            street_address: Yup.string().trim().nullable(),
           }
         : {
             company_name: Yup.string().trim().nullable(),
             identify_yourself: Yup.string().nullable(),
+            street_address: Yup.string()
+              .trim()
+              .required("Location is required"),
           }),
-
       house_number: Yup.string().trim().nullable(),
-      street_address: Yup.string().trim().nullable(),
-      lat: Yup.mixed().nullable(),
-      long: Yup.mixed().nullable(),
+      lat: locationCoordsRequired,
+      long: locationCoordsRequired,
       suburbs: Yup.string().trim().nullable(),
       country: Yup.string()
         .trim()
@@ -180,6 +214,7 @@ const ProviderForm = ({
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [hasExistingAddress, setHasExistingAddress] = useState(false);
+  const locationAutoDetectTried = useRef(false);
   const mapsApiKey =
     getGoogleMapsApiKey() || "AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww";
 
@@ -378,7 +413,11 @@ const ProviderForm = ({
       sublocality ||
       "";
 
+    // Location field (visible) + keep hidden address parts for API payload
     setFieldValue("street_address", fullAddress);
+    if (isCorporate) {
+      setFieldValue("address", fullAddress);
+    }
     if (!values.house_number || !values.house_number.trim()) {
       setFieldValue("house_number", streetNumber || "");
     }
@@ -399,9 +438,75 @@ const ProviderForm = ({
       );
     }
     setFieldTouched("street_address", true);
+    if (isCorporate) setFieldTouched("address", true);
+    setFieldTouched("lat", true);
+    setFieldTouched("long", true);
     if (streetNumber) {
       setFieldTouched("house_number", true);
     }
+  };
+
+  const detectAndFillCurrentLocation = async (
+    setFieldValue,
+    setFieldTouched,
+    values
+  ) => {
+    const addressValue = isCorporate ? values.address : values.street_address;
+    if (
+      (addressValue && String(addressValue).trim()) ||
+      hasValidLocationCoords(values.lat, values.long)
+    ) {
+      return;
+    }
+
+    const applyCoords = async (lat, lng) => {
+      try {
+        await loadGooglePlaces();
+        if (!window.google?.maps?.Geocoder) return;
+        const geocoder = new window.google.maps.Geocoder();
+        const results = await new Promise((resolve) => {
+          geocoder.geocode({ location: { lat, lng } }, (res, status) => {
+            resolve(status === "OK" && res?.[0] ? res : null);
+          });
+        });
+        if (results?.[0]) {
+          handlePlaceSelect(results[0], setFieldValue, setFieldTouched, values);
+          return;
+        }
+      } catch (err) {
+        console.error("Reverse geocode failed:", err);
+      }
+      const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      setFieldValue("street_address", fallback);
+      if (isCorporate) setFieldValue("address", fallback);
+      setFieldValue("lat", lat);
+      setFieldValue("long", lng);
+    };
+
+    if (!navigator.geolocation) {
+      toast.info(
+        "Location access is not available in this browser. Please use Pick on map to set your location."
+      );
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setCurrentLocation({ lat, lng });
+        await applyCoords(lat, lng);
+      },
+      (error) => {
+        const denied = error?.code === 1; // PERMISSION_DENIED
+        toast.warn(
+          denied
+            ? "Please allow location access so we can fill your Location, or use Pick on map."
+            : "Could not detect your location. Please allow location access or use Pick on map."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
   };
 
   const closeAddressModal = () => {
@@ -773,11 +878,11 @@ const ProviderForm = ({
                 </div>
               </Col>
               {isCorporate ? (
-                <Col lg={6}>
+                <Col lg={12}>
                   <div className="form-set">
                     <Form.Group className="mb-3" controlId="formShopName">
                       <Form.Label className="d-flex align-items-center justify-content-between gap-2">
-                        <span>Company Address</span>
+                        <span>Location*</span>
                         <button
                           type="button"
                           className="btn btn-link btn-sm p-0 text-decoration-none"
@@ -786,12 +891,15 @@ const ProviderForm = ({
                           Pick on map
                         </button>
                       </Form.Label>
-                      <Field
-                        name="address"
-                        as={Form.Control}
+                      <Form.Control
                         type="text"
                         readOnly
-                        placeholder="Use Pick on map to select address"
+                        value={formatLocationDisplay(
+                          values.address,
+                          values.lat,
+                          values.long
+                        )}
+                        placeholder="Allow location access or use Pick on map"
                         onClick={() => openAddressModal("address", values)}
                         style={{ cursor: "pointer", backgroundColor: "#f8f9fa" }}
                       />
@@ -800,6 +908,11 @@ const ProviderForm = ({
                         component="div"
                         className="text-danger"
                       />
+                      {(errors.lat || errors.long) && (touched.address || touched.lat) && (
+                        <div className="text-danger small mt-1">
+                          Location is required. Allow access or use Pick on map.
+                        </div>
+                      )}
                     </Form.Group>
                   </div>
                 </Col>
@@ -824,7 +937,8 @@ const ProviderForm = ({
                 </Col>
               )}
 
-              <Col lg={6}>
+              {/* Hidden but still submitted: house_number, suburbs, country, post_code */}
+              <Col lg={6} className="d-none">
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formHouseNumber">
                     <Form.Label>House Number</Form.Label>
@@ -846,44 +960,50 @@ const ProviderForm = ({
                   </Form.Group>
                 </div>
               </Col>
-              <Col lg={6}>
-                <div className="form-set">
-                  <Form.Group className="mb-3" controlId="formStreetAddress">
-                    <Form.Label className="d-flex align-items-center justify-content-between gap-2">
-                      <span>Street Address</span>
-                      <button
-                        type="button"
-                        className="btn btn-link btn-sm p-0 text-decoration-none"
-                        onClick={() => openAddressModal("street_address", values)}
-                      >
-                        Pick on map
-                      </button>
-                    </Form.Label>
-                    <Field
-                      name="street_address"
-                      as={Form.Control}
-                      type="text"
-                      readOnly
-                      placeholder="Use Pick on map to select address"
-                      onClick={() =>
-                        openAddressModal("street_address", values)
-                      }
-                      style={{ cursor: "pointer", backgroundColor: "#f8f9fa" }}
-                    />
-                    <ErrorMessage
-                      name="street_address"
-                      component="div"
-                      className="text-danger"
-                    />
-                    {(errors.lat || errors.long) && touched.street_address && (
-                      <div className="text-danger small mt-1">
-                        Please use Pick on map so your location coordinates are saved.
-                      </div>
-                    )}
-                  </Form.Group>
-                </div>
-              </Col>
-              <Col lg={6}>
+              {!isCorporate && (
+                <Col lg={12}>
+                  <div className="form-set">
+                    <Form.Group className="mb-3" controlId="formStreetAddress">
+                      <Form.Label className="d-flex align-items-center justify-content-between gap-2">
+                        <span>Location*</span>
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm p-0 text-decoration-none"
+                          onClick={() => openAddressModal("street_address", values)}
+                        >
+                          Pick on map
+                        </button>
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        readOnly
+                        value={formatLocationDisplay(
+                          values.street_address,
+                          values.lat,
+                          values.long
+                        )}
+                        placeholder="Allow location access or use Pick on map"
+                        onClick={() =>
+                          openAddressModal("street_address", values)
+                        }
+                        style={{ cursor: "pointer", backgroundColor: "#f8f9fa" }}
+                      />
+                      <ErrorMessage
+                        name="street_address"
+                        component="div"
+                        className="text-danger"
+                      />
+                      {(errors.lat || errors.long) &&
+                        (touched.street_address || touched.lat) && (
+                        <div className="text-danger small mt-1">
+                          Location is required. Allow access or use Pick on map.
+                        </div>
+                      )}
+                    </Form.Group>
+                  </div>
+                </Col>
+              )}
+              <Col lg={6} className="d-none">
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formSuburbs">
                     <Form.Label>Suburbs</Form.Label>
@@ -896,7 +1016,7 @@ const ProviderForm = ({
                   </Form.Group>
                 </div>
               </Col>
-              <Col lg={6}>
+              <Col lg={6} className="d-none">
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formCountry">
                     <Form.Label>Country</Form.Label>
@@ -919,7 +1039,7 @@ const ProviderForm = ({
                   </Form.Group>
                 </div>
               </Col>
-              <Col lg={6}>
+              <Col lg={6} className="d-none">
                 <div className="form-set">
                   <Form.Group className="mb-3" controlId="formPostCodeOrPOBox">
                     <Form.Label>Post Code or PO Box</Form.Label>
@@ -1613,6 +1733,14 @@ const ProviderForm = ({
         errors,
       }) => (
         <FormikForm className="commn-provider-docu">
+          <ProviderLocationAutoDetect
+            currentStep={currentStep}
+            values={values}
+            setFieldValue={setFieldValue}
+            setFieldTouched={setFieldTouched}
+            detectAndFillCurrentLocation={detectAndFillCurrentLocation}
+            triedRef={locationAutoDetectTried}
+          />
           {renderStepContent(setFieldValue, values, setFieldTouched, touched, handleSubmit, setCurrentStep, filterApiPayload, errors, isSubmitting, showAddressModal, setShowAddressModal, selectedAddress, setSelectedAddress, handlePlaceSelect, currentLocation)}
           <div className="submit-btnn" style={{ display: "flex", gap: "12px", justifyContent: "flex-end", alignItems: "center" }}>
             {!isCorporate && currentStep === 2 && (

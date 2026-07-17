@@ -11,8 +11,13 @@ import ButtonLoader from "../CommanComponents/ButtonLoader";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
 import { Roles, normalizeRole } from "../utils/Roles";
 import GoogleSignInButton from "../CommanComponents/GoogleSignInButton";
+import AppleSignInButton from "../CommanComponents/AppleSignInButton";
 import RoleSelectModal from "../CommanComponents/Modals/RoleSelectModal";
 import { handleAuthSuccess } from "../utils/handleAuthSuccess";
+import {
+  isAppleLoginDisabled,
+  isGoogleLoginDisabled,
+} from "../utils/featureFlags";
 
 const AUTH_VISUAL_IMG =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
@@ -74,7 +79,7 @@ export default function Login() {
   const returnUrl = resolvePostAuthPath(searchParams.get("returnUrl"));
   const loginRole = normalizeRole(searchParams.get("role")) || Roles.CUSTOMER;
   const [localLoading, setLocalLoading] = useState(false);
-  const [pendingGoogle, setPendingGoogle] = useState(null);
+  const [pendingSocial, setPendingSocial] = useState(null);
   const [roleModalLoading, setRoleModalLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -152,21 +157,21 @@ export default function Login() {
     setLocalLoading(false);
   };
 
-  const handleGoogleNeedRole = (pending) => {
-    setPendingGoogle(pending);
+  const handleSocialNeedRole = (pending) => {
+    setPendingSocial(pending);
   };
 
   const handleRoleSelected = async (role) => {
-    if (!pendingGoogle) return;
+    if (!pendingSocial) return;
 
     setRoleModalLoading(true);
     const response = await dispatch(
       CustomerActions.socialLogin({
-        type: 1,
-        social_token: pendingGoogle.socialToken,
+        type: Number(pendingSocial.type) || 1,
+        social_token: pendingSocial.socialToken,
         role: Number(role),
         device_type: "web",
-        device_token: pendingGoogle.deviceToken || undefined,
+        device_token: pendingSocial.deviceToken || undefined,
         allow_create: true,
       })
     );
@@ -180,7 +185,7 @@ export default function Login() {
 
     setRoleModalLoading(false);
     if (ok) {
-      setPendingGoogle(null);
+      setPendingSocial(null);
     }
   };
 
@@ -329,7 +334,22 @@ export default function Login() {
                   role={loginRole}
                   disabled={localLoading}
                   allowCreate={false}
-                  onNeedRole={handleGoogleNeedRole}
+                  onNeedRole={handleSocialNeedRole}
+                  onSuccess={(payload) =>
+                    handleAuthSuccess({
+                      payload,
+                      dispatch,
+                      navigate,
+                      returnUrl,
+                    })
+                  }
+                />
+                <AppleSignInButton
+                  role={loginRole}
+                  disabled={localLoading}
+                  allowCreate={false}
+                  showDivider={isGoogleLoginDisabled() && !isAppleLoginDisabled()}
+                  onNeedRole={handleSocialNeedRole}
                   onSuccess={(payload) =>
                     handleAuthSuccess({
                       payload,
@@ -368,8 +388,8 @@ export default function Login() {
       </div>
 
       <RoleSelectModal
-        show={!!pendingGoogle}
-        onHide={() => setPendingGoogle(null)}
+        show={!!pendingSocial}
+        onHide={() => setPendingSocial(null)}
         onSelect={handleRoleSelected}
         isLoading={roleModalLoading}
       />

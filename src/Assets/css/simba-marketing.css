@@ -218,6 +218,26 @@
   box-shadow: var(--shadow-md);
 }
 
+.simba-page.p-signup .btn-apple {
+  margin-top: 10px;
+  background: #000;
+  color: #fff;
+  border: 1px solid #000;
+  box-shadow: var(--shadow-sm);
+}
+
+.simba-page.p-signup .btn-apple:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #111;
+  border-color: #111;
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.simba-page.p-signup .btn-apple:disabled {
+  opacity: 0.7;
+}
+
 .simba-page.p-signup .role-toggle button {
   flex: 1;
   font-family: var(--font-body);

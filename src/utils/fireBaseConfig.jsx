@@ -1,6 +1,6 @@
 // src/Utils/firebase.js
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
 import { getToken, getMessaging, isSupported, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
@@ -17,6 +17,9 @@ const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
+const appleProvider = new OAuthProvider("apple.com");
+appleProvider.addScope("email");
+appleProvider.addScope("name");
 
 let messagingInstancePromise = null;
 
@@ -78,4 +81,10 @@ const onForegroundMessage = (callback) => {
 };
 
 
-export { auth, googleProvider, getFirebaseToken, onForegroundMessage };
+export {
+  auth,
+  googleProvider,
+  appleProvider,
+  getFirebaseToken,
+  onForegroundMessage,
+};

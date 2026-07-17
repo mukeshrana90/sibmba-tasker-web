@@ -18,7 +18,12 @@ import { getFirebaseToken } from "../utils/fireBaseConfig";
 import { safeReturnUrl, setAuthReturnUrl, resolvePostAuthPath } from "../utils/authRedirect";
 import { otpVerificationPath } from "../utils/normalizeMongoId";
 import GoogleSignInButton from "../CommanComponents/GoogleSignInButton";
+import AppleSignInButton from "../CommanComponents/AppleSignInButton";
 import { handleAuthSuccess } from "../utils/handleAuthSuccess";
+import {
+  isAppleLoginDisabled,
+  isGoogleLoginDisabled,
+} from "../utils/featureFlags";
 
 const ROLE_COPY = {
   1: {
@@ -540,6 +545,20 @@ export default function SignUp() {
                   role={selectedRole}
                   disabled={signupLoading}
                   label="Sign up with Google"
+                  onSuccess={(payload) =>
+                    handleAuthSuccess({
+                      payload,
+                      dispatch,
+                      navigate,
+                      returnUrl,
+                    })
+                  }
+                />
+                <AppleSignInButton
+                  role={selectedRole}
+                  disabled={signupLoading}
+                  label="Sign up with Apple"
+                  showDivider={isGoogleLoginDisabled() && !isAppleLoginDisabled()}
                   onSuccess={(payload) =>
                     handleAuthSuccess({
                       payload,

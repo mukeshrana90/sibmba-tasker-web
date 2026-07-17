@@ -14,3 +14,8 @@ function truthyEnv(value) {
 export function isGoogleLoginDisabled() {
   return truthyEnv(process.env.REACT_APP_GOOGLE_LOGIN_DISABLE);
 }
+
+/** When true, Apple login/signup buttons are hidden on web. */
+export function isAppleLoginDisabled() {
+  return truthyEnv(process.env.REACT_APP_APPLE_LOGIN_DISABLE);
+}
