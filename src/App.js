@@ -6,35 +6,6 @@ import { io } from 'socket.io-client';
 import { onForegroundMessage } from "./utils/fireBaseConfig";
 
 function App() {
-  useEffect(() => {
-    const path = window.location.pathname;
-    const existingLat = localStorage.getItem("latitude");
-    const existingLng = localStorage.getItem("longitude");
-     if (path.includes("terms-and-conditions") || path.includes("privacy-policy")) {
-      return;
-    }
-    if (existingLat && existingLng) {
-      return;
-    }
-  
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        position => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-
-          localStorage.setItem("latitude", lat);
-          localStorage.setItem("longitude", lng);
-        },
-        error => {
-          console.error("Error getting location:", error);
-        }
-      );
-    } else {
-      console.error("Geolocation is not supported by this browser.");
-    }
-  }, []);
-
   const ToastifyNotification = ({ title, body }) => (
     <div className="push-notification">
       <h2 className="push-notification-title">{title}</h2>

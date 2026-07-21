@@ -1,45 +1,96 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import LocationPermissionModal from "../CommanComponents/Modals/LocationPermissionModal";
 import {
+  beginDeviceLocationRequest,
   clearDeviceLocation,
   getGeolocationErrorMessage,
-  readDeviceLocationFromGesture,
+  getLocationSettingsInstructions,
+  queryGeolocationPermission,
 } from "../utils/landingGeocode";
+
+function hintBlockedFromPermissionQuery(setPermissionBlocked) {
+  queryGeolocationPermission().then((state) => {
+    if (state === "denied") {
+      setPermissionBlocked(true);
+    }
+  });
+}
 
 export function useNearbyLocationToggle({ onEnabled, onDisabled }) {
   const [loading, setLoading] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const [modalStatus, setModalStatus] = useState("");
+  const gpsPendingRef = useRef(false);
 
   const finishWithCoords = useCallback(
     (coords) => {
+      gpsPendingRef.current = false;
       setShowPermissionModal(false);
       setPermissionBlocked(false);
+      setModalStatus("");
       onEnabled?.(coords);
     },
     [onEnabled]
   );
 
-  const handleLocationError = useCallback((err) => {
-    if (err?.code === 1) {
-      clearDeviceLocation();
-      setPermissionBlocked(true);
-      setShowPermissionModal(true);
-      return;
-    }
-    toast.error(getGeolocationErrorMessage(err));
+  const openBlockedModal = useCallback((message = "") => {
+    clearDeviceLocation();
+    setPermissionBlocked(true);
+    setModalStatus(
+      message ||
+        "Location is blocked. Follow the steps below, then tap Allow location again."
+    );
+    setShowPermissionModal(true);
   }, []);
 
+  const handleLocationError = useCallback(
+    (err, { fromModal = false, setBusy = setLoading } = {}) => {
+      gpsPendingRef.current = false;
+      setBusy(false);
+      if (err?.code === 1) {
+        if (fromModal) {
+          openBlockedModal(getLocationSettingsInstructions());
+          toast.error(
+            "Location is blocked in your browser. Use the steps in the popup, then try again."
+          );
+        } else {
+          openBlockedModal();
+        }
+        return;
+      }
+      toast.error(getGeolocationErrorMessage(err));
+    },
+    [openBlockedModal]
+  );
+
+  const startGps = useCallback(
+    ({ fromModal = false, setBusy = setLoading } = {}) => {
+      if (gpsPendingRef.current) return;
+      gpsPendingRef.current = true;
+      setBusy(true);
+      if (!fromModal) {
+        setPermissionBlocked(false);
+        setModalStatus("");
+      }
+      hintBlockedFromPermissionQuery(setPermissionBlocked);
+
+      beginDeviceLocationRequest(
+        (coords) => {
+          setBusy(false);
+          finishWithCoords(coords);
+        },
+        (err) => handleLocationError(err, { fromModal, setBusy })
+      );
+    },
+    [finishWithCoords, handleLocationError]
+  );
+
   const requestNearby = useCallback(() => {
-    setLoading(true);
-    setPermissionBlocked(false);
-    readDeviceLocationFromGesture()
-      .then(finishWithCoords)
-      .catch(handleLocationError)
-      .finally(() => setLoading(false));
-  }, [finishWithCoords, handleLocationError]);
+    startGps({ fromModal: false, setBusy: setLoading });
+  }, [startGps]);
 
   const handleToggle = useCallback(
     (e, isCurrentlyOn) => {
@@ -55,27 +106,20 @@ export function useNearbyLocationToggle({ onEnabled, onDisabled }) {
   );
 
   const retryFromModal = useCallback(() => {
-    setModalLoading(true);
-    readDeviceLocationFromGesture()
-      .then(finishWithCoords)
-      .catch((err) => {
-        if (err?.code === 1) {
-          clearDeviceLocation();
-          setPermissionBlocked(true);
-        } else {
-          toast.error(getGeolocationErrorMessage(err));
-        }
-      })
-      .finally(() => setModalLoading(false));
-  }, [finishWithCoords]);
+    startGps({ fromModal: true, setBusy: setModalLoading });
+  }, [startGps]);
 
   const permissionModal = (
     <LocationPermissionModal
       show={showPermissionModal}
-      onHide={() => setShowPermissionModal(false)}
+      onHide={() => {
+        setShowPermissionModal(false);
+        setModalStatus("");
+      }}
       onAllow={retryFromModal}
       blocked={permissionBlocked}
       loading={modalLoading}
+      statusMessage={modalStatus}
     />
   );
 

@@ -198,25 +198,43 @@ export function getMobilePlatform() {
   return "other";
 }
 
-export async function queryGeolocationPermission() {
-  if (!navigator.permissions?.query) return null;
-  try {
-    const status = await navigator.permissions.query({ name: "geolocation" });
-    return status.state;
-  } catch {
-    return null;
-  }
+export function getMobileBrowser() {
+  const ua = navigator.userAgent || "";
+  if (/CriOS/i.test(ua)) return "chrome-ios";
+  if (/FxiOS/i.test(ua)) return "firefox-ios";
+  if (/EdgiOS/i.test(ua)) return "edge-ios";
+  if (/Chrome/i.test(ua) && /Android/i.test(ua)) return "chrome-android";
+  if (/Safari/i.test(ua) && /iPhone|iPad|iPod/i.test(ua)) return "safari-ios";
+  if (/Chrome/i.test(ua)) return "chrome";
+  if (/Safari/i.test(ua)) return "safari";
+  return "other";
 }
 
 export function getLocationSettingsInstructions() {
   const platform = getMobilePlatform();
+  const browser = getMobileBrowser();
+
+  if (platform === "ios" && browser === "chrome-ios") {
+    return "In Chrome: tap the icon left of the address bar → Site settings → Location → Allow. Also check iPhone Settings → Privacy & Security → Location Services is ON.";
+  }
   if (platform === "ios") {
-    return "If location stays blocked, open the aA icon in the address bar → Website Settings → Location → Allow, then tap Allow location again.";
+    return "In Safari: tap the aA icon in the address bar → Website Settings → Location → Allow. Also check iPhone Settings → Privacy & Security → Location Services is ON.";
   }
   if (platform === "android") {
-    return "If location stays blocked, tap the lock icon in the address bar → Permissions → Location → Allow, then tap Allow location again.";
+    return "In Chrome: tap the lock icon in the address bar → Permissions → Location → Allow. Also check Android Settings → Location is ON.";
   }
   return "If location stays blocked, allow location for this site in your browser settings, then try again.";
+}
+
+export async function queryGeolocationPermission() {
+  if (!navigator.permissions?.query) return null;
+  try {
+    const status = await navigator.permissions.query({ name: "geolocation" });
+    // iOS Safari often reports "denied" incorrectly — never skip GPS based on this alone.
+    return status.state;
+  } catch {
+    return null;
+  }
 }
 
 export function isSecureGeolocationContext() {
@@ -228,7 +246,45 @@ export function getInsecureGeolocationMessage() {
     typeof window !== "undefined" && window.location?.host
       ? window.location.host
       : "your-dev-host";
-  return `Nearby search needs HTTPS on mobile.`;
+  return `Nearby search needs HTTPS. Open https://${host} on your phone.`;
+}
+
+export function getMobileGeolocationOptions(overrides = {}) {
+  const isMobile = getMobilePlatform() !== "other";
+  return {
+    enableHighAccuracy: isMobile,
+    timeout: isMobile ? 30000 : 15000,
+    maximumAge: 0,
+    ...overrides,
+  };
+}
+
+/**
+ * Start GPS synchronously from a tap/pointer handler (required on iOS Safari).
+ * Prefer this over the Promise wrapper when calling from onPointerDown.
+ */
+export function beginDeviceLocationRequest(onSuccess, onError, options = {}) {
+  if (!navigator.geolocation) {
+    onError(new Error("Geolocation not supported"));
+    return;
+  }
+  if (!isSecureGeolocationContext()) {
+    onError(new Error(getInsecureGeolocationMessage()));
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const coords = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      };
+      saveDeviceLocation(coords);
+      onSuccess(coords);
+    },
+    onError,
+    getMobileGeolocationOptions(options)
+  );
 }
 
 /**
@@ -236,30 +292,8 @@ export function getInsecureGeolocationMessage() {
  * (maximumAge: 0) so permission is re-checked every time nearby is enabled.
  */
 export function readDeviceLocationFromGesture(options = {}) {
-  const { timeout = 15000 } = options;
-
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Geolocation not supported"));
-      return;
-    }
-    if (!isSecureGeolocationContext()) {
-      reject(new Error(getInsecureGeolocationMessage()));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
-        saveDeviceLocation(coords);
-        resolve(coords);
-      },
-      reject,
-      { enableHighAccuracy: false, timeout, maximumAge: 0 }
-    );
+    beginDeviceLocationRequest(resolve, reject, options);
   });
 }
 

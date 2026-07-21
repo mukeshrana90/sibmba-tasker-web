@@ -351,12 +351,17 @@ function SearchProvidersContent({ variant = "visitor" }) {
 
   const resolveLabelAndFinish = useCallback(
     (coords) => {
+      finishNearby(coords, "Current location");
       Promise.race([
         reverseGeocodeCoords(coords.lat, coords.lng),
         new Promise((resolve) => window.setTimeout(() => resolve(null), 4000)),
       ])
-        .then((reversed) => finishNearby(coords, reversed?.label || "Current location"))
-        .catch(() => finishNearby(coords));
+        .then((reversed) => {
+          if (reversed?.label && reversed.label !== "Current location") {
+            finishNearby(coords, reversed.label);
+          }
+        })
+        .catch(() => {});
     },
     [finishNearby]
   );
@@ -510,7 +515,9 @@ function SearchProvidersContent({ variant = "visitor" }) {
                   type="checkbox"
                   checked={parsed.nearby}
                   disabled={nearbyLoading}
-                  onClick={(e) => handleNearbyToggle(e, parsed.nearby)}
+                  readOnly
+                  tabIndex={-1}
+                  onPointerDown={(e) => handleNearbyToggle(e, parsed.nearby)}
                 />
                 {nearbyLoading ? "Getting location…" : "NearBy Search"}
               </label>

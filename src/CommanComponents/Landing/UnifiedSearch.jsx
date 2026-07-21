@@ -90,11 +90,11 @@ export default function UnifiedSearch() {
       const nearby = opts.nearby ?? nearbyEnabled;
       const coordsFromOpts = opts.coords ?? locationCoords;
 
-      if (nearby) {
+      if (nearby && !coordsFromOpts?.lat) {
         try {
-          await requestDeviceLocation();
+          await requestDeviceLocation({ forceFresh: true, maximumAge: 0 });
         } catch {
-          /* use stored coords if GPS denied */
+          /* coords passed via opts when nearby toggle succeeded */
         }
       }
 
@@ -149,11 +149,11 @@ export default function UnifiedSearch() {
         return;
       }
 
-      if (nearby) {
+      if (nearby && !coordsFromOpts?.lat) {
         try {
-          await requestDeviceLocation();
+          await requestDeviceLocation({ forceFresh: true, maximumAge: 0 });
         } catch {
-          /* use stored coords if GPS denied */
+          /* coords passed via opts when nearby toggle succeeded */
         }
       }
 
@@ -454,7 +454,9 @@ export default function UnifiedSearch() {
                     type="checkbox"
                     checked={nearbyEnabled}
                     disabled={nearbyLoading}
-                    onClick={handleNearbyToggle}
+                    readOnly
+                    tabIndex={-1}
+                    onPointerDown={handleNearbyToggle}
                   />
                   <span>{nearbyLoading ? "Getting location…" : "Nearby providers"}</span>
                 </label>

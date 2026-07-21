@@ -7,14 +7,24 @@ export default function LocationPermissionModal({
   onAllow,
   blocked = false,
   loading = false,
+  statusMessage = "",
 }) {
   const instructions = getLocationSettingsInstructions();
+
+  const handleAllowPointer = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (loading) return;
+    onAllow();
+  };
 
   return (
     <Modal
       show={show}
       onHide={onHide}
       centered
+      enforceFocus={false}
+      restoreFocus={false}
       className="location-permission-modal"
     >
       <Modal.Header closeButton className="border-none pb-0">
@@ -25,6 +35,9 @@ export default function LocationPermissionModal({
           <p className="location-permission-lead">
             Nearby search needs your location to find providers close to you.
           </p>
+          {statusMessage ? (
+            <p className="location-permission-status">{statusMessage}</p>
+          ) : null}
           {blocked ? (
             <p className="location-permission-help">{instructions}</p>
           ) : (
@@ -37,7 +50,7 @@ export default function LocationPermissionModal({
             <button
               type="button"
               className="btn btn-primary"
-              onClick={onAllow}
+              onPointerDown={handleAllowPointer}
               disabled={loading}
             >
               {loading ? "Checking…" : "Allow location"}
