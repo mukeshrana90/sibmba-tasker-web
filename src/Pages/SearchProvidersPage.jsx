@@ -1,12 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../Components/Layout/Layout";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import LandingLocationInput, {
   resolveLocationCoords,
 } from "../CommanComponents/Landing/LandingLocationInput";
-import { resolveSearchCoords, requestDeviceLocation } from "../utils/landingGeocode";
+import {
+  getGeolocationErrorMessage,
+  requestNearbyLocation,
+  resolveSearchCoords,
+} from "../utils/landingGeocode";
 import { reverseGeocodeCoords } from "../utils/landingPlaces";
 import { resolveSearchSubmitCoords } from "../utils/headerSearchSync";
 import {
@@ -331,21 +336,16 @@ function SearchProvidersContent({ variant = "visitor" }) {
     }
   };
 
-  const handleNearbyToggle = async (e) => {
-    const on = e.target.checked;
-    if (!on) {
+  const handleNearbyToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const wantOn = !parsed.nearby;
+    if (!wantOn) {
       pushFilters({ nearby: false, page: 1 });
       return;
     }
 
-    setNearbyLoading(true);
-    try {
-      const coords = await requestDeviceLocation();
-      let label = "Current location";
-      const reversed = await reverseGeocodeCoords(coords.lat, coords.lng);
-      if (reversed?.label) {
-        label = reversed.label;
-      }
+    const finishNearby = (coords, label = "Current location") => {
       const nextCoords = { lat: coords.lat, lng: coords.lng, label };
       setLocationInput(label);
       setLocationCoords(nextCoords);
@@ -356,11 +356,28 @@ function SearchProvidersContent({ variant = "visitor" }) {
         lng: coords.lng,
         page: 1,
       });
-    } catch {
-      e.target.checked = false;
-    } finally {
       setNearbyLoading(false);
-    }
+    };
+
+    const failNearby = (err) => {
+      toast.error(getGeolocationErrorMessage(err));
+      setNearbyLoading(false);
+    };
+
+    const resolveLabelAndFinish = (coords) => {
+      Promise.race([
+        reverseGeocodeCoords(coords.lat, coords.lng),
+        new Promise((resolve) => window.setTimeout(() => resolve(null), 4000)),
+      ])
+        .then((reversed) => finishNearby(coords, reversed?.label || "Current location"))
+        .catch(() => finishNearby(coords));
+    };
+
+    setNearbyLoading(true);
+    requestNearbyLocation({
+      onSuccess: resolveLabelAndFinish,
+      onError: failNearby,
+    });
   };
 
   const toggleCategory = (catId) => {
@@ -506,7 +523,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
                   type="checkbox"
                   checked={parsed.nearby}
                   disabled={nearbyLoading}
-                  onChange={handleNearbyToggle}
+                  onClick={handleNearbyToggle}
                 />
                 {nearbyLoading ? "Getting location…" : "NearBy Search"}
               </label>

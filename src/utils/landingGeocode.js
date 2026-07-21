@@ -169,21 +169,124 @@ export function resolveSearchCoords(
   return null;
 }
 
-export function requestDeviceLocation() {
+export function getCachedDeviceLocation(maxAgeMs = 5 * 60 * 1000) {
+  const lat = parseFloat(localStorage.getItem("latitude"));
+  const lng = parseFloat(localStorage.getItem("longitude"));
+  const updatedAt = parseInt(localStorage.getItem("locationUpdatedAt") || "0", 10);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+  if (updatedAt && Date.now() - updatedAt > maxAgeMs) return null;
+  return { lat, lng };
+}
+
+export function saveDeviceLocation({ lat, lng }) {
+  localStorage.setItem("latitude", String(lat));
+  localStorage.setItem("longitude", String(lng));
+  localStorage.setItem("locationUpdatedAt", String(Date.now()));
+}
+
+export function isSecureGeolocationContext() {
+  return typeof window === "undefined" || window.isSecureContext;
+}
+
+export function getInsecureGeolocationMessage() {
+  const host =
+    typeof window !== "undefined" && window.location?.host
+      ? window.location.host
+      : "your-dev-host";
+  return `Nearby search needs HTTPS on mobile.`;
+}
+
+/**
+ * Request GPS for nearby search. Must be called synchronously from a click/tap handler.
+ * Uses cached coords when available (works even before a fresh GPS read).
+ */
+export function requestNearbyLocation({ onSuccess, onError }) {
+  if (!navigator.geolocation) {
+    onError(new Error("Geolocation not supported"));
+    return;
+  }
+
+  const cached = getCachedDeviceLocation();
+  if (cached) {
+    onSuccess(cached);
+    return;
+  }
+
+  if (!isSecureGeolocationContext()) {
+    onError(new Error(getInsecureGeolocationMessage()));
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const coords = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      };
+      saveDeviceLocation(coords);
+      onSuccess(coords);
+    },
+    onError,
+    { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
+  );
+}
+
+export function getGeolocationErrorMessage(err) {
+  if (!err) return "Could not get your location. Please try again.";
+  if (err.message === "Geolocation not supported") return err.message;
+  if (
+    err.message === "Location requires HTTPS" ||
+    err.message?.includes("Nearby search needs HTTPS")
+  ) {
+    return err.message;
+  }
+  const code = err.code;
+  if (code === 1) {
+    return "Location permission denied. Allow location access in your browser settings.";
+  }
+  if (code === 2) {
+    return "Location unavailable. Try again in a moment.";
+  }
+  if (code === 3) {
+    return "Location request timed out. Try again.";
+  }
+  return "Could not get your location. Please try again.";
+}
+
+export function requestDeviceLocation(options = {}) {
+  const {
+    forceFresh = false,
+    timeout = 15000,
+    maximumAge = 300000,
+    enableHighAccuracy = false,
+  } = options;
+
+  if (!forceFresh) {
+    const cached = getCachedDeviceLocation(maximumAge);
+    if (cached) return Promise.resolve(cached);
+  }
+
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("Geolocation not supported"));
       return;
     }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      reject(new Error(getInsecureGeolocationMessage()));
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        localStorage.setItem("latitude", String(lat));
-        localStorage.setItem("longitude", String(lng));
-        resolve({ lat, lng });
+        const coords = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        saveDeviceLocation(coords);
+        resolve(coords);
       },
-      (err) => reject(err)
+      (err) => reject(err),
+      { enableHighAccuracy, timeout, maximumAge }
     );
   });
 }

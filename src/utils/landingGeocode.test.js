@@ -4,11 +4,13 @@ describe("resolveSearchCoords", () => {
   beforeEach(() => {
     localStorage.setItem("latitude", "28.7");
     localStorage.setItem("longitude", "76.7");
+    localStorage.setItem("locationUpdatedAt", String(Date.now()));
   });
 
   afterEach(() => {
     localStorage.removeItem("latitude");
     localStorage.removeItem("longitude");
+    localStorage.removeItem("locationUpdatedAt");
   });
 
   it("returns null when location is empty and nearby is off", () => {

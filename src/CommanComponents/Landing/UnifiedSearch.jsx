@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { useLanding } from "../../context/LandingContext";
 import {
+  getGeolocationErrorMessage,
   requestDeviceLocation,
+  requestNearbyLocation,
   resolveSearchCoords,
 } from "../../utils/landingGeocode";
 import {
@@ -250,18 +253,31 @@ export default function UnifiedSearch() {
     navigate(serviceProviderPath(pid, sid));
   };
 
-  const handleNearbyToggle = async (e) => {
-    const on = e.target.checked;
-    setNearbyEnabled(on);
-    if (on) {
-      try {
-        await requestDeviceLocation();
-      } catch {
-        /* continue with stored coords */
-      }
+  const handleNearbyToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const wantOn = !nearbyEnabled;
+    if (!wantOn) {
+      setNearbyEnabled(false);
+      setActiveField("search");
+      runSearch({ nearby: false });
+      return;
     }
-    setActiveField("search");
-    runSearch({ nearby: on });
+
+    const proceedWithCoords = (coords) => {
+      setLocationCoords({ lat: coords.lat, lng: coords.lng, label: "Current location" });
+      setNearbyEnabled(true);
+      setActiveField("search");
+      runSearch({ nearby: true, coords });
+    };
+
+    requestNearbyLocation({
+      onSuccess: proceedWithCoords,
+      onError: (err) => {
+        toast.error(getGeolocationErrorMessage(err));
+        setNearbyEnabled(false);
+      },
+    });
   };
 
   const handleLocationSelect = async (prediction) => {
@@ -445,7 +461,7 @@ export default function UnifiedSearch() {
                   <input
                     type="checkbox"
                     checked={nearbyEnabled}
-                    onChange={handleNearbyToggle}
+                    onClick={handleNearbyToggle}
                   />
                   <span>Nearby providers</span>
                 </label>

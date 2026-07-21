@@ -43,6 +43,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:mobile": "HTTPS=true HOST=0.0.0.0 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:places": "node scripts/landingPlaces-smoke.js",
