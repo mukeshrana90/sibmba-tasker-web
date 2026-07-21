@@ -4023,9 +4023,11 @@ button.booking-job-done-btn:disabled {
   list-style: none;
   margin-top: 20px;
   height: 65vh;
-  overflow-x: scroll;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-width: none;
   margin-bottom: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .message-chat-list .chat-list-pro {
@@ -7918,6 +7920,9 @@ header.appnav{position:sticky;top:0;z-index:50;background:rgba(250,246,238,.85);
 .avatar-btn .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(145deg,#7A2BC2,#52197f);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;font-size:.82rem}
 .avatar-btn svg{color:var(--muted);transition:transform .25s}
 .avatar-wrap{position:relative}
+.avatar-wrap:not(.open) .avatar-menu,
+.notify-wrap:not(.open) .notify-menu{pointer-events:none}
+.avatar-btn,.icon-btn,.notify-wrap>.icon-btn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .avatar-wrap.open .avatar-btn svg{transform:rotate(180deg)}
 
 /* ===== AVATAR DROPDOWN MENU ===== */

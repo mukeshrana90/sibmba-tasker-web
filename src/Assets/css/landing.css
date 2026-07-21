@@ -35,6 +35,7 @@
 .landing-nav button {
   -webkit-appearance: none;
   appearance: none;
+  color: var(--landing-ink);
 }
 
 .landing-page {
@@ -909,6 +910,8 @@
   padding: 26px 22px;
   cursor: pointer;
   text-align: left;
+  color: var(--landing-ink);
+  font-family: inherit;
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
   overflow: hidden;
 }
@@ -945,6 +948,7 @@
 .landing-cat-card:hover h4,
 .landing-cat-card:hover .landing-cat-count {
   color: #fff;
+  -webkit-text-fill-color: currentColor;
 }
 
 .landing-cat-badge {
@@ -984,6 +988,8 @@
   font-size: 1.08rem;
   font-weight: 700;
   margin-bottom: 3px;
+  color: var(--landing-ink);
+  -webkit-text-fill-color: currentColor;
   transition: color 0.3s;
   line-height: 1.25;
 }
@@ -1634,6 +1640,16 @@
 
   .landing-search-fcol input {
     font-size: 0.92rem;
+  }
+
+  .landing-search__popup {
+    max-height: min(45dvh, 320px);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .landing-search__row {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .landing-search__suggestions--places {

@@ -1,7 +1,9 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ImagePathCustomer } from "../../utils/ImagePath";
 import { handleUserImageError } from "../../utils/landingUtils";
+import { useDismissOnOutsidePointer, usePopoverToggle } from "../../Hooks/useDismissOnOutsidePointer";
+import { formatMessagePreview } from "../../utils/chatUtils";
 import { ChatContext } from "../../context/ChatProvider";
 
 const NAV_LINKS = [
@@ -119,18 +121,18 @@ export default function ServiceProviderAppNav({
     : null;
   const initials = getInitials(customerDetails?.full_name);
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (avatarRef.current && !avatarRef.current.contains(e.target)) {
-        setAvatarOpen(false);
-      }
-      if (notifyRef.current && !notifyRef.current.contains(e.target)) {
-        setNotifyOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const closeAvatar = useCallback(() => setAvatarOpen(false), []);
+  const closeNotify = useCallback(() => setNotifyOpen(false), []);
+
+  useDismissOnOutsidePointer(avatarRef, avatarOpen, closeAvatar);
+  useDismissOnOutsidePointer(notifyRef, notifyOpen, closeNotify);
+
+  const toggleNotify = usePopoverToggle(setNotifyOpen, {
+    onBeforeOpen: () => setAvatarOpen(false),
+  });
+  const toggleAvatar = usePopoverToggle(setAvatarOpen, {
+    onBeforeOpen: () => setNotifyOpen(false),
+  });
 
   useEffect(() => {
     setMobileOpen(false);
@@ -176,10 +178,9 @@ export default function ServiceProviderAppNav({
               type="button"
               className={`icon-btn${notifyOpen ? " active" : ""}`}
               aria-label="Notifications"
-              onClick={() => {
-                setNotifyOpen((v) => !v);
-                setAvatarOpen(false);
-              }}
+              aria-expanded={notifyOpen}
+              onPointerUp={toggleNotify}
+              onClick={(e) => e.preventDefault()}
             >
               <BellIcon />
               {notifyCount > 0 && (
@@ -187,7 +188,11 @@ export default function ServiceProviderAppNav({
               )}
             </button>
 
-            <div className="notify-menu">
+            <div
+              className="notify-menu"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="notify-menu-head">
                 <h3>Notifications</h3>
               </div>
@@ -199,7 +204,7 @@ export default function ServiceProviderAppNav({
                         <strong>{notification?.title}</strong>
                         <span>{formatTime(notification?.createdAt)}</span>
                       </div>
-                      <p>{notification?.message}</p>
+                      <p>{formatMessagePreview(notification?.message)}</p>
                     </li>
                   ))
                 ) : (
@@ -215,10 +220,8 @@ export default function ServiceProviderAppNav({
               className="avatar-btn"
               aria-haspopup="true"
               aria-expanded={avatarOpen}
-              onClick={() => {
-                setAvatarOpen((v) => !v);
-                setNotifyOpen(false);
-              }}
+              onPointerUp={toggleAvatar}
+              onClick={(e) => e.preventDefault()}
             >
               {profileImage ? (
                 <img src={profileImage} alt="" className="av" onError={handleUserImageError} />
@@ -228,7 +231,12 @@ export default function ServiceProviderAppNav({
               <ChevronIcon />
             </button>
 
-            <div className="avatar-menu" role="menu">
+            <div
+              className="avatar-menu"
+              role="menu"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="am-head">
                 {profileImage ? (
                   <img src={profileImage} alt="" className="am-av" onError={handleUserImageError} />

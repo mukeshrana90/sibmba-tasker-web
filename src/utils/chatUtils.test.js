@@ -74,6 +74,12 @@ describe("chatUtils", () => {
         message: "This is a very long preview message",
       })
     ).toBe("This is a very long previ...");
+    expect(
+      getLastMessagePreview({
+        message_type: 0,
+        message: '{"image":"https://api.example.com/photo.jpg"}',
+      })
+    ).toBe("Image");
   });
 
   test("chatPeerDisplayName prefers name then email local part", () => {

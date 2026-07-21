@@ -80,10 +80,40 @@ export function isMessageForChat(message, senderId, receiverId) {
   );
 }
 
-export function getLastMessagePreview(lastMessage) {
-  if (!lastMessage) return "No messages yet";
-  if (lastMessage.message_type === 1) return "Image";
-  const text = String(lastMessage.message || "").trim();
+function parseStructuredMessage(raw) {
+  const text = String(raw || "").trim();
+  if (!text.startsWith("{") || !text.endsWith("}")) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+export function formatMessagePreview(raw, { messageType } = {}) {
+  if (Number(messageType) === 1) return "Image";
+
+  const structured = parseStructuredMessage(raw);
+  if (structured) {
+    if (structured.image || structured.imageUrl || structured.url) return "Image";
+    if (
+      structured.latitude != null ||
+      structured.lat != null ||
+      structured.longitude != null ||
+      structured.lng != null
+    ) {
+      return "Location";
+    }
+  }
+
+  const text = String(raw || "").trim();
   if (!text) return "No messages yet";
   return text.length > 25 ? `${text.slice(0, 25)}...` : text;
+}
+
+export function getLastMessagePreview(lastMessage) {
+  if (!lastMessage) return "No messages yet";
+  return formatMessagePreview(lastMessage.message, {
+    messageType: lastMessage.message_type,
+  });
 }

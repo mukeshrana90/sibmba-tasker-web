@@ -77,15 +77,20 @@ export default function LandingLocationInput({
   };
 
   useEffect(() => {
-    if (externalDropdown) return undefined;
-    const onDocClick = (e) => {
+    if (externalDropdown || !open) return undefined;
+    const onDocPointerDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [externalDropdown]);
+    const frameId = requestAnimationFrame(() => {
+      document.addEventListener("pointerdown", onDocPointerDown);
+    });
+    return () => {
+      cancelAnimationFrame(frameId);
+      document.removeEventListener("pointerdown", onDocPointerDown);
+    };
+  }, [externalDropdown, open]);
 
   useEffect(() => {
     if (!showInternalDropdown || !useFixedDropdown) {
@@ -156,7 +161,7 @@ export default function LandingLocationInput({
           {predictions.map((item) => (
             <li
               key={item.place_id}
-              onMouseDown={(e) => {
+              onPointerDown={(e) => {
                 e.preventDefault();
                 handleSelectPrediction(item);
               }}

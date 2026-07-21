@@ -52,8 +52,7 @@ export default function UnifiedSearch() {
   const navigate = useNavigate();
   const popupRef = useRef(null);
   const debounceRef = useRef(null);
-  const [useFixedPopup, setUseFixedPopup] = useState(false);
-  const [popupFixedStyle, setPopupFixedStyle] = useState(null);
+  const [popupMaxHeight, setPopupMaxHeight] = useState(null);
 
   const {
     selectCategory,
@@ -212,71 +211,31 @@ export default function UnifiedSearch() {
   }, [searchQuery, locationText, locationCoords, nearbyEnabled, activeField, runSearch]);
 
   useEffect(() => {
-    if (!showPopup) return;
+    if (!showPopup) return undefined;
 
-    const isInsideSearch = (e) => {
+    const isInsideSearch = (target) => {
       const root = popupRef.current;
       if (!root) return false;
-      if (e.target instanceof Node && root.contains(e.target)) return true;
-      const rect = root.getBoundingClientRect();
-      const { clientX: x, clientY: y } = e;
-      return (
-        x >= rect.left &&
-        x <= rect.right &&
-        y >= rect.top &&
-        y <= rect.bottom
-      );
+      return target instanceof Node && root.contains(target);
     };
 
     const onDocPointerDown = (e) => {
-      if (!isInsideSearch(e)) setShowPopup(false);
+      if (!isInsideSearch(e.target)) setShowPopup(false);
     };
 
     const onScroll = (e) => {
-      if (popupRef.current?.contains(e.target)) return;
+      if (isInsideSearch(e.target)) return;
+      if (document.activeElement?.closest(".landing-search")) return;
       setShowPopup(false);
     };
 
-    document.addEventListener("mousedown", onDocPointerDown);
-    document.addEventListener("touchstart", onDocPointerDown, { passive: true });
-    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    document.addEventListener("pointerdown", onDocPointerDown);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      document.removeEventListener("mousedown", onDocPointerDown);
-      document.removeEventListener("touchstart", onDocPointerDown);
-      window.removeEventListener("scroll", onScroll, true);
+      document.removeEventListener("pointerdown", onDocPointerDown);
+      window.removeEventListener("scroll", onScroll);
     };
   }, [showPopup]);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 980px)");
-    const sync = () => setUseFixedPopup(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
-  const updatePopupPosition = useCallback(() => {
-    const el = popupRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setPopupFixedStyle({
-      position: "fixed",
-      top: rect.bottom + 10,
-      left: rect.left,
-      width: rect.width,
-      zIndex: 5000,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!showPopup || !useFixedPopup) {
-      setPopupFixedStyle(null);
-      return undefined;
-    }
-    updatePopupPosition();
-    window.addEventListener("resize", updatePopupPosition);
-    return () => window.removeEventListener("resize", updatePopupPosition);
-  }, [showPopup, useFixedPopup, updatePopupPosition]);
 
   const handleCategoryClick = (cat) => {
     selectCategory(cat._id);
@@ -338,20 +297,42 @@ export default function UnifiedSearch() {
     showPopup &&
     (showLocationList || showSearchResults || searching || locationLoading);
 
+  const handlePopupRowPointer = (handler) => (e) => {
+    e.preventDefault();
+    handler();
+  };
+
   useEffect(() => {
-    if (!popupOpen || !useFixedPopup) return undefined;
-    updatePopupPosition();
-    return undefined;
-  }, [
-    popupOpen,
-    useFixedPopup,
-    updatePopupPosition,
-    locationPredictions.length,
-    categories.length,
-    providers.length,
-    searching,
-    locationLoading,
-  ]);
+    if (!popupOpen) {
+      setPopupMaxHeight(null);
+      return undefined;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) return undefined;
+
+    const updatePopupHeight = () => {
+      const root = popupRef.current;
+      if (!root) return;
+      const rect = root.getBoundingClientRect();
+      const spaceBelow = viewport.height - rect.bottom - 12;
+      if (spaceBelow > 140) {
+        setPopupMaxHeight(Math.min(420, spaceBelow));
+      } else {
+        setPopupMaxHeight(Math.min(280, viewport.height * 0.45));
+      }
+    };
+
+    updatePopupHeight();
+    viewport.addEventListener("resize", updatePopupHeight);
+    viewport.addEventListener("scroll", updatePopupHeight);
+    window.addEventListener("resize", updatePopupHeight);
+    return () => {
+      viewport.removeEventListener("resize", updatePopupHeight);
+      viewport.removeEventListener("scroll", updatePopupHeight);
+      window.removeEventListener("resize", updatePopupHeight);
+    };
+  }, [popupOpen]);
 
   return (
     <div className="landing-search" ref={popupRef}>
@@ -425,11 +406,9 @@ export default function UnifiedSearch() {
 
       {popupOpen && (
         <div
-          className={`landing-search__popup${
-            useFixedPopup && popupFixedStyle ? " landing-search__popup--fixed" : ""
-          }`}
-          style={useFixedPopup ? popupFixedStyle || undefined : undefined}
-          onMouseDown={(e) => e.stopPropagation()}
+          className="landing-search__popup"
+          style={popupMaxHeight ? { maxHeight: popupMaxHeight } : undefined}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           {showLocationList && (
             <div className="landing-search__group">
@@ -442,10 +421,7 @@ export default function UnifiedSearch() {
                   type="button"
                   key={item.place_id}
                   className="landing-search__row"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleLocationSelect(item);
-                  }}
+                  onPointerDown={handlePopupRowPointer(() => handleLocationSelect(item))}
                 >
                   <span>{item.description}</span>
                 </button>
@@ -483,7 +459,7 @@ export default function UnifiedSearch() {
                       type="button"
                       key={cat._id}
                       className="landing-search__row"
-                      onClick={() => handleCategoryClick(cat)}
+                      onPointerDown={handlePopupRowPointer(() => handleCategoryClick(cat))}
                     >
                       <span>{cat.service_category_name}</span>
                       <span className="landing-badge landing-badge--category">
@@ -502,7 +478,7 @@ export default function UnifiedSearch() {
                       type="button"
                       key={`near-${cat._id}`}
                       className="landing-search__row"
-                      onClick={() => handleCategoryClick(cat)}
+                      onPointerDown={handlePopupRowPointer(() => handleCategoryClick(cat))}
                     >
                       <span>
                         {cat.service_category_name}
@@ -526,7 +502,7 @@ export default function UnifiedSearch() {
                       type="button"
                       key={`near-${cat._id}`}
                       className="landing-search__row"
-                      onClick={() => handleCategoryClick(cat)}
+                      onPointerDown={handlePopupRowPointer(() => handleCategoryClick(cat))}
                     >
                       <span>
                         {cat.service_category_name}
@@ -556,7 +532,7 @@ export default function UnifiedSearch() {
                       type="button"
                       key={item._id}
                       className="landing-search__row"
-                      onClick={() => handleProviderClick(item)}
+                      onPointerDown={handlePopupRowPointer(() => handleProviderClick(item))}
                     >
                       <span>
                         {providerLabel(item)}

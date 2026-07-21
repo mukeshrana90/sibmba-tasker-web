@@ -98,7 +98,7 @@ const ChatList = ({ onSelect }) => {
                 onClick={() => handleChatSelect(peerId, chatIndex)}
                 className={isActive ? 'active' : ''}
               >
-                <div className="d-flex align-items-start">
+                <div className="chat-list-row">
                   <div className="chat-list-pro">
                     <img
                       src={
@@ -109,7 +109,7 @@ const ChatList = ({ onSelect }) => {
                       alt=""
                       onError={handleUserImageError}
                     />
-                    <div>
+                    <div className="chat-list-body">
                       <h5>
                         {chatPeerDisplayName({
                           name: ele?.receiver?.name,
@@ -117,10 +117,12 @@ const ChatList = ({ onSelect }) => {
                           email: ele?.receiver?.email,
                         })}
                       </h5>
-                      <p>{getLastMessagePreview(ele?.lastMessage)}</p>
+                      <p className="chat-list-preview">
+                        {getLastMessagePreview(ele?.lastMessage)}
+                      </p>
                     </div>
                   </div>
-                  <div className="ms-auto chat-list-meta">
+                  <div className="chat-list-meta">
                     {timeLabel ? <p>{timeLabel}</p> : null}
                     {ele?.unreadCount > 0 ? (
                       <span className="unread-count">{ele.unreadCount}</span>
