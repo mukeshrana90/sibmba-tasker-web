@@ -184,6 +184,41 @@ export function saveDeviceLocation({ lat, lng }) {
   localStorage.setItem("locationUpdatedAt", String(Date.now()));
 }
 
+export function clearDeviceLocation() {
+  localStorage.removeItem("latitude");
+  localStorage.removeItem("longitude");
+  localStorage.removeItem("locationUpdatedAt");
+}
+
+export function getMobilePlatform() {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/.test(ua)) return "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "other";
+}
+
+export async function queryGeolocationPermission() {
+  if (!navigator.permissions?.query) return null;
+  try {
+    const status = await navigator.permissions.query({ name: "geolocation" });
+    return status.state;
+  } catch {
+    return null;
+  }
+}
+
+export function getLocationSettingsInstructions() {
+  const platform = getMobilePlatform();
+  if (platform === "ios") {
+    return "If location stays blocked, open the aA icon in the address bar → Website Settings → Location → Allow, then tap Allow location again.";
+  }
+  if (platform === "android") {
+    return "If location stays blocked, tap the lock icon in the address bar → Permissions → Location → Allow, then tap Allow location again.";
+  }
+  return "If location stays blocked, allow location for this site in your browser settings, then try again.";
+}
+
 export function isSecureGeolocationContext() {
   return typeof window === "undefined" || window.isSecureContext;
 }
@@ -197,38 +232,42 @@ export function getInsecureGeolocationMessage() {
 }
 
 /**
- * Request GPS for nearby search. Must be called synchronously from a click/tap handler.
- * Uses cached coords when available (works even before a fresh GPS read).
+ * Request GPS from a user gesture (click/tap). Always asks the browser fresh
+ * (maximumAge: 0) so permission is re-checked every time nearby is enabled.
  */
+export function readDeviceLocationFromGesture(options = {}) {
+  const { timeout = 15000 } = options;
+
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation not supported"));
+      return;
+    }
+    if (!isSecureGeolocationContext()) {
+      reject(new Error(getInsecureGeolocationMessage()));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        saveDeviceLocation(coords);
+        resolve(coords);
+      },
+      reject,
+      { enableHighAccuracy: false, timeout, maximumAge: 0 }
+    );
+  });
+}
+
+/** @deprecated Prefer readDeviceLocationFromGesture or useNearbyLocationToggle */
 export function requestNearbyLocation({ onSuccess, onError }) {
-  if (!navigator.geolocation) {
-    onError(new Error("Geolocation not supported"));
-    return;
-  }
-
-  const cached = getCachedDeviceLocation();
-  if (cached) {
-    onSuccess(cached);
-    return;
-  }
-
-  if (!isSecureGeolocationContext()) {
-    onError(new Error(getInsecureGeolocationMessage()));
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const coords = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-      };
-      saveDeviceLocation(coords);
-      onSuccess(coords);
-    },
-    onError,
-    { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
-  );
+  readDeviceLocationFromGesture()
+    .then(onSuccess)
+    .catch(onError);
 }
 
 export function getGeolocationErrorMessage(err) {
@@ -242,7 +281,7 @@ export function getGeolocationErrorMessage(err) {
   }
   const code = err.code;
   if (code === 1) {
-    return "Location permission denied. Allow location access in your browser settings.";
+    return "Location permission denied. Tap Allow location to try again.";
   }
   if (code === 2) {
     return "Location unavailable. Try again in a moment.";

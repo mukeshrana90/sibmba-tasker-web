@@ -9285,6 +9285,11 @@ footer .logo{color:#fff;margin-bottom:16px}
 }
 .share-location-modal .share-location-actions{display:flex;flex-wrap:wrap;gap:10px}
 .share-location-modal .share-location-actions .btn{min-height:42px}
+.location-permission-modal .location-permission-pop{text-align:left}
+.location-permission-modal .location-permission-lead{margin:0 0 10px;color:var(--muted);font-size:.92rem;line-height:1.5}
+.location-permission-modal .location-permission-help{margin:0 0 16px;color:var(--ink);font-size:.88rem;line-height:1.55}
+.location-permission-modal .location-permission-actions{display:flex;flex-wrap:wrap;gap:10px}
+.location-permission-modal .location-permission-actions .btn{min-height:42px}
 
 /* ============================================================
    PAYMENTS / SUBSCRIPTION — provider side  (payments-subscription.html)

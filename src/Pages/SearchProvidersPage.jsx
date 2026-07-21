@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../Components/Layout/Layout";
 import CustomerActions from "../Redux/Actions/CustomerActions";
@@ -8,10 +7,9 @@ import LandingLocationInput, {
   resolveLocationCoords,
 } from "../CommanComponents/Landing/LandingLocationInput";
 import {
-  getGeolocationErrorMessage,
-  requestNearbyLocation,
   resolveSearchCoords,
 } from "../utils/landingGeocode";
+import { useNearbyLocationToggle } from "../Hooks/useNearbyLocationToggle";
 import { reverseGeocodeCoords } from "../utils/landingPlaces";
 import { resolveSearchSubmitCoords } from "../utils/headerSearchSync";
 import {
@@ -167,7 +165,6 @@ function SearchProvidersContent({ variant = "visitor" }) {
       ? { lat: parsed.lat, lng: parsed.lng, label: parsed.location }
       : null
   );
-  const [nearbyLoading, setNearbyLoading] = useState(false);
   const [filterFeedbackLoading, setFilterFeedbackLoading] = useState(false);
   const filterFeedbackTimerRef = useRef(null);
 
@@ -336,16 +333,8 @@ function SearchProvidersContent({ variant = "visitor" }) {
     }
   };
 
-  const handleNearbyToggle = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const wantOn = !parsed.nearby;
-    if (!wantOn) {
-      pushFilters({ nearby: false, page: 1 });
-      return;
-    }
-
-    const finishNearby = (coords, label = "Current location") => {
+  const finishNearby = useCallback(
+    (coords, label = "Current location") => {
       const nextCoords = { lat: coords.lat, lng: coords.lng, label };
       setLocationInput(label);
       setLocationCoords(nextCoords);
@@ -356,29 +345,27 @@ function SearchProvidersContent({ variant = "visitor" }) {
         lng: coords.lng,
         page: 1,
       });
-      setNearbyLoading(false);
-    };
+    },
+    [pushFilters]
+  );
 
-    const failNearby = (err) => {
-      toast.error(getGeolocationErrorMessage(err));
-      setNearbyLoading(false);
-    };
-
-    const resolveLabelAndFinish = (coords) => {
+  const resolveLabelAndFinish = useCallback(
+    (coords) => {
       Promise.race([
         reverseGeocodeCoords(coords.lat, coords.lng),
         new Promise((resolve) => window.setTimeout(() => resolve(null), 4000)),
       ])
         .then((reversed) => finishNearby(coords, reversed?.label || "Current location"))
         .catch(() => finishNearby(coords));
-    };
+    },
+    [finishNearby]
+  );
 
-    setNearbyLoading(true);
-    requestNearbyLocation({
-      onSuccess: resolveLabelAndFinish,
-      onError: failNearby,
+  const { loading: nearbyLoading, handleToggle: handleNearbyToggle, permissionModal } =
+    useNearbyLocationToggle({
+      onEnabled: resolveLabelAndFinish,
+      onDisabled: () => pushFilters({ nearby: false, page: 1 }),
     });
-  };
 
   const toggleCategory = (catId) => {
     const set = new Set(parsed.categoryIds);
@@ -523,7 +510,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
                   type="checkbox"
                   checked={parsed.nearby}
                   disabled={nearbyLoading}
-                  onClick={handleNearbyToggle}
+                  onClick={(e) => handleNearbyToggle(e, parsed.nearby)}
                 />
                 {nearbyLoading ? "Getting location…" : "NearBy Search"}
               </label>
@@ -716,6 +703,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
           </div>
         </div>
       </section>
+      {permissionModal}
     </div>
   );
 }

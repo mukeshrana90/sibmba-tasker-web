@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { useLanding } from "../../context/LandingContext";
 import {
-  getGeolocationErrorMessage,
   requestDeviceLocation,
-  requestNearbyLocation,
   resolveSearchCoords,
 } from "../../utils/landingGeocode";
+import { useNearbyLocationToggle } from "../../Hooks/useNearbyLocationToggle";
 import {
   selectLocationPrediction,
   useLocationPredictions,
@@ -198,6 +196,25 @@ export default function UnifiedSearch() {
     ]
   );
 
+  const { loading: nearbyLoading, handleToggle: handleNearbyToggleBase, permissionModal } =
+    useNearbyLocationToggle({
+      onEnabled: (coords) => {
+        setLocationCoords({
+          lat: coords.lat,
+          lng: coords.lng,
+          label: "Current location",
+        });
+        setNearbyEnabled(true);
+        setActiveField("search");
+        runSearch({ nearby: true, coords });
+      },
+      onDisabled: () => {
+        setNearbyEnabled(false);
+        setActiveField("search");
+        runSearch({ nearby: false });
+      },
+    });
+
   useEffect(() => {
     clearTimeout(debounceRef.current);
     if (activeField === "location") return undefined;
@@ -253,32 +270,7 @@ export default function UnifiedSearch() {
     navigate(serviceProviderPath(pid, sid));
   };
 
-  const handleNearbyToggle = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const wantOn = !nearbyEnabled;
-    if (!wantOn) {
-      setNearbyEnabled(false);
-      setActiveField("search");
-      runSearch({ nearby: false });
-      return;
-    }
-
-    const proceedWithCoords = (coords) => {
-      setLocationCoords({ lat: coords.lat, lng: coords.lng, label: "Current location" });
-      setNearbyEnabled(true);
-      setActiveField("search");
-      runSearch({ nearby: true, coords });
-    };
-
-    requestNearbyLocation({
-      onSuccess: proceedWithCoords,
-      onError: (err) => {
-        toast.error(getGeolocationErrorMessage(err));
-        setNearbyEnabled(false);
-      },
-    });
-  };
+  const handleNearbyToggle = (e) => handleNearbyToggleBase(e, nearbyEnabled);
 
   const handleLocationSelect = async (prediction) => {
     skipLocationFetch();
@@ -461,9 +453,10 @@ export default function UnifiedSearch() {
                   <input
                     type="checkbox"
                     checked={nearbyEnabled}
+                    disabled={nearbyLoading}
                     onClick={handleNearbyToggle}
                   />
-                  <span>Nearby providers</span>
+                  <span>{nearbyLoading ? "Getting location…" : "Nearby providers"}</span>
                 </label>
               </div>
 
@@ -582,6 +575,7 @@ export default function UnifiedSearch() {
           )}
         </div>
       )}
+      {permissionModal}
     </div>
   );
 }
