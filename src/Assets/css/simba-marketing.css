@@ -3125,6 +3125,32 @@ header.appnav .avatar-menu .am-item {
   grid-template-columns: 1fr;
 }
 
+.simba-page.p-taskdetails .tgallery:not(.tgallery--single),
+.simba-page.p-servicedetail .tgallery:not(.tgallery--single) {
+  align-items: stretch;
+}
+
+.simba-page.p-taskdetails .tgallery:not(.tgallery--single) .big,
+.simba-page.p-servicedetail .tgallery:not(.tgallery--single) .big {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  align-self: stretch;
+}
+
+.simba-page.p-taskdetails .tgallery:not(.tgallery--single) .col,
+.simba-page.p-servicedetail .tgallery:not(.tgallery--single) .col {
+  display: grid;
+  gap: 12px;
+  height: max-content;
+  align-content: start;
+}
+
+.simba-page.p-servicedetail .tgallery:not(.tgallery--single) .tgallery-open.big {
+  height: 100%;
+}
+
 /* Booking / task detail — tablet (iPad, iPad Air) */
 @media (max-width: 1024px) {
   .simba-page.p-taskdetails .tgrid {
@@ -3170,7 +3196,7 @@ header.appnav .avatar-menu .am-item {
     margin-bottom: 0;
   }
 
-  .simba-page.p-taskdetails .tgallery .big {
+  .simba-page.p-taskdetails .tgallery--single .big {
     max-height: 320px;
   }
 }
@@ -3242,9 +3268,15 @@ header.appnav .avatar-menu .am-item {
     border-radius: 18px;
   }
 
-  .simba-page.p-taskdetails .tgallery .big {
+  .simba-page.p-taskdetails .tgallery--single .big {
     aspect-ratio: 16 / 9;
     max-height: 220px;
+  }
+
+  .simba-page.p-taskdetails .tgallery:not(.tgallery--single) .big {
+    aspect-ratio: auto;
+    max-height: none;
+    height: 100%;
   }
 
   .simba-page.p-taskdetails .card h2 {
@@ -3292,6 +3324,15 @@ header.appnav .avatar-menu .am-item {
   }
 }
 
+@media (max-width: 560px) {
+  .simba-page.p-taskdetails .tgallery:not(.tgallery--single) .big,
+  .simba-page.p-servicedetail .tgallery:not(.tgallery--single) .big {
+    aspect-ratio: 16 / 10;
+    height: auto;
+    max-height: 220px;
+  }
+}
+
 @media (max-width: 480px) {
   .simba-page.p-taskdetails .wrap {
     padding-left: 12px;
@@ -3308,7 +3349,7 @@ header.appnav .avatar-menu .am-item {
     border-radius: 16px;
   }
 
-  .simba-page.p-taskdetails .tgallery .big {
+  .simba-page.p-taskdetails .tgallery--single .big {
     aspect-ratio: 4 / 3;
     max-height: 200px;
     border-radius: 14px;
