@@ -7,15 +7,14 @@ import { resolveSearchCoords } from "../../utils/landingGeocode";
 import { Roles } from "../../utils/Roles";
 import { searchProvidersPath } from "../../utils/searchProvidersUrl";
 import {
-  defaultProviderAvatar,
   formatDisplayTitle,
   isVerified,
   providerDisplayName,
-  providerImageUrl,
   providerLocation,
   renderStars,
 } from "../../utils/landingUtils";
 import { serviceProviderPath } from "../../utils/normalizeMongoId";
+import ProviderAvatar from "../ProviderAvatar";
 
 export default function TopProviders() {
   const dispatch = useDispatch();
@@ -132,7 +131,6 @@ export default function TopProviders() {
           {items.map((item, idx) => {
             const sp = item.serviceProvider || {};
             const name = providerDisplayName(sp);
-            const img = providerImageUrl(sp);
             const verified = isVerified(sp);
             const rating = item.averageRating || 0;
             const reviews = item.reviewCount || 0;
@@ -141,14 +139,11 @@ export default function TopProviders() {
               <article className="landing-prov-card" key={item._id}>
                 <div className="landing-prov-top">
                   <span className="landing-prov-rank">#{idx + 1}</span>
-                  <img
-                    className="landing-prov-avatar landing-prov-avatar--img"
-                    src={img}
-                    alt=""
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = defaultProviderAvatar;
-                    }}
+                  <ProviderAvatar
+                    provider={sp}
+                    name={name}
+                    className="landing-prov-avatar"
+                    imgClassName="landing-prov-avatar--img"
                   />
                   <div className="landing-prov-id">
                     <h4>

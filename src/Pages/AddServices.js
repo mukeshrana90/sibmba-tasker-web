@@ -9,6 +9,10 @@ import { timeSchedule } from "../utils/rawjson";
 import { useQuery } from "../utils/CommonFunction";
 import { serviceImageUrl } from "../utils/landingUtils";
 import { normalizeMongoId } from "../utils/normalizeMongoId";
+import {
+  getCachedProviderHasService,
+  markProviderHasService,
+} from "../utils/providerServiceGate";
 
 function FieldError({ name }) {
   return <ErrorMessage name={name} component="div" className="field-error" />;
@@ -249,6 +253,9 @@ export default function AddService() {
             const response = await dispatch(action);
 
             if (response?.payload?.status_code === 200) {
+              if (!searchValFromUrl) {
+                markProviderHasService(true);
+              }
               toast.success(response?.payload?.message);
               navigate("/allmyservices");
             } else {
@@ -483,13 +490,15 @@ export default function AddService() {
             </div>
 
             <div className="form-foot sp-add-foot">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => navigate("/allmyservices")}
-              >
-                Cancel
-              </button>
+              {(searchValFromUrl || getCachedProviderHasService() === true) && (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => navigate("/allmyservices")}
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="submit"
                 className="btn btn-primary"

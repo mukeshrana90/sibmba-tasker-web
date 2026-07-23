@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import Layout from "../Components/Layout/Layout";
 import ServiceActions from "../Redux/Actions/ServiceActions";
+import SimbaPageBanner from "../CommanComponents/SimbaPageBanner";
 import {
+  defaultImage,
   formatDisplayTitle,
-  handleCategoryImageError,
-  serviceImageUrl,
+  handleServiceImageError,
+  resolveServiceListImageSrc,
 } from "../utils/landingUtils";
 import {
   normalizeMongoId,
@@ -14,29 +16,13 @@ import {
 } from "../utils/normalizeMongoId";
 import { getAppHomePath } from "../utils/appHomePath";
 
-function PlaceholderIcon() {
-  return (
-    <svg
-      className="ph"
-      width="48"
-      height="48"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.5-3.5L9 20" />
-    </svg>
-  );
-}
-
 function ServiceShimmerGrid({ count = 8 }) {
   return (
-    <div className="svc-grid svc-shimmer-grid" aria-busy="true" aria-label="Loading services">
+    <div
+      className="cat-grid svc-shimmer-grid"
+      aria-busy="true"
+      aria-label="Loading services"
+    >
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="svc-shimmer-card">
           <div className="svc-shimmer-thumb shimmer" />
@@ -84,8 +70,8 @@ export default function ServiceProCategory() {
         const list = Array.isArray(result?.data)
           ? result.data
           : Array.isArray(result)
-          ? result
-          : [];
+            ? result
+            : [];
 
         if (cancelled) return;
 
@@ -115,8 +101,12 @@ export default function ServiceProCategory() {
     if (!q) return services;
 
     return services.filter((service) => {
-      const company = String(service?.serviceProviderId?.company_name || "").toLowerCase();
-      const fullName = String(service?.serviceProviderId?.full_name || "").toLowerCase();
+      const company = String(
+        service?.serviceProviderId?.company_name || ""
+      ).toLowerCase();
+      const fullName = String(
+        service?.serviceProviderId?.full_name || ""
+      ).toLowerCase();
       const subName = String(service?.serviceSubCategoryName || "").toLowerCase();
       const desc = String(service?.desc || "").toLowerCase();
       return (
@@ -143,20 +133,16 @@ export default function ServiceProCategory() {
 
   return (
     <Layout footerVariant="marketing">
-      <div className="simba-page p-serviceproviders p-servicecategory">
+      <div className="simba-page p-serviceproviders p-servicepro-category">
+        <SimbaPageBanner
+          title={loading && !categoryName ? "Loading…" : displayName}
+          crumbLabel={loading && !categoryName ? "…" : displayName}
+          homeTo={getAppHomePath()}
+          midCrumb={{ to: "/service-pro", label: "Service Pro" }}
+        />
+
         <main className="page">
           <div className="wrap">
-            <div className="svc-cat-head">
-              <h1>{loading && !categoryName ? "Loading…" : displayName}</h1>
-              <div className="crumbs">
-                <Link to={getAppHomePath()}>Home</Link>
-                <span>/</span>
-                <Link to="/service-pro">Service Pro</Link>
-                <span>/</span>
-                <span className="here">{loading && !categoryName ? "…" : displayName}</span>
-              </div>
-            </div>
-
             <div className="svc-search-row">
               <div className="svc-search">
                 <svg
@@ -185,21 +171,23 @@ export default function ServiceProCategory() {
             ) : filteredServices.length === 0 ? (
               <p className="svc-empty">{emptyMessage}</p>
             ) : (
-              <div className="svc-grid">
+              <div className="cat-grid">
                 {filteredServices.map((service) => {
-                  const thumb =
-                    Array.isArray(service?.images) && service.images[0]
-                      ? serviceImageUrl(service.images[0])
-                      : null;
-                  const title =
-                    formatDisplayTitle(
-                      service?.serviceSubCategoryName ||
-                        (service?.serviceProviderId?.company_name !== "undefined"
-                          ? service?.serviceProviderId?.company_name
-                          : null) ||
-                        service?.serviceProviderId?.full_name,
-                      "Service"
-                    );
+                  const imageSrc = service.images?.length
+                    ? service.images[0]
+                    : null;
+                  const thumbFromApi = service.images_thumb?.[0];
+                  const displaySrc =
+                    resolveServiceListImageSrc(imageSrc, thumbFromApi) ||
+                    defaultImage;
+                  const title = formatDisplayTitle(
+                    service?.serviceSubCategoryName ||
+                      (service?.serviceProviderId?.company_name !== "undefined"
+                        ? service?.serviceProviderId?.company_name
+                        : null) ||
+                      service?.serviceProviderId?.full_name,
+                    "Service"
+                  );
                   const subtitle =
                     service?.serviceProviderId?.full_name &&
                     service?.serviceSubCategoryName
@@ -210,19 +198,17 @@ export default function ServiceProCategory() {
                     <button
                       key={service._id}
                       type="button"
-                      className="svc-tile"
+                      className="cat-tile"
                       onClick={() => handleServiceClick(service._id)}
                     >
-                      <div className="svc-thumb">
-                        {thumb ? (
-                          <img
-                            src={thumb}
-                            alt={title}
-                            onError={handleCategoryImageError}
-                          />
-                        ) : (
-                          <PlaceholderIcon />
-                        )}
+                      <div className="cat-thumb">
+                        <img
+                          src={displaySrc}
+                          alt={title}
+                          onError={(e) =>
+                            handleServiceImageError(e, imageSrc)
+                          }
+                        />
                         <div className="ov">
                           <span>
                             View service
@@ -240,7 +226,7 @@ export default function ServiceProCategory() {
                           </span>
                         </div>
                       </div>
-                      <div className="svc-name">{title}</div>
+                      <div className="cat-name">{title}</div>
                       {subtitle && <div className="svc-desc">{subtitle}</div>}
                       {service.desc && service.desc !== "N/A" && (
                         <div className="svc-desc">{service.desc}</div>

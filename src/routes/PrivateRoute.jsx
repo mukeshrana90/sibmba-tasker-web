@@ -1,20 +1,32 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import RequireProviderService from "./RequireProviderService";
+import { Roles } from "../utils/Roles";
 
 const PrivateRoute = () => {
   const location = useLocation();
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
 
-  // If not logged in
   if (!token) {
     return location.pathname === "/" ? <Outlet /> : <Navigate to="/" replace />;
   }
 
-  // Redirect logged-in users landing on `/` based on role
   if (token && location.pathname === "/") {
-    if (role === "1") return <Navigate to="/" replace />;
-    if (role === "2") return <Navigate to="/requests" replace />;
-    if (role === "3") return <Navigate to="/corporate" replace />;
+    if (String(role) === String(Roles.CUSTOMER)) return <Outlet />;
+    if (String(role) === String(Roles.SERVICE_PROVIDER)) {
+      return <Navigate to="/requests" replace />;
+    }
+    if (String(role) === String(Roles.CORPORATE)) {
+      return <Navigate to="/corporate" replace />;
+    }
+  }
+
+  if (String(role) === String(Roles.SERVICE_PROVIDER)) {
+    return (
+      <RequireProviderService>
+        <Outlet />
+      </RequireProviderService>
+    );
   }
 
   return <Outlet />;

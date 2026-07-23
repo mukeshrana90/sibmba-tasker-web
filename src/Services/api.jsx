@@ -5,6 +5,11 @@ const Api = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL,
 });
 
+const isUnauthorizedPayload = (data) =>
+  data?.status_code === 401 ||
+  data?.status === 401 ||
+  data?.message === "Token Expired";
+
 const redirectToLoginOnAuthFailure = (message) => {
   const hadSession =
     localStorage.getItem("token") || localStorage.getItem("temptoken");
@@ -13,7 +18,14 @@ const redirectToLoginOnAuthFailure = (message) => {
   localStorage.removeItem("userId");
   localStorage.removeItem("role");
   localStorage.removeItem("expiresAt");
-  if (message && hadSession) {
+  try {
+    sessionStorage.removeItem("sp_has_service");
+  } catch {
+    /* ignore */
+  }
+  // Visitors browsing public pages should not be forced to login on 401.
+  if (!hadSession) return;
+  if (message) {
     toast.error(message);
   }
   window.location.href = "/login";
@@ -21,6 +33,12 @@ const redirectToLoginOnAuthFailure = (message) => {
 
 Api.interceptors.request.use(
   (config) => {
+    if (config.skipAuth) {
+      if (config.headers) {
+        delete config.headers.Authorization;
+      }
+      return config;
+    }
     const token =
       localStorage.getItem("token") || localStorage.getItem("temptoken");
     if (token) {
@@ -43,14 +61,12 @@ Api.interceptors.response.use(
       }, 3000);
     }
 
-    if (
-      response?.data?.status_code === 401 ||
-      response?.data?.status === 401 ||
-      response?.data?.message === "Token Expired"
-    ) {
-      redirectToLoginOnAuthFailure(
-        response?.data?.message || "Session expired. Please login again."
-      );
+    if (isUnauthorizedPayload(response?.data)) {
+      if (!response?.config?.skipAuthRedirect) {
+        redirectToLoginOnAuthFailure(
+          response?.data?.message || "Session expired. Please login again."
+        );
+      }
     }
 
     return response;
@@ -65,13 +81,14 @@ Api.interceptors.response.use(
       }, 3000);
     } else if (
       error?.response?.status === 401 ||
-      error?.response?.data?.status_code === 401 ||
-      error?.response?.data?.status === 401 ||
-      error?.response?.data?.message === "Token Expired"
+      isUnauthorizedPayload(error?.response?.data)
     ) {
-      redirectToLoginOnAuthFailure(
-        error?.response?.data?.message || "Session expired. Please login again."
-      );
+      if (!error?.config?.skipAuthRedirect) {
+        redirectToLoginOnAuthFailure(
+          error?.response?.data?.message ||
+            "Session expired. Please login again."
+        );
+      }
     } else {
       if (error?.response?.data?.message === "No Quatations found for this user.") {
         return;

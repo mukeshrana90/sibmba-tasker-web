@@ -2,11 +2,11 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "r
 import { Link, useLocation } from "react-router-dom";
 import Search from "../../CommanComponents/Search";
 import { useDismissOnOutsidePointer, usePopoverToggle } from "../../Hooks/useDismissOnOutsidePointer";
-import { formatMessagePreview } from "../../utils/chatUtils";
 import { ImagePathCustomer } from "../../utils/ImagePath";
 import { handleUserImageError } from "../../utils/landingUtils";
 import { customerDisplayName } from "../../utils/customerProfileUtils";
 import { ChatContext } from "../../context/ChatProvider";
+import NotifyMenuList from "../../CommanComponents/NotifyMenuList";
 
 const NAV_LINKS = [
   { label: "Home", path: "/" },
@@ -23,13 +23,6 @@ function getInitials(name) {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   }
   return parts[0].slice(0, 2).toUpperCase();
-}
-
-function formatTime(dateString) {
-  return new Date(dateString).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function SearchIcon() {
@@ -250,21 +243,10 @@ export default function CustomerAppNav({
               <div className="notify-menu-head">
                 <h3>Notifications</h3>
               </div>
-              <ul className="notify-menu-list">
-                {notificationDetail?.length ? (
-                  notificationDetail.map((notification) => (
-                    <li key={notification?._id}>
-                      <div className="notify-item-top">
-                        <strong>{notification?.title}</strong>
-                        <span>{formatTime(notification?.createdAt)}</span>
-                      </div>
-                      <p>{formatMessagePreview(notification?.message)}</p>
-                    </li>
-                  ))
-                ) : (
-                  <li className="notify-empty">No notifications yet</li>
-                )}
-              </ul>
+              <NotifyMenuList
+                notifications={notificationDetail}
+                isOpen={notifyOpen}
+              />
             </div>
           </div>
 

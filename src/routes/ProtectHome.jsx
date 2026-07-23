@@ -1,4 +1,5 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from "react-router-dom";
+import { Roles } from "../utils/Roles";
 
 const ProtectHome = () => {
   const token = localStorage.getItem("token");
@@ -8,9 +9,14 @@ const ProtectHome = () => {
     return <Outlet />;
   }
 
-  if (role === "1") return <Outlet />;
-  if (role === "2") return <Navigate to="/requests" replace />;
-  if (role === "3") return <Navigate to="/corporate" replace />;
+  if (String(role) === String(Roles.CUSTOMER)) return <Outlet />;
+  // PrivateService / RequireProviderService will bounce to /service/add when needed
+  if (String(role) === String(Roles.SERVICE_PROVIDER)) {
+    return <Navigate to="/requests" replace />;
+  }
+  if (String(role) === String(Roles.CORPORATE)) {
+    return <Navigate to="/corporate" replace />;
+  }
 
   return <Navigate to="/" replace />;
 };

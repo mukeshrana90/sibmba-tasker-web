@@ -9,10 +9,12 @@ import MapComponent from "../CommanComponents/MapComponent";
 import Loader from "../CommanComponents/Loader";
 import {
   avatarColor,
+  formatMoney,
   formatPrice,
   handleCategoryImageError,
   handleUserImageError,
   isVerified as providerIsVerified,
+  parsePriceValue,
   providerDisplayName,
   providerInitials,
   providerLocation,
@@ -30,6 +32,7 @@ import {
   buildWhatsAppQuoteUrl,
   resolveUserLocation,
 } from "../utils/whatsappQuote";
+import ProviderAvatar from "../CommanComponents/ProviderAvatar";
 
 function starsText(rating) {
   const filled = Math.round(Number(rating) || 0);
@@ -264,8 +267,8 @@ export default function ServiceProvider() {
 
   const minPrice = useMemo(() => {
     return services.reduce((min, svc) => {
-      const price = Number(svc.price);
-      if (!price || Number.isNaN(price)) return min;
+      const price = parsePriceValue(svc.price);
+      if (price == null || price <= 0) return min;
       return min === null || price < min ? price : min;
     }, null);
   }, [services]);
@@ -273,9 +276,6 @@ export default function ServiceProvider() {
   const bookServiceId =
     serviceIdParam ||
     (services.length === 1 ? services[0]._id : services[0]?._id);
-
-  const profileImageSrc = userImageUrl(provider);
-  const hasProfileImage = Boolean(provider?.profile_image);
 
   const openServiceDetail = (svcId) => {
     if (!svcId) return;
@@ -398,31 +398,26 @@ export default function ServiceProvider() {
           <div className="wrap">
             <div className="phero-card">
               <div className="phero-inner">
-                <div
-                  className="phero-avatar"
-                  style={{
-                    background: hasProfileImage
-                      ? "transparent"
-                      : "linear-gradient(145deg,#13705C,#0A4338)",
-                  }}
+                <button
+                  type="button"
+                  className="phero-avatar-btn"
+                  onClick={() => galleryImages.length > 0 && openGallery(0)}
+                  disabled={galleryImages.length === 0}
+                  aria-label={
+                    galleryImages.length > 0
+                      ? "Open photo gallery"
+                      : "Provider photo"
+                  }
                 >
-                  {hasProfileImage ? (
-                    <img
-                      src={profileImageSrc}
-                      alt={displayName}
-                      onError={handleUserImageError}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        borderRadius: "inherit",
-                      }}
-                    />
-                  ) : (
-                    initials(displayName)
-                  )}
-                  <span className="av-dot" />
-                </div>
+                  <ProviderAvatar
+                    provider={provider}
+                    name={displayName}
+                    className="phero-avatar"
+                    imgClassName="phero-avatar--img"
+                  >
+                    <span className="av-dot" />
+                  </ProviderAvatar>
+                </button>
 
                 <div className="phero-info">
                   <div className="phero-name">
@@ -625,7 +620,7 @@ export default function ServiceProvider() {
                             font: "inherit",
                           }}
                         >
-                          <div className="svc-ico">
+                          <div className="svc-ico" aria-hidden="true">
                             <svg
                               width="20"
                               height="20"
@@ -644,8 +639,8 @@ export default function ServiceProvider() {
                             <small>{catName || "General service"}</small>
                           </div>
                           <span className="svc-price">
-                            {svc.price
-                              ? `From $${Number(svc.price).toFixed(2)}`
+                            {parsePriceValue(svc.price) != null
+                              ? `From ${formatMoney(svc.price)}`
                               : "Quote"}
                           </span>
                         </button>
@@ -806,9 +801,14 @@ export default function ServiceProvider() {
             <aside className="side" id="book">
               <div className="booking">
                 <div className="price">
-                  <b>{minPrice != null ? `$${minPrice.toFixed(0)}` : "Quote"}</b>
-                  {minPrice != null && <span>/ service</span>}
+                  <b>Quote</b>
                 </div>
+                {minPrice != null && (
+                  <div className="booking-from-price">
+                    <b>${Number.isInteger(minPrice) ? minPrice : minPrice.toFixed(2)}</b>
+                    <span>/ service</span>
+                  </div>
+                )}
                 <div className="resp">
                   <svg
                     width="15"

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Modal from "react-bootstrap/Modal";
+import Slider from "react-slick";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../Components/Layout/Layout";
 import CustomerActions from "../Redux/Actions/CustomerActions";
@@ -8,15 +9,19 @@ import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookSer
 import StarRating from "../CommanComponents/StarRating";
 import MapComponent from "../CommanComponents/MapComponent";
 import Loader from "../CommanComponents/Loader";
+import ProviderAvatar, {
+  resolveCustomProfileImage,
+} from "../CommanComponents/ProviderAvatar";
 import facebookLogo from "../Assets/Images/facebook.svg";
 import instagramLogo from "../Assets/Images/instagram.svg";
 import whatsappLogo from "../Assets/Images/whatsapp.png";
 import linkIcon from "../Assets/Images/link.png";
 import {
   avatarColor,
+  formatMoney,
   handleCategoryImageError,
-  handleProviderAvatarError,
   handleUserImageError,
+  providerDisplayName,
   providerInitials,
   serviceImageUrl,
   userImageUrl,
@@ -31,22 +36,51 @@ import {
   serviceProviderPath,
 } from "../utils/normalizeMongoId";
 
-function PlaceholderImageIcon({ size = 46 }) {
+function ServiceGalleryHero({ mainImage, provider, title }) {
+  const providerImg = resolveCustomProfileImage(provider);
+  const label = providerDisplayName(provider) || title || "SP";
+  const initials = providerInitials(label);
+  const color = avatarColor(label);
+  const initialStage = mainImage
+    ? "service"
+    : providerImg
+      ? "provider"
+      : "initials";
+  const [stage, setStage] = useState(initialStage);
+
+  useEffect(() => {
+    setStage(
+      mainImage ? "service" : providerImg ? "provider" : "initials"
+    );
+  }, [mainImage, providerImg]);
+
+  if (stage === "service" && mainImage) {
+    return (
+      <img
+        src={serviceImageUrl(mainImage)}
+        alt={title || "Service"}
+        onError={() => setStage(providerImg ? "provider" : "initials")}
+      />
+    );
+  }
+
+  if (stage === "provider" && providerImg) {
+    return (
+      <img
+        src={providerImg}
+        alt={label}
+        onError={() => setStage("initials")}
+      />
+    );
+  }
+
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <div
+      className="tgallery-fallback"
+      style={{ background: `linear-gradient(145deg,${color},${color}cc)` }}
     >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.5-3.5L9 20" />
-    </svg>
+      <span>{initials}</span>
+    </div>
   );
 }
 
@@ -63,15 +97,6 @@ function formatReviewDate(dateStr) {
   });
 }
 
-function providerDisplayName(sp) {
-  if (!sp) return "Provider";
-  return (
-    safeVal(sp.company_name) ||
-    safeVal(sp.full_name) ||
-    "Provider"
-  );
-}
-
 export default function CustomerServiceDetail() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -81,6 +106,9 @@ export default function CustomerServiceDetail() {
 
   const [show, setShow] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const gallerySliderRef = useRef(null);
 
   const serviceDetail = useSelector((e) => e.UserSlice.serviceDetail);
   const customerDetails = useSelector((e) => e.login.customerDetails);
@@ -173,7 +201,49 @@ export default function CustomerServiceDetail() {
     serviceDetail?.serviceCategoryId?.service_category_name || "Service";
   const providerLoc =
     safeVal(sp?.street_address) || safeVal(sp?.suburbs) || null;
-  const pColor = avatarColor(providerName);
+  const displayPrice = formatMoney(serviceDetail?.price);
+
+  const galleryImages = useMemo(() => {
+    const title =
+      serviceDetail?.serviceSubCategoryName || providerName || "Service";
+    const items = images
+      .filter(Boolean)
+      .map((img, idx) => ({
+        src: serviceImageUrl(img),
+        label: `${title}${images.length > 1 ? ` · ${idx + 1}` : ""}`,
+      }));
+    if (items.length > 0) return items;
+    const providerImg = resolveCustomProfileImage(sp);
+    if (providerImg) {
+      return [{ src: providerImg, label: providerName || "Provider" }];
+    }
+    return [];
+  }, [images, serviceDetail?.serviceSubCategoryName, providerName, sp]);
+
+  const gallerySliderSettings = useMemo(
+    () => ({
+      dots: true,
+      infinite: galleryImages.length > 1,
+      speed: 400,
+      slidesToShow: 1,
+      slidesToScroll: 1,
+      arrows: galleryImages.length > 1,
+      adaptiveHeight: false,
+      initialSlide: activeGalleryIndex,
+    }),
+    [galleryImages.length, activeGalleryIndex]
+  );
+
+  const openGallery = (index = 0) => {
+    if (galleryImages.length === 0) return;
+    setActiveGalleryIndex(index);
+    setShowGalleryModal(true);
+  };
+
+  useEffect(() => {
+    if (!showGalleryModal || !gallerySliderRef.current) return;
+    gallerySliderRef.current.slickGoTo(activeGalleryIndex);
+  }, [showGalleryModal, activeGalleryIndex]);
 
   const validLink = (v) => v && v !== "undefined";
   const toHref = (v) =>
@@ -214,27 +284,37 @@ export default function CustomerServiceDetail() {
                       sideImages.length === 0 ? " tgallery--single" : ""
                     }`}
                   >
-                    <div className="big">
-                      {mainImage ? (
-                        <img
-                          src={serviceImageUrl(mainImage)}
-                          alt={serviceDetail.serviceSubCategoryName || "Service"}
-                          onError={handleCategoryImageError}
-                        />
-                      ) : (
-                        <PlaceholderImageIcon />
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      className="big tgallery-open"
+                      onClick={() => openGallery(0)}
+                      disabled={galleryImages.length === 0}
+                      aria-label="Open photo gallery"
+                    >
+                      <ServiceGalleryHero
+                        mainImage={mainImage}
+                        provider={sp}
+                        title={
+                          serviceDetail.serviceSubCategoryName || providerName
+                        }
+                      />
+                    </button>
                     {sideImages.length > 0 && (
                       <div className="col">
                         {sideImages.map((image, index) => (
-                          <div key={index} className="small">
+                          <button
+                            type="button"
+                            key={index}
+                            className="small tgallery-open"
+                            onClick={() => openGallery(index + 1)}
+                            aria-label={`Open photo ${index + 2}`}
+                          >
                             <img
                               src={serviceImageUrl(image)}
                               alt={`Service ${index + 2}`}
                               onError={handleCategoryImageError}
                             />
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -310,23 +390,12 @@ export default function CustomerServiceDetail() {
                           }
                         }}
                       >
-                        <span
+                        <ProviderAvatar
+                          provider={sp}
+                          name={providerName}
                           className="pav"
-                          style={{
-                            background: `linear-gradient(145deg,${pColor},${pColor}cc)`,
-                          }}
-                        >
-                          <img
-                            src={userImageUrl(sp)}
-                            alt={providerName}
-                            onError={(e) =>
-                              handleProviderAvatarError(
-                                e,
-                                providerInitials(providerName)
-                              )
-                            }
-                          />
-                        </span>
+                          imgClassName="pav--img"
+                        />
                         <div className="pinfo">
                           <b>
                             {providerName}
@@ -345,8 +414,12 @@ export default function CustomerServiceDetail() {
                               </svg>
                             </span>
                           </b>
-                          {safeVal(sp?.email) && <small>{sp.email}</small>}
-                          {providerLoc && <small>{providerLoc}</small>}
+                          {safeVal(sp?.email) && (
+                            <small className="pinfo-email">{sp.email}</small>
+                          )}
+                          {providerLoc && (
+                            <small className="pinfo-address">{providerLoc}</small>
+                          )}
                         </div>
                         <div className="prov-actions">
                           <button
@@ -485,7 +558,7 @@ export default function CustomerServiceDetail() {
                     <h3>Book this service</h3>
                     <div className="sum-row">
                       <span>Price</span>
-                      <b>${serviceDetail.price ?? "N/A"}</b>
+                      <b>{displayPrice}</b>
                     </div>
                     {serviceDetail.averageRating > 0 && (
                       <div className="sum-row">
@@ -499,7 +572,7 @@ export default function CustomerServiceDetail() {
                     </div>
                     <div className="sum-total">
                       <span>From</span>
-                      <b>${serviceDetail.price ?? "—"}</b>
+                      <b>{displayPrice}</b>
                     </div>
                     <div className="side-actions">
                       {serviceDetail.is_booked === 0 && (
@@ -516,7 +589,7 @@ export default function CustomerServiceDetail() {
                           href={isLoggedIn() ? buildWhatsAppUrl() : "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-ghost btn-block svc-wa-btn"
+                          className="btn btn-block svc-wa-btn"
                           onClick={handleWhatsAppClick}
                         >
                           <img
@@ -581,6 +654,52 @@ export default function CustomerServiceDetail() {
               providerLoc
             }
           />
+        </Modal.Body>
+      </Modal>
+
+      <Modal
+        show={showGalleryModal}
+        onHide={() => setShowGalleryModal(false)}
+        centered
+        dialogClassName="provider-gallery-modal__dialog"
+        contentClassName="provider-gallery-modal__content"
+        className="provider-gallery-modal"
+      >
+        <Modal.Header closeButton className="provider-gallery-modal__header">
+          <Modal.Title>
+            Service photos
+            {galleryImages.length > 1 && (
+              <span className="provider-gallery-modal__count">
+                {activeGalleryIndex + 1} / {galleryImages.length}
+              </span>
+            )}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="provider-gallery-modal__body">
+          {galleryImages.length > 0 && (
+            <Slider
+              ref={gallerySliderRef}
+              key={`svc-gallery-${activeGalleryIndex}-${showGalleryModal}`}
+              {...gallerySliderSettings}
+              afterChange={(index) => setActiveGalleryIndex(index)}
+              className="provider-gallery-carousel"
+            >
+              {galleryImages.map((item, idx) => (
+                <div key={`${item.src}-${idx}`}>
+                  <div className="provider-gallery-slide">
+                    <div className="provider-gallery-modal__viewport">
+                      <img
+                        src={item.src}
+                        alt={item.label}
+                        onError={handleCategoryImageError}
+                      />
+                    </div>
+                    <p className="provider-gallery-caption">{item.label}</p>
+                  </div>
+                </div>
+              ))}
+            </Slider>
+          )}
         </Modal.Body>
       </Modal>
     </Layout>

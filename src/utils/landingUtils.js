@@ -105,7 +105,8 @@ export function handleProviderAvatarError(e, initials = "SP") {
   img.onerror = null;
   const parent = img.parentElement;
   if (!parent) return;
-  img.style.display = "none";
+  img.remove();
+  parent.classList.remove("avatar--img");
   parent.textContent = initials;
 }
 
@@ -168,9 +169,25 @@ export function serviceImageUrl(filename) {
   if (!filename || filename === "undefined" || filename === "null") {
     return defaultImage;
   }
-  if (filename.startsWith("http")) return filename;
-  if (filename.startsWith("/")) return buildPublicAssetUrl(filename) || defaultImage;
-  return buildPublicAssetUrl(`/user/${filename}`) || defaultImage;
+  if (String(filename).startsWith("http")) return filename;
+
+  let normalized = String(filename).replace(/\\/g, "/").trim();
+  // API may store public/user/file.jpg — REACT_APP_API_URL already ends with /public
+  if (normalized.startsWith("/public/")) {
+    normalized = normalized.slice("/public".length);
+  } else if (normalized.startsWith("public/")) {
+    normalized = normalized.slice("public".length);
+  }
+
+  if (!normalized.startsWith("/")) {
+    normalized = normalized.startsWith("user/")
+      ? `/${normalized}`
+      : `/user/${normalized}`;
+  } else if (!normalized.startsWith("/user/") && !normalized.startsWith("/service/")) {
+    normalized = `/user${normalized}`;
+  }
+
+  return buildPublicAssetUrl(normalized) || defaultImage;
 }
 
 export function taskImageUrl(filename) {
@@ -248,10 +265,36 @@ export function renderStars(rating) {
   return filled + empty;
 }
 
+export function parsePriceValue(price) {
+  if (price == null || price === "") return null;
+  if (typeof price === "number") {
+    return Number.isFinite(price) ? price : null;
+  }
+  const cleaned = String(price).replace(/[^0-9.-]/g, "");
+  if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
+    return null;
+  }
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Formats a price for display as `$10` / `$10.50` without double currency symbols. */
+export function formatMoney(price, fallback = "N/A") {
+  const n = parsePriceValue(price);
+  if (n == null) return fallback;
+  if (Number.isInteger(n)) return `$${n}`;
+  return `$${n.toFixed(2)}`;
+}
+
 export function formatPrice(price) {
-  if (price == null || price === "") return "Contact";
-  const n = Number(price);
-  if (Number.isNaN(n)) return String(price);
+  const n = parsePriceValue(price);
+  if (n == null) {
+    if (price == null || price === "") return "Contact";
+    const s = String(price).trim();
+    // Non-numeric labels like "Quote" / "Contact"
+    if (s && !/[$\d]/.test(s)) return s;
+    return "Contact";
+  }
   return `$${n}/hr`;
 }
 

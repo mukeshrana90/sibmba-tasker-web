@@ -497,7 +497,7 @@ export default function EditProfileCompany() {
     const style = document.createElement("style");
     style.id = "edit-company-pac-zindex";
     style.textContent = `
-      .pac-container { z-index: 1055 !important; position: absolute !important; }
+      .pac-container { z-index: 2000 !important; position: absolute !important; }
     `;
     document.head.appendChild(style);
     return () => {
@@ -1148,7 +1148,7 @@ export default function EditProfileCompany() {
                           >
                             <div style={{ flex: 1, position: "relative" }}>
                               <AddressAutocomplete
-                                key={`edit-company-ac-${showAddressModal}-${selectedAddress?.label || ""}`}
+                                key={`edit-company-ac-${showAddressModal}`}
                                 apiKey={mapsApiKey}
                                 onPlaceSelected={(place) => {
                                   if (!place) return;
@@ -1168,6 +1168,7 @@ export default function EditProfileCompany() {
                                         : geometry.lng;
                                   }
                                   if (lat != null && lng != null) {
+                                    setAddressSearchText(address || "");
                                     setSelectedAddress({
                                       label: address,
                                       lat: parseFloat(lat),
@@ -1179,14 +1180,13 @@ export default function EditProfileCompany() {
                                   }
                                 }}
                                 defaultValue={
-                                  selectedAddress?.label ||
                                   addressSearchText ||
+                                  selectedAddress?.label ||
                                   formik.values.address ||
                                   ""
                                 }
                                 options={{
                                   types: ["geocode", "establishment"],
-                                  componentRestrictions: { country: [] },
                                 }}
                                 onChange={(e) => {
                                   const next = e.target.value;
@@ -1235,11 +1235,7 @@ export default function EditProfileCompany() {
                           }}
                         >
                           <MapComponent
-                            key={`edit-company-map-${showAddressModal}-${
-                              selectedAddress?.lat ??
-                              currentLocation?.lat ??
-                              DEFAULT_ZIMBABWE_LOCATION.lat
-                            }`}
+                            key={`edit-company-map-${showAddressModal}`}
                             coordinates={
                               selectedAddress?.lat != null &&
                               selectedAddress?.lng != null
@@ -1273,7 +1269,7 @@ export default function EditProfileCompany() {
                                 ? "Current Location"
                                 : DEFAULT_ZIMBABWE_LOCATION.address)
                             }
-                            onMapClick={async (clickedPosition) => {
+                            onMapClick={(clickedPosition) => {
                               try {
                                 if (!window.google?.maps?.Geocoder) {
                                   toast.error(
@@ -1286,9 +1282,10 @@ export default function EditProfileCompany() {
                                   { location: clickedPosition },
                                   (results, status) => {
                                     if (status === "OK" && results?.[0]) {
+                                      const label =
+                                        results[0].formatted_address;
                                       const place = {
-                                        formatted_address:
-                                          results[0].formatted_address,
+                                        formatted_address: label,
                                         address_components:
                                           results[0].address_components,
                                         geometry: {
@@ -1298,14 +1295,12 @@ export default function EditProfileCompany() {
                                           },
                                         },
                                       };
+                                      setAddressSearchText(label);
                                       setSelectedAddress({
-                                        label: results[0].formatted_address,
+                                        label,
                                         lat: clickedPosition.lat,
                                         lng: clickedPosition.lng,
-                                        value: {
-                                          description:
-                                            results[0].formatted_address,
-                                        },
+                                        value: { description: label },
                                         place,
                                       });
                                       setCurrentLocation(null);

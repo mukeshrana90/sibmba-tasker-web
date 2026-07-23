@@ -18,6 +18,7 @@ import { timeSchedule, weekDays } from "../utils/rawjson";
 import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
+import { markProviderHasService } from "../utils/providerServiceGate";
 
 function hasValidLocationCoords(lat, lng) {
   const latN = parseFloat(lat);
@@ -1860,6 +1861,7 @@ const ProviderForm = ({
                   navigate("/corporate/subscription-plan?type=free", { replace: true });
                 } else {
                   localStorage.setItem("role", 2);
+                  markProviderHasService(true);
                   navigate("/requests", { replace: true });
                 }
                 localStorage.removeItem("temptoken");
@@ -1892,7 +1894,7 @@ const ProviderForm = ({
             <style>
               {`
                 .pac-container {
-                  z-index: 1055 !important;
+                  z-index: 2000 !important;
                   position: absolute !important;
                 }
                 .modal.show {
@@ -1917,7 +1919,7 @@ const ProviderForm = ({
                   <div style={{ position: "relative", width: "100%", display: "flex", gap: "10px", alignItems: "flex-start" }}>
                     <div style={{ flex: 1, position: "relative" }}>
                       <AddressAutocomplete
-                        key={`address-autocomplete-${showAddressModal}-${addressModalTarget}-${selectedAddress?.label}`}
+                        key={`address-autocomplete-${showAddressModal}-${addressModalTarget}`}
                         apiKey={mapsApiKey}
                         onPlaceSelected={(place) => {
                           if (place) {
@@ -1942,6 +1944,7 @@ const ProviderForm = ({
                                 },
                                 place: place // Store the place object for later use
                               };
+                              setAddressSearchText(address || "");
                               setSelectedAddress(addressData);
                               setCurrentLocation(null); // Clear current location when address is selected
                             }
@@ -1951,8 +1954,8 @@ const ProviderForm = ({
                           }
                         }}
                         defaultValue={
-                          selectedAddress?.label ||
                           addressSearchText ||
+                          selectedAddress?.label ||
                           (addressModalTarget === "address"
                             ? values.address
                             : values.street_address) ||
@@ -1960,7 +1963,6 @@ const ProviderForm = ({
                         }
                         options={{
                           types: ["geocode", "establishment"],
-                          componentRestrictions: { country: [] }
                         }}
                         onChange={(e) => {
                           const next = e.target.value;
@@ -2003,7 +2005,7 @@ const ProviderForm = ({
                 <div className="mt-3" style={{ height: "400px", width: "100%", minHeight: "400px", position: "relative", zIndex: 1 }}>
                   {((selectedAddress && selectedAddress.lat && selectedAddress.lng) || (values.lat && values.long) || currentLocation || DEFAULT_ZIMBABWE_LOCATION) ? (
                     <MapComponent
-                      key={`address-map-${showAddressModal}-${selectedAddress?.lat ?? currentLocation?.lat ?? DEFAULT_ZIMBABWE_LOCATION.lat}`}
+                      key={`address-map-${showAddressModal}-${addressModalTarget}`}
                       coordinates={
                         selectedAddress && selectedAddress.lat && selectedAddress.lng
                           ? [parseFloat(selectedAddress.lng), parseFloat(selectedAddress.lat)]
@@ -2020,7 +2022,7 @@ const ProviderForm = ({
                         (currentLocation ? "Current Location" : DEFAULT_ZIMBABWE_LOCATION.address) ||
                         DEFAULT_ZIMBABWE_LOCATION.address
                       }
-                      onMapClick={async (clickedPosition) => {
+                      onMapClick={(clickedPosition) => {
                         try {
                           // Reverse geocode the clicked coordinates
                           const geocoder = new window.google.maps.Geocoder();
@@ -2028,8 +2030,9 @@ const ProviderForm = ({
                             { location: clickedPosition },
                             (results, status) => {
                               if (status === 'OK' && results && results[0]) {
+                                const label = results[0].formatted_address;
                                 const place = {
-                                  formatted_address: results[0].formatted_address,
+                                  formatted_address: label,
                                   address_components: results[0].address_components,
                                   geometry: {
                                     location: {
@@ -2041,14 +2044,15 @@ const ProviderForm = ({
 
                                 // Update selected address with place object
                                 const addressData = {
-                                  label: results[0].formatted_address,
+                                  label,
                                   lat: clickedPosition.lat,
                                   lng: clickedPosition.lng,
                                   value: {
-                                    description: results[0].formatted_address,
+                                    description: label,
                                   },
                                   place: place // Store the place object for later use
                                 };
+                                setAddressSearchText(label);
                                 setSelectedAddress(addressData);
                                 setCurrentLocation(null);
                                 

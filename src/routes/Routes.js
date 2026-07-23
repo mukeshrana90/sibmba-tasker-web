@@ -142,6 +142,10 @@ const RoutesPage = () => {
             path="/customer-service-detail"
             element={<CustomerServiceDetail />}
           />
+          <Route
+            path="/customer-category-detail"
+            element={<CustomerCategoryDetail />}
+          />
           <Route path="/post-task" element={<PostTask />} />
           <Route
             path="/search-providers"

@@ -19,6 +19,7 @@ import {
   normalizeMongoId,
   serviceEditPath,
 } from "../utils/normalizeMongoId";
+import { clearProviderServiceGateCache } from "../utils/providerServiceGate";
 
 function PlaceholderImageIcon({ size = 46 }) {
   return (
@@ -137,6 +138,7 @@ export default function ServiceDetails() {
       .then((res) => {
         if (res?.payload?.success) {
           toast.success(res?.payload?.message || "Service deleted.");
+          clearProviderServiceGateCache();
           navigate("/allmyservices");
         } else {
           toast.error(res?.payload?.message || "Could not delete service.");

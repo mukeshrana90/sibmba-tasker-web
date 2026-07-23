@@ -5,6 +5,11 @@ import { Roles } from "./Roles";
 import { autoCompleteCustomerProfile } from "./customerProfileAutoComplete";
 import { persistUserId, otpVerificationPath } from "./normalizeMongoId";
 import { emit } from "./socketService";
+import {
+  clearProviderServiceGateCache,
+  notifyProviderServiceRequired,
+  resolveServiceProviderHomePath,
+} from "./providerServiceGate";
 
 export async function handleAuthSuccess({
   payload,
@@ -66,6 +71,7 @@ export async function handleAuthSuccess({
     ) {
       localStorage.setItem("temptoken", token);
       persistUserId(userId);
+      clearProviderServiceGateCache();
       navigate(`/provider?role=${role}`, { replace: true });
       toast.success("Please Complete Your Profile.");
       return true;
@@ -77,8 +83,14 @@ export async function handleAuthSuccess({
     emit("new_user_connect", { userid: userId });
     navigate(consumeAuthReturnUrl() || returnUrl || "/");
   } else if (Number(role) === Roles.SERVICE_PROVIDER) {
-    navigate("/requests");
+    clearProviderServiceGateCache();
+    const homePath = await resolveServiceProviderHomePath({ force: true });
+    navigate(homePath, { replace: true });
     emit("new_user_connect", { userid: userId });
+    if (homePath === "/service/add") {
+      notifyProviderServiceRequired();
+      return true;
+    }
   } else if (Number(role) === Roles.CORPORATE) {
     navigate("/corporate");
     emit("new_user_connect", { userid: userId });

@@ -1,39 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
 import { useDispatch } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import Loader from "../CommanComponents/Loader";
 import SimbaPager from "../CommanComponents/SimbaPager";
+import SimbaPageBanner from "../CommanComponents/SimbaPageBanner";
 import {
-  handleCategoryImageError,
+  defaultImage,
   formatDisplayTitle,
-  serviceImageUrl,
+  handleServiceImageError,
+  resolveServiceListImageSrc,
 } from "../utils/landingUtils";
 import {
   customerServiceDetailPath,
   normalizeMongoId,
 } from "../utils/normalizeMongoId";
-
-function PlaceholderIcon() {
-  return (
-    <svg
-      className="ph"
-      width="48"
-      height="48"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.5-3.5L9 20" />
-    </svg>
-  );
-}
 
 export default function CustomerCategoryDetail() {
   const dispatch = useDispatch();
@@ -107,19 +89,14 @@ export default function CustomerCategoryDetail() {
   return (
     <Layout footerVariant="marketing">
       <div className="simba-page p-serviceproviders p-servicecategory">
+        <SimbaPageBanner
+          title={displayName}
+          crumbLabel={displayName}
+          midCrumb={{ to: "/services", label: "Services" }}
+        />
+
         <main className="page">
           <div className="wrap">
-            <div className="svc-cat-head">
-              <h1>{displayName}</h1>
-              <div className="crumbs">
-                <Link to="/">Home</Link>
-                <span>/</span>
-                <Link to="/services">Services</Link>
-                <span>/</span>
-                <span className="here">{displayName}</span>
-              </div>
-            </div>
-
             <div className="svc-search-row">
               <div className="svc-search">
                 <svg
@@ -153,30 +130,33 @@ export default function CustomerCategoryDetail() {
               <p className="svc-empty">{emptyMessage}</p>
             ) : (
               <>
-                <div className="svc-grid">
+                <div className="cat-grid">
                   {services.map((service) => {
-                    const thumb =
-                      Array.isArray(service?.images) && service.images[0]
-                        ? serviceImageUrl(service.images[0])
-                        : null;
+                    const imageSrc = service.images?.length
+                      ? service.images[0]
+                      : null;
+                    const thumbFromApi = service.images_thumb?.[0];
+                    const displaySrc =
+                      resolveServiceListImageSrc(imageSrc, thumbFromApi) ||
+                      defaultImage;
 
                     return (
                       <button
                         key={service._id}
                         type="button"
-                        className="svc-tile"
+                        className="cat-tile"
                         onClick={() => handleServiceClick(service._id)}
                       >
-                        <div className="svc-thumb">
-                          {thumb ? (
-                            <img
-                              src={thumb}
-                              alt={service.serviceSubCategoryName || "Service"}
-                              onError={handleCategoryImageError}
-                            />
-                          ) : (
-                            <PlaceholderIcon />
-                          )}
+                        <div className="cat-thumb">
+                          <img
+                            src={displaySrc}
+                            alt={
+                              service.serviceSubCategoryName || "Service"
+                            }
+                            onError={(e) =>
+                              handleServiceImageError(e, imageSrc)
+                            }
+                          />
                           <div className="ov">
                             <span>
                               View service
@@ -194,7 +174,7 @@ export default function CustomerCategoryDetail() {
                             </span>
                           </div>
                         </div>
-                        <div className="svc-name">
+                        <div className="cat-name">
                           {formatDisplayTitle(service.serviceSubCategoryName)}
                         </div>
                         {service.desc && service.desc !== "N/A" && (

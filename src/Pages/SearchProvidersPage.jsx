@@ -13,16 +13,15 @@ import { useNearbyLocationToggle } from "../Hooks/useNearbyLocationToggle";
 import { reverseGeocodeCoords } from "../utils/landingPlaces";
 import { resolveSearchSubmitCoords } from "../utils/headerSearchSync";
 import {
-  avatarColor,
   formatDisplayTitle,
   isVerified,
   providerDisplayName,
-  providerInitials,
   renderStars,
   shortenLocationLabel,
   displayField,
 } from "../utils/landingUtils";
 import SimbaPager from "../CommanComponents/SimbaPager";
+import ProviderAvatar from "../CommanComponents/ProviderAvatar";
 import {
   buildSearchProvidersApiPayload,
   buildSearchProvidersParams,
@@ -74,7 +73,6 @@ function availabilityDisplay(item) {
 function ProviderCard({ item }) {
   const sp = item.serviceProvider || {};
   const name = providerDisplayName(sp);
-  const color = avatarColor(name);
   const verified = item.verified ?? isVerified(sp);
   const profilePath = providerProfilePath(item);
   const availability = availabilityDisplay(item);
@@ -86,12 +84,7 @@ function ProviderCard({ item }) {
   return (
     <div className="prov-card">
       <div className="prov-top">
-        <div
-          className="avatar"
-          style={{ background: `linear-gradient(145deg,${color},${color}cc)` }}
-        >
-          {providerInitials(name)}
-        </div>
+        <ProviderAvatar provider={sp} name={name} />
         <div className="prov-id">
           <h4>
             {name}
@@ -457,7 +450,7 @@ function SearchProvidersContent({ variant = "visitor" }) {
                 <label>Service or provider</label>
                 <input
                   type="text"
-                  placeholder="e.g. Plumbing, cleaning, John's Electrical…"
+                  placeholder="e.g. Plumbing, cleaning, John's Electrical"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}

@@ -93,62 +93,71 @@ const GoogleMap = ({ coordinates, address, onMapClick, onInitError }) => {
   const markerRef = useRef(null);
   const onMapClickRef = useRef(onMapClick);
   const onInitErrorRef = useRef(onInitError);
+  const addressRef = useRef(address);
+  const initialPositionRef = useRef(null);
 
   onMapClickRef.current = onMapClick;
   onInitErrorRef.current = onInitError;
+  addressRef.current = address;
 
   const position = parseCoordinates(coordinates);
+  if (position && !initialPositionRef.current) {
+    initialPositionRef.current = position;
+  }
 
+  // Create the map once. Pin moves are handled in a separate effect so
+  // reverse-geocode address updates do not tear down / remount Google Maps.
   useEffect(() => {
-    if (!position || !window.google?.maps) return undefined;
+    const start = initialPositionRef.current || position;
+    if (!start || !window.google?.maps) return undefined;
 
     let cancelled = false;
+    let retryTimer = null;
     let resizeTimer = null;
 
     const init = () => {
-      if (cancelled) return;
+      if (cancelled || mapInstanceRef.current) return;
       const el = mapRef.current;
       if (!(el instanceof HTMLElement)) {
-        resizeTimer = window.setTimeout(init, 50);
+        retryTimer = window.setTimeout(init, 50);
         return;
       }
 
       try {
-        if (!mapInstanceRef.current) {
-          const googleMap = new window.google.maps.Map(el, {
-            center: position,
-            zoom: 13,
-            mapTypeControl: false,
-            streetViewControl: false,
-          });
+        const googleMap = new window.google.maps.Map(el, {
+          center: start,
+          zoom: 13,
+          mapTypeControl: false,
+          streetViewControl: false,
+        });
 
-          const newMarker = new window.google.maps.Marker({
-            position,
-            map: googleMap,
-            title: address || "",
-          });
+        const newMarker = new window.google.maps.Marker({
+          position: start,
+          map: googleMap,
+          title: addressRef.current || "",
+        });
 
-          mapInstanceRef.current = googleMap;
-          markerRef.current = newMarker;
+        mapInstanceRef.current = googleMap;
+        markerRef.current = newMarker;
 
-          googleMap.addListener("click", (event) => {
-            if (!event?.latLng) return;
-            const clickedPosition = {
-              lat: event.latLng.lat(),
-              lng: event.latLng.lng(),
-            };
-            markerRef.current?.setPosition(clickedPosition);
-            onMapClickRef.current?.(clickedPosition);
-          });
-        }
-
-        markerRef.current?.setPosition(position);
-        mapInstanceRef.current.setCenter(position);
+        googleMap.addListener("click", (event) => {
+          if (!event?.latLng) return;
+          const clickedPosition = {
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng(),
+          };
+          markerRef.current?.setPosition(clickedPosition);
+          onMapClickRef.current?.(clickedPosition);
+        });
 
         resizeTimer = window.setTimeout(() => {
           if (!mapInstanceRef.current || !window.google?.maps?.event) return;
           window.google.maps.event.trigger(mapInstanceRef.current, "resize");
-          mapInstanceRef.current.setCenter(position);
+          const center =
+            markerRef.current?.getPosition?.() ||
+            mapInstanceRef.current.getCenter?.() ||
+            start;
+          if (center) mapInstanceRef.current.setCenter(center);
         }, 150);
       } catch (err) {
         console.error("MapComponent: failed to init map", err);
@@ -156,7 +165,6 @@ const GoogleMap = ({ coordinates, address, onMapClick, onInitError }) => {
       }
     };
 
-    // Wait a frame so the modal has painted the map container.
     const raf = window.requestAnimationFrame(() => {
       window.requestAnimationFrame(init);
     });
@@ -164,17 +172,21 @@ const GoogleMap = ({ coordinates, address, onMapClick, onInitError }) => {
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(raf);
+      if (retryTimer) window.clearTimeout(retryTimer);
       if (resizeTimer) window.clearTimeout(resizeTimer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [position?.lat, position?.lng, address]);
-
-  useEffect(() => {
-    return () => {
       mapInstanceRef.current = null;
       markerRef.current = null;
     };
+    // Intentionally mount-only: parent should keep a stable key while the modal is open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!position || !mapInstanceRef.current || !markerRef.current) return;
+    markerRef.current.setPosition(position);
+    if (address) markerRef.current.setTitle(address);
+    mapInstanceRef.current.panTo(position);
+  }, [position?.lat, position?.lng, address]);
 
   if (!position) {
     return <MapUnavailable message="No location data available yet. Search or click the map after it loads." />;
@@ -260,10 +272,13 @@ const InteractiveMap = ({ coordinates, address, onMapClick }) => {
     };
   }, []);
 
+  const coordLat = parseCoordinates(coordinates)?.lat;
+  const coordLng = parseCoordinates(coordinates)?.lng;
+
   useEffect(() => {
     const direct = parseCoordinates(coordinates);
     if (direct) {
-      setResolvedCoordinates(coordinates);
+      setResolvedCoordinates([direct.lng, direct.lat]);
       setGeocoding(false);
       return undefined;
     }
@@ -296,7 +311,9 @@ const InteractiveMap = ({ coordinates, address, onMapClick }) => {
     return () => {
       cancelled = true;
     };
-  }, [coordinates, address]);
+    // Use primitive lat/lng so parent recreating the coordinates array does not retrigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coordLat, coordLng, address]);
 
   if (error) {
     if (embedFallbackUrl) {
@@ -305,7 +322,12 @@ const InteractiveMap = ({ coordinates, address, onMapClick }) => {
     return <MapUnavailable message={errorMessage} />;
   }
 
-  if (!ready || geocoding) {
+  const mapCoordinates = resolvedCoordinates || coordinates;
+  const hasMapPosition = !!parseCoordinates(mapCoordinates);
+
+  // Keep the live map mounted while reverse-geocoding; only show the loader
+  // when we do not yet have anything to center on.
+  if (!ready || (geocoding && !hasMapPosition)) {
     return (
       <div
         className="d-flex align-items-center justify-content-center text-muted"
@@ -318,7 +340,7 @@ const InteractiveMap = ({ coordinates, address, onMapClick }) => {
 
   return (
     <GoogleMap
-      coordinates={resolvedCoordinates || coordinates}
+      coordinates={mapCoordinates}
       address={address}
       onMapClick={onMapClick}
       onInitError={() => {

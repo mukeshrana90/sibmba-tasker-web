@@ -16,7 +16,6 @@ import { customerCategoryDetailPath } from "../utils/normalizeMongoId";
 export default function Services() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -58,10 +57,6 @@ export default function Services() {
   }, [dispatch, page, limit, debouncedSearch]);
 
   const handleCategoryClick = (categoryId, categoryName) => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
     navigate(customerCategoryDetailPath(categoryId), {
       state: { categoryName },
     });

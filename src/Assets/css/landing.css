@@ -26,9 +26,22 @@
 
 /* Reset global input/button styles inside landing */
 .landing-page input,
-.landing-nav input {
+.landing-nav input,
+.landing-search input,
+.landing-search__loc-input {
   box-shadow: none !important;
   border: none !important;
+  outline: none !important;
+}
+
+.landing-page input:focus,
+.landing-nav input:focus,
+.landing-search input:focus,
+.landing-search__loc-input:focus {
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  border-color: transparent !important;
 }
 
 .landing-page button,
@@ -500,7 +513,7 @@
 /* ============ SEARCH ============ */
 .landing-search {
   position: relative;
-  max-width: 760px;
+  max-width: 920px;
   margin: 0 auto;
   z-index: 30;
 }
@@ -509,10 +522,10 @@
   background: var(--landing-surface);
   border-radius: var(--landing-radius);
   box-shadow: 0 30px 70px -20px rgba(10, 67, 56, 0.35);
-  border: 1px solid var(--landing-line);
+  border: none;
   padding: 10px;
   display: flex;
-  gap: 8px;
+  gap: 0;
   align-items: stretch;
   position: relative;
   overflow: visible;
@@ -527,10 +540,17 @@
   align-items: center;
   gap: 11px;
   padding: 8px 16px;
-  border-radius: var(--landing-radius-sm);
+  border-radius: 0;
+  border: none;
   transition: background 0.2s;
   position: relative;
   overflow: visible;
+  min-width: 0;
+}
+
+.landing-search-field:first-child {
+  flex: 1.75;
+  min-width: 280px;
 }
 
 .landing-search-fcol,
@@ -541,8 +561,16 @@
   flex: 1;
 }
 
-.landing-search-field:not(:last-of-type) {
-  border-right: 1px solid var(--landing-line);
+/* Straight divider — avoids border-radius + border-right “nested box” look */
+.landing-search-field:first-child::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--landing-line);
+  pointer-events: none;
 }
 
 .landing-search-field:hover {
@@ -570,8 +598,9 @@
 }
 
 .landing-search-fcol input {
-  border: none;
-  outline: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   font-family: "Plus Jakarta Sans", sans-serif;
   font-size: 1rem;
   font-weight: 500;
@@ -579,6 +608,8 @@
   width: 100%;
   background: transparent;
   padding: 2px 0 0;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .landing-search-fcol input::placeholder {
@@ -588,15 +619,35 @@
 
 .landing-search-btn {
   flex-shrink: 0;
-  border-radius: var(--landing-radius-sm);
+  border-radius: 100px;
   padding: 0 26px;
   font-size: 1rem;
-  background: linear-gradient(135deg, #13705c, var(--landing-primary) 55%, var(--landing-primary-2));
-  box-shadow: 0 10px 22px -8px rgba(15, 92, 76, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  /* Match "Join As": solid fill (no gradient) so hover does not blink */
+  background: #0f5c4c !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 8px 20px -6px rgba(15, 92, 76, 0.5);
+  transition: background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
 }
 
-.landing-search-btn:hover {
-  transform: translateY(-2px);
+.landing-search-btn:hover,
+.landing-search-btn:focus,
+.landing-search-btn:active {
+  background: #0a4338 !important;
+  color: #fff !important;
+  border: none !important;
+  transform: none;
+  box-shadow: 0 8px 20px -6px rgba(15, 92, 76, 0.5);
+}
+
+.landing-search-btn:hover span,
+.landing-search-btn:focus span,
+.landing-search-btn:active span,
+.landing-search-btn:hover svg,
+.landing-search-btn:focus svg,
+.landing-search-btn:active svg {
+  color: #fff !important;
+  stroke: currentColor;
 }
 
 .landing-search__loc-wrap {
@@ -1160,12 +1211,22 @@
   font-size: 1.35rem;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(30, 26, 21, 0.04);
+  overflow: hidden;
+  position: relative;
 }
 
-.landing-prov-avatar--img {
+.landing-prov-avatar.landing-prov-avatar--img {
+  background: transparent !important;
+  padding: 0;
+}
+
+.landing-prov-avatar img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  background: #e8e8e8;
-  padding: 5px 2px;
+  object-position: center;
+  display: block;
+  border-radius: inherit;
 }
 
 .landing-prov-id {
@@ -1624,8 +1685,12 @@
     z-index: 50;
   }
 
-  .landing-search-field:not(:last-of-type) {
-    border-right: none;
+  .landing-search-field:first-child::after {
+    display: none;
+  }
+
+  .landing-search-field:first-child {
+    min-width: 0;
     border-bottom: 1px solid var(--landing-line);
   }
 

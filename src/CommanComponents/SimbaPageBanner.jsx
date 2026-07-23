@@ -4,6 +4,7 @@ export default function SimbaPageBanner({
   title,
   crumbLabel,
   homeTo = "/",
+  midCrumb,
 }) {
   return (
     <section className="corp-banner">
@@ -11,6 +12,12 @@ export default function SimbaPageBanner({
       <div className="crumbs">
         <Link to={homeTo}>Home</Link>
         <span>/</span>
+        {midCrumb?.to && midCrumb?.label ? (
+          <>
+            <Link to={midCrumb.to}>{midCrumb.label}</Link>
+            <span>/</span>
+          </>
+        ) : null}
         <span className="here">{crumbLabel}</span>
       </div>
     </section>

@@ -51,15 +51,71 @@ const CustomerActions = {
     }
   ),
 
-  // MARK: - get Sub Category By Id ///
+  // MARK: - get Sub Category By Id (public optional-auth endpoint)
   getSubCategoryById: createAsyncThunk(
-    "/customer/getSubCategoryByIdforweb",
+    "/customer/getSubCategoryById",
     async (reqBody) => {
-      const queryString = constructQueryString(reqBody);
-      const response = await Api.get(
-        `/customer/getSubCategoryByIdforweb?${queryString}`
-      );
-      return response.data;
+      const page = Math.max(1, parseInt(reqBody?.page, 10) || 1);
+      const limit = Math.max(1, parseInt(reqBody?.limit, 10) || 10);
+      const search = String(reqBody?.search || "").trim();
+      const queryString = constructQueryString({
+        categoryId: normalizeMongoId(reqBody?.categoryId) || reqBody?.categoryId,
+      });
+      const url = `/customer/getSubCategoryById?${queryString}`;
+      let response = await Api.get(url, { skipAuthRedirect: true });
+      const unauthorized =
+        response?.data?.status === 401 ||
+        response?.data?.status_code === 401 ||
+        response?.status === 401;
+      // Invalid/expired token fails optional-auth middleware — retry as guest.
+      if (unauthorized) {
+        response = await Api.get(url, {
+          skipAuth: true,
+          skipAuthRedirect: true,
+        });
+      }
+      const payload = response.data;
+      const raw = payload?.data ?? payload;
+
+      // Public API returns an array; keep web-shaped { category, subcategories, ... }
+      let list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.subcategories)
+          ? raw.subcategories
+          : [];
+
+      if (search) {
+        const re = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+        list = list.filter(
+          (item) =>
+            re.test(item?.serviceSubCategoryName || "") ||
+            re.test(item?.desc || "")
+        );
+      }
+
+      const totalCount = list.length;
+      const totalPages = Math.max(1, Math.ceil(totalCount / limit) || 1);
+      const safePage = Math.min(page, totalPages);
+      const skip = (safePage - 1) * limit;
+      const subcategories = list.slice(skip, skip + limit);
+
+      const categoryFromItem = list[0]?.serviceCategoryId;
+      const category =
+        (!Array.isArray(raw) && raw?.category) ||
+        (categoryFromItem && typeof categoryFromItem === "object"
+          ? categoryFromItem
+          : null);
+
+      return {
+        ...payload,
+        data: {
+          category,
+          subcategories,
+          currentPage: safePage,
+          totalPages,
+          totalCount,
+        },
+      };
     }
   ),
 

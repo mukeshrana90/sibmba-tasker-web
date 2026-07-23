@@ -351,7 +351,7 @@ export default function UnifiedSearch() {
             <label>Service or provider</label>
             <input
               type="text"
-              placeholder="e.g. Plumbing, cleaning, John's Electrical…"
+              placeholder="e.g. Plumbing, cleaning, John's Electrical"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
