@@ -9,6 +9,7 @@ import MapComponent from "../CommanComponents/MapComponent";
 import Loader from "../CommanComponents/Loader";
 import {
   avatarColor,
+  formatDisplayTitle,
   formatMoney,
   formatPrice,
   handleCategoryImageError,
@@ -188,10 +189,7 @@ export default function ServiceProvider() {
   const feedbackCount = feedbacks.length;
   const ratingBars = useMemo(() => getRatingBars(feedbacks), [feedbacks]);
 
-  const displayName =
-    provider?.company_name && provider.company_name !== "undefined"
-      ? provider.company_name
-      : provider?.full_name || "Service Provider";
+  const displayName = providerDisplayName(provider);
 
   const street =
     safeVal(provider?.street_address) || safeVal(provider?.suburbs) || null;
@@ -200,26 +198,28 @@ export default function ServiceProvider() {
     .filter(Boolean)
     .join(", ");
 
-  const primaryCategory =
+  const primaryCategory = formatDisplayTitle(
     selectedService?.serviceCategoryId?.service_category_name ||
-    services[0]?.serviceCategoryId?.service_category_name ||
-    "Services";
+      services[0]?.serviceCategoryId?.service_category_name,
+    "Services"
+  );
 
   const areaLabel =
     safeVal(provider?.suburbs) || safeVal(provider?.country) || "your area";
 
-  const roleLabel =
+  const roleLabel = formatDisplayTitle(
     safeVal(provider?.identify_yourself) ||
-    selectedService?.serviceSubCategoryName ||
-    services[0]?.serviceSubCategoryName ||
-    "Service Provider";
+      selectedService?.serviceSubCategoryName ||
+      services[0]?.serviceSubCategoryName,
+    "Service Provider"
+  );
 
   const isVerified =
     provider?.account_verified === 1 || provider?.is_verified === "1";
 
   const serviceChips = useMemo(() => {
     const names = services
-      .map((s) => s.serviceSubCategoryName)
+      .map((s) => formatDisplayTitle(s.serviceSubCategoryName))
       .filter(Boolean);
     return [...new Set(names)].slice(0, 8);
   }, [services]);
@@ -232,7 +232,7 @@ export default function ServiceProvider() {
           if (img) {
             items.push({
               src: serviceImageUrl(img),
-              label: svc.serviceSubCategoryName || "Service",
+              label: formatDisplayTitle(svc.serviceSubCategoryName, "Service"),
             });
           }
         });
@@ -284,11 +284,12 @@ export default function ServiceProvider() {
 
   const pageReturnPath = serviceProviderPath(provider?._id, bookServiceId);
 
-  const currentServiceName =
+  const currentServiceName = formatDisplayTitle(
     selectedService?.serviceSubCategoryName ||
-    selectedService?.serviceCategoryId?.service_category_name ||
-    primaryCategory ||
-    "a service";
+      selectedService?.serviceCategoryId?.service_category_name ||
+      primaryCategory,
+    "a service"
+  );
 
   const buildWhatsAppUrl = () => {
     if (!provider) return "";
@@ -604,8 +605,14 @@ export default function ServiceProvider() {
                 {services.length > 0 ? (
                   <div className="svc-list">
                     {services.map((svc) => {
-                      const catName =
-                        svc.serviceCategoryId?.service_category_name || "";
+                      const catName = formatDisplayTitle(
+                        svc.serviceCategoryId?.service_category_name,
+                        "General service"
+                      );
+                      const svcTitle = formatDisplayTitle(
+                        svc.serviceSubCategoryName,
+                        "Service"
+                      );
                       return (
                         <button
                           type="button"
@@ -635,8 +642,8 @@ export default function ServiceProvider() {
                             </svg>
                           </div>
                           <div className="svc-txt">
-                            <b>{svc.serviceSubCategoryName || "Service"}</b>
-                            <small>{catName || "General service"}</small>
+                            <b>{svcTitle}</b>
+                            <small>{catName}</small>
                           </div>
                           <span className="svc-price">
                             {parsePriceValue(svc.price) != null
@@ -1067,7 +1074,10 @@ export default function ServiceProvider() {
                             )}
                           </h4>
                           <div className="role">
-                            {item.serviceSubCategoryName || roleLabel}
+                            {formatDisplayTitle(
+                              item.serviceSubCategoryName,
+                              roleLabel
+                            )}
                           </div>
                           <div className="loc">{loc}</div>
                         </div>

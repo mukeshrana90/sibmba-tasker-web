@@ -1977,16 +1977,39 @@ header.appnav .avatar-menu .am-item {
   color: inherit;
 }
 
-.simba-page.p-mytasks .tthumb {
+.simba-page.p-mytasks .tthumb,
+.simba-page.p-mytasks .quotation-card .tthumb {
+  width: 128px;
+  height: 96px;
+  min-width: 128px;
+  max-width: 128px;
+  min-height: 96px;
+  max-height: 96px;
+  border-radius: var(--radius-sm);
+  flex: 0 0 128px;
   overflow: hidden;
-  flex-shrink: 0;
+  position: relative;
+  background: linear-gradient(145deg, var(--primary-soft), var(--gold-soft));
+  display: block;
+  color: var(--primary);
+}
+
+.simba-page.p-mytasks .tthumb svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: 0.55;
 }
 
 .simba-page.p-mytasks .tthumb--photo img {
+  position: absolute;
+  inset: 0;
   width: 100% !important;
   height: 100% !important;
-  max-width: none !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -2204,9 +2227,15 @@ header.appnav .avatar-menu .am-item {
     flex-wrap: wrap;
   }
 
+  .simba-page.p-mytasks .tthumb,
   .simba-page.p-mytasks .quotation-card .tthumb {
     width: 100%;
     height: 150px;
+    min-width: 0;
+    max-width: none;
+    min-height: 150px;
+    max-height: 150px;
+    flex: 0 0 auto;
   }
 
   .simba-page.p-mytasks .quotation-card .tside {
