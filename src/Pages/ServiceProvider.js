@@ -24,6 +24,7 @@ import {
 } from "../utils/landingUtils";
 import { isLoggedIn, redirectToLogin } from "../utils/authRedirect";
 import {
+  customerCategoryDetailPath,
   customerServiceDetailPath,
   serviceProviderPath,
 } from "../utils/normalizeMongoId";
@@ -372,20 +373,10 @@ export default function ServiceProvider() {
             </a>
             <span>/</span>
             <a
-              href="/near-by-services"
+              href={customerCategoryDetailPath(categoryId)}
               onClick={(e) => {
                 e.preventDefault();
-                navigate("/near-by-services");
-              }}
-            >
-              Providers
-            </a>
-            <span>/</span>
-            <a
-              href="/near-by-services"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/near-by-services");
+                navigate(customerCategoryDetailPath(categoryId));
               }}
             >
               {primaryCategory}

@@ -9346,8 +9346,11 @@ footer .logo{color:#fff;margin-bottom:16px}
 .location-permission-modal .location-permission-status{margin:0 0 12px;padding:10px 12px;border-radius:8px;background:#fef2f2;color:#b42318;font-size:.86rem;line-height:1.45}
 .location-permission-modal .location-permission-actions{display:flex;flex-wrap:wrap;gap:10px}
 .location-permission-modal .location-permission-actions .btn{min-height:42px;touch-action:manipulation}
+/* Bootstrap: backdrop below modal. Do NOT raise .modal-backdrop.show above .modal
+   or address/map modals (Select Address) become untouchable under the fade overlay. */
+.modal-backdrop.show{z-index:1050!important}
+.modal.show{z-index:1055!important}
 .location-permission-modal.modal{z-index:1060!important}
-.modal-backdrop.show{z-index:1055!important}
 
 /* ============================================================
    PAYMENTS / SUBSCRIPTION — provider side  (payments-subscription.html)

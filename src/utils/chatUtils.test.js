@@ -93,4 +93,13 @@ describe("chatUtils", () => {
     expect(chatPeerDisplayName({ name: "undefined" })).toBe("User");
     expect(chatPeerDisplayName(null)).toBe("User");
   });
+
+  test("chatPeerDisplayName capitalizes usernames", () => {
+    expect(chatPeerDisplayName({ name: "arjubdev" })).toBe("Arjubdev");
+    expect(chatPeerDisplayName({ full_name: "ariajohn" })).toBe("Ariajohn");
+    expect(chatPeerDisplayName({ company_name: "salescorpo" })).toBe(
+      "Salescorpo"
+    );
+    expect(chatPeerDisplayName({ name: "corpopro" })).toBe("Corpopro");
+  });
 });

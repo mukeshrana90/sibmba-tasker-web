@@ -1889,7 +1889,7 @@ const ProviderForm = ({
             restoreFocus={false}
             centered
             size="lg"
-            style={{ zIndex: 1050 }}
+            className="address-select-modal"
           >
             <style>
               {`
@@ -1897,11 +1897,11 @@ const ProviderForm = ({
                   z-index: 2000 !important;
                   position: absolute !important;
                 }
-                .modal.show {
-                  z-index: 1050 !important;
+                .modal.show.address-select-modal {
+                  z-index: 1055 !important;
                 }
-                .modal-backdrop {
-                  z-index: 1040 !important;
+                .modal-backdrop.show {
+                  z-index: 1050 !important;
                 }
               `}
             </style>

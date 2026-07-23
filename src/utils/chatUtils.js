@@ -3,21 +3,22 @@ import {
   emailUsernameFromEmail,
   sanitizeProfileValue,
 } from "./customerProfileUtils";
+import { formatDisplayTitle } from "./landingUtils";
 
 export function chatPeerDisplayName(user, fallback = "User") {
   if (!user) return fallback;
 
   const company = sanitizeProfileValue(user.company_name);
-  if (company) return company;
+  if (company) return formatDisplayTitle(company, fallback);
 
   const fullName = sanitizeProfileValue(user.full_name);
-  if (fullName) return fullName;
+  if (fullName) return formatDisplayTitle(fullName, fallback);
 
   const name = sanitizeProfileValue(user.name);
-  if (name) return name;
+  if (name) return formatDisplayTitle(name, fallback);
 
   const email = sanitizeProfileValue(user.email);
-  if (email) return emailUsernameFromEmail(email);
+  if (email) return formatDisplayTitle(emailUsernameFromEmail(email), fallback);
 
   return fallback;
 }

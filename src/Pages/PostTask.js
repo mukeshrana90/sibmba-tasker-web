@@ -6,7 +6,7 @@ import * as Yup from "yup";
 import { toast } from "react-toastify";
 import moment from "moment";
 import Layout from "../Components/Layout/Layout";
-import AddressAutocomplete from "../CommanComponents/AddressAutocomplete";
+import BookingLocationPickerModal from "../CommanComponents/Modals/BookingLocationPickerModal";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import { Roles } from "../utils/Roles";
 import {
@@ -20,6 +20,7 @@ import {
 } from "../utils/postTaskDraft";
 import { normalizeCategoryList } from "../utils/normalizeCategory";
 import SimbaDatePicker from "../CommanComponents/SimbaDatePicker";
+import { hasValidCoords } from "../utils/bookingLocationPicker";
 
 const TIME_SLOTS = [
   {
@@ -149,6 +150,7 @@ export default function PostTask() {
   const [previews, setPreviews] = useState([]);
   const [initialValues, setInitialValues] = useState(EMPTY_VALUES);
   const [draftReady, setDraftReady] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -246,15 +248,6 @@ export default function PostTask() {
       URL.revokeObjectURL(prev[index]);
       return prev.filter((_, i) => i !== index);
     });
-  };
-
-  const handlePlaceSelect = (place, setFieldValue, setFieldTouched) => {
-    if (place?.formatted_address) {
-      setFieldValue("address", place.formatted_address);
-      setFieldValue("lat", place.geometry.location.lat());
-      setFieldValue("long", place.geometry.location.lng());
-      setFieldTouched("address", true);
-    }
   };
 
   return (
@@ -356,6 +349,8 @@ export default function PostTask() {
                 values,
                 isSubmitting,
                 setFieldTouched,
+                errors,
+                touched,
               }) => (
                 <form className="form-card" onSubmit={handleSubmit} noValidate>
                   <div className="form-grid">
@@ -410,24 +405,74 @@ export default function PostTask() {
                         <label htmlFor="address">
                           Address <span className="req">*</span>
                         </label>
-                        <AddressAutocomplete
-                          apiKey="AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"
-                          className="control"
-                          onPlaceSelected={(place) =>
-                            handlePlaceSelect(
-                              place,
-                              setFieldValue,
-                              setFieldTouched
-                            )
+                        <button
+                          type="button"
+                          id="address"
+                          className={`bk-location${
+                            errors.address && touched.address
+                              ? " bk-location--error"
+                              : ""
+                          }`}
+                          onClick={() => setShowLocationPicker(true)}
+                        >
+                          <span className="bk-location-icon" aria-hidden="true">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
+                              <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                          </span>
+                          <span className="bk-location-text">
+                            <b>
+                              {values.address?.trim()
+                                ? values.address
+                                : "Tap to choose task location"}
+                            </b>
+                            <small>
+                              {values.address?.trim()
+                                ? "Location selected — tap to search or pin another"
+                                : "Search an address or use the map to drop a pin"}
+                            </small>
+                          </span>
+                          <span className="bk-location-change">
+                            {values.address?.trim() ? "Change" : "Choose"}
+                          </span>
+                        </button>
+                        <FieldError name="address" />
+                        <BookingLocationPickerModal
+                          show={showLocationPicker}
+                          onHide={() => setShowLocationPicker(false)}
+                          title="Pick task location"
+                          hint="Search for an address or tap the map to drop a pin."
+                          initialLocation={
+                            values.address?.trim()
+                              ? {
+                                  address: values.address,
+                                  ...(hasValidCoords({
+                                    lat: values.lat,
+                                    lng: values.long,
+                                  })
+                                    ? {
+                                        lat: Number(values.lat),
+                                        lng: Number(values.long),
+                                      }
+                                    : {}),
+                                }
+                              : null
                           }
-                          defaultValue={values.address}
-                          options={{ types: ["address"] }}
-                          onChange={(e) => {
-                            setFieldValue("address", e.target.value);
+                          onConfirm={(loc) => {
+                            setFieldValue("address", loc.address || "");
+                            setFieldValue("lat", loc.lat);
+                            setFieldValue("long", loc.lng);
                             setFieldTouched("address", true);
                           }}
                         />
-                        <FieldError name="address" />
                       </div>
 
                       <div className="field">

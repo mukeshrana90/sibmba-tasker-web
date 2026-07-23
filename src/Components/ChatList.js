@@ -38,8 +38,9 @@ const ChatList = ({ onSelect }) => {
   const filteredChatList = Array.isArray(chatList)
     ? chatList.filter((ele) => {
         const peerLabel = chatPeerDisplayName({
+          company_name: ele?.receiver?.company_name,
           name: ele?.receiver?.name,
-          full_name: ele?.receiver?.name,
+          full_name: ele?.receiver?.full_name || ele?.receiver?.name,
           email: ele?.receiver?.email,
         }).toLowerCase();
         return peerLabel.includes(searchTerm.toLowerCase());
@@ -112,8 +113,9 @@ const ChatList = ({ onSelect }) => {
                     <div className="chat-list-body">
                       <h5>
                         {chatPeerDisplayName({
+                          company_name: ele?.receiver?.company_name,
                           name: ele?.receiver?.name,
-                          full_name: ele?.receiver?.name,
+                          full_name: ele?.receiver?.full_name || ele?.receiver?.name,
                           email: ele?.receiver?.email,
                         })}
                       </h5>

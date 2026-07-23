@@ -5017,7 +5017,8 @@ header.appnav .avatar-menu .am-item {
   font-weight: 600;
 }
 
-.simba-book-modal .bk-location {
+.simba-book-modal .bk-location,
+.p-posttask .bk-location {
   width: 100%;
   display: flex;
   align-items: center;
@@ -5032,12 +5033,14 @@ header.appnav .avatar-menu .am-item {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.simba-book-modal .bk-location:hover {
+.simba-book-modal .bk-location:hover,
+.p-posttask .bk-location:hover {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px var(--primary-soft);
 }
 
-.simba-book-modal .bk-location-icon {
+.simba-book-modal .bk-location-icon,
+.p-posttask .bk-location-icon {
   width: 40px;
   height: 40px;
   border-radius: 12px;
@@ -5048,12 +5051,14 @@ header.appnav .avatar-menu .am-item {
   flex-shrink: 0;
 }
 
-.simba-book-modal .bk-location-text {
+.simba-book-modal .bk-location-text,
+.p-posttask .bk-location-text {
   flex: 1;
   min-width: 0;
 }
 
-.simba-book-modal .bk-location-text b {
+.simba-book-modal .bk-location-text b,
+.p-posttask .bk-location-text b {
   display: block;
   font-size: 0.9rem;
   color: var(--ink);
@@ -5062,18 +5067,28 @@ header.appnav .avatar-menu .am-item {
   word-break: break-word;
 }
 
-.simba-book-modal .bk-location-text small {
+.simba-book-modal .bk-location-text small,
+.p-posttask .bk-location-text small {
   display: block;
   font-size: 0.78rem;
   color: var(--muted);
   font-weight: 600;
 }
 
-.simba-book-modal .bk-location-change {
+.simba-book-modal .bk-location-change,
+.p-posttask .bk-location-change {
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--primary);
   flex-shrink: 0;
+}
+
+.p-posttask .bk-location {
+  margin-bottom: 0;
+}
+
+.p-posttask .bk-location.bk-location--error {
+  border-color: #c0392b;
 }
 
 .simba-book-modal .bk-message {

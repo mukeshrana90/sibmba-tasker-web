@@ -80,17 +80,15 @@ export default function EditProfileUser() {
     enableReinitialize: true,
     validationSchema: Yup.object({
       full_name: Yup.string().required("Full Name is required"),
-      house_number: Yup.string().required("House Number is required"),
-      suburbs: Yup.string().required("Suburbs is required"),
-      country: Yup.string().required("Country is required"),
-      post_code: Yup.string().required("Post Code or PO Box is required"),
+      house_number: Yup.string().trim().nullable(),
+      address: Yup.string().trim().nullable(),
+      suburbs: Yup.string().trim().nullable(),
+      country: Yup.string().trim().nullable(),
+      post_code: Yup.string().trim().nullable(),
     }),
     onSubmit: async (values) => {
       if (!values?.profile_image && !customerDetails?.profile_image) {
         return toast.warn("Please add profile image");
-      }
-      if (!values?.address) {
-        return toast.warn("Please add street address");
       }
       const formData = new FormData();
       Object.keys(values).forEach((key) => {
@@ -452,7 +450,7 @@ export default function EditProfileUser() {
                             className="mb-3"
                             controlId="formBasicEmail"
                           >
-                            <Form.Label>House Number*</Form.Label>
+                            <Form.Label>House Number</Form.Label>
                             <Form.Control
                               type="text"
                               name="house_number"
@@ -476,7 +474,7 @@ export default function EditProfileUser() {
                             className="mb-3"
                             controlId="formBasicEmail"
                           >
-                            <Form.Label>Street Address*</Form.Label>
+                            <Form.Label>Street Address</Form.Label>
                             <AddressAutocomplete
                               apiKey={"AIzaSyBbvuzwkAMflFBj3Po5oybfHCAjejwj6ww"}
                               onPlaceSelected={(place) =>
@@ -508,7 +506,7 @@ export default function EditProfileUser() {
                             className="mb-3"
                             controlId="formBasicEmail"
                           >
-                            <Form.Label>Suburbs*</Form.Label>
+                            <Form.Label>Suburbs</Form.Label>
                             <Form.Control
                               type="text"
                               name="suburbs"
@@ -532,7 +530,7 @@ export default function EditProfileUser() {
                             className="mb-3"
                             controlId="formBasicEmail"
                           >
-                            <Form.Label>Country*</Form.Label>
+                            <Form.Label>Country</Form.Label>
                             <Form.Control
                               type="text"
                               name="country"
@@ -556,7 +554,7 @@ export default function EditProfileUser() {
                             className="mb-3"
                             controlId="formBasicEmail"
                           >
-                            <Form.Label>Post Code or PO Box*</Form.Label>
+                            <Form.Label>Post Code or PO Box</Form.Label>
                             <Form.Control
                               type="text"
                               name="post_code"

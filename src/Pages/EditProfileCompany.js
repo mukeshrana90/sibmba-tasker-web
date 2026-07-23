@@ -498,6 +498,8 @@ export default function EditProfileCompany() {
     style.id = "edit-company-pac-zindex";
     style.textContent = `
       .pac-container { z-index: 2000 !important; position: absolute !important; }
+      .modal-backdrop.show { z-index: 1050 !important; }
+      .modal.show.address-select-modal { z-index: 1055 !important; }
     `;
     document.head.appendChild(style);
     return () => {
@@ -1113,7 +1115,7 @@ export default function EditProfileCompany() {
                     restoreFocus={false}
                     centered
                     size="lg"
-                    style={{ zIndex: 1050 }}
+                    className="address-select-modal"
                   >
                     <Modal.Header closeButton className="border-none pb-0">
                       <Modal.Title>Select Address</Modal.Title>

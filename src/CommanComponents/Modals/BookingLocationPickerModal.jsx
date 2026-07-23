@@ -125,6 +125,8 @@ export default function BookingLocationPickerModal({
   onHide,
   initialLocation,
   onConfirm,
+  title = "Pick service location",
+  hint = "Search for an address or tap the map to drop a pin.",
 }) {
   const [draft, setDraft] = useState(null);
   const [searchText, setSearchText] = useState("");
@@ -181,12 +183,10 @@ export default function BookingLocationPickerModal({
       backdropClassName="simba-book-loc-backdrop"
     >
       <Modal.Header closeButton className="bk-modal-head">
-        <Modal.Title>Pick service location</Modal.Title>
+        <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
       <Modal.Body className="bk-loc-body">
-        <p className="bk-loc-hint">
-          Search for an address or tap the map to drop a pin.
-        </p>
+        <p className="bk-loc-hint">{hint}</p>
         <div className="bk-loc-search">
           <BookingLocationSearch
             value={searchText}
