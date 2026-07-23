@@ -302,7 +302,35 @@ export function formatDisplayTitle(value, fallback = "") {
   if (value == null || value === "") return fallback;
   const text = String(value).trim();
   if (!text) return fallback;
-  return text.charAt(0).toUpperCase() + text.slice(1);
+
+  const letters = text.replace(/[^A-Za-z]/g, "");
+  const isAllCaps = letters.length > 0 && letters === letters.toUpperCase();
+  const isAllLower = letters.length > 0 && letters === letters.toLowerCase();
+
+  // ALL CAPS / all lowercase → full Title Case for consistent cards.
+  if (isAllCaps || isAllLower) {
+    return text
+      .toLowerCase()
+      .replace(/(^|[\s/_-])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+  }
+
+  // Mixed case → Title Case each word; keep short ALL-CAPS tokens (e.g. MTM).
+  return text
+    .split(/(\s+)/)
+    .map((part) => {
+      if (!part || /^\s+$/.test(part)) return part;
+      const wordLetters = part.replace(/[^A-Za-z]/g, "");
+      if (
+        wordLetters.length >= 2 &&
+        wordLetters.length <= 4 &&
+        wordLetters === wordLetters.toUpperCase()
+      ) {
+        return part;
+      }
+      const lower = part.toLowerCase();
+      return lower.replace(/^[a-z]/, (c) => c.toUpperCase());
+    })
+    .join("");
 }
 
 export function shortenLocationLabel(text, maxWords = 3) {

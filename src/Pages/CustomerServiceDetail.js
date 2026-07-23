@@ -18,6 +18,7 @@ import whatsappLogo from "../Assets/Images/whatsapp.png";
 import linkIcon from "../Assets/Images/link.png";
 import {
   avatarColor,
+  formatDisplayTitle,
   formatMoney,
   handleCategoryImageError,
   handleUserImageError,
@@ -118,10 +119,11 @@ export default function CustomerServiceDetail() {
   const buildWhatsAppUrl = () => {
     const sp = serviceDetail?.serviceProviderId;
     const providerName = providerDisplayName(sp);
-    const categoryName =
+    const categoryName = formatDisplayTitle(
       serviceDetail?.serviceSubCategoryName ||
-      serviceDetail?.serviceCategoryId?.service_category_name ||
-      "your service";
+        serviceDetail?.serviceCategoryId?.service_category_name,
+      "your service"
+    );
     const userLocation =
       safeVal(customerDetails?.street_address) ||
       safeVal(customerDetails?.suburbs) ||
@@ -197,15 +199,20 @@ export default function CustomerServiceDetail() {
   const feedbacks = serviceDetail?.feedbacks || [];
   const sp = serviceDetail?.serviceProviderId;
   const providerName = providerDisplayName(sp);
-  const categoryName =
-    serviceDetail?.serviceCategoryId?.service_category_name || "Service";
+  const categoryName = formatDisplayTitle(
+    serviceDetail?.serviceCategoryId?.service_category_name,
+    "Service"
+  );
+  const serviceTitle = formatDisplayTitle(
+    serviceDetail?.serviceSubCategoryName,
+    ""
+  );
   const providerLoc =
     safeVal(sp?.street_address) || safeVal(sp?.suburbs) || null;
   const displayPrice = formatMoney(serviceDetail?.price);
 
   const galleryImages = useMemo(() => {
-    const title =
-      serviceDetail?.serviceSubCategoryName || providerName || "Service";
+    const title = serviceTitle || providerName || "Service";
     const items = images
       .filter(Boolean)
       .map((img, idx) => ({
@@ -218,7 +225,7 @@ export default function CustomerServiceDetail() {
       return [{ src: providerImg, label: providerName || "Provider" }];
     }
     return [];
-  }, [images, serviceDetail?.serviceSubCategoryName, providerName, sp]);
+  }, [images, serviceTitle, providerName, sp]);
 
   const gallerySliderSettings = useMemo(
     () => ({
@@ -264,12 +271,12 @@ export default function CustomerServiceDetail() {
               <Link to="/services">Services</Link>
               <span>/</span>
               <span style={{ color: "var(--ink)", opacity: 1 }}>
-                {serviceDetail?.serviceSubCategoryName || "Service details"}
+                {serviceTitle || "Service details"}
               </span>
             </div>
 
             <div className="page-head">
-              <h1>{serviceDetail?.serviceSubCategoryName || "Service details"}</h1>
+              <h1>{serviceTitle || "Service details"}</h1>
             </div>
 
             {!serviceDetail ? (
@@ -294,9 +301,7 @@ export default function CustomerServiceDetail() {
                       <ServiceGalleryHero
                         mainImage={mainImage}
                         provider={sp}
-                        title={
-                          serviceDetail.serviceSubCategoryName || providerName
-                        }
+                        title={serviceTitle || providerName}
                       />
                     </button>
                     {sideImages.length > 0 && (
@@ -321,7 +326,7 @@ export default function CustomerServiceDetail() {
                   </div>
 
                   <div className="card">
-                    <h2>{serviceDetail.serviceSubCategoryName || "N/A"}</h2>
+                    <h2>{serviceTitle || "N/A"}</h2>
                     <p className="svc-detail-sub">
                       {categoryName} · Service listing
                     </p>
