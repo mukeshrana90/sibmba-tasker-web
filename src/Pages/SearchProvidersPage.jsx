@@ -434,8 +434,6 @@ function SearchProvidersContent({ variant = "visitor" }) {
           <div className="crumbs">
             <Link to={homeLink}>{homeLabel}</Link>
             <span>/</span>
-            <span>Providers</span>
-            <span>/</span>
             <span style={{ color: "var(--ink)", opacity: 1 }}>{crumbLabel}</span>
           </div>
           <h1>{title}</h1>
