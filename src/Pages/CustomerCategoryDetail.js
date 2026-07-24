@@ -10,12 +10,15 @@ import {
   defaultImage,
   formatDisplayTitle,
   handleServiceImageError,
+  providerDisplayName,
   resolveServiceListImageSrc,
 } from "../utils/landingUtils";
 import {
   customerServiceDetailPath,
   normalizeMongoId,
+  serviceProviderPath,
 } from "../utils/normalizeMongoId";
+import ProviderAvatar from "../CommanComponents/ProviderAvatar";
 
 export default function CustomerCategoryDetail() {
   const dispatch = useDispatch();
@@ -86,6 +89,13 @@ export default function CustomerCategoryDetail() {
     navigate(customerServiceDetailPath(serviceId));
   };
 
+  const handleProviderClick = (event, providerId, serviceId) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const path = serviceProviderPath(providerId, serviceId);
+    if (path) navigate(path);
+  };
+
   return (
     <Layout footerVariant="marketing">
       <div className="simba-page p-serviceproviders p-servicecategory">
@@ -139,13 +149,28 @@ export default function CustomerCategoryDetail() {
                     const displaySrc =
                       resolveServiceListImageSrc(imageSrc, thumbFromApi) ||
                       defaultImage;
+                    const provider = service.serviceProviderId;
+                    const providerId =
+                      provider?._id || provider?.id || provider;
+                    const ownerName = provider
+                      ? providerDisplayName(provider)
+                      : "";
 
                     return (
-                      <button
+                      <div
                         key={service._id}
-                        type="button"
-                        className="cat-tile"
+                        className={`cat-tile${
+                          provider ? " cat-tile--with-owner" : ""
+                        }`}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleServiceClick(service._id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleServiceClick(service._id);
+                          }
+                        }}
                       >
                         <div className="cat-thumb">
                           <img
@@ -173,19 +198,47 @@ export default function CustomerCategoryDetail() {
                               </svg>
                             </span>
                           </div>
+                          {provider && providerId && (
+                            <button
+                              type="button"
+                              className="cat-owner-overlay"
+                              aria-label={`View provider ${ownerName}`}
+                              onClick={(e) =>
+                                handleProviderClick(
+                                  e,
+                                  providerId,
+                                  service._id
+                                )
+                              }
+                            >
+                              <ProviderAvatar
+                                provider={provider}
+                                className="cat-owner-av"
+                                name={ownerName}
+                              />
+                              <div className="cat-owner-meta">
+                                <span className="cat-owner-label">
+                                  Offered by
+                                </span>
+                                <b>{ownerName}</b>
+                              </div>
+                            </button>
+                          )}
                         </div>
-                        <div className="cat-name">
-                          {formatDisplayTitle(service.serviceSubCategoryName)}
-                        </div>
-                        {service.desc && service.desc !== "N/A" && (
-                          <div className="svc-desc">{service.desc}</div>
-                        )}
-                        {service.averageRating > 0 && (
-                          <div className="svc-rating">
-                            {Number(service.averageRating).toFixed(1)} ★
+                        <div className="cat-body">
+                          <div className="cat-name">
+                            {formatDisplayTitle(service.serviceSubCategoryName)}
                           </div>
-                        )}
-                      </button>
+                          {service.desc && service.desc !== "N/A" && (
+                            <div className="svc-desc">{service.desc}</div>
+                          )}
+                          {service.averageRating > 0 && (
+                            <div className="svc-rating">
+                              {Number(service.averageRating).toFixed(1)} ★
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

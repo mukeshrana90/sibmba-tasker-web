@@ -8,33 +8,42 @@ import {
 } from "../utils/landingUtils";
 
 function resolveCustomProfileImage(provider) {
-  const raw = provider?.profile_image;
-  if (!raw || raw === "undefined" || raw === "null") return null;
-  if (String(raw).startsWith("http")) {
-    return String(raw) === defaultProviderAvatar ? null : String(raw);
-  }
+  const candidates = [
+    provider?.profile_image,
+    provider?.profile_image_thumb,
+  ].filter(Boolean);
 
-  let normalized = String(raw).replace(/\\/g, "/");
-  if (normalized.startsWith("/public/")) {
-    normalized = normalized.slice("/public".length);
-  } else if (normalized.startsWith("public/")) {
-    normalized = normalized.slice("public".length);
-  }
-  if (!normalized.startsWith("/")) {
-    normalized = normalized.startsWith("user/")
-      ? `/${normalized}`
-      : `/user/${normalized}`;
-  } else if (!normalized.startsWith("/user/")) {
-    const bare = normalized.slice(1);
-    if (bare && !bare.includes("/")) {
-      normalized = `/user/${bare}`;
+  for (const raw of candidates) {
+    if (!raw || raw === "undefined" || raw === "null") continue;
+    if (String(raw).startsWith("http")) {
+      if (String(raw) === defaultProviderAvatar) continue;
+      return String(raw);
     }
+
+    let normalized = String(raw).replace(/\\/g, "/");
+    if (normalized.startsWith("/public/")) {
+      normalized = normalized.slice("/public".length);
+    } else if (normalized.startsWith("public/")) {
+      normalized = normalized.slice("public".length);
+    }
+    if (!normalized.startsWith("/")) {
+      normalized = normalized.startsWith("user/")
+        ? `/${normalized}`
+        : `/user/${normalized}`;
+    } else if (!normalized.startsWith("/user/")) {
+      const bare = normalized.slice(1);
+      if (bare && !bare.includes("/")) {
+        normalized = `/user/${bare}`;
+      }
+    }
+
+    const url = buildPublicAssetUrl(normalized);
+    if (!url || url === defaultProviderAvatar) continue;
+    if (/default-avatar/i.test(url)) continue;
+    return url;
   }
 
-  const url = buildPublicAssetUrl(normalized);
-  if (!url || url === defaultProviderAvatar) return null;
-  if (/default-avatar/i.test(url)) return null;
-  return url;
+  return null;
 }
 
 /**
