@@ -190,6 +190,19 @@ export function serviceImageUrl(filename) {
   return buildPublicAssetUrl(normalized) || defaultImage;
 }
 
+/** True when a path/filename looks like a displayable photo (not PDF/docs). */
+export function isDisplayableServiceImage(filename) {
+  if (!filename || filename === "undefined" || filename === "null") return false;
+  const path = String(filename).split("?")[0].toLowerCase();
+  if (/\.pdf$/i.test(path) || path.includes(".pdf")) return false;
+  if (/\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|svg)$/i.test(path)) return true;
+  // Uploaded blob URLs / unknown extensions without .pdf — allow
+  if (path.startsWith("blob:") || path.startsWith("data:image")) return true;
+  // No extension but not clearly a doc
+  if (!/\.[a-z0-9]{2,5}$/i.test(path)) return true;
+  return false;
+}
+
 export function taskImageUrl(filename) {
   if (!filename || filename === "undefined" || filename === "null") {
     return defaultImage;
@@ -300,8 +313,11 @@ export function formatPrice(price) {
 
 export function formatDisplayTitle(value, fallback = "") {
   if (value == null || value === "") return fallback;
-  const text = String(value).trim();
+  let text = String(value).trim();
   if (!text) return fallback;
+
+  // Normalize awkward commas: "A , B ,C" → "A, B, C"
+  text = text.replace(/\s*,\s*/g, ", ").replace(/,\s*,+/g, ", ").trim();
 
   const letters = text.replace(/[^A-Za-z]/g, "");
   const isAllCaps = letters.length > 0 && letters === letters.toUpperCase();

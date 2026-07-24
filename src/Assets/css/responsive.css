@@ -226,6 +226,13 @@
   }
   .quotation-requests {
     flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .quotation-requests > div:first-child,
+  .quotation-requests .requests-time-checkup {
+    width: 100%;
+    text-align: left;
   }
 
   .quotation-txt-show .profile-side {
@@ -371,9 +378,7 @@
 }
 
 .quotation-requests {
-
- align-items: normal;
-;
+  align-items: flex-start;
 }
 
 .quotation-requests-btns button:last-child {

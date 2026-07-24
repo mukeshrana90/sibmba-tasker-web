@@ -640,13 +640,15 @@
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .simba-page.p-sp-requests .quotation-requests > div:first-child,
 .simba-page.p-browsetask .quotation-requests > div:first-child {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  text-align: left;
 }
 
 .simba-page.p-sp-requests .quotation-requests .corporate_inner,
@@ -681,12 +683,15 @@
 .simba-page.p-browsetask .requests-time-checkup {
   min-width: 0;
   max-width: 100%;
+  width: 100%;
+  text-align: left;
 }
 
 .simba-page.p-sp-requests .requests-time-checkup h3,
 .simba-page.p-browsetask .requests-time-checkup h3 {
   font-size: clamp(1.05rem, 4.5vw, 1.5rem);
   word-break: break-word;
+  text-align: left;
 }
 
 .simba-page.p-sp-requests .requests-time-checkup p,
@@ -694,6 +699,27 @@
   word-break: break-word;
   overflow-wrap: anywhere;
   min-width: 0;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.simba-page.p-sp-requests .requests-time-checkup .req-meta-row,
+.simba-page.p-browsetask .requests-time-checkup .req-meta-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.simba-page.p-sp-requests .requests-time-checkup .req-meta-icon,
+.simba-page.p-browsetask .requests-time-checkup .req-meta-icon,
+.simba-page.p-sp-requests .requests-time-checkup p > svg,
+.simba-page.p-browsetask .requests-time-checkup p > svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0;
+  display: block;
+  margin-top: 2px;
 }
 
 .simba-page.p-sp-requests .completed-status-note,
@@ -822,10 +848,11 @@
   }
 }
 
-/* Scrollable tab bars — provider requests, bookings, reviews */
+/* Scrollable tab bars — provider requests, bookings, reviews, browse tasks */
 .simba-marketing-layout .simba-page.p-sp-requests .tabs,
 .simba-marketing-layout .simba-page.p-bookings .tabs,
 .simba-marketing-layout .simba-page.p-reviews .tabs,
+.simba-marketing-layout .simba-page.p-browsetask .tabs,
 .simba-marketing-layout .simba-page.p-mytasks .head-row .tabs {
   width: 100%;
   max-width: 100%;
@@ -843,6 +870,7 @@
 .simba-marketing-layout .simba-page.p-sp-requests .tabs::-webkit-scrollbar,
 .simba-marketing-layout .simba-page.p-bookings .tabs::-webkit-scrollbar,
 .simba-marketing-layout .simba-page.p-reviews .tabs::-webkit-scrollbar,
+.simba-marketing-layout .simba-page.p-browsetask .tabs::-webkit-scrollbar,
 .simba-marketing-layout .simba-page.p-mytasks .head-row .tabs::-webkit-scrollbar {
   display: none;
 }
@@ -850,6 +878,7 @@
 .simba-marketing-layout .simba-page.p-sp-requests .tabs .tab,
 .simba-marketing-layout .simba-page.p-bookings .tabs .tab,
 .simba-marketing-layout .simba-page.p-reviews .tabs .tab,
+.simba-marketing-layout .simba-page.p-browsetask .tabs .tab,
 .simba-marketing-layout .simba-page.p-mytasks .head-row .tabs .tab {
   flex: 0 0 auto;
   flex-shrink: 0;
@@ -866,6 +895,7 @@
   .simba-marketing-layout .simba-page.p-sp-requests .tabs,
   .simba-marketing-layout .simba-page.p-bookings .tabs,
   .simba-marketing-layout .simba-page.p-reviews .tabs,
+  .simba-marketing-layout .simba-page.p-browsetask .tabs,
   .simba-marketing-layout .simba-page.p-mytasks .head-row .tabs {
     gap: 18px;
   }
@@ -873,6 +903,7 @@
   .simba-marketing-layout .simba-page.p-sp-requests .tabs .tab,
   .simba-marketing-layout .simba-page.p-bookings .tabs .tab,
   .simba-marketing-layout .simba-page.p-reviews .tabs .tab,
+  .simba-marketing-layout .simba-page.p-browsetask .tabs .tab,
   .simba-marketing-layout .simba-page.p-mytasks .head-row .tabs .tab {
     font-size: 0.88rem;
   }
@@ -882,6 +913,7 @@
   .simba-marketing-layout .simba-page.p-sp-requests .tabs,
   .simba-marketing-layout .simba-page.p-bookings .tabs,
   .simba-marketing-layout .simba-page.p-reviews .tabs,
+  .simba-marketing-layout .simba-page.p-browsetask .tabs,
   .simba-marketing-layout .simba-page.p-mytasks .head-row .tabs {
     gap: 14px;
   }
@@ -889,6 +921,7 @@
   .simba-marketing-layout .simba-page.p-sp-requests .tabs .tab,
   .simba-marketing-layout .simba-page.p-bookings .tabs .tab,
   .simba-marketing-layout .simba-page.p-reviews .tabs .tab,
+  .simba-marketing-layout .simba-page.p-browsetask .tabs .tab,
   .simba-marketing-layout .simba-page.p-mytasks .head-row .tabs .tab {
     font-size: 0.84rem;
   }
@@ -3597,6 +3630,70 @@ header.appnav .avatar-menu .am-item {
   color: #fff !important;
 }
 
+/* Provider profile breadcrumbs — left-aligned, truncate long middle category */
+.simba-page.p-profile .crumbs {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-align: left;
+}
+
+.simba-page.p-profile .crumbs a {
+  color: var(--muted);
+  text-decoration: none;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.simba-page.p-profile .crumbs a:hover {
+  color: var(--primary);
+}
+
+.simba-page.p-profile .crumbs .crumbs-sep {
+  opacity: 0.5;
+  flex: 0 0 auto;
+}
+
+.simba-page.p-profile .crumbs .crumbs-mid {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(52vw, 280px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simba-page.p-profile .crumbs .here {
+  color: var(--ink);
+  opacity: 1;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(34vw, 160px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .simba-page.p-profile .crumbs {
+    gap: 6px;
+    font-size: 0.8rem;
+  }
+
+  .simba-page.p-profile .crumbs .crumbs-mid {
+    max-width: 48vw;
+  }
+
+  .simba-page.p-profile .crumbs .here {
+    max-width: 28vw;
+  }
+}
+
 .simba-page.p-profile .svc-wa-btn {
   display: inline-flex;
   align-items: center;
@@ -3657,11 +3754,14 @@ header.appnav .avatar-menu .am-item {
   align-items: center;
   gap: 10px;
   max-width: 420px;
+  width: 100%;
   background: var(--surface);
   border: 1.5px solid var(--line-strong);
   border-radius: 100px;
   padding: 0 18px;
   height: 46px;
+  min-height: 46px;
+  box-sizing: border-box;
 }
 
 .simba-page.p-corporate .corp-search:focus-within {
@@ -3672,18 +3772,30 @@ header.appnav .avatar-menu .am-item {
 .simba-page.p-corporate .corp-search svg {
   color: var(--muted);
   flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .simba-page.p-corporate .corp-search input {
-  flex: 1;
+  flex: 1 1 auto;
+  width: 100%;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
-  background: transparent;
+  background: transparent !important;
   font-family: var(--font-body);
   font-size: 0.92rem;
   font-weight: 500;
+  color: var(--ink);
   min-width: 0;
+  height: auto !important;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.25 !important;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .simba-page.p-corporate .corp-search input:focus {
@@ -3691,6 +3803,12 @@ header.appnav .avatar-menu .am-item {
   outline: none !important;
   box-shadow: none !important;
   border-color: transparent !important;
+}
+
+.simba-page.p-corporate .corp-search input::placeholder {
+  color: #a89f92;
+  font-weight: 500;
+  opacity: 1;
 }
 
 .simba-page.p-corporate .corp-loading {
@@ -3814,17 +3932,16 @@ header.appnav .avatar-menu .am-item {
 
 .simba-page.p-corp-directory .corp-directory-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
   margin-bottom: 28px;
 }
 
 .simba-page.p-corp-directory .corp-directory-toolbar .corp-search {
-  flex: 1;
-  min-width: 260px;
-  max-width: 520px;
+  flex: none;
+  width: 100%;
+  max-width: 420px;
 }
 
 .simba-page.p-corp-directory .corp-directory-toolbar .results-count {
@@ -3832,6 +3949,7 @@ header.appnav .avatar-menu .am-item {
   font-size: 0.95rem;
   color: var(--muted);
   font-weight: 600;
+  text-align: left;
 }
 
 .simba-page.p-corp-directory .corp-directory-toolbar .results-count b {
@@ -3870,20 +3988,38 @@ header.appnav .avatar-menu .am-item {
   background: var(--surface);
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius);
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+
+.simba-page.p-corp-directory .empty svg {
+  display: block;
+  margin: 0 auto 16px;
+  color: var(--line-strong);
+}
+
+.simba-page.p-corp-directory .empty h3 {
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.simba-page.p-corp-directory .empty p {
+  margin: 0;
 }
 
 @media (max-width: 720px) {
   .simba-page.p-corp-directory .corp-directory-toolbar {
-    flex-direction: column;
     align-items: stretch;
   }
 
   .simba-page.p-corp-directory .corp-directory-toolbar .corp-search {
     max-width: none;
+    width: 100%;
   }
 
   .simba-page.p-corp-directory .corp-directory-toolbar .results-count {
-    text-align: center;
+    text-align: left;
   }
 }
 
@@ -4573,9 +4709,29 @@ header.appnav .avatar-menu .am-item {
 /* Messages page — iOS Safari list layout fixes */
 .simba-page.p-messages .message-chat-list ul {
   overflow-x: hidden !important;
-  overflow-y: auto;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.simba-page.p-messages .message-chat-list ul::-webkit-scrollbar,
+.simba-page.p-messages .message-main-chat::-webkit-scrollbar {
+  width: 8px;
+  display: block;
+}
+
+.simba-page.p-messages .message-chat-list ul::-webkit-scrollbar-thumb,
+.simba-page.p-messages .message-main-chat::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 99px;
+}
+
+.simba-page.p-messages .message-main-chat {
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--line-strong) transparent;
 }
 
 .simba-page.p-messages .message-chat-list li {
@@ -5792,6 +5948,26 @@ header.appnav .avatar-menu .am-item {
   place-items: center;
   color: var(--primary);
   min-height: 0;
+}
+
+.simba-page.p-sp-service-detail .sp-detail-gallery-open {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.simba-page.p-sp-service-detail .sp-detail-gallery-open:disabled {
+  cursor: default;
+}
+
+.simba-page.p-sp-service-detail .sp-detail-gallery-open:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .simba-page.p-sp-service-detail .sp-detail-gallery-main {

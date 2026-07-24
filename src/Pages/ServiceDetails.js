@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import Modal from "react-bootstrap/Modal";
+import Slider from "react-slick";
 import { toast } from "react-toastify";
 import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import Loader from "../CommanComponents/Loader";
@@ -12,6 +14,7 @@ import {
   formatDisplayTitle,
   handleCategoryImageError,
   handleUserImageError,
+  isDisplayableServiceImage,
   serviceImageUrl,
   userImageUrl,
 } from "../utils/landingUtils";
@@ -68,6 +71,9 @@ export default function ServiceDetails() {
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const gallerySliderRef = useRef(null);
 
   useEffect(() => {
     if (!serviceId) {
@@ -77,10 +83,11 @@ export default function ServiceDetails() {
 
     let cancelled = false;
     setLoading(true);
-    dispatch(ServiceActions.getMyServiceDetailById({ id: serviceId }))
-      .finally(() => {
+    dispatch(ServiceActions.getMyServiceDetailById({ id: serviceId })).finally(
+      () => {
         if (!cancelled) setLoading(false);
-      });
+      }
+    );
 
     return () => {
       cancelled = true;
@@ -95,11 +102,46 @@ export default function ServiceDetails() {
     serviceDetail?.serviceCategoryId?.service_category_name,
     "Category"
   );
-  const images = serviceDetail?.images?.length ? serviceDetail.images : [];
+  const images = useMemo(() => {
+    const raw = serviceDetail?.images?.length ? serviceDetail.images : [];
+    return raw.filter(isDisplayableServiceImage);
+  }, [serviceDetail]);
   const mainImage = images[0];
   const sideImages = images.slice(1, 3);
   const feedbacks = serviceDetail?.feedbacks || [];
   const price = serviceDetail?.price;
+
+  const galleryImages = useMemo(() => {
+    return images.map((img, idx) => ({
+      src: serviceImageUrl(img),
+      label: `${title}${images.length > 1 ? ` · ${idx + 1}` : ""}`,
+    }));
+  }, [images, title]);
+
+  const gallerySliderSettings = useMemo(
+    () => ({
+      dots: true,
+      infinite: galleryImages.length > 1,
+      speed: 400,
+      slidesToShow: 1,
+      slidesToScroll: 1,
+      arrows: galleryImages.length > 1,
+      adaptiveHeight: false,
+      initialSlide: activeGalleryIndex,
+    }),
+    [galleryImages.length, activeGalleryIndex]
+  );
+
+  const openGallery = (index = 0) => {
+    if (!galleryImages.length) return;
+    setActiveGalleryIndex(index);
+    setShowGalleryModal(true);
+  };
+
+  useEffect(() => {
+    if (!showGalleryModal || !gallerySliderRef.current) return;
+    gallerySliderRef.current.slickGoTo(activeGalleryIndex);
+  }, [showGalleryModal, activeGalleryIndex]);
 
   const sortedDays = useMemo(() => {
     const days = serviceDetail?.availability?.[0]?.day;
@@ -177,7 +219,13 @@ export default function ServiceDetails() {
                   sideImages.length === 0 ? " sp-detail-gallery--single" : ""
                 }`}
               >
-                <div className="sp-detail-gallery-main">
+                <button
+                  type="button"
+                  className="sp-detail-gallery-main sp-detail-gallery-open"
+                  onClick={() => openGallery(0)}
+                  disabled={galleryImages.length === 0}
+                  aria-label="Open photo gallery"
+                >
                   {mainImage ? (
                     <img
                       src={serviceImageUrl(mainImage)}
@@ -187,17 +235,23 @@ export default function ServiceDetails() {
                   ) : (
                     <PlaceholderImageIcon size={56} />
                   )}
-                </div>
+                </button>
                 {sideImages.length > 0 && (
                   <div className="sp-detail-gallery-side">
                     {sideImages.map((image, index) => (
-                      <div key={index} className="sp-detail-gallery-thumb">
+                      <button
+                        type="button"
+                        key={index}
+                        className="sp-detail-gallery-thumb sp-detail-gallery-open"
+                        onClick={() => openGallery(index + 1)}
+                        aria-label={`Open photo ${index + 2}`}
+                      >
                         <img
                           src={serviceImageUrl(image)}
                           alt={`${title} ${index + 2}`}
                           onError={handleCategoryImageError}
                         />
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -329,6 +383,52 @@ export default function ServiceDetails() {
         confirmText="Delete"
         isLoading={isDeleting}
       />
+
+      <Modal
+        show={showGalleryModal}
+        onHide={() => setShowGalleryModal(false)}
+        centered
+        dialogClassName="provider-gallery-modal__dialog"
+        contentClassName="provider-gallery-modal__content"
+        className="provider-gallery-modal"
+      >
+        <Modal.Header closeButton className="provider-gallery-modal__header">
+          <Modal.Title>
+            Service photos
+            {galleryImages.length > 1 && (
+              <span className="provider-gallery-modal__count">
+                {activeGalleryIndex + 1} / {galleryImages.length}
+              </span>
+            )}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="provider-gallery-modal__body">
+          {galleryImages.length > 0 && (
+            <Slider
+              ref={gallerySliderRef}
+              key={`sp-svc-gallery-${activeGalleryIndex}-${showGalleryModal}`}
+              {...gallerySliderSettings}
+              afterChange={(index) => setActiveGalleryIndex(index)}
+              className="provider-gallery-carousel"
+            >
+              {galleryImages.map((item, idx) => (
+                <div key={`${item.src}-${idx}`}>
+                  <div className="provider-gallery-slide">
+                    <div className="provider-gallery-modal__viewport">
+                      <img
+                        src={item.src}
+                        alt={item.label}
+                        onError={handleCategoryImageError}
+                      />
+                    </div>
+                    <p className="provider-gallery-caption">{item.label}</p>
+                  </div>
+                </div>
+              ))}
+            </Slider>
+          )}
+        </Modal.Body>
+      </Modal>
     </>
   );
 }

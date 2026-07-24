@@ -8,7 +8,6 @@ import CustomerActions from "../Redux/Actions/CustomerActions";
 import MapComponent from "../CommanComponents/MapComponent";
 import Loader from "../CommanComponents/Loader";
 import {
-  avatarColor,
   formatDisplayTitle,
   formatMoney,
   formatPrice,
@@ -17,7 +16,6 @@ import {
   isVerified as providerIsVerified,
   parsePriceValue,
   providerDisplayName,
-  providerInitials,
   providerLocation,
   serviceImageUrl,
   userImageUrl,
@@ -367,13 +365,17 @@ export default function ServiceProvider() {
     <Layout footerVariant="marketing">
       <div className="simba-page p-profile" ref={pageRef}>
         <div className="wrap">
-          <div className="crumbs">
+          <nav className="crumbs" aria-label="Breadcrumb">
             <a href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }}>
               Home
             </a>
-            <span>/</span>
+            <span className="crumbs-sep" aria-hidden="true">
+              /
+            </span>
             <a
+              className="crumbs-mid"
               href={customerCategoryDetailPath(categoryId)}
+              title={primaryCategory}
               onClick={(e) => {
                 e.preventDefault();
                 navigate(customerCategoryDetailPath(categoryId));
@@ -381,9 +383,13 @@ export default function ServiceProvider() {
             >
               {primaryCategory}
             </a>
-            <span>/</span>
-            <span className="here">{displayName}</span>
-          </div>
+            <span className="crumbs-sep" aria-hidden="true">
+              /
+            </span>
+            <span className="here" title={displayName}>
+              {displayName}
+            </span>
+          </nav>
         </div>
 
         <section className="phero">
@@ -1029,21 +1035,18 @@ export default function ServiceProvider() {
                   const rating = item.averageRating || 0;
                   const reviews = item.reviewCount || 0;
                   const rate = formatPrice(item.price);
-                  const color = avatarColor(name);
                   const pid = sp._id;
                   const sid = item._id;
 
                   return (
                     <div className="prov-card" key={item._id}>
                       <div className="prov-top">
-                        <div
+                        <ProviderAvatar
+                          provider={sp}
+                          name={name}
                           className="avatar"
-                          style={{
-                            background: `linear-gradient(145deg,${color},${color}cc)`,
-                          }}
-                        >
-                          {providerInitials(name)}
-                        </div>
+                          imgClassName="avatar--img"
+                        />
                         <div className="prov-id">
                           <h4>
                             {name}

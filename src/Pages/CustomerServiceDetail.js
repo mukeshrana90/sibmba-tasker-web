@@ -28,6 +28,8 @@ import {
   userImageUrl,
 } from "../utils/landingUtils";
 import { isLoggedIn, redirectToLogin } from "../utils/authRedirect";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { hasBookingDraftForService } from "../utils/bookingDraft";
 import {
   customerServiceDetailPath,
@@ -116,6 +118,13 @@ export default function CustomerServiceDetail() {
 
   const detailReturnPath = customerServiceDetailPath(service_id);
 
+  const hasServiceProvider = Boolean(
+    serviceDetail?.serviceProviderId &&
+      (typeof serviceDetail.serviceProviderId === "object"
+        ? serviceDetail.serviceProviderId._id
+        : serviceDetail.serviceProviderId)
+  );
+
   const buildWhatsAppUrl = () => {
     const sp = serviceDetail?.serviceProviderId;
     const providerName = providerDisplayName(sp);
@@ -142,11 +151,20 @@ export default function CustomerServiceDetail() {
   };
 
   const handleShow = () => {
+    if (!hasServiceProvider) {
+      toast.error("Service not available right now!");
+      return;
+    }
     setShow(true);
   };
 
   useEffect(() => {
     if (!service_id || !isLoggedIn()) return;
+    if (!serviceDetail) return;
+    if (!hasServiceProvider) {
+      setShow(false);
+      return;
+    }
 
     const params = new URLSearchParams(location.search);
     const openBooking = params.get("openBooking") === "1";
@@ -158,7 +176,14 @@ export default function CustomerServiceDetail() {
         navigate(detailReturnPath, { replace: true });
       }
     }
-  }, [service_id, location.search, navigate, detailReturnPath]);
+  }, [
+    service_id,
+    location.search,
+    navigate,
+    detailReturnPath,
+    serviceDetail,
+    hasServiceProvider,
+  ]);
 
   const handleMessageClick = () => {
     const providerId = serviceDetail?.serviceProviderId?._id;
@@ -633,7 +658,7 @@ export default function CustomerServiceDetail() {
       </div>
 
       <CustomerBookServiceModal
-        show={show}
+        show={show && hasServiceProvider}
         setShow={setShow}
         service_id={service_id}
       />

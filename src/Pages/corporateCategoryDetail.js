@@ -238,16 +238,24 @@ export default function CorporateCategoryDetail() {
 
   return (
     <Layout footerVariant="marketing">
-      <div className="simba-page p-corporate p-search p-corp-directory">
+      <div className="simba-page p-corporate p-corp-directory">
         <section className="corp-banner">
           <h1>{categoryName}</h1>
-          <div className="crumbs">
-            <Link to="/">Home</Link>
-            <span>/</span>
-            <Link to="/corporate-list">Corporate Category</Link>
-            <span>/</span>
-            <span className="here">{categoryName}</span>
-          </div>
+          <nav className="crumbs" aria-label="Breadcrumb">
+            <span className="crumbs-path">
+              <Link to="/">Home</Link>
+              <span className="crumbs-sep" aria-hidden="true">
+                /
+              </span>
+              <Link to="/corporate-list">Corporate Category</Link>
+              <span className="crumbs-sep" aria-hidden="true">
+                /
+              </span>
+            </span>
+            <span className="here" title={categoryName}>
+              {categoryName}
+            </span>
+          </nav>
         </section>
 
         <main className="page listing">

@@ -9,17 +9,23 @@ export default function SimbaPageBanner({
   return (
     <section className="corp-banner">
       <h1>{title}</h1>
-      <div className="crumbs">
-        <Link to={homeTo}>Home</Link>
-        <span>/</span>
-        {midCrumb?.to && midCrumb?.label ? (
-          <>
-            <Link to={midCrumb.to}>{midCrumb.label}</Link>
-            <span>/</span>
-          </>
-        ) : null}
+      <nav className="crumbs" aria-label="Breadcrumb">
+        <span className="crumbs-path">
+          <Link to={homeTo}>Home</Link>
+          <span className="crumbs-sep" aria-hidden="true">
+            /
+          </span>
+          {midCrumb?.to && midCrumb?.label ? (
+            <>
+              <Link to={midCrumb.to}>{midCrumb.label}</Link>
+              <span className="crumbs-sep" aria-hidden="true">
+                /
+              </span>
+            </>
+          ) : null}
+        </span>
         <span className="here">{crumbLabel}</span>
-      </div>
+      </nav>
     </section>
   );
 }

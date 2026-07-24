@@ -18,6 +18,16 @@ function FieldError({ name }) {
   return <ErrorMessage name={name} component="div" className="field-error" />;
 }
 
+const SERVICE_IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|heic|heif|avif)$/i;
+
+function isServiceImageFile(file) {
+  if (!file) return false;
+  const mime = String(file.type || "").toLowerCase();
+  if (mime.startsWith("image/")) return true;
+  if (mime === "application/pdf" || mime.includes("pdf")) return false;
+  return SERVICE_IMAGE_EXT.test(String(file.name || ""));
+}
+
 function UploadIcon() {
   return (
     <svg
@@ -112,10 +122,20 @@ export default function AddService() {
     const files = event.target.files;
     if (!files?.length) return;
 
-    const validFiles = Array.from(files).filter(
+    const selected = Array.from(files);
+    const imageFiles = selected.filter(isServiceImageFile);
+    if (imageFiles.length < selected.length) {
+      toast.error("Only image files are allowed for service images.");
+    }
+    if (imageFiles.length === 0) {
+      event.target.value = "";
+      return;
+    }
+
+    const validFiles = imageFiles.filter(
       (file) => file.size <= 10 * 1024 * 1024
     );
-    if (validFiles.length < files.length) {
+    if (validFiles.length < imageFiles.length) {
       toast.error("Some files exceed the 10 MB limit and were not added.");
     }
 

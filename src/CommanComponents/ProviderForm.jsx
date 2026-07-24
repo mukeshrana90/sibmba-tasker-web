@@ -28,6 +28,43 @@ function hasValidLocationCoords(lat, lng) {
   return true;
 }
 
+const SERVICE_IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|heic|heif|avif)$/i;
+
+function isServiceImageFile(file) {
+  if (!file) return false;
+  const mime = String(file.type || "").toLowerCase();
+  if (mime.startsWith("image/")) return true;
+  if (mime === "application/pdf" || mime.includes("pdf")) return false;
+  return SERVICE_IMAGE_EXT.test(String(file.name || ""));
+}
+
+function isPdfFile(file) {
+  if (!file) return false;
+  const mime = String(file.type || "").toLowerCase();
+  if (mime === "application/pdf" || mime.includes("pdf")) return true;
+  return /\.pdf$/i.test(String(file.name || ""));
+}
+
+function PdfDocumentIcon({ size = 40 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M9 13h6M9 17h6M9 9h1" />
+    </svg>
+  );
+}
+
 function formatLocationDisplay(address, lat, lng) {
   if (!hasValidLocationCoords(lat, lng)) return "";
   return `latitude: ${Number(lat).toFixed(6)}, longitude: ${Number(lng).toFixed(6)}`;
@@ -180,11 +217,19 @@ const ProviderForm = ({
         .required("Price is required")
         .positive("Price must be positive"),
       desc: Yup.string().trim().required("Description is required"),
-      images: Yup.array().test(
-        "atLeastOneImage",
-        "At least one service image is required",
-        (value) => value && value.filter(Boolean).length > 0
-      ),
+      images: Yup.array()
+        .test(
+          "atLeastOneImage",
+          "At least one service image is required",
+          (value) => value && value.filter(Boolean).length > 0
+        )
+        .test(
+          "imagesOnly",
+          "Only image files are allowed for service images",
+          (value) =>
+            !value ||
+            value.every((file) => !file || isServiceImageFile(file))
+        ),
     }),
   ];
   const dispatch = useDispatch();
@@ -309,6 +354,38 @@ const ProviderForm = ({
     if (files.length === 0) return;
 
     if (isMultiple && index !== null) {
+      // Service images — images only (no PDF/docs)
+      if (fieldName === "images") {
+        const selected = Array.from(files);
+        const imageFiles = selected.filter(isServiceImageFile);
+        if (imageFiles.length < selected.length) {
+          toast.error("Only image files are allowed for service images.");
+          event.target.value = "";
+          if (imageFiles.length === 0) return;
+        }
+        const sizeOk = imageFiles.filter(
+          (file) => file.size <= 10 * 1024 * 1024
+        );
+        if (sizeOk.length < imageFiles.length) {
+          toast.error("Some files exceed the 10 MB limit and were not added.");
+        }
+        if (sizeOk.length === 0) {
+          event.target.value = "";
+          return;
+        }
+        const currentFiles = [...(values[fieldName] || [])];
+        currentFiles[index] = sizeOk[0];
+        const updatedFiles = currentFiles.slice(0, 3);
+        setFieldValue(fieldName, updatedFiles);
+        const newPreviews = updatedFiles.map((file) =>
+          file ? URL.createObjectURL(file) : ""
+        );
+        setPreviews((prev) => ({ ...prev, [fieldName]: newPreviews }));
+        setEditMode((prev) => ({ ...prev, [fieldName]: false }));
+        event.target.value = "";
+        return;
+      }
+
       const validFiles = Array.from(files).filter(
         (file) => file.size <= 10 * 1024 * 1024
       );
@@ -622,9 +699,12 @@ const ProviderForm = ({
   };
 
   const createServicePayload = (values) => {
+    const imageFiles = (values.images || []).filter(
+      (file) => file && isServiceImageFile(file)
+    );
     return {
       serviceCategoryId: values.serviceCategoryId,
-      images: values.images,
+      images: imageFiles,
       serviceSubCategoryName: values.serviceSubCategoryName,
       desc: values.desc,
       price: values.price,
@@ -1202,25 +1282,54 @@ const ProviderForm = ({
                             style={{
                               position: "relative",
                               display: "inline-block",
+                              width: "100%",
+                              maxWidth: "372px",
                             }}
                           >
-                            <img
-                              src={previews[field]}
-                              alt={`${field} Preview`}
-                              style={{
-                                width: "372px",
-                                height: "200px",
-                                objectFit: "cover",
-                                border: "1px dashed #00aaff",
-                              }}
-                              onClick={() => {
-                                setEditMode((prev) => ({
-                                  ...prev,
-                                  [field]: true,
-                                }));
-                                triggerFileInput(field);
-                              }}
-                            />
+                            {isPdfFile(values[field]) ? (
+                              <button
+                                type="button"
+                                className="provider-doc-pdf-preview"
+                                title="Open PDF in new tab"
+                                onClick={() => {
+                                  if (previews[field]) {
+                                    window.open(
+                                      previews[field],
+                                      "_blank",
+                                      "noopener,noreferrer"
+                                    );
+                                  }
+                                }}
+                              >
+                                <PdfDocumentIcon size={42} />
+                                <span className="provider-doc-pdf-preview__name">
+                                  {values[field]?.name || "PDF document"}
+                                </span>
+                                <span className="provider-doc-pdf-preview__hint">
+                                  Click to open PDF
+                                </span>
+                              </button>
+                            ) : (
+                              <img
+                                src={previews[field]}
+                                alt={`${field} Preview`}
+                                style={{
+                                  width: "372px",
+                                  maxWidth: "100%",
+                                  height: "200px",
+                                  objectFit: "cover",
+                                  border: "1px dashed #00aaff",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() => {
+                                  setEditMode((prev) => ({
+                                    ...prev,
+                                    [field]: true,
+                                  }));
+                                  triggerFileInput(field);
+                                }}
+                              />
+                            )}
                             <span
                               style={{
                                 position: "absolute",
@@ -1236,11 +1345,27 @@ const ProviderForm = ({
                                 color: "white",
                                 fontSize: "16px",
                                 cursor: "pointer",
+                                zIndex: 2,
                               }}
                               onClick={() => removeImage(field, setFieldValue)}
                             >
                               X
                             </span>
+                            {isPdfFile(values[field]) && (
+                              <button
+                                type="button"
+                                className="provider-doc-pdf-replace"
+                                onClick={() => {
+                                  setEditMode((prev) => ({
+                                    ...prev,
+                                    [field]: true,
+                                  }));
+                                  triggerFileInput(field);
+                                }}
+                              >
+                                Replace
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <label
@@ -1388,7 +1513,7 @@ const ProviderForm = ({
                                 margin: "0 auto 10px",
                               }}
                             />
-                            <span>Click to upload (Max files size: 10 MB)</span>
+                            <span>Click to upload image (Max size: 10 MB)</span>
                           </label>
                         )}
                       </div>
@@ -1709,11 +1834,12 @@ const ProviderForm = ({
         } else if (currentStep === 4 && !isCorporate) {
           setSubmitting(true);
           try {
-            // const servicePayload = createServicePayload(values);
-            // await handleServiceSubmit(servicePayload);
-            // setShowModal(true);
-
             const servicePayload = createServicePayload(values);
+            if (!servicePayload.images?.length) {
+              toast.error("Please upload at least one service image.");
+              setSubmitting(false);
+              return;
+            }
             await handleServiceSubmit(servicePayload);
             setShowModal(true);
           } catch (error) {
