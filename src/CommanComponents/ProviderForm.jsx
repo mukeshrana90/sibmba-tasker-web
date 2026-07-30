@@ -28,7 +28,7 @@ function hasValidLocationCoords(lat, lng) {
   return true;
 }
 
-const SERVICE_IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|heic|heif|avif)$/i;
+const SERVICE_IMAGE_EXT = /\.(jpe?g|jfif|png|gif|webp|bmp|heic|heif|avif)$/i;
 
 function isServiceImageFile(file) {
   if (!file) return false;

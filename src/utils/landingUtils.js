@@ -194,13 +194,11 @@ export function serviceImageUrl(filename) {
 export function isDisplayableServiceImage(filename) {
   if (!filename || filename === "undefined" || filename === "null") return false;
   const path = String(filename).split("?")[0].toLowerCase();
-  if (/\.pdf$/i.test(path) || path.includes(".pdf")) return false;
-  if (/\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|svg)$/i.test(path)) return true;
-  // Uploaded blob URLs / unknown extensions without .pdf — allow
-  if (path.startsWith("blob:") || path.startsWith("data:image")) return true;
-  // No extension but not clearly a doc
-  if (!/\.[a-z0-9]{2,5}$/i.test(path)) return true;
-  return false;
+  // Block known non-image document types only
+  if (/\.(pdf|docx?|xlsx?|pptx?|txt|csv|zip|rar|7z)$/i.test(path)) {
+    return false;
+  }
+  return true;
 }
 
 export function taskImageUrl(filename) {
