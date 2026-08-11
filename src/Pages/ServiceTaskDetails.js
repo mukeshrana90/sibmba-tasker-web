@@ -36,8 +36,6 @@ export default function ServiceTaskDetails() {
       toast.success(message, { toastId: TASK_STATUS_TOAST_ID });
     }, 0);
   };
-  const dropdownRefs = useRef({});
-  const [dropdownStates, setDropdownStates] = useState({});
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -251,10 +249,6 @@ export default function ServiceTaskDetails() {
         .then((res) => {
           if (res?.payload?.success) {
             dispatch(CustomerActions.getPostTaskDetail(id));
-            setDropdownStates((prev) => ({
-              ...prev,
-              [quatation_id]: false,
-            }));
             toast.success("Quotation updated successfully");
           } else {
             toast.error(res?.payload?.message || "Failed to update quotation");
@@ -345,13 +339,6 @@ export default function ServiceTaskDetails() {
     applyProviderTaskStatus(taskStatus.IN_PROGRESS, {
       successMessage: "Marked as in progress.",
     });
-  };
-
-  const handleButtonClick = (id) => {
-    setDropdownStates((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
   };
   const handleOpenDisputeModal = () => setShowDisputeModal(true);
   const handleCloseDisputeModal = () => {
@@ -588,12 +575,7 @@ export default function ServiceTaskDetails() {
                   quotation={quotation}
                   index={index}
                   isOwn
-                  showEditMenu={!isTaskMode}
-                  menuOpen={!!dropdownStates[quotation._id]}
-                  menuRef={(el) => {
-                    dropdownRefs.current[quotation._id] = el;
-                  }}
-                  onToggleMenu={() => handleButtonClick(quotation._id)}
+                  showEditMenu={Number(task?.status) === taskStatus.PENDING}
                   onEdit={() => handleShowEditQuotation(quotation)}
                 />
               ))}

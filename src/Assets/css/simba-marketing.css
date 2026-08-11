@@ -2329,19 +2329,25 @@ header.appnav .avatar-menu .am-item {
   gap: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: visible;
   background: var(--bg);
 }
 
+.simba-page.p-taskstatus .qcard-stack--own,
 .simba-page.p-taskstatus .qcard-stack:has(.qcard.accepted) {
-  border-color: #bbe3cc;
+  border-color: rgba(15, 92, 76, 0.28);
   background: #f2fbf6;
 }
 
 .simba-page.p-taskstatus .qcard-stack .qcard {
   border: none;
-  border-radius: 0;
+  border-radius: var(--radius);
   box-shadow: none;
+  overflow: visible;
+}
+
+.simba-page.p-taskstatus .qcard-stack:has(.qcard-corporate) .qcard {
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .simba-page.p-taskstatus .qcard-stack .qcard:hover {
@@ -2350,7 +2356,40 @@ header.appnav .avatar-menu .am-item {
 }
 
 .simba-page.p-taskstatus .qcard {
-  cursor: pointer;
+  cursor: default;
+}
+
+.simba-page.p-sp-taskdetail .qright {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.simba-page.p-sp-taskdetail .q-edit-btn {
+  margin-top: 2px;
+  white-space: nowrap;
+  min-height: 36px;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(15, 92, 76, 0.28);
+  color: var(--primary);
+  background: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.simba-page.p-sp-taskdetail .q-edit-btn:hover {
+  background: var(--primary-soft, #e6f2ef);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.simba-page.p-sp-taskdetail .accepted-badge {
+  background: rgba(15, 92, 76, 0.12);
+  color: var(--primary);
 }
 
 .simba-page.p-taskstatus .qcard--locked {
@@ -2408,7 +2447,7 @@ header.appnav .avatar-menu .am-item {
   padding: 0 18px 18px;
   border: none;
   border-top: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
   background: inherit;
   margin-top: 0;
   flex-shrink: 0;
@@ -2465,9 +2504,13 @@ header.appnav .avatar-menu .am-item {
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     gap: 10px;
+  }
+
+  .simba-page.p-sp-taskdetail .q-edit-btn {
+    margin-top: 0;
   }
 
   .simba-page.p-taskstatus .qactions {

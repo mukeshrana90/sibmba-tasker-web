@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "./ButtonLoader";
 import { getAppleIdToken } from "../utils/appleAuth";
-import { getFirebaseToken } from "../utils/fireBaseConfig";
+import { resolveWebDeviceTokenDetailed } from "../utils/webDeviceToken";
 import { isAppleLoginDisabled } from "../utils/featureFlags";
 
 function AppleIcon() {
@@ -37,10 +37,8 @@ export default function AppleSignInButton({
     setLoading(true);
     try {
       const socialToken = await getAppleIdToken();
-      const deviceToken =
-        (await getFirebaseToken().catch(() => "")) ||
-        localStorage.getItem("device_token") ||
-        "";
+      const { token: deviceToken, isFcm } = await resolveWebDeviceTokenDetailed();
+      if (isFcm && deviceToken) localStorage.setItem("device_token", deviceToken);
 
       const response = await dispatch(
         CustomerActions.socialLogin({
@@ -48,7 +46,7 @@ export default function AppleSignInButton({
           social_token: socialToken,
           role: Number(role),
           device_type: "web",
-          device_token: deviceToken || undefined,
+          ...(isFcm && deviceToken ? { device_token: deviceToken } : {}),
           allow_create: allowCreate,
         })
       );

@@ -9037,9 +9037,9 @@ footer .logo{color:#fff;margin-bottom:16px}
   .tl-step b{font-size:.84rem;font-weight:700;color:var(--muted)}
   .tl-step.done b,.tl-step.current b{color:var(--ink)}
   .quotes{display:grid;gap:16px}
-  .qcard{display:flex;gap:16px;align-items:center;border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:var(--bg);transition:border-color .2s,box-shadow .2s}
+  .qcard{display:flex;gap:16px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:var(--bg);transition:border-color .2s,box-shadow .2s}
   .qcard:hover{border-color:var(--line-strong);box-shadow:var(--shadow-sm)}
-  .qcard.accepted{border-color:#BBE3CC;background:#F2FBF6}
+  .qcard.accepted{border-color:rgba(15,92,76,.28);background:#F2FBF6}
   .qav{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;color:#fff;font-family:var(--font-display);font-weight:800;font-size:1.1rem;flex-shrink:0;box-shadow:var(--shadow-sm)}
   .qinfo{flex:1;min-width:0}
   .qinfo b{display:flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:1.08rem}
@@ -9048,12 +9048,12 @@ footer .logo{color:#fff;margin-bottom:16px}
   .qinfo .qloc svg{color:var(--primary)}
   .qstars{color:var(--gold);font-size:.82rem;letter-spacing:1px}
   .qstars .note{color:var(--muted);font-size:.8rem;margin-left:5px;font-style:italic}
-  .qright{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+  .qright{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
   .qprice{text-align:right}
   .qprice b{font-family:var(--font-display);font-weight:800;font-size:1.4rem;color:var(--ink);display:block;line-height:1}
   .qprice small{font-size:.74rem;color:var(--muted);font-weight:600}
   .qactions{display:flex;gap:8px}
-  .accepted-badge{font-size:.72rem;font-weight:800;letter-spacing:.04em;background:#E3F5EA;color:#0E7A47;padding:5px 12px;border-radius:100px;display:inline-flex;align-items:center;gap:5px}
+  .accepted-badge{font-size:.72rem;font-weight:800;letter-spacing:.04em;background:rgba(15,92,76,.12);color:var(--primary);padding:5px 12px;border-radius:100px;display:inline-flex;align-items:center;gap:5px}
   .modal-backdrop{position:fixed;inset:0;background:rgba(30,26,21,.55);backdrop-filter:blur(3px);z-index:100;display:grid;place-items:center;padding:24px;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s}
   .modal-backdrop.open{opacity:1;visibility:visible}
   .modal{width:100%;max-width:430px;background:var(--surface);border-radius:24px;box-shadow:var(--shadow-lg);padding:30px;text-align:center;transform:translateY(16px) scale(.97);transition:transform .3s cubic-bezier(.2,.8,.2,1)}

@@ -15,6 +15,10 @@ import { useQuery } from "../utils/CommonFunction";
 import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
 import { toast } from "react-toastify";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
+import {
+  normalizeWebDeviceToken,
+  resolveWebDeviceToken,
+} from "../utils/webDeviceToken";
 import { safeReturnUrl, setAuthReturnUrl, resolvePostAuthPath } from "../utils/authRedirect";
 import { otpVerificationPath } from "../utils/normalizeMongoId";
 import GoogleSignInButton from "../CommanComponents/GoogleSignInButton";
@@ -54,36 +58,6 @@ function parseRoleFromQuery(value) {
   if (value === "3" || value === "corporate") return 3;
   if (value === "1" || value === "user") return 1;
   return 1;
-}
-
-function normalizeWebDeviceToken(value) {
-  if (value == null) return "";
-  const s = String(value).trim();
-  return s || "";
-}
-
-async function resolveWebDeviceTokenForRegister(fcmTokenState) {
-  const tryFresh = async () => {
-    try {
-      const token = await getFirebaseToken();
-      return normalizeWebDeviceToken(token);
-    } catch {
-      return "";
-    }
-  };
-
-  let resolved = await tryFresh();
-  if (!resolved) {
-    await new Promise((r) => setTimeout(r, 400));
-    resolved = await tryFresh();
-  }
-  if (!resolved) {
-    resolved = normalizeWebDeviceToken(localStorage.getItem("device_token"));
-  }
-  if (!resolved) {
-    resolved = normalizeWebDeviceToken(fcmTokenState);
-  }
-  return resolved;
 }
 
 function EyeOpenIcon() {
@@ -266,7 +240,7 @@ export default function SignUp() {
 
   const handleOtpTypeSelection = async (otpType) => {
     setSignupLoading(true);
-    const deviceToken = await resolveWebDeviceTokenForRegister(fcmToken);
+    const deviceToken = await resolveWebDeviceToken(fcmToken);
     if (deviceToken) {
       localStorage.setItem("device_token", deviceToken);
       setFcmToken(deviceToken);

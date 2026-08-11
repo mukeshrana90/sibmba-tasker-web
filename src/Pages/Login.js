@@ -9,6 +9,10 @@ import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
+import {
+  normalizeWebDeviceToken,
+  resolveWebDeviceTokenDetailed,
+} from "../utils/webDeviceToken";
 import { Roles, normalizeRole } from "../utils/Roles";
 import GoogleSignInButton from "../CommanComponents/GoogleSignInButton";
 import AppleSignInButton from "../CommanComponents/AppleSignInButton";
@@ -95,8 +99,8 @@ export default function Login() {
   useEffect(() => {
     const handleGetFirebaseToken = async () => {
       try {
-        const token = await getFirebaseToken();
-        setFcmToken(token);
+        const token = normalizeWebDeviceToken(await getFirebaseToken());
+        setFcmToken(token || null);
         if (token) localStorage.setItem("device_token", token);
       } catch (error) {
         console.error("Firebase token error:", error);
@@ -136,11 +140,33 @@ export default function Login() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const deviceToken = fcmToken || localStorage.getItem("device_token");
-    const payload = { ...formData, device_type: "web" };
-    if (deviceToken) payload.device_token = deviceToken;
-
     setLocalLoading(true);
+
+    const { token: deviceToken, isFcm, reason } =
+      await resolveWebDeviceTokenDetailed(fcmToken);
+
+    if (isFcm && deviceToken) {
+      localStorage.setItem("device_token", deviceToken);
+      setFcmToken(deviceToken);
+    }
+
+    if (!isFcm) {
+      console.warn("Login FCM unavailable:", reason);
+      if (reason === "insecure_context_use_https_or_localhost") {
+        toast.warn(
+          "Open the site via HTTPS or localhost to enable push notifications."
+        );
+      } else if (String(reason).includes("notification_permission")) {
+        toast.warn(
+          "Allow browser notifications to receive job alerts on this device."
+        );
+      }
+    }
+
+    // Only send real FCM tokens — web-* fallbacks are not deliverable by Firebase.
+    const payload = { ...formData, device_type: "web" };
+    if (isFcm && deviceToken) payload.device_token = deviceToken;
+
     const response = await dispatch(CustomerActions.loginCustomer(payload));
 
     if (response?.payload?.status_code === 200) {

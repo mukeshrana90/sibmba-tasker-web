@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "./ButtonLoader";
 import { getGoogleIdToken } from "../utils/googleAuth";
-import { getFirebaseToken } from "../utils/fireBaseConfig";
+import { resolveWebDeviceTokenDetailed } from "../utils/webDeviceToken";
 import { isGoogleLoginDisabled } from "../utils/featureFlags";
 
 function GoogleIcon() {
@@ -52,10 +52,8 @@ export default function GoogleSignInButton({
     setLoading(true);
     try {
       const socialToken = await getGoogleIdToken();
-      const deviceToken =
-        (await getFirebaseToken().catch(() => "")) ||
-        localStorage.getItem("device_token") ||
-        "";
+      const { token: deviceToken, isFcm } = await resolveWebDeviceTokenDetailed();
+      if (isFcm && deviceToken) localStorage.setItem("device_token", deviceToken);
 
       const response = await dispatch(
         CustomerActions.socialLogin({
@@ -63,7 +61,7 @@ export default function GoogleSignInButton({
           social_token: socialToken,
           role: Number(role),
           device_type: "web",
-          device_token: deviceToken || undefined,
+          ...(isFcm && deviceToken ? { device_token: deviceToken } : {}),
           allow_create: allowCreate,
         })
       );

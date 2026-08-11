@@ -312,31 +312,6 @@ export function TaskDetailPageShell({ children }) {
   );
 }
 
-function MenuDotsIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 32 35"
-      fill="none"
-    >
-      <path
-        d="M16.0001 11.084C16.8838 11.084 17.6001 10.3005 17.6001 9.33398C17.6001 8.36749 16.8838 7.58398 16.0001 7.58398C15.1165 7.58398 14.4001 8.36749 14.4001 9.33398C14.4001 10.3005 15.1165 11.084 16.0001 11.084Z"
-        fill="currentColor"
-      />
-      <path
-        d="M16.0001 19.25C16.8838 19.25 17.6001 18.4665 17.6001 17.5C17.6001 16.5335 16.8838 15.75 16.0001 15.75C15.1165 15.75 14.4001 16.5335 14.4001 17.5C14.4001 18.4665 15.1165 19.25 16.0001 19.25Z"
-        fill="currentColor"
-      />
-      <path
-        d="M16.0001 27.418C16.8838 27.418 17.6001 26.6345 17.6001 25.668C17.6001 24.7015 16.8838 23.918 16.0001 23.918C15.1165 23.918 14.4001 24.7015 14.4001 25.668C14.4001 26.6345 15.1165 27.418 16.0001 27.418Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 export function ProviderTaskDetailPageShell({ children, fromTab }) {
   const tasksLink = fromTab ? `/taskslist?tab=${fromTab}` : "/taskslist";
   return (
@@ -597,9 +572,6 @@ export function ProviderQuotationCard({
   index,
   isOwn,
   showEditMenu,
-  menuOpen,
-  menuRef,
-  onToggleMenu,
   onEdit,
 }) {
   const providerName = quotation?.service_provider?.full_name || "Provider";
@@ -612,7 +584,7 @@ export function ProviderQuotationCard({
   const providerInitials = providerName.slice(0, 2).toUpperCase();
 
   return (
-    <div className="qcard-stack">
+    <div className={`qcard-stack${isOwn ? " qcard-stack--own" : ""}`}>
       <div className={`qcard${isOwn ? " accepted" : ""}`}>
         <div
           className="qav"
@@ -677,23 +649,13 @@ export function ProviderQuotationCard({
             </span>
           )}
           {showEditMenu && isOwn && (
-            <div className="q-menu" ref={menuRef}>
-              <button
-                type="button"
-                className="q-menu-btn"
-                aria-label="Quotation options"
-                onClick={onToggleMenu}
-              >
-                <MenuDotsIcon />
-              </button>
-              {menuOpen && (
-                <div className="q-menu-drop">
-                  <button type="button" onClick={onEdit}>
-                    Edit
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm q-edit-btn"
+              onClick={onEdit}
+            >
+              Edit offer
+            </button>
           )}
         </div>
       </div>
