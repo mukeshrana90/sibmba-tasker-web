@@ -120,11 +120,11 @@ export default function ServiceDetails() {
 
   const gallerySliderSettings = useMemo(
     () => ({
-      dots: true,
+    dots: true,
       infinite: galleryImages.length > 1,
       speed: 400,
-      slidesToShow: 1,
-      slidesToScroll: 1,
+    slidesToShow: 1,
+    slidesToScroll: 1,
       arrows: galleryImages.length > 1,
       adaptiveHeight: false,
       initialSlide: activeGalleryIndex,
@@ -171,25 +171,25 @@ export default function ServiceDetails() {
 
   const handleDelete = () => {
     if (!serviceDetail?._id) return;
-    setIsDeleting(true);
+      setIsDeleting(true);
     dispatch(
       ServiceActions.deleteMyServices({
         service_id: normalizeMongoId(serviceDetail._id),
       })
     )
-      .then((res) => {
+        .then((res) => {
         if (res?.payload?.success) {
           toast.success(res?.payload?.message || "Service deleted.");
           clearProviderServiceGateCache();
           navigate("/allmyservices");
-        } else {
+          } else {
           toast.error(res?.payload?.message || "Could not delete service.");
-        }
-      })
-      .finally(() => {
-        setIsDeleting(false);
-        setShowDeleteModal(false);
-      });
+          }
+        })
+        .finally(() => {
+          setIsDeleting(false);
+          setShowDeleteModal(false);
+        });
   };
 
   return (
@@ -281,20 +281,20 @@ export default function ServiceDetails() {
                     className="btn btn-ghost"
                     onClick={() => setShowDeleteModal(true)}
                   >
-                    Delete
-                  </button>
-                  <button
+                      Delete
+                    </button>
+                    <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={() =>
+                      onClick={() =>
                       navigate(serviceEditPath(serviceDetail?._id))
-                    }
-                  >
-                    Edit
-                  </button>
+                      }
+                    >
+                      Edit
+                    </button>
                 </div>
-              </div>
-            </div>
+                  </div>
+                </div>
 
             <div className="sp-detail-section card">
               <h3>Availability</h3>
@@ -339,10 +339,10 @@ export default function ServiceDetails() {
                       key={feedback?._id || feedback?.createdAt}
                       className="sp-review"
                     >
-                      <img
-                        src={userImageUrl(feedback?.user_id)}
+                              <img
+                                src={userImageUrl(feedback?.user_id)}
                         alt=""
-                        onError={handleUserImageError}
+                                onError={handleUserImageError}
                       />
                       <div className="sp-review-body">
                         <div className="sp-review-head">
@@ -350,10 +350,10 @@ export default function ServiceDetails() {
                             <b>
                               {feedback?.user_id?.full_name || "Customer"}
                             </b>
-                            <StarRating
-                              averageRating={feedback?.rating}
-                              type="noreview"
-                            />
+                                    <StarRating
+                                      averageRating={feedback?.rating}
+                                      type="noreview"
+                                    />
                           </div>
                           <span>{formatReviewDate(feedback?.createdAt)}</span>
                         </div>
@@ -420,10 +420,10 @@ export default function ServiceDetails() {
                         alt={item.label}
                         onError={handleCategoryImageError}
                       />
-                    </div>
+          </div>
                     <p className="provider-gallery-caption">{item.label}</p>
-                  </div>
-                </div>
+          </div>
+          </div>
               ))}
             </Slider>
           )}
