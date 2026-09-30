@@ -33,7 +33,7 @@ const BORDER = "#ced4da";
 const BORDER_FOCUS = "#0f5c4c";
 const BORDER_PROVIDER = "var(--line-strong, #d1d5db)";
 
-function buildSelectStyles(variant = "default") {
+export function buildSelectStyles(variant = "default") {
   const isProvider = variant === "provider";
   const height = isProvider ? 48 : 42;
   const innerHeight = height - 2;

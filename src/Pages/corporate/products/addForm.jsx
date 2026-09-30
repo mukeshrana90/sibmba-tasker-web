@@ -12,6 +12,7 @@ import { useQuery } from "../../../utils/CommonFunction";
 import ServiceActions from "../../../Redux/Actions/ServiceActions";
 import ProductActions from "../../../Redux/Actions/ProductActions";
 import { serviceImageUrl } from "../../../utils/landingUtils";
+import CorporateCategorySelect from "../../../CommanComponents/CorporateCategorySelect";
 
 const CorporateAddProduct = () => {
   const dispatch = useDispatch();
@@ -20,7 +21,7 @@ const CorporateAddProduct = () => {
   const searchValFromUrl = getQueryURL.get("service_id");
 
   // const categoryList = useSelector((e) => e.service.corporateCategorycorporateCategory);
-  const categoryList = useSelector((e) => e.service.corporateCategory);
+  const categoryList = useSelector((e) => e.service.corporateCategoryOptions);
   
   const serviceDetail = useSelector((e) => e.service.serviceDetail);
 
@@ -37,7 +38,7 @@ const CorporateAddProduct = () => {
 
   useEffect(() => {
     // dispatch(ServiceActions.getCategoryList());
-    dispatch(ServiceActions.getCorporateCategoryList());
+    dispatch(ServiceActions.getAllCorporateCategories());
   }, [dispatch]);
 
   useEffect(() => {
@@ -409,21 +410,22 @@ const CorporateAddProduct = () => {
                               controlId="formServiceCategoryId"
                             >
                               <Form.Label>Select Business Category*</Form.Label>
-                              <Field
-                                name="categoryId"
-                                as="select"
-                                className="form-select"
-                                onChange={(e) => {
-                                  setFieldValue("categoryId", e.target.value);
-                                  setFieldTouched("categoryId", true);
-                                }}
-                              >
-                                <option value="">Select Category</option>
-                                {categoryList?.data?.map((item) => (
-                                  <option key={item._id} value={item._id}>
-                                    {item.name}
-                                  </option>
-                                ))}
+                              <Field name="categoryId">
+                                {({ field, meta }) => (
+                                  <CorporateCategorySelect
+                                    name="categoryId"
+                                    inputId="formServiceCategoryId"
+                                    placeholder="Select Category"
+                                    categories={categoryList?.data}
+                                    value={field.value}
+                                    invalid={Boolean(meta.touched && meta.error)}
+                                    onChange={(id) => {
+                                      setFieldValue("categoryId", id);
+                                      setFieldTouched("categoryId", true, false);
+                                    }}
+                                    onBlur={() => setFieldTouched("categoryId", true)}
+                                  />
+                                )}
                               </Field>
                               <ErrorMessage
                                 name="categoryId"
