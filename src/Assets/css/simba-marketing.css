@@ -1671,7 +1671,7 @@ header.appnav .avatar-menu .am-item {
   border-radius: 18px;
   box-shadow: var(--shadow-lg);
   padding: 6px;
-  z-index: 70;
+  z-index: 1200;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px) scale(0.98);
@@ -1686,6 +1686,10 @@ header.appnav .avatar-menu .am-item {
 }
 
 .notify-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 14px 12px 10px;
   border-bottom: 1px solid var(--line);
 }
@@ -1696,6 +1700,62 @@ header.appnav .avatar-menu .am-item {
   font-size: 1.02rem;
   font-weight: 700;
   color: var(--ink);
+}
+
+.notify-menu-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 10px 4px;
+}
+
+.notify-clear-all {
+  border: 0;
+  background: transparent;
+  color: var(--primary, #0f5c4c);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
+.notify-clear-all:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.notify-item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.notify-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notify-clear-one {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #8a847a;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.notify-clear-one:hover:not(:disabled) {
+  background: #f0ebe3;
+  color: #1e1a15;
+}
+
+.notify-clear-one:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .notify-menu-list {
@@ -1736,6 +1796,24 @@ header.appnav .avatar-menu .am-item {
   flex: 1;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.notify-item-details-link {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary, #0f5c4c);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.notify-item-details-link:hover {
+  color: #0a4438;
 }
 
 .notify-item-top span {
@@ -5166,6 +5244,17 @@ header.appnav .avatar-menu .am-item {
   border-radius: 24px;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+
+/* Invisible fade leftovers must never block clicks after confirm/cancel */
+.simba-book-loc-modal.modal:not(.show) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.modal-backdrop.simba-book-loc-backdrop:not(.show) {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 .simba-book-modal .bk-modal-head,

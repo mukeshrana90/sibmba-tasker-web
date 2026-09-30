@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   resolvePostAuthPath,
+  resolvePostLoginPath,
   setAuthReturnUrl,
 } from "../utils/authRedirect";
 import { useDispatch } from "react-redux";
@@ -13,7 +14,7 @@ import {
   normalizeWebDeviceToken,
   resolveWebDeviceTokenDetailed,
 } from "../utils/webDeviceToken";
-import { Roles, normalizeRole } from "../utils/Roles";
+import { Roles, homeRouteForRole, normalizeRole } from "../utils/Roles";
 import GoogleSignInButton from "../CommanComponents/GoogleSignInButton";
 import AppleSignInButton from "../CommanComponents/AppleSignInButton";
 import RoleSelectModal from "../CommanComponents/Modals/RoleSelectModal";
@@ -114,9 +115,17 @@ export default function Login() {
   }, [returnUrl]);
 
   useEffect(() => {
-    if (isTokenValid()) {
-      navigate(returnUrl || "/", { replace: true });
-    }
+    if (!isTokenValid()) return;
+    const role = localStorage.getItem("role");
+    const ownerId = localStorage.getItem("owner_id");
+    const dest = resolvePostLoginPath({
+      role,
+      ownerId,
+      returnUrl,
+    });
+    navigate(dest || homeRouteForRole(role, ownerId) || "/", {
+      replace: true,
+    });
   }, [navigate, returnUrl]);
 
   const handleInputChange = (e) => {
@@ -395,6 +404,12 @@ export default function Login() {
               </p>
 
               <div className="signup-links">
+                <p>
+                  Own trucks or plant?{" "}
+                  <Link to="/sign-up?role=4" className="link-gold">
+                    Sign up as Equipment Owner
+                  </Link>
+                </p>
                 <p>
                   Are you a business?{" "}
                   <Link to="/sign-up?role=3" className="link-gold">

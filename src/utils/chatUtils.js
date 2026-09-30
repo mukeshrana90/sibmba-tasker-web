@@ -96,6 +96,14 @@ export function formatMessagePreview(raw, { messageType } = {}) {
 
   const structured = parseStructuredMessage(raw);
   if (structured) {
+    if (structured.kind === "logistics_job") {
+      const name = String(structured.name || "Logistics job");
+      return name.length > 25 ? `${name.slice(0, 25)}...` : name;
+    }
+    if (structured.name && structured.price != null) {
+      const name = String(structured.name);
+      return name.length > 25 ? `${name.slice(0, 25)}...` : name;
+    }
     if (structured.image || structured.imageUrl || structured.url) return "Image";
     if (
       structured.latitude != null ||

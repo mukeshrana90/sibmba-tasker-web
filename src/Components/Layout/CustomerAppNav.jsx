@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Search from "../../CommanComponents/Search";
 import { useDismissOnOutsidePointer, usePopoverToggle } from "../../Hooks/useDismissOnOutsidePointer";
 import { ImagePathCustomer } from "../../utils/ImagePath";
@@ -7,8 +7,13 @@ import { handleUserImageError } from "../../utils/landingUtils";
 import { customerDisplayName } from "../../utils/customerProfileUtils";
 import { ChatContext } from "../../context/ChatProvider";
 import NotifyMenuList from "../../CommanComponents/NotifyMenuList";
+import useNotificationClear from "../../Hooks/useNotificationClear";
+import ModuleSwitcher, {
+  LOGISTICS_HUB_NAV,
+  useProductModule,
+} from "./ModuleSwitcher";
 
-const NAV_LINKS = [
+const TASKER_NAV_LINKS = [
   { label: "Home", path: "/" },
   { label: "Service", path: "/services" },
   { label: "Corporate", path: "/corporate-list" },
@@ -129,8 +134,10 @@ export default function CustomerAppNav({
   notificationDetail,
   onDeleteAccount,
   onLogout,
+  logisticsHome = "/logistics",
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const { chatList } = useContext(ChatContext) || {};
 
@@ -148,6 +155,7 @@ export default function CustomerAppNav({
   );
 
   const notifyCount = notificationDetail?.length || 0;
+  const { clearOne, clearAll, clearing } = useNotificationClear();
   const profileImage = customerDetails?.profile_image
     ? ImagePathCustomer(customerDetails.profile_image)
     : null;
@@ -172,29 +180,46 @@ export default function CustomerAppNav({
     setNotifyOpen(false);
   }, [location.pathname]);
 
-  const isActive = (path) => currentPath === path;
+  const productModule = useProductModule();
+  const isLogistics = productModule === "logistics";
+  const navLinks = isLogistics ? LOGISTICS_HUB_NAV : TASKER_NAV_LINKS;
+
+  const isActive = (route) => {
+    const path = typeof route === "string" ? route : route.path;
+    if (route?.exact) return currentPath === path;
+    if (Array.isArray(route?.matchPaths)) {
+      return route.matchPaths.some(
+        (p) => currentPath === p || currentPath.startsWith(`${p}/`)
+      );
+    }
+    return currentPath === path || currentPath.startsWith(`${path}/`);
+  };
 
   return (
     <header className="appnav">
       <div className="appnav-inner">
-        <Link to="/" className="logo">
+        <Link to={isLogistics ? "/logistics" : "/"} className="logo">
           <img
             src={require("../../Assets/Images/dark-logo.png")}
             alt="Simba Tasker"
           />
         </Link>
 
-        <div className="app-search">
-          <SearchIcon />
-          <Search variant="appnav" />
-        </div>
+        <ModuleSwitcher taskerHome="/" logisticsHome={logisticsHome} />
+
+        {!isLogistics && (
+          <div className="app-search">
+            <SearchIcon />
+            <Search variant="appnav" />
+          </div>
+        )}
 
         <nav className="app-links">
-          {NAV_LINKS.map((route) => (
+          {navLinks.map((route) => (
             <Link
               key={route.path}
               to={route.path}
-              className={isActive(route.path) ? "active" : ""}
+              className={isActive(route) ? "active" : ""}
             >
               {route.label}
             </Link>
@@ -246,6 +271,13 @@ export default function CustomerAppNav({
               <NotifyMenuList
                 notifications={notificationDetail}
                 isOpen={notifyOpen}
+                onClearOne={clearOne}
+                onClearAll={clearAll}
+                clearing={clearing}
+                onOpenNotification={(_n, path) => {
+                  setNotifyOpen(false);
+                  if (path) navigate(path);
+                }}
               />
             </div>
           </div>
@@ -371,11 +403,11 @@ export default function CustomerAppNav({
             <Search variant="appnav" />
           </div>
           <nav className="app-links-mobile">
-            {NAV_LINKS.map((route) => (
+            {navLinks.map((route) => (
               <Link
                 key={route.path}
                 to={route.path}
-                className={isActive(route.path) ? "active" : ""}
+                className={isActive(route) ? "active" : ""}
               >
                 {route.label}
               </Link>

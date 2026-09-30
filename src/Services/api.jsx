@@ -91,11 +91,32 @@ Api.interceptors.response.use(
       }
     } else {
       if (error?.response?.data?.message === "No Quatations found for this user.") {
-        return;
+        return error.response;
       }
-      toast.error(error?.response?.data?.message);
+      const msg =
+        error?.response?.data?.message ||
+        (error?.message === "Network Error"
+          ? "Network error — check API URL / HTTPS mixed content"
+          : error?.message);
+      if (msg && !error?.config?.skipErrorToast) {
+        toast.error(msg);
+      }
     }
-    return error.response;
+    // Never return undefined — callers do response.data
+    return (
+      error.response || {
+        data: {
+          success: false,
+          status_code: 0,
+          message:
+            error?.message === "Network Error"
+              ? "Network error — HTTPS pages cannot call HTTP APIs. Use the same host scheme as the API, or open the invite over HTTP."
+              : error?.message || "Request failed",
+        },
+        status: 0,
+        config: error.config,
+      }
+    );
   }
 );
 

@@ -1,12 +1,17 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ImagePathCustomer } from "../../utils/ImagePath";
 import { handleUserImageError } from "../../utils/landingUtils";
 import { useDismissOnOutsidePointer, usePopoverToggle } from "../../Hooks/useDismissOnOutsidePointer";
 import { ChatContext } from "../../context/ChatProvider";
 import NotifyMenuList from "../../CommanComponents/NotifyMenuList";
+import useNotificationClear from "../../Hooks/useNotificationClear";
+import ModuleSwitcher, {
+  LOGISTICS_HUB_NAV,
+  useProductModule,
+} from "./ModuleSwitcher";
 
-const NAV_LINKS = [
+const TASKER_NAV_LINKS = [
   { label: "Home", path: "/requests", exact: true },
   { label: "Service", path: "/allmyservices" },
   { label: "Tasks", path: "/taskslist" },
@@ -92,6 +97,7 @@ export default function ServiceProviderAppNav({
   onLogout,
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const { chatList } = useContext(ChatContext) || {};
 
@@ -109,6 +115,7 @@ export default function ServiceProviderAppNav({
   );
 
   const notifyCount = notificationDetail?.length || 0;
+  const { clearOne, clearAll, clearing } = useNotificationClear();
   const profileImage = customerDetails?.profile_image
     ? ImagePathCustomer(customerDetails.profile_image)
     : null;
@@ -133,15 +140,21 @@ export default function ServiceProviderAppNav({
     setNotifyOpen(false);
   }, [location.pathname]);
 
+  const productModule = useProductModule();
+  const isLogistics = productModule === "logistics";
+  const navLinks = isLogistics ? LOGISTICS_HUB_NAV : TASKER_NAV_LINKS;
+
   return (
     <header className="appnav appnav--provider">
       <div className="appnav-inner">
-        <Link to="/requests" className="logo">
+        <Link to={isLogistics ? "/logistics" : "/requests"} className="logo">
           <img src={require("../../Assets/Images/dark-logo.png")} alt="Simba Tasker" />
         </Link>
 
+        <ModuleSwitcher taskerHome="/requests" />
+
         <nav className="app-links">
-          {NAV_LINKS.map((route) => (
+          {navLinks.map((route) => (
             <Link
               key={route.path}
               to={route.path}
@@ -192,6 +205,13 @@ export default function ServiceProviderAppNav({
               <NotifyMenuList
                 notifications={notificationDetail}
                 isOpen={notifyOpen}
+                onClearOne={clearOne}
+                onClearAll={clearAll}
+                clearing={clearing}
+                onOpenNotification={(_n, path) => {
+                  setNotifyOpen(false);
+                  if (path) navigate(path);
+                }}
               />
             </div>
           </div>
@@ -306,7 +326,7 @@ export default function ServiceProviderAppNav({
       {mobileOpen && (
         <div className="appnav-mobile">
           <nav className="app-links-mobile">
-            {NAV_LINKS.map((route) => (
+            {navLinks.map((route) => (
               <Link
                 key={route.path}
                 to={route.path}

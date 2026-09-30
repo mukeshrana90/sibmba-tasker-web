@@ -12,14 +12,20 @@ import LandingGuestHeader from "../../CommanComponents/Landing/LandingGuestHeade
 import CustomerAppNav from "./CustomerAppNav";
 import CorporateAppNav from "./CorporateAppNav";
 import ServiceProviderAppNav from "./ServiceProviderAppNav";
+import LogisticsAppNav from "./LogisticsAppNav";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import { setCustomer } from "../../Redux/Reducers/LoginSlice";
 import { ImagePathCustomer } from "../../utils/ImagePath";
 import { handleUserImageError } from "../../utils/landingUtils";
 import { customerDisplayName } from "../../utils/customerProfileUtils";
+import { formatNotificationTime } from "../../utils/notificationTime";
 import { Modal } from "react-bootstrap";
-import { Roles } from "../../utils/Roles";
+import {
+  isSharedModulePath,
+  resolveActiveModule,
+  Roles,
+} from "../../utils/Roles";
 
 const serviceProviderRoutes = [
   { label: "Home", path: "/requests" },
@@ -64,9 +70,20 @@ export default function Header({ isGuestLanding = false }) {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showPlanModalMessage, setShowPlanModalMessage] = useState("");
   const currentPath = location.pathname;
+  const role = localStorage.getItem("role");
+  const roleNum = Number(role);
+  /** Role 4 on Tasker module uses customer chrome; on Logistics uses owner/driver chrome. */
+  const logisticsOwnerOnTasker =
+    roleNum === Roles.LOGISTICS &&
+    !currentPath.startsWith("/logistics") &&
+    !(
+      isSharedModulePath(currentPath) &&
+      resolveActiveModule(currentPath) === "logistics"
+    );
+  const logisticsOwnerOnLogistics =
+    roleNum === Roles.LOGISTICS && !logisticsOwnerOnTasker;
 
   const notificationDetail = useSelector((e) => e.UserSlice.notificationData);
-  const role = localStorage.getItem("role");
 
   const hideNavbarCollapse = location.pathname === "/provider";
   const hideSearchbarCollapse =
@@ -99,12 +116,21 @@ export default function Header({ isGuestLanding = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch notifications once on mount
   }, []);
 
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  useEffect(() => {
+    if (!token) return undefined;
+    const refresh = () => {
+      dispatch(CustomerActions.notificationListing());
+    };
+    window.addEventListener("simba:logistics_notification", refresh);
+    return () =>
+      window.removeEventListener("simba:logistics_notification", refresh);
+  }, [token, dispatch]);
+
+  useEffect(() => {
+    const openLogout = () => setShowLogoutModal(true);
+    window.addEventListener("simba:request-logout", openLogout);
+    return () => window.removeEventListener("simba:request-logout", openLogout);
+  }, []);
 
   // dispatch(CustomerActions.notificationToggler())
 
@@ -251,6 +277,26 @@ export default function Header({ isGuestLanding = false }) {
               target: { checked: !isNotificationsEnabled },
             })
           }
+          onDeleteAccount={() => setIsDeleteModal(true)}
+          onLogout={() => setShowLogoutModal(true)}
+        />
+      ) : token && logisticsOwnerOnTasker ? (
+        <CustomerAppNav
+          customerDetails={customerDetails}
+          notificationDetail={notificationDetail}
+          onDeleteAccount={() => setIsDeleteModal(true)}
+          onLogout={() => setShowLogoutModal(true)}
+          logisticsHome={
+            localStorage.getItem("owner_id")
+              ? "/logistics/driver"
+              : "/logistics/owner"
+          }
+        />
+      ) : token && logisticsOwnerOnLogistics ? (
+        <LogisticsAppNav
+          isDriver={Boolean(localStorage.getItem("owner_id"))}
+          customerDetails={customerDetails}
+          notificationDetail={notificationDetail}
           onDeleteAccount={() => setIsDeleteModal(true)}
           onLogout={() => setShowLogoutModal(true)}
         />
@@ -410,7 +456,7 @@ export default function Header({ isGuestLanding = false }) {
                                           {notification?.title}
                                         </h4>
                                         <span className="text-sm text-gray-500">
-                                          {formatTime(notification?.createdAt)}
+                                          {formatNotificationTime(notification?.createdAt)}
                                         </span>
                                       </div>
                                       <p className="text-gray-600 mt-1">

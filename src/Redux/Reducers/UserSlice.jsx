@@ -472,7 +472,19 @@ const UserSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       }
-    )
+    );
+
+    builder.addCase(CustomerActions.clearNotification.fulfilled, (state, action) => {
+      const id = action.payload?.notificationId || action.payload?.data?._id;
+      if (!id || !Array.isArray(state.notificationData)) return;
+      state.notificationData = state.notificationData.filter(
+        (n) => String(n?._id) !== String(id)
+      );
+    });
+
+    builder.addCase(CustomerActions.clearAllNotifications.fulfilled, (state) => {
+      state.notificationData = [];
+    });
 
 
     ///////////////////////////////////////////////////////////////// 

@@ -207,7 +207,9 @@ const CustomerActions = {
           ? "/service/auth/socialLogin"
           : Number(role) === 3
             ? "/corporate/auth/socialLogin"
-            : "/customer/auth/socialLogin";
+            : Number(role) === 4
+              ? "/logistics/auth/socialLogin"
+              : "/customer/auth/socialLogin";
       const response = await Api.post(endpoint, { ...data, role });
       return response.data;
     }
@@ -607,6 +609,36 @@ const CustomerActions = {
     }
   ),
 
+  clearNotification: createAsyncThunk(
+    "customer/clearNotification",
+    async (notificationId, { rejectWithValue }) => {
+      try {
+        const response = await Api.delete(
+          `/customer/notification/${notificationId}`
+        );
+        return { ...response.data, notificationId };
+      } catch (error) {
+        return rejectWithValue(
+          error?.response?.data || { message: "Could not clear notification" }
+        );
+      }
+    }
+  ),
+
+  clearAllNotifications: createAsyncThunk(
+    "customer/clearAllNotifications",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await Api.delete("/customer/notifications/clear_all");
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(
+          error?.response?.data || { message: "Could not clear notifications" }
+        );
+      }
+    }
+  ),
+
   // notificatio toggle api
   notificationToggler: createAsyncThunk(
     "customer/updateNotificationStatus",
@@ -776,6 +808,21 @@ const CustomerActions = {
         `/customer/search-providers?${queryString}`
       );
       return response.data;
+    }
+  ),
+
+  addHelpAndSupport: createAsyncThunk(
+    "/customer/add_helpandsupport",
+    async ({ title, message }, { rejectWithValue }) => {
+      try {
+        const response = await Api.post("/customer/add_helpandsupport", {
+          title,
+          message,
+        });
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err?.response?.data || { message: err.message });
+      }
     }
   ),
 };

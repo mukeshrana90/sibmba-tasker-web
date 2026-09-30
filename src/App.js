@@ -2,8 +2,9 @@ import { useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RoutesPage from "./routes/Routes";
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 import { onForegroundMessage } from "./utils/fireBaseConfig";
+import { getSocketBaseUrl } from "./utils/socketBaseUrl";
 
 function App() {
   const ToastifyNotification = ({ title, body }) => (
@@ -17,33 +18,58 @@ function App() {
     const unsubscribe = onForegroundMessage((payload) => {
       const { notification: { title, body } } = payload;
       const toastId = `notification-${payload.messageId}`;
-  
+
       if (!toast.isActive(toastId)) {
         toast(<ToastifyNotification title={title} body={body} />, {
           toastId,
         });
       }
     });
-  
+
     return () => {
-      unsubscribe(); // Cleanup the listener when the component unmounts
+      unsubscribe();
     };
   }, []);
 
-
   useEffect(() => {
-    const BASE_URL = process.env.REACT_APP_API_URLL;
+    const BASE_URL = getSocketBaseUrl();
+    if (!BASE_URL) return undefined;
 
-    const initializeSocket = async () => {
-      try {
-        await io(BASE_URL);
-        // console.log("Socket connected");
-      } catch (error) {
-        console.error("Socket connection failed:", error);
+    const userId = localStorage.getItem("userId");
+    const sock = io(BASE_URL, {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+
+    const onConnect = () => {
+      if (userId) {
+        sock.emit("join_user_channel", { userid: userId });
       }
     };
 
-    initializeSocket();
+    sock.on("connect", onConnect);
+    sock.on("connect_error", (error) => {
+      console.error("Socket connection failed:", error?.message || error);
+    });
+
+    sock.on("logistics_notification", (payload) => {
+      const data = payload?.data || payload || {};
+      const title = data.title || "Logistics update";
+      const body = data.message || "";
+      const toastId = `logistics-notif-${data._id || data.type || Date.now()}`;
+      if (!toast.isActive(toastId)) {
+        toast(<ToastifyNotification title={title} body={body} />, { toastId });
+      }
+      window.dispatchEvent(
+        new CustomEvent("simba:logistics_notification", { detail: data })
+      );
+    });
+
+    return () => {
+      sock.off("connect", onConnect);
+      sock.removeAllListeners();
+      sock.disconnect();
+    };
   }, []);
 
   return (

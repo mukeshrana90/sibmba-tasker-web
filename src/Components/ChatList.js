@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ChatContext } from '../context/ChatProvider';
 import moment from 'moment';
@@ -12,10 +13,16 @@ import {
   normalizeChatUserId,
   chatPeerDisplayName,
 } from '../utils/chatUtils';
-import { getStoredUserId } from '../utils/normalizeMongoId';
+import {
+  getStoredUserId,
+  messagesPath,
+  persistReceiverId,
+} from '../utils/normalizeMongoId';
 
 const ChatList = ({ onSelect }) => {
-  const { chatList, selectedUser, setSelectedUser, setChatList } = useContext(ChatContext);
+  const { chatList, selectedUser, setSelectedUser, setChatList } =
+    useContext(ChatContext);
+  const navigate = useNavigate();
   const customerDetails = useSelector((state) => state.login.customerDetails);
   const currentUserId = getStoredUserId(customerDetails?._id);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,15 +30,16 @@ const ChatList = ({ onSelect }) => {
   const handleChatSelect = (peerId, chatIndex) => {
     const normalizedPeerId = normalizeChatUserId(peerId);
     if (!normalizedPeerId) return;
-    if (selectedUser !== normalizedPeerId) {
-      setSelectedUser(normalizedPeerId);
-      localStorage.setItem('reciverID', normalizedPeerId);
-      setChatList((prevChatList) =>
-        prevChatList.map((chat, index) =>
-          index === chatIndex ? { ...chat, unreadCount: 0 } : chat
-        )
-      );
-    }
+
+    persistReceiverId(normalizedPeerId);
+    navigate(messagesPath(normalizedPeerId), { replace: true });
+    setSelectedUser(normalizedPeerId);
+
+    setChatList((prevChatList) =>
+      prevChatList.map((chat, index) =>
+        index === chatIndex ? { ...chat, unreadCount: 0 } : chat
+      )
+    );
     onSelect?.();
   };
 
@@ -86,7 +94,8 @@ const ChatList = ({ onSelect }) => {
           filteredChatList.map((ele, index) => {
             const peerId = getChatPeerId(ele, currentUserId);
             const chatIndex = chatList.indexOf(ele);
-            const isActive = selectedUser && peerId && String(selectedUser) === String(peerId);
+            const isActive =
+              selectedUser && peerId && String(selectedUser) === String(peerId);
             const createdAt = ele?.lastMessage?.createdAt;
             const timeLabel =
               createdAt && moment(createdAt).isValid()
@@ -115,7 +124,8 @@ const ChatList = ({ onSelect }) => {
                         {chatPeerDisplayName({
                           company_name: ele?.receiver?.company_name,
                           name: ele?.receiver?.name,
-                          full_name: ele?.receiver?.full_name || ele?.receiver?.name,
+                          full_name:
+                            ele?.receiver?.full_name || ele?.receiver?.name,
                           email: ele?.receiver?.email,
                         })}
                       </h5>

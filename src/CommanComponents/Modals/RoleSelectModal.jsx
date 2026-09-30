@@ -4,13 +4,18 @@ import ButtonLoader from "../ButtonLoader";
 
 const ROLE_OPTIONS = [
   {
+    key: 4,
+    title: "Equipment Owner",
+    hint: "List trucks & plant under Equipment/Logistic.",
+  },
+  {
     key: 1,
-    title: "I Need a Service",
+    title: "Need a Service",
     hint: "Find & hire trusted professionals near you.",
   },
   {
     key: 2,
-    title: "Service Provider",
+    title: "Provider",
     hint: "Offer your services and grow your business.",
   },
   {

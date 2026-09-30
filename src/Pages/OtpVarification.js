@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import OtpInput from "react-otp-input";
 import { useDispatch } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
+import LogisticsActions from "../Redux/Actions/LogisticsActions";
 import { toast } from "react-toastify";
 import { useQuery } from "../utils/CommonFunction";
 import { consumeAuthReturnUrl } from "../utils/authRedirect";
@@ -43,6 +44,7 @@ export default function OtpVarification() {
   const userId = normalizeMongoId(query.get("userId"));
   const type = query.get("type");
   const otpType = query.get("otpType") || "1"; // Default to 1 (email) if not provided
+  const queryRole = Number(query.get("role"));
   const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState(30);
   const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
@@ -91,9 +93,11 @@ export default function OtpVarification() {
 
   const handleResendOTP = async () => {
     setResendOtploading(true);
-    let res = await dispatch(
-      CustomerActions.resendOtp({ user_id: userId, type: Number(otpType) })
-    );
+    const payload = { user_id: userId, type: Number(otpType) };
+    const res =
+      queryRole === Roles.LOGISTICS
+        ? await dispatch(LogisticsActions.resendOtp(payload))
+        : await dispatch(CustomerActions.resendOtp(payload));
     if (res?.payload?.success) {
       const message = Number(otpType) === 3 
         ? "OTP has been resent to your WhatsApp number"
@@ -152,19 +156,55 @@ export default function OtpVarification() {
       return;
     }
     setVerifyOtpLoading(true);
-    const res = await dispatch(
-      CustomerActions.verifyOtp({ user_id: userId, otp, type: Number(otpType) })
-    );
+    const otpPayload = { user_id: userId, otp, type: Number(otpType) };
+    const res =
+      queryRole === Roles.LOGISTICS
+        ? await dispatch(LogisticsActions.verifyOtp(otpPayload))
+        : await dispatch(CustomerActions.verifyOtp(otpPayload));
     if (res?.payload?.success) {
       toast.success(res?.payload?.message);
-      const token = res?.payload?.data?.token;
-      const verifiedUserId = persistUserId(res?.payload?.data?._id);
-      const userRole = res?.payload?.data?.role;
+      const data = res?.payload?.data || {};
+      const userBlob = data.user || data;
+      const token = data.token || userBlob.token;
+      const verifiedUserId = persistUserId(userBlob._id || data._id);
+      const userRole = userBlob.role ?? data.role ?? queryRole;
       // Set expiration (7 days)
       const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
       if (type === "forgot") {
         navigate(resetPasswordPath(verifiedUserId), { replace: true });
+      } else if (Number(userRole) === Roles.LOGISTICS) {
+        localStorage.removeItem("temptoken");
+        localStorage.setItem("token", token);
+        persistUserId(verifiedUserId);
+        localStorage.setItem("role", String(Roles.LOGISTICS));
+        localStorage.setItem("expiresAt", expiresAt);
+        localStorage.removeItem("owner_id");
+        localStorage.setItem(
+          "logisticsPermissions",
+          JSON.stringify(userBlob.permissions || [])
+        );
+        localStorage.setItem("activeModule", "logistics");
+        localStorage.setItem(
+          "isSubscribed",
+          Number(userBlob.isSubscribed) === 1 || userBlob.isSubscribed === true
+            ? "1"
+            : "0"
+        );
+        if (userBlob.subscription_holder) {
+          localStorage.setItem(
+            "logisticsSubscriptionHolder",
+            String(userBlob.subscription_holder)
+          );
+        }
+        if (userBlob.owner_id) {
+          localStorage.setItem("owner_id", String(userBlob.owner_id));
+        }
+        emit("new_user_connect", { userid: verifiedUserId });
+        navigate(
+          userBlob.owner_id ? "/logistics/driver" : "/logistics/owner",
+          { replace: true }
+        );
       } else if (
         Number(res?.payload?.data?.is_completeProfile) === 0 &&
         Number(userRole) === Roles.CUSTOMER

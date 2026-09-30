@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import ScrollToTop from "../Hooks/ScrollToTop";
 import PrivateRoute from "./PrivateRoute";
 import Loader from "../CommanComponents/Loader";
@@ -28,6 +28,9 @@ import ServiceProCategoryDetail from "../Pages/ServiceProCategoryDetail";
 import PrivacyPolicy from "../Pages/PrivacyPolicy";
 import TermsConditions from "../Pages/TermsConditions";
 import PrivateCorporate from "./PrivateCorporate";
+import PrivateLogisticsHub from "./PrivateLogisticsHub";
+import PrivateLogisticsOwner from "./PrivateLogisticsOwner";
+import PrivateLogisticsDriver from "./PrivateLogisticsDriver";
 import CorporateLeeds from "../Pages/corporate/leads";
 import CorporateDashboard from "../Pages/corporate";
 import CorporateAddProduct from "../Pages/corporate/products/addForm";
@@ -51,6 +54,35 @@ import SubscriptionSuccess from "../Pages/corporate/SubscriptionSuccess";
 import CorporatePro from "../Pages/corporate/corporatePro";
 import CorporateProDetails from "../Pages/corporate/corporateProDetails";
 import CorporateBusinessPage from "../Pages/corporate/corporateBussiness";
+import LogisticsHubHome from "../Pages/logistics/HubHome";
+import LogisticsPostJob from "../Pages/logistics/PostJob";
+import LogisticsSearch from "../Pages/logistics/Search";
+import LogisticsMyJobs, { LogisticsJobDetail } from "../Pages/logistics/MyJobs";
+import LogisticsAssetDetail from "../Pages/logistics/AssetDetail";
+import LogisticsOwnerAsset from "../Pages/logistics/OwnerAsset";
+import LogisticsOwnerDashboard from "../Pages/logistics/OwnerDashboard";
+import LogisticsOwnerEarnings from "../Pages/logistics/OwnerEarnings";
+import LogisticsOwnerAnalytics from "../Pages/logistics/OwnerAnalytics";
+import LogisticsOperatorAnalytics from "../Pages/logistics/OperatorAnalytics";
+import OwnerReports from "../Pages/logistics/OwnerReports";
+import LogisticsOwnerSubscription from "../Pages/logistics/OwnerSubscription";
+import LogisticsFleet from "../Pages/logistics/Fleet";
+import LogisticsOperators from "../Pages/logistics/Operators";
+import LogisticsDriverHome from "../Pages/logistics/DriverHome";
+import LogisticsOperatorJob from "../Pages/logistics/OperatorJob";
+import LogisticsInviteActivate from "../Pages/logistics/InviteActivate";
+import LogisticsSupplyPlaceholder from "../Pages/logistics/SupplyPlaceholder";
+import LogisticsSupport from "../Pages/logistics/LogisticsSupport";
+import OwnerAvailability from "../Pages/logistics/OwnerAvailability";
+import OwnerEquipment from "../Pages/logistics/OwnerEquipment";
+import LogisticsQuotesList from "../Pages/logistics/QuotesList";
+import MultiTransitMode from "../Pages/logistics/MultiTransitMode";
+import {
+  LogisticsOwnerOpportunities,
+  LogisticsOperatorOpportunities,
+  LogisticsOperatorMyJobs,
+  LogisticsOwnerMyJobs,
+} from "../Pages/logistics/SupplyPages";
 
 const lazyWithChunkRetry = (importer, retryKey) =>
   lazy(async () => {
@@ -129,6 +161,11 @@ const RoutesPage = () => {
           <Route path="/otp-varification" element={<OtpVarification />} />
           <Route path="/complete-profile" element={<CompleteProfile />} />
           <Route path="/provider" element={<ProviderProfile />} />
+          <Route path="/logistics/invite" element={<LogisticsInviteActivate />} />
+          <Route
+            path="/logistics/invite/:token"
+            element={<LogisticsInviteActivate />}
+          />
 
           <Route path="/category" element={<Category />} />
           <Route path="/near-by-services" element={<NearByServices />} />
@@ -176,6 +213,69 @@ const RoutesPage = () => {
             <Route path="/corporate/subscription-cancel/:transactionId" element={<SubscriptionCancel />} />
             <Route path="/corporate/corporate-pro-detail/:categoryId" element={<CorporateProDetails />} />
             <Route path="/corporate/corporate-business/:id" element={<CorporateBusinessPage />} />
+          </Route>
+
+          <Route path="/logistics" element={<PrivateLogisticsHub />}>
+            <Route index element={<LogisticsHubHome />} />
+            <Route path="post" element={<LogisticsPostJob />} />
+            <Route path="search" element={<LogisticsSearch />} />
+            <Route path="asset/:id" element={<LogisticsAssetDetail />} />
+            <Route path="jobs" element={<LogisticsMyJobs />} />
+            <Route path="jobs/:id" element={<LogisticsJobDetail />} />
+            <Route path="jobs/:id/quotes" element={<LogisticsJobDetail />} />
+          </Route>
+
+          <Route path="/logistics/owner" element={<PrivateLogisticsOwner />}>
+            <Route index element={<LogisticsOwnerDashboard />} />
+            <Route path="fleet" element={<LogisticsFleet />} />
+            <Route path="fleet/add" element={<LogisticsFleet />} />
+            <Route path="fleet/:id" element={<LogisticsOwnerAsset />} />
+            <Route path="operators" element={<LogisticsOperators />} />
+            <Route path="operators/add" element={<LogisticsOperators />} />
+            <Route
+              path="drivers"
+              element={<Navigate to="/logistics/owner/operators" replace />}
+            />
+            <Route path="opportunities" element={<LogisticsOwnerOpportunities />} />
+            <Route path="quotes" element={<LogisticsQuotesList />} />
+            <Route path="job/:id" element={<LogisticsOperatorJob />} />
+            <Route path="jobs" element={<LogisticsOwnerMyJobs />} />
+            <Route path="earnings" element={<LogisticsOwnerEarnings />} />
+            <Route path="equipment" element={<OwnerEquipment />} />
+            <Route path="availability" element={<OwnerAvailability />} />
+            <Route path="analytics" element={<LogisticsOwnerAnalytics />} />
+            <Route path="reports" element={<OwnerReports />} />
+            <Route path="subscription" element={<LogisticsOwnerSubscription />} />
+            <Route
+              path="support"
+              element={
+                <LogisticsSupport homeTo="/logistics/owner" midLabel="Owner" />
+              }
+            />
+          </Route>
+
+          <Route path="/logistics/driver" element={<PrivateLogisticsDriver />}>
+            <Route index element={<LogisticsDriverHome />} />
+            <Route path="work" element={<LogisticsOperatorOpportunities />} />
+            <Route path="jobs" element={<LogisticsOperatorMyJobs />} />
+            <Route path="multi-transit/:id" element={<MultiTransitMode />} />
+            <Route path="quotes" element={<LogisticsQuotesList />} />
+            <Route path="job/:id" element={<LogisticsOperatorJob />} />
+            <Route path="earnings" element={<LogisticsDriverHome />} />
+            <Route
+              path="availability"
+              element={<Navigate to="/logistics/driver" replace />}
+            />
+            <Route path="analytics" element={<LogisticsOperatorAnalytics />} />
+            <Route
+              path="support"
+              element={
+                <LogisticsSupport
+                  homeTo="/logistics/driver"
+                  midLabel="Operator"
+                />
+              }
+            />
           </Route>
 
           {/* Private Routes */}

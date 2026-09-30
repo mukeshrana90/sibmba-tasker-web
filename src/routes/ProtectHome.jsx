@@ -10,6 +10,8 @@ const ProtectHome = () => {
   }
 
   if (String(role) === String(Roles.CUSTOMER)) return <Outlet />;
+  // Equipment owners use Tasker as customers when module toggle is Simba Tasker
+  if (String(role) === String(Roles.LOGISTICS)) return <Outlet />;
   // PrivateService / RequireProviderService will bounce to /service/add when needed
   if (String(role) === String(Roles.SERVICE_PROVIDER)) {
     return <Navigate to="/requests" replace />;

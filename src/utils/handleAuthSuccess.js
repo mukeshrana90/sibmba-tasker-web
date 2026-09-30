@@ -1,5 +1,13 @@
 import { toast } from "react-toastify";
-import { consumeAuthReturnUrl } from "./authRedirect";
+import {
+  consumeAuthReturnUrl,
+  resolvePostLoginPath,
+} from "./authRedirect";
+import {
+  normalizeAuthPayload,
+  persistLogisticsSession,
+  persistTaskerSession,
+} from "./authSession";
 import { expiresAt } from "./CommonFunction";
 import { Roles } from "./Roles";
 import { autoCompleteCustomerProfile } from "./customerProfileAutoComplete";
@@ -10,6 +18,9 @@ import {
   notifyProviderServiceRequired,
   resolveServiceProviderHomePath,
 } from "./providerServiceGate";
+
+export { normalizeAuthPayload, persistLogisticsSession } from "./authSession";
+export { resolvePostLoginPath } from "./authRedirect";
 
 export async function handleAuthSuccess({
   payload,
@@ -23,14 +34,26 @@ export async function handleAuthSuccess({
     return false;
   }
 
-  const data = payload?.data;
+  const data = normalizeAuthPayload(payload);
   const token = data?.token;
   const userId = persistUserId(data?._id);
   const role = data?.role;
+  const ownerId = data?.owner_id || null;
+
+  if (!token || userId == null) {
+    toast.error(payload?.message || "Authentication failed");
+    return false;
+  }
 
   localStorage.setItem("token", token);
-  localStorage.setItem("role", role);
+  localStorage.setItem("role", String(role));
   localStorage.setItem("expiresAt", expiresAt);
+
+  if (Number(role) === Roles.LOGISTICS) {
+    persistLogisticsSession(data);
+  } else {
+    persistTaskerSession();
+  }
 
   if (Number(data?.email_verified) === 0) {
     navigate(otpVerificationPath(userId), { replace: true });
@@ -55,7 +78,12 @@ export async function handleAuthSuccess({
     });
 
     emit("new_user_connect", { userid: userId });
-    navigate(consumeAuthReturnUrl() || returnUrl || "/");
+    const dest = resolvePostLoginPath({
+      role,
+      ownerId,
+      returnUrl: consumeAuthReturnUrl() || returnUrl,
+    });
+    navigate(dest, { replace: true });
     toast.success(
       profileResult.ok
         ? payload?.message
@@ -79,22 +107,28 @@ export async function handleAuthSuccess({
   }
 
   localStorage.removeItem("temptoken");
-  if (Number(role) === Roles.CUSTOMER) {
-    emit("new_user_connect", { userid: userId });
-    navigate(consumeAuthReturnUrl() || returnUrl || "/");
-  } else if (Number(role) === Roles.SERVICE_PROVIDER) {
+
+  const deepLink = consumeAuthReturnUrl() || returnUrl;
+  let dest = resolvePostLoginPath({ role, ownerId, returnUrl: deepLink });
+
+  if (Number(role) === Roles.SERVICE_PROVIDER) {
     clearProviderServiceGateCache();
     const homePath = await resolveServiceProviderHomePath({ force: true });
-    navigate(homePath, { replace: true });
+    dest =
+      homePath === "/service/add"
+        ? homePath
+        : resolvePostLoginPath({ role, ownerId, returnUrl: deepLink });
     emit("new_user_connect", { userid: userId });
+    navigate(dest, { replace: true });
     if (homePath === "/service/add") {
       notifyProviderServiceRequired();
-      return true;
     }
-  } else if (Number(role) === Roles.CORPORATE) {
-    navigate("/corporate");
-    emit("new_user_connect", { userid: userId });
+    toast.success(payload?.message);
+    return true;
   }
+
+  emit("new_user_connect", { userid: userId });
+  navigate(dest, { replace: true });
   toast.success(payload?.message);
   return true;
 }
@@ -106,6 +140,9 @@ export function socialLoginEndpoint(role) {
   }
   if (normalizedRole === Roles.CORPORATE) {
     return "/corporate/auth/socialLogin";
+  }
+  if (normalizedRole === Roles.LOGISTICS) {
+    return "/logistics/auth/socialLogin";
   }
   return "/customer/auth/socialLogin";
 }

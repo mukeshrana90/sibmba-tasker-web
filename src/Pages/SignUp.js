@@ -10,6 +10,7 @@ import {
 } from "react-international-phone";
 import "react-international-phone/style.css";
 import CustomerActions from "../Redux/Actions/CustomerActions";
+import LogisticsActions from "../Redux/Actions/LogisticsActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import { useQuery } from "../utils/CommonFunction";
 import OtpSelectionModal from "../CommanComponents/Modals/OtpSelectionModal";
@@ -28,36 +29,46 @@ import {
   isAppleLoginDisabled,
   isGoogleLoginDisabled,
 } from "../utils/featureFlags";
+import { Roles } from "../utils/Roles";
 
 const ROLE_COPY = {
-  1: {
+  [Roles.LOGISTICS]: {
+    title: "Sign up as Equipment Owner",
+    sub: "List trucks & plant, hire drivers, and win logistics jobs.",
+  },
+  [Roles.CUSTOMER]: {
     title: "Sign up as a User",
     sub: "Find & hire trusted professionals near you.",
   },
-  2: {
+  [Roles.SERVICE_PROVIDER]: {
     title: "Sign up as a Provider",
     sub: "Offer your services and grow your business.",
   },
-  3: {
+  [Roles.CORPORATE]: {
     title: "Sign up as Corporate",
     sub: "Enterprise solutions for your organization.",
   },
 };
 
+/** Equipment/Logistic first — under logo, before Tasker role tabs */
 const ROLE_OPTIONS = [
-  { key: 1, label: "I Need a Service" },
-  { key: 2, label: "Service Provider" },
-  { key: 3, label: "Corporate" },
+  { key: Roles.LOGISTICS, label: "Equipment Owner" },
+  { key: Roles.CUSTOMER, label: "Need a Service" },
+  { key: Roles.SERVICE_PROVIDER, label: "Provider" },
+  { key: Roles.CORPORATE, label: "Corporate" },
 ];
 
 const AUTH_VISUAL_IMG =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
 
 function parseRoleFromQuery(value) {
-  if (value === "2" || value === "provider") return 2;
-  if (value === "3" || value === "corporate") return 3;
-  if (value === "1" || value === "user") return 1;
-  return 1;
+  if (value === "4" || value === "logistics" || value === "equipment") {
+    return Roles.LOGISTICS;
+  }
+  if (value === "2" || value === "provider") return Roles.SERVICE_PROVIDER;
+  if (value === "3" || value === "corporate") return Roles.CORPORATE;
+  if (value === "1" || value === "user") return Roles.CUSTOMER;
+  return Roles.CUSTOMER;
 }
 
 function EyeOpenIcon() {
@@ -234,7 +245,7 @@ export default function SignUp() {
   const handleRoleChange = (roleKey) => {
     setSelectedRole(roleKey);
     const path =
-      roleKey === 1 ? "/sign-up" : `/sign-up?role=${roleKey}`;
+      roleKey === Roles.CUSTOMER ? "/sign-up" : `/sign-up?role=${roleKey}`;
     navigate(path, { replace: true });
   };
 
@@ -257,7 +268,16 @@ export default function SignUp() {
       device_token: deviceToken,
     };
 
-    const response = await dispatch(CustomerActions.createCustomer(payload));
+    const isLogistics = Number(selectedRole) === Roles.LOGISTICS;
+    const response = isLogistics
+      ? await dispatch(
+          LogisticsActions.register({
+            ...payload,
+            vertical: "both",
+          })
+        )
+      : await dispatch(CustomerActions.createCustomer(payload));
+
     if (response?.payload?.status_code === 200) {
       toast.success(response?.payload?.message || "Registration successful");
       setShowOtpModal(false);
@@ -324,9 +344,16 @@ export default function SignUp() {
                   src={require("../Assets/Images/dark-logo.png")}
                   alt="Simba Tasker"
                 />
+                {Number(selectedRole) === Roles.LOGISTICS && (
+                  <span className="brand-module">| Equipment/Logistic</span>
+                )}
               </Link>
 
-              <div className="role-toggle">
+              <div
+                className={`role-toggle${
+                  ROLE_OPTIONS.length > 3 ? " role-toggle--quad" : ""
+                }`}
+              >
                 {ROLE_OPTIONS.map((opt) => (
                   <button
                     key={opt.key}

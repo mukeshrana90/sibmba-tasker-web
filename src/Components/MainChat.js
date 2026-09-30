@@ -20,15 +20,23 @@ import {
   chatPeerDisplayName,
 } from "../utils/chatUtils";
 import { fetchChatHistory } from "../utils/chatMessagesApi";
+import {
+  canInitiateLogisticsOrTaskerChat,
+  logisticsSubscriptionHeldByOwner,
+} from "../utils/chatAccess";
+import { getActiveModule } from "../utils/Roles";
+import { getSocketBaseUrl } from "../utils/socketBaseUrl";
+import LogisticsActions from "../Redux/Actions/LogisticsActions";
 
 const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
-  const BASE_URL = process.env.REACT_APP_API_URLL;
+  const BASE_URL = getSocketBaseUrl();
   const token = localStorage.getItem("token");
   const { selectedUser, setSelectedUser, chatList, setNewchat } =
     useContext(ChatContext);
   const [message, setMessage] = useState("");
   const [messageHistory, setMessageHistory] = useState([]);
   const [receiverDetail, setReceiverDetail] = useState(null);
+  const [peerHint, setPeerHint] = useState(null);
   const [loading, setLoading] = useState(false);
   const receiver_id = normalizeChatUserId(selectedUser || reciverID) || null;
   const senderId = normalizeChatUserId(sender_id);
@@ -38,6 +46,8 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
   const socketRef = useRef(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [packageDetails, setPackageDetails] = useState(null);
+  // True once the profile / subscription check has finished (success or fail)
+  const [profileResolved, setProfileResolved] = useState(false);
   const dispatch = useDispatch();
   const receiverIdRef = useRef(receiver_id);
   const historyRequestRef = useRef(0);
@@ -53,18 +63,128 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
   }, [reciverID, selectedUser, setSelectedUser]);
 
   useEffect(() => {
-    const preload = localStorage.getItem("preloadTaskMessage");
-    if (preload && socket && receiver_id && senderId) {
-      const parsed = JSON.parse(preload);
-      socket.emit("send_message_new", {
-        sender_id: senderId,
-        receiver_id,
-        message: JSON.stringify(parsed),
-        message_type: "7",
-      });
-      localStorage.removeItem("preloadTaskMessage");
+    if (!receiver_id) {
+      setPeerHint(null);
+      return;
     }
-  }, [receiver_id, socket, senderId]);
+    try {
+      const raw = sessionStorage.getItem("chatPeerHint");
+      if (!raw) {
+        setPeerHint(null);
+        return;
+      }
+      const hint = JSON.parse(raw);
+      if (normalizeChatUserId(hint?._id) === receiver_id) {
+        setPeerHint(hint);
+      } else {
+        setPeerHint(null);
+      }
+    } catch {
+      setPeerHint(null);
+    }
+  }, [receiver_id]);
+
+  const userRole = Number(
+    packageDetails?.user?.role ?? localStorage.getItem("role")
+  );
+  const isSubscribed =
+    Number(packageDetails?.user?.isSubscribed) === 1 ||
+    Number(localStorage.getItem("isSubscribed")) === 1;
+  const activeModule =
+    getActiveModule() || packageDetails?.user?.activeModule || "tasker";
+  const canReply = canInitiateLogisticsOrTaskerChat({
+    role: userRole,
+    isSubscribed,
+    activeModule,
+  });
+
+  useEffect(() => {
+    if (!receiver_id || !senderId || loading) return undefined;
+
+    const preload = localStorage.getItem("preloadTaskMessage");
+    if (!preload) return undefined;
+
+    // Wait for the subscription check before seeding the job card
+    if (!profileResolved) return undefined;
+
+    // Same gate as typed replies: unpaid logistics supply must not send the card
+    if (!canReply) {
+      localStorage.removeItem("preloadTaskMessage");
+      localStorage.removeItem("preloadJobChatKey");
+      return undefined;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(preload);
+    } catch {
+      localStorage.removeItem("preloadTaskMessage");
+      return undefined;
+    }
+
+    const jobKey =
+      localStorage.getItem("preloadJobChatKey") ||
+      `card:${parsed?.id || ""}:${receiver_id}`;
+
+    // Only seed once per job+peer; skip if thread already has messages
+    const alreadySent = sessionStorage.getItem(`jobChatSent:${jobKey}`);
+    if (alreadySent || (Array.isArray(messageHistory) && messageHistory.length > 0)) {
+      localStorage.removeItem("preloadTaskMessage");
+      localStorage.removeItem("preloadJobChatKey");
+      return undefined;
+    }
+
+    const emitSocket = socketRef.current || socket;
+    if (!emitSocket) return undefined;
+
+    const payload = {
+      sender_id: senderId,
+      receiver_id,
+      message: JSON.stringify(parsed),
+      message_type: parsed?.kind === "logistics_job" ? "7" : "7",
+    };
+
+    const send = () => {
+      emitSocket.emit("send_message_new", payload);
+      try {
+        sessionStorage.setItem(`jobChatSent:${jobKey}`, "1");
+      } catch {
+        /* ignore */
+      }
+      localStorage.removeItem("preloadTaskMessage");
+      localStorage.removeItem("preloadJobChatKey");
+      setMessageHistory((prev) => {
+        if (prev.some((m) => m?.message === payload.message)) return prev;
+        return [
+          ...prev,
+          {
+            _id: `local-preload-${Date.now()}`,
+            sender_id: senderId,
+            receiver_id,
+            message: payload.message,
+            message_type: 7,
+            createdAt: new Date().toISOString(),
+          },
+        ];
+      });
+    };
+
+    if (emitSocket.connected) {
+      send();
+    } else {
+      emitSocket.once("connect", send);
+    }
+
+    return undefined;
+  }, [
+    receiver_id,
+    senderId,
+    loading,
+    messageHistory.length,
+    socket,
+    profileResolved,
+    canReply,
+  ]);
 
   useEffect(() => {
     if (messageContainerRef.current) {
@@ -74,11 +194,18 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
   }, [messageHistory]);
 
   useEffect(() => {
-    if (receiver_id && socket) {
-      socket.emit("joinedRoomUser", {
+    if (receiver_id && senderId) {
+      const payload = {
         sender: senderId,
         reciver: receiver_id,
-      });
+      };
+      const emitJoin = (sock) => {
+        if (!sock) return;
+        sock.emit("joinRoom", payload);
+        sock.emit("joinedRoomUser", payload);
+      };
+      emitJoin(socket);
+      emitJoin(socketRef.current);
     }
   }, [receiver_id, senderId, socket]);
 
@@ -109,15 +236,23 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
           (item) => String(item?._id) === String(normalizedMessage?._id)
         );
         if (exists) return prev;
-        return [...prev, normalizedMessage];
+        // Drop matching optimistic bubble (same text from me)
+        const withoutOptimistic = prev.filter((item) => {
+          if (!String(item?._id || "").startsWith("local-")) return true;
+          return !(
+            normalizeChatUserId(item?.sender_id) === senderId &&
+            String(item?.message) === String(normalizedMessage?.message)
+          );
+        });
+        return [...withoutOptimistic, normalizedMessage];
       });
     });
 
     realtimeSocket.on("Get_detailuser", (data) => {
       const requestedId = normalizeChatUserId(receiverIdRef.current);
       const returnedId = normalizeChatUserId(data?.data?._id);
-      if (requestedId && returnedId === requestedId) {
-        setReceiverDetail(data?.data || null);
+      if (requestedId && returnedId === requestedId && data?.data) {
+        setReceiverDetail(data.data);
       }
     });
 
@@ -142,6 +277,8 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
     const requestId = historyRequestRef.current + 1;
     historyRequestRef.current = requestId;
     setLoading(true);
+    setReceiverDetail(null);
+    setMessageHistory([]);
 
     const loadConversation = async () => {
       for (let attempt = 0; attempt < 20 && !socketRef.current; attempt += 1) {
@@ -229,6 +366,15 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
 
   const getProfileApiCall = useCallback(async () => {
     try {
+      const roleHint = Number(localStorage.getItem("role"));
+      if (roleHint === 4) {
+        const me = await dispatch(LogisticsActions.getMe());
+        const user = me?.payload?.data?.user;
+        if (user) {
+          setPackageDetails({ user });
+          return;
+        }
+      }
       const apiRes = await dispatch(
         CustomerActions.getProfileWithSuscription()
       );
@@ -238,6 +384,8 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
       setPackageDetails(apiRes?.payload?.data ?? null);
     } catch (error) {
       console.error("Subscription check failed:", error);
+    } finally {
+      setProfileResolved(true);
     }
   }, [dispatch]);
 
@@ -247,12 +395,29 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
     }
   }, [token, getProfileApiCall]);
 
-  const userRole = Number(packageDetails?.user?.role);
-  const isSubscribed = Number(packageDetails?.user?.isSubscribed) === 1;
-  const providerNeedsSubscription =
-    (userRole === 2 || userRole === 3) && !isSubscribed;
-  const canReply =
-    userRole === 1 || ((userRole === 2 || userRole === 3) && isSubscribed);
+  const providerNeedsSubscription = Number.isFinite(userRole) && !canReply;
+  const listPeer = chatList.find(
+    (chat) => getChatPeerId(chat, senderId) === receiver_id
+  );
+  const headerPeer =
+    receiverDetail ||
+    peerHint ||
+    (listPeer?.receiver
+      ? {
+          full_name: listPeer.receiver.full_name || listPeer.receiver.name,
+          name: listPeer.receiver.name,
+          email: listPeer.receiver.email,
+          profile_image: listPeer.receiver.profile_image,
+          phone_number: listPeer.receiver.phone_number,
+        }
+      : null);
+  const headerTitle = receiver_id
+    ? headerPeer
+      ? chatPeerDisplayName(headerPeer)
+      : loading
+        ? "Loading…"
+        : "Conversation"
+    : "Select a conversation";
 
   const sendMessage = () => {
     if (!canReply) {
@@ -260,16 +425,36 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
       return;
     }
 
-    if (message.trim() === "" || !socketRef.current || !receiver_id) return;
+    const text = message.trim();
+    if (text === "" || !receiver_id || !senderId) return;
 
     const payload = {
       sender_id: senderId,
       receiver_id,
-      message,
+      message: text,
       message_type: 0,
     };
-    socketRef.current.emit("send_message_new", payload);
+
+    const optimistic = {
+      _id: `local-${Date.now()}`,
+      sender_id: senderId,
+      receiver_id,
+      message: text,
+      message_type: 0,
+      createdAt: new Date().toISOString(),
+    };
+    setMessageHistory((prev) => [...prev, optimistic]);
     setMessage("");
+    setNewchat((prev) => !prev);
+
+    const emitSocket = socketRef.current;
+    if (emitSocket?.connected) {
+      emitSocket.emit("send_message_new", payload);
+    } else if (emitSocket) {
+      emitSocket.once("connect", () => {
+        emitSocket.emit("send_message_new", payload);
+      });
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -316,19 +501,13 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
             </button>
           ) : null}
           <div>
-            <h4>
-              {receiverDetail
-                ? chatPeerDisplayName(receiverDetail)
-                : loading && receiver_id
-                  ? "Loading…"
-                  : "Select a conversation"}
-            </h4>
-            <p>{receiverDetail?.email || ""}</p>
+            <h4>{headerTitle}</h4>
+            <p>{headerPeer?.email || ""}</p>
           </div>
         </div>
-        {receiverDetail ? (
+        {headerPeer?.phone_number ? (
         <div className="d-flex gap-2 message-header-actions">
-          <a href={`tel:${receiverDetail?.phone_number}`} className="">
+          <a href={`tel:${headerPeer.phone_number}`} className="">
             <svg
               width="30"
               height="31"
@@ -348,7 +527,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
           </a>
 
           <a
-            href={`https://wa.me/${receiverDetail?.phone_number}`}
+            href={`https://wa.me/${headerPeer.phone_number}`}
             target="_blank"
             rel="noreferrer"
           >
@@ -389,7 +568,11 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
               }
 
               const isTaskCard =
-                parsed && parsed.image && parsed.name && parsed.price;
+                parsed &&
+                parsed.name &&
+                (parsed.kind === "logistics_job" ||
+                  (parsed.image && parsed.price != null));
+              const isLogisticsJob = parsed?.kind === "logistics_job";
               const isImageMessage = ele?.message_type === 1;
               const outgoing = isOutgoingMessage(ele);
 
@@ -402,14 +585,16 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
                     className={outgoing ? "right-side-chat" : "left-side-chat"}
                   >
                     {isTaskCard ? (
-                      <div className="task-card-ui">
+                      <div className={`task-card-ui${isLogisticsJob ? " task-card-ui--logistics" : ""}`}>
                         <div className="task-card-header">
                           <img
                             src={`${parsed.image || defaultImage}`}
-                            alt="Task"
+                            alt=""
                           />
                           <div className="task-header-text">
-                            <span className="task-label">Product Name</span>
+                            <span className="task-label">
+                              {isLogisticsJob ? "Logistics job" : "Product Name"}
+                            </span>
                             <span className="task-title">{parsed.name}</span>
                           </div>
                         </div>
@@ -417,7 +602,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
                         <div className="task-header-text">
                           <div>
                             <strong className="task-label">
-                              Description:{" "}
+                              {isLogisticsJob ? "Details: " : "Description: "}
                             </strong>
                             <span className="task-title">
                               {parsed.description}
@@ -426,21 +611,29 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
                         </div>
                         <div className="task-header-text">
                           <div>
-                            <strong className="task-label">Price: </strong>{" "}
+                            <strong className="task-label">
+                              {isLogisticsJob ? "Amount: " : "Price: "}
+                            </strong>{" "}
                             <span className="task-title">{parsed.price}</span>
                           </div>
 
-                          <div>
-                            <strong className="task-label">🔗 Link: </strong>{" "}
-                            <Link
-                              className="task-title link"
-                              to={`/product-detail/${parsed.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              View Product
-                            </Link>
-                          </div>
+                          {parsed.id ? (
+                            <div>
+                              <strong className="task-label">🔗 Link: </strong>{" "}
+                              <Link
+                                className="task-title link"
+                                to={
+                                  isLogisticsJob
+                                    ? `/logistics/jobs/${parsed.id}`
+                                    : `/product-detail/${parsed.id}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {isLogisticsJob ? "View job" : "View Product"}
+                              </Link>
+                            </div>
+                          ) : null}
                         </div>
 
                         <span className="task-time">
@@ -495,14 +688,24 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
         <>
           {providerNeedsSubscription && (
             <p className="messages-readonly-note">
-              You can read customer messages. Subscribe to a plan to reply.
+              {Number(userRole) === 4
+                ? logisticsSubscriptionHeldByOwner() ||
+                  localStorage.getItem("owner_id")
+                  ? "Your fleet owner needs an active paid subscription for you to reply. You can still read messages."
+                  : "Logistics fleet owners need an active paid subscription to reply. Operators inherit the owner's plan. You can still read messages."
+                : "You can read customer messages. Subscribe to a plan to reply."}
             </p>
           )}
           <div className="message-chat-input">
             <input
               placeholder={
                 providerNeedsSubscription
-                  ? "Subscribe to reply to customers"
+                  ? Number(userRole) === 4
+                    ? logisticsSubscriptionHeldByOwner() ||
+                      localStorage.getItem("owner_id")
+                      ? "Ask your fleet owner to subscribe"
+                      : "Subscribe (fleet owner plan) to reply"
+                    : "Subscribe to reply to customers"
                   : "Write message here..."
               }
               value={message}
@@ -548,22 +751,39 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
           <div className="comman-small-pop">
             <h3>Upgrade Plan</h3>
             <div className="d-flex justify-content-center download-app-section mt-2">
-              Please subscribe to our plan to send message
+              {Number(packageDetails?.user?.role) === 4 &&
+              (logisticsSubscriptionHeldByOwner() ||
+                localStorage.getItem("owner_id"))
+                ? "Your fleet owner must buy the logistics subscription. Operators do not subscribe separately."
+                : "Please subscribe to our plan to send message"}
             </div>
             <div className="d-flex justify-content-center mt-3">
-              <button
-                className="primaryBtn"
-                onClick={() => {
-                  const role = packageDetails?.user?.role;
-                  if (Number(role) === 3) {
-                    navigate(`/corporate/subscription-plan`);
-                  } else {
-                    navigate(`/payment`);
-                  }
-                }}
-              >
-                Upgrade Plan
-              </button>
+              {Number(packageDetails?.user?.role) === 4 &&
+              (logisticsSubscriptionHeldByOwner() ||
+                localStorage.getItem("owner_id")) ? (
+                <button
+                  className="primaryBtn"
+                  onClick={() => setShowPlanModal(false)}
+                >
+                  Got it
+                </button>
+              ) : (
+                <button
+                  className="primaryBtn"
+                  onClick={() => {
+                    const role = packageDetails?.user?.role;
+                    if (Number(role) === 3) {
+                      navigate(`/corporate/subscription-plan`);
+                    } else if (Number(role) === 4) {
+                      navigate(`/payment`);
+                    } else {
+                      navigate(`/payment`);
+                    }
+                  }}
+                >
+                  Upgrade Plan
+                </button>
+              )}
             </div>
           </div>
         </Modal.Body>

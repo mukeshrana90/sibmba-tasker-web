@@ -7,6 +7,19 @@ import {
   resolveBookingPickerDraft,
 } from "../../utils/bookingLocationPicker";
 
+/**
+ * After React-Bootstrap finishes unmounting the modal, restore body scroll
+ * if nothing else is open. Never remove React-managed backdrop/modal nodes
+ * (that causes removeChild NotFoundError).
+ */
+export function restoreBodyScrollIfIdle() {
+  if (typeof document === "undefined") return;
+  if (document.querySelector(".modal.show")) return;
+  document.body.classList.remove("modal-open");
+  document.body.style.removeProperty("overflow");
+  document.body.style.removeProperty("padding-right");
+}
+
 function PickerMap({ center, address, onPick }) {
   const mapRef = useRef(null);
   const mapObj = useRef(null);
@@ -104,8 +117,25 @@ function PickerMap({ center, address, onPick }) {
 
   useEffect(() => {
     return () => {
-      mapObj.current = null;
+      try {
+        if (markerRef.current) {
+          window.google?.maps?.event?.clearInstanceListeners?.(
+            markerRef.current
+          );
+          markerRef.current.setMap(null);
+        }
+        if (mapObj.current) {
+          window.google?.maps?.event?.clearInstanceListeners?.(mapObj.current);
+        }
+      } catch {
+        /* ignore maps teardown errors */
+      }
       markerRef.current = null;
+      mapObj.current = null;
+      // Detach Maps-injected nodes before React unmounts the container.
+      if (mapRef.current) {
+        mapRef.current.replaceChildren();
+      }
     };
   }, []);
 
@@ -177,6 +207,8 @@ export default function BookingLocationPickerModal({
     <Modal
       show={show}
       onHide={onHide}
+      onExited={restoreBodyScrollIfIdle}
+      animation={false}
       centered
       size="lg"
       className="simba-book-loc-modal"
@@ -235,7 +267,8 @@ export default function BookingLocationPickerModal({
             className="btn btn-primary"
             disabled={!draft?.address?.trim() || resolving}
             onClick={() => {
-              if (draft) onConfirm(draft);
+              if (!draft) return;
+              onConfirm(draft);
               onHide();
             }}
           >

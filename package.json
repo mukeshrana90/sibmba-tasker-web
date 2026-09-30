@@ -47,6 +47,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:places": "node scripts/landingPlaces-smoke.js",
+    "e2e:owner": "node scripts/e2e-owner-ui.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -68,6 +69,8 @@
     ]
   },
   "devDependencies": {
+    "dotenv": "^17.4.2",
+    "playwright": "^1.63.0",
     "react-router-dom": "^6.26.1"
   }
 }

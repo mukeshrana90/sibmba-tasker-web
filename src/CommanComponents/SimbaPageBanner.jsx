@@ -5,9 +5,19 @@ export default function SimbaPageBanner({
   crumbLabel,
   homeTo = "/",
   midCrumb,
+  variant,
 }) {
+  const bannerClass =
+    variant === "logistics" ? "corp-banner corp-banner--logistics" : "corp-banner";
+
   return (
-    <section className="corp-banner">
+    <section className={bannerClass}>
+      {variant === "logistics" ? (
+        <>
+          <span className="corp-banner__deco corp-banner__deco--leaves" aria-hidden="true" />
+          <span className="corp-banner__deco corp-banner__deco--truck" aria-hidden="true" />
+        </>
+      ) : null}
       <h1>{title}</h1>
       <nav className="crumbs" aria-label="Breadcrumb">
         <span className="crumbs-path">

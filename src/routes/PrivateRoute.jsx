@@ -13,6 +13,7 @@ const PrivateRoute = () => {
 
   if (token && location.pathname === "/") {
     if (String(role) === String(Roles.CUSTOMER)) return <Outlet />;
+    if (String(role) === String(Roles.LOGISTICS)) return <Outlet />;
     if (String(role) === String(Roles.SERVICE_PROVIDER)) {
       return <Navigate to="/requests" replace />;
     }

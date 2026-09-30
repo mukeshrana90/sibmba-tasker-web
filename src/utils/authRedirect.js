@@ -1,3 +1,8 @@
+import {
+  homeRouteForRole,
+  isLogisticsRole,
+} from "./Roles";
+
 export function isLoggedIn() {
   return Boolean(localStorage.getItem("token"));
 }
@@ -50,4 +55,29 @@ export function resolvePostAuthPath(queryReturnUrl) {
     peekAuthReturnUrl() ||
     null
   );
+}
+
+/**
+ * After login / refresh: land on the role's primary dashboard.
+ * Deep links (returnUrl) are honored only when they fit that role's module —
+ * Tasker roles stay on Tasker/Hub; logistics roles stay on Logistics.
+ * Module toggle is manual after that.
+ */
+export function resolvePostLoginPath({ role, ownerId, returnUrl } = {}) {
+  const home = homeRouteForRole(role, ownerId);
+  const deep = safeReturnUrl(returnUrl);
+  if (!deep) return home;
+
+  if (isLogisticsRole(role)) {
+    if (deep.startsWith("/logistics")) return deep;
+    return home;
+  }
+
+  if (
+    deep.startsWith("/logistics/owner") ||
+    deep.startsWith("/logistics/driver")
+  ) {
+    return home;
+  }
+  return deep;
 }
