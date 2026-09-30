@@ -26,6 +26,8 @@ const serviceSlice = createSlice({
     getLeads:null,
     getCorporateList:null,
     corporateCategory:null,
+    // All active corporate categories for select boxes (not paged)
+    corporateCategoryOptions: null,
     nearbyCorporateCategory:null,
     corpoProUserDetail:null
   },
@@ -387,6 +389,13 @@ const serviceSlice = createSlice({
       (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      }
+    );
+
+    builder.addCase(
+      ServiceActions.getAllCorporateCategories.fulfilled,
+      (state, action) => {
+        state.corporateCategoryOptions = action.payload;
       }
     );
 

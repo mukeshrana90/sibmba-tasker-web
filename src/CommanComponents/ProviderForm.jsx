@@ -19,6 +19,7 @@ import { useDispatch, useSelector } from "react-redux";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 import { markProviderHasService } from "../utils/providerServiceGate";
+import CorporateCategorySelect from "./CorporateCategorySelect";
 
 function hasValidLocationCoords(lat, lng) {
   const latN = parseFloat(lat);
@@ -236,7 +237,7 @@ const ProviderForm = ({
   const navigate = useNavigate();
   const categoryList = useSelector((e) => e.service.category);
   const identificationLists = useSelector((e) => e.service.identificationList);
-  const corporateCategory = useSelector((e) => e.service.corporateCategory);
+  const corporateCategory = useSelector((e) => e.service.corporateCategoryOptions);
   const [previews, setPreviews] = useState({
     profile_image: "",
     govtIssueId: "",
@@ -325,7 +326,7 @@ const ProviderForm = ({
   useEffect(() => {
     dispatch(ServiceActions.getCategoryList());
     dispatch(ServiceActions.getIdentificationList());
-    dispatch(ServiceActions.getCorporateCategoryList());
+    dispatch(ServiceActions.getAllCorporateCategories());
   }, [dispatch]);
 
   useEffect(() => {
@@ -920,15 +921,20 @@ const ProviderForm = ({
 
                     {isCorporate ? (
                       <Field name="corporateCategoryId">
-                        {({ field }) => (
-                          <select {...field} className="form-select">
-                            <option value="">Select</option>
-                            {corporateCategory?.data?.map((item) => (
-                              <option key={item._id} value={item._id}>
-                                {item.name}
-                              </option>
-                            ))}
-                          </select>
+                        {({ field, form, meta }) => (
+                          <CorporateCategorySelect
+                            name={field.name}
+                            inputId="formIdentifyYourself"
+                            variant="provider"
+                            categories={corporateCategory?.data}
+                            value={field.value}
+                            invalid={Boolean(meta.touched && meta.error)}
+                            onChange={(id) => {
+                              form.setFieldValue(field.name, id);
+                              form.setFieldTouched(field.name, true, false);
+                            }}
+                            onBlur={() => form.setFieldTouched(field.name, true)}
+                          />
                         )}
                       </Field>
                     ) : (

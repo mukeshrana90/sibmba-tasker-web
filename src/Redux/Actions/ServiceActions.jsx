@@ -44,6 +44,33 @@ const ServiceActions = {
     }
   ),
 
+  // Every active corporate category for select boxes. The API is paged, so walk
+  // all pages (pagination.pages) — new categories always show, whatever the count.
+  getAllCorporateCategories: createAsyncThunk(
+    "service/corporate-category/all",
+    async () => {
+      const limit = 100;
+      const first = (
+        await Api.get("service/corporate-category", { params: { page: 1, limit } })
+      ).data;
+      const pages = Math.min(Number(first?.pagination?.pages) || 1, 50);
+      const rest = await Promise.all(
+        Array.from({ length: pages - 1 }, (_, i) =>
+          Api.get("service/corporate-category", {
+            params: { page: i + 2, limit },
+          }).then((r) => r.data?.data || [])
+        )
+      );
+      const seen = new Set();
+      const data = [...(first?.data || []), ...rest.flat()].filter((c) => {
+        if (!c?._id || seen.has(c._id)) return false;
+        seen.add(c._id);
+        return true;
+      });
+      return { ...first, data, pagination: { ...first?.pagination, page: 1, pages: 1, limit: data.length } };
+    }
+  ),
+
   getIdentificationList: createAsyncThunk(
     "service/getIdentifyYourSelf",
     async (customerData) => {

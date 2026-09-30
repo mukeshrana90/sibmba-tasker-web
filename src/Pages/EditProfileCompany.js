@@ -25,6 +25,7 @@ import Modal from "react-bootstrap/Modal";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 import { Roles } from "../utils/Roles";
+import CorporateCategorySelect from "../CommanComponents/CorporateCategorySelect";
 
 function hasValidLocationCoords(lat, lng) {
   const latN = parseFloat(lat);
@@ -81,7 +82,7 @@ export default function EditProfileCompany() {
   const [hasExistingAddress, setHasExistingAddress] = useState(false);
   const locationAutoDetectTried = useRef(false);
   const [role, setRole] = useState(() => localStorage.getItem("role") || "");
-  const corporateCategory = useSelector((e) => e.service.corporateCategory);
+  const corporateCategory = useSelector((e) => e.service.corporateCategoryOptions);
   const userRole = Number(role);
   const isCorporate = userRole === Roles.CORPORATE;
   const isServiceProvider = userRole === Roles.SERVICE_PROVIDER;
@@ -561,7 +562,7 @@ export default function EditProfileCompany() {
 
   useEffect(() => {
     dispatch(ServiceActions.getIdentificationList());
-    dispatch(ServiceActions.getCorporateCategoryList());
+    dispatch(ServiceActions.getAllCorporateCategories());
   }, [dispatch]);
 
   useEffect(() => {
@@ -746,21 +747,21 @@ export default function EditProfileCompany() {
                         <Col lg={12}>
                           <Form.Group className="mb-3">
                             <Form.Label>Business Category</Form.Label>
-                            <Form.Control
-                              as="select"
+                            <CorporateCategorySelect
                               name="corporateCategoryId"
-                              className="form-select"
+                              categories={corporateCategory?.data}
                               value={formik.values.corporateCategoryId}
-                              onChange={formik.handleChange}
-                              onBlur={formik.handleBlur}
-                            >
-                              <option value="">Select</option>
-                              {corporateCategory?.data?.map((item) => (
-                                <option key={item._id} value={item._id}>
-                                  {item.name}
-                                </option>
-                              ))}
-                            </Form.Control>
+                              invalid={Boolean(
+                                formik.touched.corporateCategoryId &&
+                                  formik.errors.corporateCategoryId
+                              )}
+                              onChange={(id) =>
+                                formik.setFieldValue("corporateCategoryId", id)
+                              }
+                              onBlur={() =>
+                                formik.setFieldTouched("corporateCategoryId", true)
+                              }
+                            />
                             <FieldError
                               formik={formik}
                               name="corporateCategoryId"
