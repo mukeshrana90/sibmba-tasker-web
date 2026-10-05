@@ -5,6 +5,7 @@ import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import LogisticsReasonModal from "../../CommanComponents/LogisticsReasonModal";
 import LogisticsPlanUnitsModal from "../../CommanComponents/LogisticsPlanUnitsModal";
+import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
 import "./logistics.css";
 
 const USAGE_ROWS = [
@@ -18,12 +19,25 @@ function limitText(v) {
   return v == null ? "Unlimited" : String(v);
 }
 
-function planSummary(p) {
+function countLabel(v, one, many = `${one}s`) {
+  return v == null ? `unlimited ${many}` : `${v} ${Number(v) === 1 ? one : many}`;
+}
+
+/** Plan limits in words; cabs left out while the cab service is off. */
+function planSummary(p, withCabs = true) {
   const l = p?.limits || {};
-  const all = ["operators", "vehicles", "cabs", "equipment"].every((k) => l[k] == null);
+  const keys = ["operators", "vehicles", ...(withCabs ? ["cabs"] : []), "equipment"];
+  const all = keys.every((k) => l[k] == null);
+  const parts = [
+    countLabel(l.operators, "operator"),
+    countLabel(l.vehicles, "truck"),
+    ...(withCabs ? [countLabel(l.cabs, "cab")] : []),
+    countLabel(l.equipment, "equipment", "equipment"),
+  ];
+  const listed = `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
   const units = all
     ? "Unlimited operators and units"
-    : `${limitText(l.operators)} operators, ${limitText(l.vehicles)} trucks, ${limitText(l.cabs)} cabs and ${limitText(l.equipment)} equipment`;
+    : listed.charAt(0).toUpperCase() + listed.slice(1);
   return p?.featured_in_hub
     ? `${units}, and one truck of your choice is featured in the Hub's “Top logistics providers”.`
     : `${units}.`;
@@ -34,9 +48,14 @@ function daysLeft(date) {
   return Math.max(0, Math.ceil((new Date(date).getTime() - Date.now()) / 86400000));
 }
 
+// Shown when a priced plan can't be activated yet (server: PLAN_UNAVAILABLE)
+const PLAN_UNAVAILABLE_MESSAGE =
+  "We're unable to activate this plan right now due to a technical issue. Please try again later.";
+
 /** Owner plans: Free (default) + priced tiers (demo — no payment yet). Plans come from the API. */
 export default function LogisticsOwnerSubscription() {
   const dispatch = useDispatch();
+  const { cabEnabled: cabConfigEnabled } = useLogisticsConfig();
   const [sub, setSub] = useState(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
@@ -120,6 +139,9 @@ export default function LogisticsOwnerSubscription() {
   };
 
   const current = sub?.current_plan;
+  // Cab service off (CAB_SERVICE_ENABLED) → no cab rows / wording on this page
+  const withCabs = sub?.cab_service_enabled ?? cabConfigEnabled;
+  const usageRows = USAGE_ROWS.filter((r) => withCabs || r.k !== "cabs");
   const plans = sub?.plans || [];
   const currentRank = sub?.plan?.rank ?? 0;
   const lowestPlan = plans[0];
@@ -129,13 +151,18 @@ export default function LogisticsOwnerSubscription() {
   const pricedCurrent = Number(sub?.plan?.price?.amount) > 0;
 
   const pickPlan = (p) => {
+    // Priced plans are switched off server-side until pricing is final
+    if (p.available === false) {
+      toast.info(PLAN_UNAVAILABLE_MESSAGE);
+      return;
+    }
     if ((p.rank ?? 0) < currentRank) {
       // Smaller plan: let the owner choose which units stay active
       setUnitsModal({
         planId: p.id,
         mode: "downgrade",
         title: `Switch to ${p.name}?`,
-        message: `${planSummary(p)} Choose which units stay active — the rest are disabled and their operators set offline.`,
+        message: `${planSummary(p, withCabs)} Choose which units stay active — the rest are disabled and their operators set offline.`,
         confirmLabel: `Switch to ${p.name}`,
       });
       return;
@@ -158,7 +185,7 @@ export default function LogisticsOwnerSubscription() {
               <div>
                 <small>Your current plan</small>
                 <h2>{sub.plan.name}</h2>
-                <p>{planSummary(sub.plan)}</p>
+                <p>{planSummary(sub.plan, withCabs)}</p>
                 {sub.expires_at ? (
                   <p className={`log-sub-expiry${endsIn <= 3 ? " is-soon" : ""}`}>
                     {endsIn > 0
@@ -170,7 +197,11 @@ export default function LogisticsOwnerSubscription() {
                         type="button"
                         className="log-sub-expiry__renew"
                         disabled={switching}
-                        onClick={() => setConfirmPlan({ ...sub.plan, renew: true })}
+                        onClick={() =>
+                          sub.plan.available === false
+                            ? toast.info(PLAN_UNAVAILABLE_MESSAGE)
+                            : setConfirmPlan({ ...sub.plan, renew: true })
+                        }
                       >
                         Renew
                       </button>
@@ -234,7 +265,7 @@ export default function LogisticsOwnerSubscription() {
                 ) : null}
               </div>
               <dl className="log-sub-usage">
-                {USAGE_ROWS.map((r) => {
+                {usageRows.map((r) => {
                   const max = sub.plan.limits?.[r.k];
                   const used = sub.usage?.[r.k] ?? 0;
                   const over = max != null && used > max;
@@ -280,10 +311,12 @@ export default function LogisticsOwnerSubscription() {
                         <span>Logistic trucks</span>
                         <b>{limitText(p.limits.vehicles)}</b>
                       </li>
-                      <li>
-                        <span>Cabs</span>
-                        <b>{limitText(p.limits.cabs)}</b>
-                      </li>
+                      {withCabs ? (
+                        <li>
+                          <span>Cabs</span>
+                          <b>{limitText(p.limits.cabs)}</b>
+                        </li>
+                      ) : null}
                       <li>
                         <span>Non-logistic equipment</span>
                         <b>{limitText(p.limits.equipment)}</b>
@@ -317,7 +350,12 @@ export default function LogisticsOwnerSubscription() {
               })}
             </section>
 
-            {sub.demo ? (
+            {sub.paid_plans_enabled === false ? (
+              <p className="log-hint log-sub-demo">
+                Paid plans can't be activated right now — you're on {lowestPlan?.name || "Free"} until a
+                paid plan is active.
+              </p>
+            ) : sub.demo ? (
               <p className="log-hint log-sub-demo">
                 Demo plans — no payment is collected yet. Switching takes effect immediately; a paid
                 period lasts {plans.find((p) => p.period_days)?.period_days || 30} days.
@@ -333,7 +371,7 @@ export default function LogisticsOwnerSubscription() {
         message={
           confirmPlan?.renew
             ? `Adds another ${confirmPlan.period_days || 30}-day period after the current one ends.`
-            : `${planSummary(confirmPlan)} Units disabled by your old plan's limit become active again.`
+            : `${planSummary(confirmPlan, withCabs)} Units disabled by your old plan's limit become active again.`
         }
         confirmLabel={confirmPlan?.renew ? "Renew" : "Upgrade"}
         hideReason

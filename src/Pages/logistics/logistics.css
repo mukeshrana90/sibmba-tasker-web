@@ -782,14 +782,26 @@
 }
 
 .p-logistics-hub .corp-banner__deco--truck {
-  right: 18px;
-  top: 50%;
-  width: min(240px, 40vw);
-  height: min(120px, 22vw);
-  opacity: 0.26;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 110' fill='none'%3E%3Cpath d='M14 68h108V28H14v40z' stroke='%230f5c4c' stroke-width='4.5' stroke-linejoin='round'/%3E%3Cpath d='M122 68h32l20-24h18v24h-12' stroke='%230f5c4c' stroke-width='4.5' stroke-linejoin='round'/%3E%3Ccircle cx='46' cy='74' r='11' stroke='%230f5c4c' stroke-width='4.5'/%3E%3Ccircle cx='162' cy='74' r='11' stroke='%230f5c4c' stroke-width='4.5'/%3E%3Cpath d='M14 44h108' stroke='%230f5c4c' stroke-width='3.5' opacity='.45'/%3E%3C/svg%3E");
+  /* Full-height illustration on the right, feathered into the banner wash */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  width: auto;
+  aspect-ratio: 474 / 170;
+  max-width: 48%;
+  opacity: 1;
+  background-image: url("../../Assets/Images/logistics/hub-banner-truck.png");
+  background-size: cover;
   background-position: right center;
-  transform: translateY(-42%);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, #000 38%),
+    linear-gradient(180deg, transparent 0%, #000 14%, #000 88%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, #000 38%),
+    linear-gradient(180deg, transparent 0%, #000 14%, #000 88%, transparent 100%);
+  mask-composite: intersect;
 }
 
 @media (max-width: 640px) {
@@ -805,10 +817,8 @@
   }
 
   .p-logistics-hub .corp-banner__deco--truck {
-    width: 120px;
-    height: 68px;
-    opacity: 0.18;
-    right: 4px;
+    max-width: 60%;
+    opacity: 0.32;
   }
 }
 
@@ -9468,4 +9478,229 @@ a.log-mt-transit-link:hover {
 .log-datepicker .react-datepicker__today-button:hover {
   background: #fdf3e1;
   color: #8a5a06;
+}
+
+/* Suspicious cab drop-off (customer job page) */
+.log-drop-check {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #f0c9a0;
+  border-left: 4px solid #d97706;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #7c2d12;
+}
+.log-drop-check.is-reported {
+  border-color: #fecaca;
+  border-left-color: #b91c1c;
+  background: #fff1f1;
+  color: #7f1d1d;
+}
+.log-drop-check.is-cleared {
+  border-color: #cfe5dc;
+  border-left-color: var(--primary, #0f5c4c);
+  background: var(--primary-soft, #e6f0ec);
+  color: var(--primary, #0f5c4c);
+}
+.log-drop-check__icon {
+  display: inline-flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: currentColor;
+  font-weight: 800;
+  line-height: 1;
+}
+.log-drop-check__icon {
+  color: #fff;
+  background: #d97706;
+}
+.log-drop-check.is-reported .log-drop-check__icon {
+  background: #b91c1c;
+}
+.log-drop-check.is-cleared .log-drop-check__icon {
+  background: var(--primary, #0f5c4c);
+}
+.log-drop-check b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.98rem;
+}
+.log-drop-check p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.log-drop-check p b {
+  display: inline;
+  font-size: inherit;
+}
+.log-drop-check__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.log-drop-check__quote {
+  margin-top: 6px !important;
+  font-style: italic;
+}
+.log-drop-check__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.log-drop-check__actions .logistics-cta {
+  min-height: 40px;
+  padding: 0 16px;
+}
+.log-drop-check__form textarea {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #f0c9a0;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  resize: vertical;
+}
+@media (max-width: 560px) {
+  .log-drop-check__actions .logistics-cta {
+    flex: 1 1 0;
+  }
+}
+.log-job-report__badge--dropoff {
+  background: #fff7ed;
+  color: #b45309;
+}
+
+/* —— Add operator: plan-limit lock, phone with country code, equipment picker —— */
+.log-form-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.log-form-fieldset:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.log-plan-limit-lock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1.5px solid #f1c9a8;
+  border-radius: 12px;
+  background: #fff6ee;
+  color: #7a3d12;
+}
+
+.log-plan-limit-lock b {
+  flex: 1 1 100%;
+}
+
+.log-plan-limit-lock span {
+  flex: 1 1 260px;
+  font-size: 0.9rem;
+}
+
+.log-phone-input .react-international-phone-input-container {
+  display: flex;
+  width: 100%;
+  border: 1.5px solid var(--line-strong, #d9d2c5);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.log-phone-input .react-international-phone-input-container:focus-within {
+  border-color: var(--primary, #0f5c4c);
+  box-shadow: 0 0 0 4px var(--primary-soft, #e6f0ec);
+}
+
+.log-phone-input .react-international-phone-country-selector-button {
+  height: 100%;
+  min-height: 46px;
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-right: 1.5px solid var(--line-strong, #d9d2c5);
+  border-radius: 0;
+  background: #faf8f4;
+}
+
+.p-logistics-hub .log-field .log-phone-input input.react-international-phone-input {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  min-height: 46px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.log-phone-input.is-disabled .react-international-phone-input-container {
+  background: #f5f3ee;
+}
+
+.log-asset-pick__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.log-asset-pick__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.9rem;
+  border: 1.5px solid var(--line-strong, #d9d2c5);
+  border-radius: 10px;
+  font: inherit;
+  background: #fff;
+}
+
+.log-asset-pick__search input:focus {
+  outline: none;
+  border-color: var(--primary, #0f5c4c);
+  box-shadow: 0 0 0 4px var(--primary-soft, #e6f0ec);
+}
+
+.log-asset-pick__search small {
+  flex: none;
+  color: var(--muted, #6b6457);
+  white-space: nowrap;
+}
+
+/* Fixed-height, scrollable equipment list */
+.log-doc-list.log-asset-pick__list {
+  max-height: 340px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 6px 2px 2px;
+  border-radius: 12px;
+}
+
+.log-asset-pick__empty {
+  margin: 4px 0 0;
+}
+
+@media (max-width: 640px) {
+  .log-asset-pick__search {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .log-doc-list.log-asset-pick__list {
+    max-height: 300px;
+  }
 }

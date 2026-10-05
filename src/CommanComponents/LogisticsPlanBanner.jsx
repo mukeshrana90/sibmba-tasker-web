@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import LogisticsActions from "../Redux/Actions/LogisticsActions";
+import { isPlanBucketFull } from "../utils/logisticsPlan";
 
 const BUCKET_LABEL = {
   vehicles: "Trucks",
@@ -10,19 +11,31 @@ const BUCKET_LABEL = {
   operators: "Operators",
 };
 
-/** Plan + usage strip for owner pages (Fleet, Operators). Re-fetches on `refreshKey`. */
-export default function LogisticsPlanBanner({ buckets = ["vehicles", "cabs", "equipment", "operators"], refreshKey = 0 }) {
+/**
+ * Plan + usage strip for owner pages (Fleet, Operators). Re-fetches on `refreshKey`;
+ * `onLoaded(subscription)` lets the page react to limits (e.g. lock the add form).
+ */
+export default function LogisticsPlanBanner({
+  buckets = ["vehicles", "cabs", "equipment", "operators"],
+  refreshKey = 0,
+  onLoaded,
+}) {
   const dispatch = useDispatch();
   const [sub, setSub] = useState(null);
 
   useEffect(() => {
     let alive = true;
     dispatch(LogisticsActions.getSubscription()).then((res) => {
-      if (alive && res?.payload?.success) setSub(res.payload.data);
+      if (alive && res?.payload?.success) {
+        setSub(res.payload.data);
+        onLoaded?.(res.payload.data);
+      }
     });
     return () => {
       alive = false;
     };
+    // onLoaded is a notification hook — re-fetch only on refreshKey
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, refreshKey]);
 
   if (!sub?.plan) return null;
@@ -89,3 +102,6 @@ export default function LogisticsPlanBanner({ buckets = ["vehicles", "cabs", "eq
 export function isPlanLimitError(payload) {
   return payload?.data?.code === "PLAN_LIMIT";
 }
+
+
+export { isPlanBucketFull };

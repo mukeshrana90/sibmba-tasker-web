@@ -503,7 +503,7 @@ export default function LogisticsHubHome() {
           <>
             <HubAssetSection
               title="Top logistics providers"
-              lead="One featured truck from each Paid-plan fleet owner, ranked by rating — check reviews and book directly."
+              lead="Explore the most popular trucks from top fleet owners — trusted by customers and ready to book."
               rows={spotlight.featured_logistics}
               badge="Featured"
               empty="No Paid-plan fleet trucks yet."

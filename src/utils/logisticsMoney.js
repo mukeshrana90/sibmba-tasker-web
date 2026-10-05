@@ -74,3 +74,33 @@ export function formatMoneyInputValue(raw) {
   if (!Number.isFinite(n)) return String(raw);
   return roundMoney2(Math.min(Math.max(n, 0), LOGISTICS_MONEY_MAX)).toFixed(2);
 }
+
+/**
+ * Typed money while editing: sanitized, "." → "0.", no leading zeros ("05" → "5").
+ * Keeps intermediate states like "53." so the next digit lands in the decimals.
+ */
+export function normalizeTypedMoney(raw) {
+  let s = sanitizeMoneyInput(raw);
+  if (s.startsWith(".")) s = `0${s}`;
+  return s.replace(/^0+(?=\d)/, "");
+}
+
+/**
+ * Live ".00" mask: `text` = what the field shows, `pad` = the auto-filled zeros
+ * after the typed part ("53" → 53.00 / pad ".00"; "53.2" → 53.20 / pad "0").
+ * The caret stays before `pad`, so typing "53" then ".24" reads 53.00 → 53.24.
+ */
+export function moneyInputMask(raw) {
+  const typed = raw == null ? "" : String(raw);
+  if (typed === "") return { text: "", pad: "" };
+  const dot = typed.indexOf(".");
+  const pad = dot < 0 ? ".00" : "0".repeat(Math.max(0, 2 - (typed.length - dot - 1)));
+  return { text: typed + pad, pad };
+}
+
+/** Typed value to resume editing a formatted one ("53.00" → "53", "53.20" → "53.2"). */
+export function editableMoneyValue(raw) {
+  const s = raw == null ? "" : String(raw);
+  if (!/^\d+\.\d{2}$/.test(s)) return s;
+  return s.replace(/\.?0+$/, "");
+}

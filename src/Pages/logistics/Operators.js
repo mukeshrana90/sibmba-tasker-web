@@ -2,8 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import LogisticsMoneyInput from "../../CommanComponents/LogisticsMoneyInput";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import LogisticsPlanBanner, {
+  isPlanBucketFull,
   isPlanLimitError,
 } from "../../CommanComponents/LogisticsPlanBanner";
+import LogisticsPhoneInput, {
+  DEFAULT_COUNTRY_CODE,
+} from "../../CommanComponents/LogisticsPhoneInput";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
@@ -51,6 +55,7 @@ async function copyText(text) {
 const emptyInvite = () => ({
   full_name: "",
   email: "",
+  country_code: DEFAULT_COUNTRY_CODE,
   phone_number: "",
   plant_licence_number: "",
   pay_type: "percentage",
@@ -166,6 +171,9 @@ export default function LogisticsOperators() {
   const [showForm, setShowForm] = useState(showAddByRoute);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyInvite);
+  // Plan + usage from the banner; operators bucket full → add form is locked
+  const [planSub, setPlanSub] = useState(null);
+  const [assetQuery, setAssetQuery] = useState("");
   const [q, setQ] = useState("");
   const [assignment, setAssignment] = useState("all");
   const [showKind, setShowKind] = useState("all");
@@ -237,6 +245,7 @@ export default function LogisticsOperators() {
       ...emptyInvite(),
       full_name: op.full_name || "",
       email: op.email || "",
+      country_code: op.country_code || DEFAULT_COUNTRY_CODE,
       phone_number: op.phone_number || "",
       plant_licence_number: op.driving_licence_number || "",
       pay_type: op.invite_pay_type || "percentage",
@@ -257,6 +266,7 @@ export default function LogisticsOperators() {
       URL.revokeObjectURL(form.profile_preview);
     }
     setForm(emptyInvite());
+    setAssetQuery("");
     setEditingId(null);
     setShowForm(false);
     if (showAddByRoute) {
@@ -349,6 +359,12 @@ export default function LogisticsOperators() {
 
   const sendInvite = async (e) => {
     e.preventDefault();
+    if (inviteLocked) {
+      toast.error(
+        "Your plan's operator limit is reached (pending invites count). Upgrade your plan or remove an operator / invite first."
+      );
+      return;
+    }
     if (!String(form.email || "").trim()) {
       toast.error("Email is required");
       return;
@@ -359,7 +375,9 @@ export default function LogisticsOperators() {
       fd.append("sub_user_type", "operator");
       fd.append("full_name", String(form.full_name || "").trim());
       fd.append("email", String(form.email || "").trim().toLowerCase());
-      fd.append("phone_number", String(form.phone_number || "").trim());
+      const phone = String(form.phone_number || "").replace(/\D/g, "");
+      fd.append("phone_number", phone);
+      if (phone) fd.append("country_code", form.country_code || DEFAULT_COUNTRY_CODE);
       fd.append(
         "driving_licence_number",
         String(form.plant_licence_number || "").trim()
@@ -514,6 +532,17 @@ export default function LogisticsOperators() {
 
   const empty = !loading && !operators.length && !invites.length;
   const isEditing = Boolean(editingId);
+  // Free plan with every operator slot used (incl. pending invites) → no new invites
+  const inviteLocked = !isEditing && isPlanBucketFull(planSub, "operators");
+  const assetMatches = useMemo(() => {
+    const needle = assetQuery.trim().toLowerCase();
+    if (!needle) return assets;
+    return assets.filter((a) =>
+      [a.name, a.registration, a.model, a.make]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(needle))
+    );
+  }, [assets, assetQuery]);
 
   const hasFilters = Boolean(
     applied.q ||
@@ -626,12 +655,35 @@ export default function LogisticsOperators() {
       midCrumb={{ to: "/logistics/owner", label: "Owner" }}
       homeTo="/logistics/owner"
     >
-      <LogisticsPlanBanner buckets={["operators"]} refreshKey={operators.length} />
+      <LogisticsPlanBanner
+        buckets={["operators"]}
+        refreshKey={operators.length + invites.length}
+        onLoaded={setPlanSub}
+      />
       {showForm ? (
         <form
           className="log-form-card"
           onSubmit={isEditing ? saveOperatorEdit : sendInvite}
         >
+          {inviteLocked ? (
+            <div className="log-plan-limit-lock" role="alert">
+              <b>
+                Operator limit reached ({planSub.usage?.operators ?? 0} /{" "}
+                {planSub.plan?.limits?.operators}) on your {planSub.plan?.name} plan.
+              </b>
+              <span>
+                Pending invites count too. Upgrade your plan, or remove an
+                operator or cancel a pending invite to add a new one.
+              </span>
+              <Link
+                className="logistics-cta logistics-cta--primary"
+                to="/logistics/owner/subscription"
+              >
+                See plans
+              </Link>
+            </div>
+          ) : null}
+          <fieldset className="log-form-fieldset" disabled={inviteLocked}>
           <p className="log-hint" style={{ marginTop: 0 }}>
             {isEditing
               ? "Update name, photo, documents, and pay type only. The operator is notified of each change."
@@ -703,20 +755,26 @@ export default function LogisticsOperators() {
                     required
                   />
                 </label>
-                <label className="log-field">
-                  <span className="log-fl">Phone</span>
-                  <input
-                    value={form.phone_number}
-                    onChange={set("phone_number")}
-                    placeholder="+263 77 222 3344"
+                <div className="log-field">
+                  <label className="log-fl" htmlFor="op-phone">
+                    Phone
+                  </label>
+                  <LogisticsPhoneInput
+                    id="op-phone"
+                    countryCode={form.country_code}
+                    phoneNumber={form.phone_number}
+                    disabled={inviteLocked}
+                    onChange={({ country_code, phone_number }) =>
+                      setForm((f) => ({ ...f, country_code, phone_number }))
+                    }
                   />
-                </label>
+                </div>
                 <label className="log-field">
-                  <span className="log-fl">Plant licence / ticket no.</span>
+                  <span className="log-fl">Plant licence / Driving Licence</span>
                   <input
                     value={form.plant_licence_number}
                     onChange={set("plant_licence_number")}
-                    placeholder="PL-EXC-48291"
+                    placeholder="Licence number"
                   />
                 </label>
               </>
@@ -802,8 +860,25 @@ export default function LogisticsOperators() {
                 <Link to="/logistics/owner/fleet">Fleet</Link>.
               </p>
               {assets.length ? (
-                <ul className="log-doc-list">
-                  {assets.map((a) => {
+                <>
+                <div className="log-asset-pick__search">
+                  <input
+                    type="search"
+                    value={assetQuery}
+                    onChange={(e) => setAssetQuery(e.target.value)}
+                    placeholder="Search by name or registration no."
+                    aria-label="Search equipment by name or registration number"
+                  />
+                  <small>
+                    {form.asset_ids.length
+                      ? `${form.asset_ids.length} selected · `
+                      : ""}
+                    {assetMatches.length} of {assets.length}
+                  </small>
+                </div>
+                {assetMatches.length ? (
+                <ul className="log-doc-list log-asset-pick__list">
+                  {assetMatches.map((a) => {
                     const checked = form.asset_ids
                       .map(String)
                       .includes(String(a._id));
@@ -859,6 +934,12 @@ export default function LogisticsOperators() {
                     );
                   })}
                 </ul>
+                ) : (
+                  <p className="log-hint log-asset-pick__empty">
+                    No equipment matches “{assetQuery.trim()}”.
+                  </p>
+                )}
+                </>
               ) : (
                 <p className="log-hint">
                   No fleet yet —{" "}
@@ -869,6 +950,8 @@ export default function LogisticsOperators() {
             </div>
           ) : null}
 
+          </fieldset>
+
           <div
             className="log-form-actions log-field--full"
             style={{ justifyContent: "flex-start", marginTop: 16 }}
@@ -876,7 +959,7 @@ export default function LogisticsOperators() {
             <button
               type="submit"
               className="logistics-cta logistics-cta--primary"
-              disabled={saving}
+              disabled={saving || inviteLocked}
             >
               {saving
                 ? isEditing

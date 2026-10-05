@@ -340,6 +340,22 @@ const LogisticsActions = {
     }
   ),
 
+  /** Customer answers a suspicious cab drop-off: verdict "no_issue" | "issue" */
+  respondDropCheck: createAsyncThunk(
+    "/logistics/job/drop-check",
+    async ({ jobId, verdict, message }, { rejectWithValue }) => {
+      try {
+        const response = await Api.post(`/logistics/job/${jobId}/drop-check`, {
+          verdict,
+          ...(message ? { message } : {}),
+        });
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err?.response?.data || { message: err.message });
+      }
+    }
+  ),
+
   patchAssetAvailability: createAsyncThunk(
     "/logistics/asset/availability",
     async (
@@ -507,9 +523,14 @@ const LogisticsActions = {
 
   updateJobStatus: createAsyncThunk(
     "/logistics/job/status",
-    async ({ jobId, status, amount, currency, otp }, { rejectWithValue }) => {
+    async ({ jobId, status, amount, currency, otp, lat, lng }, { rejectWithValue }) => {
       try {
         const body = { status };
+        // Cab ride completion: driver GPS for the drop-off geofence (when enabled)
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          body.lat = lat;
+          body.lng = lng;
+        }
         // Cab ride: rider's start PIN for Arrived → Trip started
         if (otp) body.otp = String(otp);
         if (amount != null && amount !== "") body.amount = Number(amount);

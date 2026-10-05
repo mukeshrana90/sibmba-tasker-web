@@ -20,6 +20,9 @@ const DEFAULT_CONFIG = {
   cab_classes: DEFAULT_CAB_CLASSES,
   cab_fare_currency: "USD",
   cab_road_distance_factor: 1.3,
+  // Cab drop-off geofence (backend CAB_DROP_LOCATION_VERIFICATION)
+  cab_drop_verification_enabled: false,
+  cab_drop_radius_km: 1,
 };
 
 let memoryCache = null;

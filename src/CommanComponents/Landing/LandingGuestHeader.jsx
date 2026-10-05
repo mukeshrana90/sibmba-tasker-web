@@ -178,6 +178,23 @@ export default function LandingGuestHeader() {
                   <small>Enterprise solutions for your organization</small>
                 </span>
               </button>
+              <button
+                type="button"
+                className="landing-join-opt"
+                onClick={() => navigate("/sign-up?role=4")}
+              >
+                <span className="landing-join-ico landing-join-ico--amber">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 6h11v10H2zM13 9h4l3 3v4h-7" />
+                    <circle cx="6" cy="17.5" r="1.8" />
+                    <circle cx="17" cy="17.5" r="1.8" />
+                  </svg>
+                </span>
+                <span className="landing-join-txt">
+                  <b>Join as Equipment Provider</b>
+                  <small>List trucks &amp; equipment and get hire jobs</small>
+                </span>
+              </button>
               <div className="landing-join-divider" />
               <button
                 type="button"
@@ -270,6 +287,16 @@ export default function LandingGuestHeader() {
               }}
             >
               Join as Corporate
+            </button>
+            <button
+              type="button"
+              className="landing-btn landing-btn--primary"
+              onClick={() => {
+                setMobileOpen(false);
+                navigate("/sign-up?role=4");
+              }}
+            >
+              Join as Equipment Provider
             </button>
             <button
               type="button"

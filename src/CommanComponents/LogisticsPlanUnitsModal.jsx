@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import LogisticsActions from "../Redux/Actions/LogisticsActions";
+import { useLogisticsConfig } from "./useLogisticsConfig";
 
 const BUCKETS = [
   { k: "vehicles", label: "Logistic trucks" },
@@ -34,6 +35,7 @@ export default function LogisticsPlanUnitsModal({
   onConfirm,
 }) {
   const dispatch = useDispatch();
+  const { cabEnabled } = useLogisticsConfig();
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [picked, setPicked] = useState({});
@@ -70,10 +72,12 @@ export default function LogisticsPlanUnitsModal({
   const choiceBuckets = useMemo(
     () =>
       BUCKETS.filter(({ k }) => {
+        // Cab service off → cabs can't be used anyway; the server keeps its own pick
+        if (k === "cabs" && !cabEnabled) return false;
         const b = preview?.buckets?.[k];
         return b && b.limit != null && b.total > b.limit;
       }),
-    [preview]
+    [preview, cabEnabled]
   );
 
   if (!open) return null;

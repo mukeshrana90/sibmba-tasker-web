@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import LogisticsPlanBanner, {
   isPlanLimitError,
 } from "../../CommanComponents/LogisticsPlanBanner";
+import { PLAN_BUCKET_LABEL, isPlanBucketFull } from "../../utils/logisticsPlan";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
@@ -260,6 +261,8 @@ export default function LogisticsFleet() {
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(showAddByRoute);
   const [form, setForm] = useState(emptyForm);
+  // Plan + usage from the banner; the picked category's bucket full → form locked
+  const [planSub, setPlanSub] = useState(null);
   const [equipOpen, setEquipOpen] = useState(false);
   const [subtypeOpen, setSubtypeOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -287,6 +290,9 @@ export default function LogisticsFleet() {
 
   const plant = isPlantCategory(form.category);
   const cab = isCabCategory(form.category);
+  // Logistic → trucks, Cab → cabs, Agricultural / Construction / Industrial → equipment
+  const planBucket = plant ? "equipment" : cab ? "cabs" : "vehicles";
+  const addLocked = isPlanBucketFull(planSub, planBucket);
   const cabMeta =
     DEFAULT_CAB_CLASSES.find((c) => c.id === form.cab_class) || DEFAULT_CAB_CLASSES[2];
   const capacityTons = toTons(form.capacity_value, form.capacity_unit);
@@ -502,6 +508,12 @@ export default function LogisticsFleet() {
       toast.error("Fix registration or chassis conflicts before saving");
       return;
     }
+    if (addLocked) {
+      toast.error(
+        `Your ${planSub?.plan?.name || ""} plan's ${PLAN_BUCKET_LABEL[planBucket]} limit is reached. Upgrade your plan or pick another category.`
+      );
+      return;
+    }
     if (plant) {
       if (form.price_hour !== "" && form.price_hour != null) {
         const h = parseLogisticsMoney(form.price_hour, { field: "Hourly rate" });
@@ -627,6 +639,7 @@ export default function LogisticsFleet() {
       <LogisticsPlanBanner
         buckets={cabEnabled ? ["vehicles", "cabs", "equipment"] : ["vehicles", "equipment"]}
         refreshKey={assets.length}
+        onLoaded={setPlanSub}
       />
       {!showForm ? (
         <>
@@ -733,6 +746,27 @@ export default function LogisticsFleet() {
             }
           />
 
+          {addLocked ? (
+            <div className="log-plan-limit-lock" role="alert">
+              <b>
+                {PLAN_BUCKET_LABEL[planBucket].replace(/^./, (c) => c.toUpperCase())} limit
+                reached ({planSub.usage?.[planBucket] ?? 0} /{" "}
+                {planSub.plan?.limits?.[planBucket]}) on your {planSub.plan?.name} plan.
+              </b>
+              <span>
+                Upgrade your plan, pick a category that still has room, or
+                deactivate / delete a unit in this category to add a new one.
+              </span>
+              <Link
+                className="logistics-cta logistics-cta--primary"
+                to="/logistics/owner/subscription"
+              >
+                See plans
+              </Link>
+            </div>
+          ) : null}
+
+          <fieldset className="log-form-fieldset" disabled={addLocked}>
           {!plant ? (
             <div className="log-form-grid">
               <PhotoSlots
@@ -1295,11 +1329,13 @@ export default function LogisticsFleet() {
             Allow direct booking from Hub / Search
           </label>
 
+          </fieldset>
+
           <div className="log-form-actions">
             <button
               type="submit"
               className="logistics-cta logistics-cta--primary"
-              disabled={saving}
+              disabled={saving || addLocked}
             >
               {saving ? "Saving…" : "Save equipment"}
             </button>

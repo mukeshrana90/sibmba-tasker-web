@@ -31,6 +31,7 @@ import {
   formatMoneyInputValue,
   parseLogisticsMoney,
 } from "../../utils/logisticsMoney";
+import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
 import "./logistics.css";
 
 // Cab rides: passenger wording for the same status numbers
@@ -238,6 +239,22 @@ function pickPreferredOwnerAsset(rows) {
   return String(rows[0]._id);
 }
 
+
+/** One-shot device GPS for ride completion; resolves null if unavailable/denied. */
+function readDeviceGps(timeoutMs = 10000) {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 }
+    );
+  });
+}
+
 export default function LogisticsOperatorJob() {
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -256,6 +273,7 @@ export default function LogisticsOperatorJob() {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+  const { config: logisticsConfig } = useLogisticsConfig();
   const [confirmingOtp, setConfirmingOtp] = useState(false);
   const [deliveryOtp, setDeliveryOtp] = useState("");
   const [ridePin, setRidePin] = useState("");
@@ -759,6 +777,14 @@ export default function LogisticsOperatorJob() {
 
   const advance = async () => {
     if (!next) return;
+    // Cab ride end: send the driver's GPS for the drop-off geofence (server-flagged)
+    const rideEnd = isCabJob(job) && next.status === 5;
+    let dropGps = null;
+    if (rideEnd && logisticsConfig.cab_drop_verification_enabled) {
+      setAdvancing(true);
+      dropGps = await readDeviceGps();
+      setAdvancing(false);
+    }
     let finalAmount = null;
     if (plantJobEarly && next.status === 5) {
       const moneyCheck = parseLogisticsMoney(completionAmount, {
@@ -784,6 +810,10 @@ export default function LogisticsOperatorJob() {
         payload.currency = completionCurrency;
       }
       if (rideStart) payload.otp = ridePin;
+      if (dropGps) {
+        payload.lat = dropGps.lat;
+        payload.lng = dropGps.lng;
+      }
       const res = await dispatch(LogisticsActions.updateJobStatus(payload));
       if (res?.payload?.success === false || res?.meta?.requestStatus === "rejected") {
         toast.error(res?.payload?.message || "Could not update status");
@@ -797,7 +827,17 @@ export default function LogisticsOperatorJob() {
         return;
       }
       if (isCabJob(job) && next.status === 5) {
-        toast.success("Ride completed");
+        const dv = res?.payload?.data?.drop_verification;
+        if (dv && dv.ok === false) {
+          toast.warning(
+            dv.reason === "no_location"
+              ? "Ride completed — your location couldn't be verified, so the rider will be asked to confirm the drop-off."
+              : `Ride completed ${dv.distance_km} km from the drop-off (allowed ${dv.radius_km} km). The rider will be asked to confirm.`,
+            { autoClose: 8000 }
+          );
+        } else {
+          toast.success("Ride completed");
+        }
         await reload();
         return;
       }
@@ -1529,6 +1569,11 @@ export default function LogisticsOperatorJob() {
                   >
                     {r.status === "open" ? "Open" : "Resolved"}
                   </span>
+                  {r.kind === "suspicious_dropoff" ? (
+                    <span className="log-job-report__badge log-job-report__badge--dropoff">
+                      Suspicious drop-off
+                    </span>
+                  ) : null}
                   <time dateTime={r.createdAt}>
                     {r.createdAt
                       ? new Date(r.createdAt).toLocaleString()
@@ -1536,6 +1581,17 @@ export default function LogisticsOperatorJob() {
                   </time>
                 </div>
                 <p className="log-job-report__msg">{r.message}</p>
+                {r.kind === "suspicious_dropoff" ? (
+                  <p className="log-job-report__resolve-note">
+                    {r.customer_verdict === "no_issue"
+                      ? "Customer confirmed no issue."
+                      : r.customer_verdict === "issue"
+                        ? `Customer reported a problem${r.customer_message ? `: “${r.customer_message}”` : ""}. Sent to admin.`
+                        : r.escalated_at
+                          ? "No answer from the customer — sent to admin."
+                          : "Waiting for the customer to confirm."}
+                  </p>
+                ) : null}
                 {r.status === "resolved" ? (
                   <p className="log-job-report__resolve-note">
                     Resolved

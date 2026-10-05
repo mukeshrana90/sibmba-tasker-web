@@ -388,6 +388,11 @@
   color: #0e9f5a;
 }
 
+.landing-join-ico--amber {
+  background: #fff1dc;
+  color: #b45f06;
+}
+
 .landing-join-txt b {
   display: block;
   font-family: "Bricolage Grotesque", sans-serif;

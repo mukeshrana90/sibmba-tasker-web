@@ -126,6 +126,11 @@ export default function OwnerReports() {
                   >
                     {r.status === "open" ? "Open" : "Resolved"}
                   </span>
+                  {r.kind === "suspicious_dropoff" ? (
+                    <span className="log-job-report__badge log-job-report__badge--dropoff">
+                      Suspicious drop-off
+                    </span>
+                  ) : null}
                   <time dateTime={r.createdAt}>
                     {r.createdAt
                       ? new Date(r.createdAt).toLocaleString()
@@ -143,6 +148,17 @@ export default function OwnerReports() {
                     "Customer"}
                 </p>
                 <p className="log-job-report__msg">{r.message}</p>
+                {r.kind === "suspicious_dropoff" ? (
+                  <p className="log-job-report__resolve-note">
+                    {r.customer_verdict === "no_issue"
+                      ? "Customer confirmed no issue."
+                      : r.customer_verdict === "issue"
+                        ? `Customer reported a problem${r.customer_message ? `: “${r.customer_message}”` : ""}. Sent to admin.`
+                        : r.escalated_at
+                          ? "No answer from the customer — sent to admin."
+                          : "Waiting for the customer to confirm."}
+                  </p>
+                ) : null}
                 {r.status === "resolved" && r.resolve_note ? (
                   <p className="log-job-report__resolve-note">
                     Resolve note ({r.resolved_by_role}): {r.resolve_note}

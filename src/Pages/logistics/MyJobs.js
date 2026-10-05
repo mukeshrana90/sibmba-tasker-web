@@ -492,6 +492,139 @@ export default function LogisticsMyJobs() {
   );
 }
 
+/**
+ * Suspicious cab drop-off (backend CAB_DROP_LOCATION_VERIFICATION): the driver
+ * ended the ride away from the drop-off. Customer confirms "No issue" (closed)
+ * or reports it (sent to admin). Shows the outcome once answered.
+ */
+function DropCheckBanner({ jobId, check, onAnswered }) {
+  const dispatch = useDispatch();
+  const [mode, setMode] = useState(null); // null | "issue"
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const m = check.meta || {};
+  const what =
+    m.reason === "no_location"
+      ? "Your driver's location couldn't be verified when the ride was completed."
+      : `Your driver completed the ride ${m.distance_km} km from your drop-off point.`;
+
+  const answer = async (verdict) => {
+    setBusy(true);
+    try {
+      const res = await dispatch(
+        LogisticsActions.respondDropCheck({ jobId, verdict, message: message.trim() })
+      );
+      if (res?.payload?.success) {
+        toast.success(res.payload.message);
+        setMode(null);
+        await onAnswered?.();
+      } else {
+        toast.error(res?.payload?.message || "Could not save your answer");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (check.customer_verdict === "no_issue" || check.status === "resolved") {
+    return (
+      <div className="log-drop-check is-cleared" role="status">
+        <span className="log-drop-check__icon" aria-hidden="true">✓</span>
+        <div>
+          <b>Drop-off check cleared</b>
+          <p>
+            {check.customer_verdict === "no_issue"
+              ? "You confirmed this ride had no issue."
+              : `Closed${check.resolved_by_role ? ` by ${check.resolved_by_role}` : ""}${
+                  check.resolve_note ? ` — ${check.resolve_note}` : ""
+                }.`}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  if (check.customer_verdict === "issue" || check.escalated_at) {
+    return (
+      <div className="log-drop-check is-reported" role="status">
+        <span className="log-drop-check__icon" aria-hidden="true">!</span>
+        <div>
+          <b>Drop-off under review</b>
+          <p>
+            {what}{" "}
+            {check.customer_verdict === "issue"
+              ? "You reported it — our team is reviewing this ride."
+              : "Our team is reviewing this ride."}
+          </p>
+          {check.customer_message ? (
+            <p className="log-drop-check__quote">“{check.customer_message}”</p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="log-drop-check" role="alert">
+      <span className="log-drop-check__icon" aria-hidden="true">!</span>
+      <div className="log-drop-check__body">
+        <b>Suspicious drop-off recorded</b>
+        <p>
+          {what} Were you dropped where you wanted? If there was no problem, tap{" "}
+          <b>No issue</b>.
+        </p>
+        {mode === "issue" ? (
+          <div className="log-drop-check__form">
+            <textarea
+              rows={3}
+              maxLength={2000}
+              value={message}
+              placeholder="What happened? (optional)"
+              onChange={(e) => setMessage(e.target.value)}
+              disabled={busy}
+            />
+            <div className="log-drop-check__actions">
+              <button
+                type="button"
+                className="logistics-cta logistics-cta--ghost"
+                onClick={() => setMode(null)}
+                disabled={busy}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                className="logistics-cta logistics-cta--danger"
+                onClick={() => answer("issue")}
+                disabled={busy}
+              >
+                {busy ? "Sending…" : "Send report"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="log-drop-check__actions">
+            <button
+              type="button"
+              className="logistics-cta logistics-cta--primary"
+              onClick={() => answer("no_issue")}
+              disabled={busy}
+            >
+              {busy ? "Saving…" : "No issue"}
+            </button>
+            <button
+              type="button"
+              className="logistics-cta logistics-cta--ghost"
+              onClick={() => setMode("issue")}
+              disabled={busy}
+            >
+              Report issue
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function LogisticsJobDetail() {
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -882,7 +1015,10 @@ export function LogisticsJobDetail() {
   const existingReview = job.customer_review?.rating
     ? job.customer_review
     : null;
-  const reports = Array.isArray(job.reports) ? job.reports : [];
+  // Suspicious cab drop-off checks have their own banner (DropCheckBanner)
+  const reports = (Array.isArray(job.reports) ? job.reports : []).filter(
+    (r) => r.kind !== "suspicious_dropoff"
+  );
   const openReport = job.open_report || reports.find((r) => r.status === "open");
   const jobAccepted =
     Boolean(job.assigned?.owner_id) && jobStatus >= 1 && jobStatus <= 5;
@@ -1235,6 +1371,14 @@ export function LogisticsJobDetail() {
               {job.reject_otp}
             </div>
           </div>
+        ) : null}
+
+        {job.drop_check ? (
+          <DropCheckBanner
+            jobId={job._id}
+            check={job.drop_check}
+            onAnswered={() => reloadJob({ soft: true })}
+          />
         ) : null}
 
         {canReview ? (
