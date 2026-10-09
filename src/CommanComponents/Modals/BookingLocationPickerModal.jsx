@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Modal from "react-bootstrap/Modal";
 import BookingLocationSearch from "./BookingLocationSearch";
-import { loadGooglePlaces } from "../../utils/landingPlaces";
+import { loadGooglePlaces, readableGeocodeLabel } from "../../utils/landingPlaces";
 import {
   DEFAULT_BOOKING_MAP_CENTER,
   resolveBookingPickerDraft,
@@ -73,10 +73,10 @@ function PickerMap({ center, address, onPick }) {
     const emitPick = (lat, lng) => {
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        // Readable address, never a bare plus code ("PPF2+82Q, …")
         const label =
-          status === "OK" && results?.[0]?.formatted_address
-            ? results[0].formatted_address
-            : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          (status === "OK" && readableGeocodeLabel(results)) ||
+          `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         onPickRef.current({ lat, lng, address: label });
       });
     };

@@ -1,0 +1,7 @@
+shots/
+state.json
+results-*.json
+full-run.log
+doc.pdf
+outbox.jsonl
+test-api.log

@@ -1,17 +1,26 @@
 import React, { useState, useMemo } from "react";
-import { PhoneInput } from "react-international-phone";
+import { PhoneInput, defaultCountries, parseCountry } from "react-international-phone";
 import "react-international-phone/style.css";
 import { Form } from "react-bootstrap";
 
-const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, initialCountry, formik, onPhoneChange }) => {
+/** Dial code ("263") for an iso2 country ("zw"). */
+function dialCodeForIso(iso) {
+  const entry = defaultCountries.find((c) => parseCountry(c).iso2 === iso);
+  return entry ? parseCountry(entry).dialCode : "263";
+}
+
+// Default country is Zimbabwe (+263) everywhere, same as sign-up / logistics
+const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, initialCountry = "zw", formik, onPhoneChange }) => {
   const [dialCode, setDialCode] = useState("");
 
   const displayValue = useMemo(() => {
     const v = (value || "").trim();
-    if (!v) return "";
+    const dial = dialCode || dialCodeForIso(initialCountry);
+    // Keep the dial code even when empty so the picked country sticks
+    if (!v) return `+${dial}`;
     if (v.startsWith("+")) return v;
-    return dialCode ? `+${dialCode} ${v}` : "";
-  }, [value, dialCode]);
+    return `+${dial} ${v}`;
+  }, [value, dialCode, initialCountry]);
 
   const handleChange = (phone, meta) => {
     const nextDialCode = meta?.country?.dialCode || dialCode;
@@ -47,13 +56,17 @@ const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, init
       <Form.Group className="mb-3" controlId="formPhoneNumber">
         <div className="number-country">
           <PhoneInput
-            defaultCountry={initialCountry || "in"}
+            defaultCountry={initialCountry || "zw"}
+            forceDialCode
             value={displayValue}
             onChange={handleChange}
             placeholder="Enter phone number"
             disableFlags
             inputClassName="form-control"
             countrySelectorStyleProps={{
+              dropdownStyleProps: {
+                style: { zIndex: 60, maxHeight: 260, overflowY: "auto", top: "calc(100% + 4px)" },
+              },
               buttonClassName: "custom-country-selector",
               buttonStyle: {
                 border: "1px solid #ced4da",
@@ -77,13 +90,15 @@ const PhoneNumberInput = ({ value, onChange, setFieldValue, error, touched, init
               height: "42px",
               fontSize: "1rem",
             }}
+            // No overflow:hidden — it clipped the country dropdown
             containerStyle={{
               display: "flex",
+              position: "relative",
               border: "1px solid #ced4da",
               borderRadius: "0.25rem",
-              overflow: "hidden",
               width: "100%",
             }}
+
           />
         </div>
         {touched && error && <div className="text-danger">{error}</div>}

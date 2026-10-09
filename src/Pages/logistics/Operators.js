@@ -20,7 +20,12 @@ import {
   persistReceiverId,
 } from "../../utils/normalizeMongoId";
 import "./logistics.css";
+import {
+  LogisticsListSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
+import { OPERATOR_COMPLIANCE_TYPES, docExpiryChip, fmtExpiry, REMINDER_HINT } from "../../utils/docExpiry";
+import { LICENCE_CLASSES } from "../../utils/logisticsLicence";
 
 const OPERATOR_DOCS = [
   {
@@ -42,6 +47,30 @@ function inviteActivateUrl(token) {
   return `${origin}/logistics/invite?token=${encodeURIComponent(token)}`;
 }
 
+const INVITE_STATE = {
+  invited: { label: "Invited", chip: "log-chip--pending" },
+  opened: { label: "Opened", chip: "log-chip--progress" },
+  expired: { label: "Expired", chip: "log-chip--closed" },
+};
+
+/** "Sent by email and SMS" from the backend's per-channel delivery results. */
+function inviteDeliverySummary(delivery) {
+  const rows = delivery || [];
+  const sent = rows.filter((d) => d?.ok).map((d) =>
+    d.channel === "sms" ? "SMS" : d.channel === "whatsapp" ? "WhatsApp" : "email"
+  );
+  if (!sent.length) return "";
+  const list = sent.length === 1 ? sent[0] : `${sent.slice(0, -1).join(", ")} and ${sent[sent.length - 1]}`;
+  // WhatsApp picked but unavailable → the server texted the link instead
+  const fellBack = rows.some((d) => d?.fallback && d.ok);
+  return fellBack ? `${list} (WhatsApp wasn't available, so the link went by SMS)` : list;
+}
+
+const INVITE_CHANNEL_OPTIONS = [
+  { id: "email", label: "Email", hint: "Link to their login email" },
+  { id: "whatsapp", label: "WhatsApp", hint: "Link to their phone (SMS if WhatsApp isn't available)" },
+];
+
 async function copyText(text) {
   if (!text) return false;
   try {
@@ -58,6 +87,7 @@ const emptyInvite = () => ({
   country_code: DEFAULT_COUNTRY_CODE,
   phone_number: "",
   plant_licence_number: "",
+  licence_class: "",
   pay_type: "percentage",
   pay_value: "20",
   profile_photo: null,
@@ -65,6 +95,8 @@ const emptyInvite = () => ({
   docs: {},
   asset_ids: [],
   extra_docs: [],
+  // v2.7.34: where the invite link goes
+  send_via: ["email", "whatsapp"],
 });
 
 function publicUrl(path) {
@@ -84,6 +116,46 @@ function publicUrl(path) {
   }
   if (!normalized.startsWith("/")) normalized = `/${normalized}`;
   return buildPublicAssetUrl(normalized);
+}
+
+/** "Driving / plant licence: expiry date is required" when a licence / medical has no expiry. */
+function missingDocExpiry(docs) {
+  const hit = Object.entries(docs || {}).find(
+    ([type, entry]) =>
+      OPERATOR_COMPLIANCE_TYPES.includes(type) && (entry?.file || entry?.url) && !entry?.expires
+  );
+  if (!hit) return "";
+  const label = OPERATOR_DOCS.find((d) => d.id === hit[0])?.label || hit[0];
+  return `${label}: expiry date is required`;
+}
+
+/** Operator list: expired / expiring licence + medical chips. */
+function OperatorDocStatus({ compliance }) {
+  if (!compliance) return null;
+  const chips = [
+    ...(compliance.expired || []).map((d) => ({ key: `x-${d.type}`, tone: "closed", text: `${d.label} expired` })),
+    ...(compliance.expiring || []).map((d) => ({
+      key: `e-${d.type}`,
+      tone: "progress",
+      text: d.status === "today" ? `${d.label} expires today` : `${d.label} expires in ${d.days_left} d`,
+    })),
+    ...(compliance.missing_expiry || []).map((d) => ({ key: `m-${d.type}`, tone: "muted", text: `${d.label}: no expiry set` })),
+  ];
+  if (!chips.length) return null;
+  return (
+    <span className="log-doc-status">
+      {chips.map((c) => (
+        <span key={c.key} className={`log-chip log-chip--${c.tone}`}>
+          {c.text}
+        </span>
+      ))}
+      {compliance.expired?.length ? (
+        <span className="log-hint" style={{ margin: 0 }}>
+          Can&apos;t go live or quote until renewed
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 function OperatorDocRows({ items, docs, onPick, onExpiry }) {
@@ -114,7 +186,7 @@ function OperatorDocRows({ items, docs, onPick, onExpiry }) {
               <p>
                 {fileLabel
                   ? `${fileLabel}${
-                      entry?.expires ? ` · expires ${entry.expires}` : ""
+                      entry?.expires ? ` · expires ${fmtExpiry(entry.expires)}` : ""
                     }`
                   : d.hint}
                 {existingHref && !entry?.file ? (
@@ -127,12 +199,25 @@ function OperatorDocRows({ items, docs, onPick, onExpiry }) {
                 ) : null}
               </p>
             </span>
+            {entry?.url || entry?.file ? (
+              <span className={`log-chip log-chip--${docExpiryChip(entry?.expires).tone}`}>
+                {docExpiryChip(entry?.expires).label}
+              </span>
+            ) : null}
             <label className="log-doc-row__expiry">
-              <span>Expiry date</span>
+              <span>
+                Expiry date
+                {OPERATOR_COMPLIANCE_TYPES.includes(d.id) ? <span className="log-req"> *</span> : null}
+              </span>
               <LogisticsDateInput
+                pickerOnly
                 value={entry?.expires || ""}
                 onChange={(e) => onExpiry?.(d.id, e.target.value)}
+                required={OPERATOR_COMPLIANCE_TYPES.includes(d.id) && Boolean(entry?.file || entry?.url)}
               />
+              {(entry?.file || entry?.url) && !entry?.expires && OPERATOR_COMPLIANCE_TYPES.includes(d.id) ? (
+                <span className="log-field-error">Expiry date is required</span>
+              ) : null}
             </label>
             <label
               className="log-doc-row__add"
@@ -239,6 +324,7 @@ export default function LogisticsOperators() {
           ? new Date(doc.expires).toISOString().slice(0, 10)
           : "",
       };
+      docs[id].orig_expires = docs[id].expires;
     });
     setEditingId(op._id);
     setForm({
@@ -248,6 +334,7 @@ export default function LogisticsOperators() {
       country_code: op.country_code || DEFAULT_COUNTRY_CODE,
       phone_number: op.phone_number || "",
       plant_licence_number: op.driving_licence_number || "",
+      licence_class: op.licence_class || "",
       pay_type: op.invite_pay_type || "percentage",
       pay_value:
         op.invite_pay_value != null ? String(op.invite_pay_value) : "0",
@@ -369,6 +456,21 @@ export default function LogisticsOperators() {
       toast.error("Email is required");
       return;
     }
+    if (missingDocExpiry(form.docs)) {
+      toast.error(missingDocExpiry(form.docs));
+      return;
+    }
+    // WhatsApp only counts once a phone number is entered
+    const hasPhone = Boolean(String(form.phone_number || "").replace(/\D/g, ""));
+    const sendVia = (form.send_via || []).filter((c) => c !== "whatsapp" || hasPhone);
+    if (!sendVia.length) {
+      toast.error(
+        hasPhone
+          ? "Choose how to send the invite link: Email and/or WhatsApp"
+          : "Tick Email, or add a phone number to send the invite on WhatsApp"
+      );
+      return;
+    }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -383,6 +485,8 @@ export default function LogisticsOperators() {
         String(form.plant_licence_number || "").trim()
       );
       fd.append("plant_licence_number", String(form.plant_licence_number || "").trim());
+      if (form.licence_class) fd.append("licence_class", form.licence_class);
+      fd.append("send_via", JSON.stringify(sendVia));
       fd.append("pay_type", form.pay_type || "percentage");
       fd.append("pay_value", form.pay_value || "0");
       const freeIds = form.asset_ids.filter((id) => {
@@ -418,16 +522,12 @@ export default function LogisticsOperators() {
 
       const res = await dispatch(LogisticsActions.createSubUser(fd));
       if (res?.meta?.requestStatus === "fulfilled" && res?.payload?.success) {
-        const inviteToken = res?.payload?.data?.invite?.token;
-        const link = inviteActivateUrl(inviteToken);
+        const sentBy = inviteDeliverySummary(res?.payload?.data?.invite?.delivery);
         toast.success(
-          link
-            ? "Invite created — copy the link from Pending invites (email may be unavailable locally)"
-            : "Invite sent"
+          sentBy
+            ? `Invite sent by ${sentBy}. You can also copy the link from Pending invites.`
+            : "Invite created, but it couldn't be sent — copy the link from Pending invites and share it."
         );
-        if (link) {
-          await copyText(link);
-        }
         closeForm();
         await load();
       } else {
@@ -447,13 +547,24 @@ export default function LogisticsOperators() {
   const saveOperatorEdit = async (e) => {
     e.preventDefault();
     if (!editingId) return;
+    if (missingDocExpiry(form.docs)) {
+      toast.error(missingDocExpiry(form.docs));
+      return;
+    }
     setSaving(true);
     try {
       const fd = new FormData();
       fd.append("full_name", String(form.full_name || "").trim());
       fd.append("pay_type", form.pay_type || "percentage");
       fd.append("pay_value", form.pay_value || "0");
+      fd.append("driving_licence_number", String(form.plant_licence_number || "").trim());
+      fd.append("licence_class", form.licence_class || "");
       if (form.profile_photo) fd.append("profile_photo", form.profile_photo);
+      // Expiry changed on a document already on file (no new upload)
+      const expiryUpdates = Object.entries(form.docs || {})
+        .filter(([, entry]) => entry?.url && !entry?.file && (entry.expires || "") !== (entry.orig_expires || ""))
+        .map(([type, entry]) => ({ type: type.startsWith("other_") ? "other" : type, expires: entry.expires || "" }));
+      if (expiryUpdates.length) fd.append("document_expiry_updates", JSON.stringify(expiryUpdates));
 
       const docTypes = [];
       const docExpires = [];
@@ -491,17 +602,37 @@ export default function LogisticsOperators() {
     try {
       const res = await dispatch(LogisticsActions.resendSubUserInvite(id));
       if (res?.meta?.requestStatus === "fulfilled" && res?.payload?.success) {
-        const inviteToken = res?.payload?.data?.invite?.token;
-        const link = inviteActivateUrl(inviteToken);
+        const sentBy = inviteDeliverySummary(res?.payload?.data?.invite?.delivery);
         toast.success(
-          link
-            ? "Invite resent — new link copied when possible"
-            : "Invite resent"
+          sentBy
+            ? `Invite resent by ${sentBy} — valid for 7 more days`
+            : "New link created, but it couldn't be sent — use Copy link and share it"
         );
-        if (link) await copyText(link);
         await load();
       } else {
         toast.error(res?.payload?.message || "Could not resend");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelInvite = async (inv) => {
+    if (
+      !window.confirm(
+        `Cancel the invite for ${inv.full_name || inv.email}? The link will stop working.`
+      )
+    ) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await dispatch(LogisticsActions.cancelInvite(inv._id));
+      if (res?.meta?.requestStatus === "fulfilled" && res?.payload?.success) {
+        toast.success("Invite cancelled");
+        await load();
+      } else {
+        toast.error(res?.payload?.message || "Could not cancel");
       }
     } finally {
       setSaving(false);
@@ -672,7 +803,7 @@ export default function LogisticsOperators() {
                 {planSub.plan?.limits?.operators}) on your {planSub.plan?.name} plan.
               </b>
               <span>
-                Pending invites count too. Upgrade your plan, or remove an
+                Unexpired pending invites count too. Upgrade your plan, or remove an
                 operator or cancel a pending invite to add a new one.
               </span>
               <Link
@@ -687,7 +818,7 @@ export default function LogisticsOperators() {
           <p className="log-hint" style={{ marginTop: 0 }}>
             {isEditing
               ? "Update name, photo, documents, and pay type only. The operator is notified of each change."
-              : "Invite + operator documents. Assign to one or many assets — they set their own password by email."}
+              : "We send the invite by email and SMS with a link. The operator opens it, sets a password and lands on their dashboard. Assign units now or later — they become active when the invite is accepted."}
           </p>
 
           <div className="log-field log-field--full">
@@ -769,16 +900,27 @@ export default function LogisticsOperators() {
                     }
                   />
                 </div>
-                <label className="log-field">
-                  <span className="log-fl">Plant licence / Driving Licence</span>
-                  <input
-                    value={form.plant_licence_number}
-                    onChange={set("plant_licence_number")}
-                    placeholder="Licence number"
-                  />
-                </label>
               </>
             ) : null}
+            <label className="log-field">
+              <span className="log-fl">Plant licence / Driving Licence</span>
+              <input
+                value={form.plant_licence_number}
+                onChange={set("plant_licence_number")}
+                placeholder="Licence number"
+              />
+            </label>
+            <label className="log-field">
+              <span className="log-fl">Licence class</span>
+              <select value={form.licence_class} onChange={set("licence_class")}>
+                <option value="">Select class…</option>
+                {[...new Set([...LICENCE_CLASSES, form.licence_class].filter(Boolean))].map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="log-field">
               <span className="log-fl">Pay type</span>
               <select value={form.pay_type} onChange={set("pay_type")}>
@@ -825,7 +967,8 @@ export default function LogisticsOperators() {
           </p>
           <p className="log-hint log-field--full">
             Licence scan, medical fitness and any other papers for this
-            operator.
+            operator. Licence and medical need an expiry date (*). {REMINDER_HINT}{" "}
+            With an expired licence or medical the operator can&apos;t go live or quote.
           </p>
           <div className="log-field--full">
             <OperatorDocRows
@@ -950,6 +1093,49 @@ export default function LogisticsOperators() {
             </div>
           ) : null}
 
+          {!isEditing ? (
+            <div className="log-field log-field--full log-invite-via">
+              <span className="log-fl">Send invite link via *</span>
+              <div className="log-invite-via__opts" role="group" aria-label="Send invite link via">
+                {INVITE_CHANNEL_OPTIONS.map((c) => {
+                  const noPhone =
+                    c.id === "whatsapp" && !String(form.phone_number || "").replace(/\D/g, "");
+                  const on = !noPhone && (form.send_via || []).includes(c.id);
+                  return (
+                    <label
+                      key={c.id}
+                      className={`log-invite-via__opt${on ? " is-on" : ""}${noPhone ? " is-unavailable" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        disabled={noPhone}
+                        onChange={() =>
+                          setForm((f) => {
+                            const cur = f.send_via || [];
+                            return {
+                              ...f,
+                              send_via: cur.includes(c.id) ? cur.filter((x) => x !== c.id) : [...cur, c.id],
+                            };
+                          })
+                        }
+                      />
+                      <span>
+                        <b>{c.label}</b>
+                        <small>{noPhone ? "Add a phone number first" : c.hint}</small>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {!(form.send_via || []).filter(
+                (c) => c !== "whatsapp" || String(form.phone_number || "").replace(/\D/g, "")
+              ).length ? (
+                <span className="log-hint log-hint--warn">Pick at least one.</span>
+              ) : null}
+            </div>
+          ) : null}
+
           </fieldset>
 
           <div
@@ -1046,7 +1232,7 @@ export default function LogisticsOperators() {
           </form>
 
           {loading ? (
-            <p className="logistics-empty">Loading operators…</p>
+            <LogisticsListSkeleton rows={4} label="Loading operators" />
           ) : empty ? (
             <div className="log-form-card">
               <p className="log-sect" style={{ marginTop: 0 }}>
@@ -1135,6 +1321,7 @@ export default function LogisticsOperators() {
                               <span className="log-chip log-chip--active">
                                 Active
                               </span>
+                              <OperatorDocStatus compliance={op.document_compliance} />
                             </td>
                             <td>
                               <div className="log-op-contact">
@@ -1254,7 +1441,7 @@ export default function LogisticsOperators() {
                     <thead>
                       <tr>
                         <th>Pending invite</th>
-                        <th>Email</th>
+                        <th>Status</th>
                         <th>Expires</th>
                         <th>Actions</th>
                       </tr>
@@ -1262,21 +1449,39 @@ export default function LogisticsOperators() {
                     <tbody>
                       {filteredInvites.map((inv) => {
                         const link = inviteActivateUrl(inv.token);
+                        const state =
+                          INVITE_STATE[inv.invite_state] || INVITE_STATE.invited;
+                        const expired = inv.invite_state === "expired";
                         return (
                           <tr key={inv._id}>
                             <td>
                               <b>{inv.full_name || inv.email}</b>
-                              {link ? (
-                                <p className="log-invite-link">
-                                  <a href={link}>{link}</a>
+                              <p className="log-hint" style={{ margin: 0 }}>
+                                {inv.email}
+                                {inv.phone_number
+                                  ? ` · ${inv.country_code || ""} ${inv.phone_number}`
+                                  : ""}
+                              </p>
+                            </td>
+                            <td>
+                              <span className={`log-chip ${state.chip}`}>
+                                {state.label}
+                              </span>
+                              {inv.last_sent_at ? (
+                                <p className="log-hint" style={{ margin: "4px 0 0" }}>
+                                  Sent {new Date(inv.last_sent_at).toLocaleDateString()}
                                 </p>
                               ) : null}
                             </td>
-                            <td>{inv.email || "—"}</td>
                             <td>
                               {inv.expires_at
                                 ? new Date(inv.expires_at).toLocaleDateString()
                                 : "—"}
+                              {expired ? (
+                                <p className="log-hint" style={{ margin: "4px 0 0" }}>
+                                  Resend to give them a new 7-day link
+                                </p>
+                              ) : null}
                             </td>
                             <td>
                               <div className="log-op-table-actions">
@@ -1303,6 +1508,14 @@ export default function LogisticsOperators() {
                                   onClick={() => resend(inv._id)}
                                 >
                                   Resend
+                                </button>
+                                <button
+                                  type="button"
+                                  className="logistics-cta logistics-cta--ghost"
+                                  disabled={saving}
+                                  onClick={() => cancelInvite(inv)}
+                                >
+                                  Cancel
                                 </button>
                               </div>
                             </td>

@@ -65,6 +65,8 @@ import LogisticsOwnerEarnings from "../Pages/logistics/OwnerEarnings";
 import LogisticsOwnerAnalytics from "../Pages/logistics/OwnerAnalytics";
 import LogisticsOperatorAnalytics from "../Pages/logistics/OperatorAnalytics";
 import OwnerReports from "../Pages/logistics/OwnerReports";
+import OwnerSos from "../Pages/logistics/OwnerSos";
+import LogisticsEmergencyContacts from "../Pages/logistics/EmergencyContacts";
 import LogisticsOwnerSubscription from "../Pages/logistics/OwnerSubscription";
 import LogisticsFleet from "../Pages/logistics/Fleet";
 import LogisticsOperators from "../Pages/logistics/Operators";
@@ -223,6 +225,7 @@ const RoutesPage = () => {
             <Route path="jobs" element={<LogisticsMyJobs />} />
             <Route path="jobs/:id" element={<LogisticsJobDetail />} />
             <Route path="jobs/:id/quotes" element={<LogisticsJobDetail />} />
+            <Route path="emergency-contacts" element={<LogisticsEmergencyContacts />} />
           </Route>
 
           <Route path="/logistics/owner" element={<PrivateLogisticsOwner />}>
@@ -245,6 +248,11 @@ const RoutesPage = () => {
             <Route path="availability" element={<OwnerAvailability />} />
             <Route path="analytics" element={<LogisticsOwnerAnalytics />} />
             <Route path="reports" element={<OwnerReports />} />
+            <Route path="sos" element={<OwnerSos />} />
+            <Route
+              path="emergency-contacts"
+              element={<LogisticsEmergencyContacts homeTo="/logistics/owner" midLabel="Owner" />}
+            />
             <Route path="subscription" element={<LogisticsOwnerSubscription />} />
             <Route
               path="support"
@@ -267,6 +275,12 @@ const RoutesPage = () => {
               element={<Navigate to="/logistics/driver" replace />}
             />
             <Route path="analytics" element={<LogisticsOperatorAnalytics />} />
+            <Route
+              path="emergency-contacts"
+              element={
+                <LogisticsEmergencyContacts homeTo="/logistics/driver" midLabel="Operator" />
+              }
+            />
             <Route
               path="support"
               element={

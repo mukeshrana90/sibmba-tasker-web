@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
+import LogisticsSosBanner from "../../CommanComponents/LogisticsSosBanner";
 import LogisticsFleetMap, {
   isLocalNowJob,
 } from "../../CommanComponents/LogisticsFleetMap";
@@ -14,6 +15,10 @@ import {
   persistReceiverId,
 } from "../../utils/normalizeMongoId";
 import "./logistics.css";
+import {
+  LogisticsStatsSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
+import { OwnerDocAlertsCard } from "../../CommanComponents/LogisticsDocAlerts";
 
 function placeShort(address) {
   if (!address) return "—";
@@ -30,17 +35,28 @@ export default function LogisticsOwnerDashboard() {
   const [showJobs, setShowJobs] = useState(true);
   const [showLocalJobs, setShowLocalJobs] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await dispatch(LogisticsActions.getDashboard());
-        setDash(res?.payload?.data || null);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await dispatch(LogisticsActions.getDashboard());
+      setDash(res?.payload?.data || null);
+    } finally {
+      setLoading(false);
+    }
   }, [dispatch]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // SOS raised / updated → refresh so the red banner shows right away
+  useEffect(() => {
+    const onEvt = (e) => {
+      if (String(e?.detail?.type || "").startsWith("LOGISTICS_SOS")) load();
+    };
+    window.addEventListener("simba:logistics_notification", onEvt);
+    return () => window.removeEventListener("simba:logistics_notification", onEvt);
+  }, [load]);
 
   const vehicles = dash?.map_vehicles || [];
   const mapVehicles = vehicles.filter(
@@ -100,9 +116,11 @@ export default function LogisticsOwnerDashboard() {
       homeTo="/logistics/owner"
     >
       {loading && !dash ? (
-        <p className="logistics-empty">Loading dashboard…</p>
+        <LogisticsStatsSkeleton label="Loading dashboard" />
       ) : (
         <div className="log-owner-dash">
+          <LogisticsSosBanner alerts={dash?.recent_alerts || []} onChanged={load} />
+          <OwnerDocAlertsCard alerts={dash?.document_alerts} />
           <section className="log-owner-dash__map-wrap">
             <div className="log-owner-dash__map-head">
               <div>
@@ -111,7 +129,7 @@ export default function LogisticsOwnerDashboard() {
                   Vehicle pins: red truck = offline; yellow truck = available;
                   green truck = on route / job accepted. Blue package pin =
                   open jobs pending quotes. Amber ⚡ pin = local (Now) job near
-                  your trucks — quote before it expires.
+                  your trucks — your live operators quote it before it expires.
                 </p>
               </div>
               <div className="log-owner-dash__legend">
@@ -283,7 +301,7 @@ export default function LogisticsOwnerDashboard() {
                         className="logistics-cta logistics-cta--primary"
                         to={`/logistics/owner/job/${j.job_id}`}
                       >
-                        Quote / assign
+                        View
                       </Link>
                     </div>
                   </li>

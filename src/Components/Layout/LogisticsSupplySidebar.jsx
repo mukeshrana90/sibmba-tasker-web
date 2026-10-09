@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
+import { useLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
 import { Link, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { ChatContext } from "../../context/ChatProvider";
@@ -98,6 +99,20 @@ function Icon({ name }) {
       return (
         <svg {...common}>
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      );
+    case "subscription":
+      // Calendar + check (plan period) with a dollar coin
+      return (
+        <svg {...common}>
+          <path d="M12.5 20H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4.5" />
+          <path d="M7.5 3v4M14.5 3v4M3 10h16" />
+          <path d="m7.5 14.5 2 2 3.5-3.5" />
+          <circle cx="18" cy="18" r="4.5" />
+          <path
+            d="M19.4 16.3h-1.9a.85.85 0 0 0 0 1.7h1a.85.85 0 0 1 0 1.7h-1.9M18 15.2v1.1M18 19.7v1.1"
+            strokeWidth={1.3}
+          />
         </svg>
       );
     case "analytics":
@@ -229,7 +244,9 @@ export default function LogisticsSupplySidebar({
     ? ImagePathCustomer(customerDetails.profile_image)
     : null;
   const initials = getInitials(name);
-  const verified = Number(customerDetails?.is_verified) === 1;
+  // Operators show their fleet owner's Verified badge (set by Simba admin)
+  const account = useLogisticsAccount();
+  const verified = Number(customerDetails?.is_verified) === 1 || Boolean(account?.fleet_verified);
 
   return (
     <>

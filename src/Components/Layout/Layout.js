@@ -13,6 +13,7 @@ import {
 } from "../../utils/Roles";
 import { isServiceProviderPortalPath } from "../../utils/serviceProviderPaths";
 import LogisticsSupplySidebar from "./LogisticsSupplySidebar";
+import LogisticsAccountBanner from "../../CommanComponents/LogisticsAccountBanner";
 import {
   LogisticsSupplyChromeProvider,
   isLogisticsSupplyChromePath,
@@ -94,7 +95,10 @@ export default function Layout({
                   isDriver={isDriver}
                   customerDetails={customerDetails}
                 />
-                <div className="log-supply-main">{children}</div>
+                <div className="log-supply-main">
+                  <LogisticsAccountBanner isDriver={isDriver} />
+                  {children}
+                </div>
               </div>
               {useMarketingFooter && !showSupplySidebar ? (
                 <SimbaMarketingFooter />

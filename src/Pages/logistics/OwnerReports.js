@@ -6,6 +6,9 @@ import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import { placeShortLabel } from "../../CommanComponents/LogisticsJobRoutePanel";
 import "./logistics.css";
+import {
+  LogisticsListSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 
 function routeLabel(job) {
   if (!job) return "Job";
@@ -113,7 +116,7 @@ export default function OwnerReports() {
         </div>
 
         {loading ? (
-          <p className="logistics-empty">Loading reports…</p>
+          <LogisticsListSkeleton rows={4} media={false} label="Loading reports" />
         ) : !rows.length ? (
           <p className="logistics-empty">No reports in this filter</p>
         ) : (

@@ -17,7 +17,14 @@ import {
   isTruckBodyType,
 } from "../../utils/logisticVehicleWeight";
 import "./logistics.css";
+import {
+  LogisticsDetailSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
+import { ASSET_COMPLIANCE_TYPES, REMINDER_HINT, docExpiryChip, fmtExpiry } from "../../utils/docExpiry";
+import { focusField } from "../../utils/focusField";
+import { formatRate, rateUnitOf } from "../../utils/assetRate";
+import LogisticsMoneyInput from "../../CommanComponents/LogisticsMoneyInput";
 
 const LEGACY_TYPE_LABELS = new Set([
   "below 5 ton truck",
@@ -47,8 +54,9 @@ const AVAIL_LABEL = {
 const DOC_LABELS = {
   ownership: "Ownership papers",
   insurance: "Insurance",
-  rego: "Rego / road licensing",
+  rego: "Road licence (ZINARA)",
   roadworthy: "Roadworthy / fitness",
+  taxi_permit: "Taxi / PSV permit",
   pollution: "Road / pollution",
   vin_photo: "VIN / chassis plate photo",
   other: "Document",
@@ -57,8 +65,15 @@ const DOC_LABELS = {
 const VEHICLE_DOC_DEFS = [
   { id: "ownership", label: "Ownership papers", hint: "Proof you own this truck" },
   { id: "insurance", label: "Insurance", hint: "Current cover" },
-  { id: "rego", label: "Rego / road licensing", hint: "Road papers" },
+  { id: "rego", label: "Road licence (ZINARA)", hint: "Road papers" },
   { id: "roadworthy", label: "Roadworthy / fitness", hint: "Tap to upload" },
+];
+
+const CAB_DOC_DEFS = [
+  { id: "ownership", label: "Ownership papers", hint: "Proof you own this cab" },
+  { id: "insurance", label: "Insurance", hint: "Passenger cover" },
+  { id: "rego", label: "Road licence (ZINARA)", hint: "Road papers" },
+  { id: "taxi_permit", label: "Taxi / PSV permit", hint: "Permit to carry passengers" },
 ];
 
 const EQUIPMENT_DOC_DEFS = [
@@ -75,14 +90,6 @@ function toDateInput(value) {
   return d.toISOString().slice(0, 10);
 }
 
-function isDocExpiredOrToday(expires) {
-  if (!expires) return false;
-  const exp = new Date(expires);
-  if (Number.isNaN(exp.getTime())) return false;
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-  return exp <= end;
-}
 
 function assetPhotoUrl(path) {
   if (!path) return null;
@@ -165,6 +172,8 @@ function formFromAsset(next) {
     carriage_height_ft:
       next.carriage?.height_m != null ? String(next.carriage.height_m) : "",
     direct_booking_enabled: next.direct_booking_enabled !== false,
+    price: next.price_hint?.amount != null ? String(next.price_hint.amount) : "",
+    rate_unit: rateUnitOf(next.price_hint),
   };
 }
 
@@ -174,6 +183,11 @@ export default function LogisticsOwnerAsset() {
   const [asset, setAsset] = useState(null);
   const [operators, setOperators] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  // Unexpired pending invites: on this unit (assigned on acceptance) + all of the owner's
+  const [assetInvites, setAssetInvites] = useState([]);
+  const [ownerInvites, setOwnerInvites] = useState([]);
+  const [customerView, setCustomerView] = useState(null);
+  const [docCompliance, setDocCompliance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -248,6 +262,14 @@ export default function LogisticsOwnerAsset() {
     setAsset(next);
     setOperators(Array.isArray(ops) ? ops.filter((o) => o && typeof o === "object") : []);
     setDrivers(subRes?.payload?.data?.drivers || []);
+    setAssetInvites(assetRes?.payload?.data?.pending_invites || []);
+    setOwnerInvites(
+      (subRes?.payload?.data?.invites || []).filter(
+        (inv) => inv.invite_state !== "expired"
+      )
+    );
+    setCustomerView(assetRes?.payload?.data?.customer_view || null);
+    setDocCompliance(assetRes?.payload?.data?.document_compliance || null);
     if (next) {
       setForm(formFromAsset(next));
       resetPhotoEditors(next);
@@ -382,18 +404,35 @@ export default function LogisticsOwnerAsset() {
     [drivers, assignedIds]
   );
 
+  const availableInvites = useMemo(() => {
+    const linked = new Set(assetInvites.map((i) => String(i.invite_id)));
+    return ownerInvites.filter((inv) => !linked.has(String(inv._id)));
+  }, [ownerInvites, assetInvites]);
+
   const save = async (e) => {
     e.preventDefault();
     if (!String(form.name || "").trim()) {
       toast.error("Name is required");
+      focusField("name");
       return;
     }
     if ((asset?.kind === "vehicle" || asset?.kind === "cab") && !String(form.registration || "").trim()) {
       toast.error("Registration plate is required");
+      focusField("registration");
       return;
     }
     if (idErrors.registration || idErrors.chassis_number) {
       toast.error("Fix registration or chassis conflicts before saving");
+      focusField("registration");
+      return;
+    }
+    const missingExpiry = Object.entries(docDrafts || {}).find(
+      ([type, entry]) =>
+        ASSET_COMPLIANCE_TYPES.includes(type) && (entry?.file || entry?.url) && !entry?.expires
+    );
+    if (missingExpiry) {
+      toast.error(`${DOC_LABELS[missingExpiry[0]] || missingExpiry[0]}: expiry date is required`);
+      focusField(`doc-${missingExpiry[0]}`);
       return;
     }
     setSaving(true);
@@ -415,6 +454,9 @@ export default function LogisticsOwnerAsset() {
         carriage_width_ft: form.carriage_width_ft || "",
         carriage_height_ft: form.carriage_height_ft || "",
         direct_booking_enabled: form.direct_booking_enabled ? "true" : "false",
+        ...(asset?.kind === "equipment"
+          ? { price: form.price || "", rate_unit: form.price ? form.rate_unit || "day" : "" }
+          : {}),
         keep_photos: JSON.stringify(keptPhotos.map((p) => p.path)),
       };
       Object.entries(fields).forEach(([k, v]) => fd.append(k, v));
@@ -506,15 +548,42 @@ export default function LogisticsOwnerAsset() {
     }
     setSaving(true);
     try {
+      // Pending invites are "invite:<id>" options — linked now, assigned on acceptance
+      const inviteId = pickOperator.startsWith("invite:")
+        ? pickOperator.slice("invite:".length)
+        : null;
       const res = await dispatch(
-        LogisticsActions.assignOperator({ id, sub_user_id: pickOperator })
+        LogisticsActions.assignOperator(
+          inviteId ? { id, invite_id: inviteId } : { id, sub_user_id: pickOperator }
+        )
       );
       if (res?.meta?.requestStatus === "fulfilled" && res?.payload?.success) {
-        toast.success("Operator assigned");
+        toast.success(
+          inviteId
+            ? "Linked — the operator is assigned as soon as they accept the invite"
+            : "Operator assigned"
+        );
         setPickOperator("");
         await load();
       } else {
         toast.error(res?.payload?.message || "Could not assign");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeInvite = async (inviteId) => {
+    setSaving(true);
+    try {
+      const res = await dispatch(
+        LogisticsActions.unassignOperator({ id, invite_id: inviteId })
+      );
+      if (res?.meta?.requestStatus === "fulfilled" && res?.payload?.success) {
+        toast.success("Pending operator removed from this unit");
+        await load();
+      } else {
+        toast.error(res?.payload?.message || "Could not remove");
       }
     } finally {
       setSaving(false);
@@ -557,7 +626,11 @@ export default function LogisticsOwnerAsset() {
   const isTruck = asset?.kind !== "equipment";
   const docDefs = useMemo(() => {
     const base =
-      asset?.kind === "equipment" ? EQUIPMENT_DOC_DEFS : VEHICLE_DOC_DEFS;
+      asset?.kind === "equipment"
+        ? EQUIPMENT_DOC_DEFS
+        : asset?.kind === "cab"
+          ? CAB_DOC_DEFS
+          : VEHICLE_DOC_DEFS;
     const known = new Set(base.map((d) => d.id));
     const extras = Object.keys(docDrafts || {})
       .filter((id) => !known.has(id))
@@ -606,7 +679,7 @@ export default function LogisticsOwnerAsset() {
       homeTo="/logistics/owner"
     >
       {loading ? (
-        <p className="logistics-empty">Loading…</p>
+        <LogisticsDetailSkeleton label="Loading equipment" />
       ) : !asset ? (
         <div className="log-fleet-empty">
           <b>Equipment not found</b>
@@ -692,18 +765,71 @@ export default function LogisticsOwnerAsset() {
               </div>
             ) : null}
 
+            {docCompliance?.expired?.length ? (
+              <div className="log-callout log-callout--danger" style={{ marginBottom: 16 }}>
+                <p>
+                  <strong>Hidden from customers — documents expired.</strong>{" "}
+                  {docCompliance.expired
+                    .map((d) => `${d.label} expired on ${fmtExpiry(d.expires)}`)
+                    .join("; ")}
+                  . Nobody can book or quote with this unit until you upload the
+                  renewed document (Edit details → Documents).
+                </p>
+              </div>
+            ) : docCompliance?.expiring?.length ? (
+              <div className="log-callout log-callout--warn" style={{ marginBottom: 16 }}>
+                <p>
+                  <strong>Renew soon:</strong>{" "}
+                  {docCompliance.expiring
+                    .map((d) =>
+                      d.status === "today"
+                        ? `${d.label} expires today`
+                        : `${d.label} expires in ${d.days_left} day${d.days_left === 1 ? "" : "s"}`
+                    )
+                    .join("; ")}
+                  . The unit is hidden from customers from the day after expiry.
+                </p>
+              </div>
+            ) : null}
+
+            {active && customerView && !customerView.bookable && customerView.status_detail !== "Documents expired" ? (
+              <div className="log-callout log-callout--warn" style={{ marginBottom: 16 }}>
+                <p>
+                  {!operators.length ? (
+                    <>
+                      <strong>Not bookable — no operator assigned.</strong> Customers can't
+                      find or book this unit until an operator is assigned and accepts
+                      their invite. Assign one under Operators below.
+                    </>
+                  ) : customerView.status_detail === "Operator not online on this unit" ? (
+                    <>
+                      <strong>Not bookable — no operator is live on this unit.</strong>{" "}
+                      Customers can book it only while one of its operators has it as
+                      their current vehicle and is available (they go live from their
+                      dashboard). You can't make it available for them.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Not bookable right now</strong> — {customerView.state_label || "offline"}.
+                    </>
+                  )}
+                </p>
+              </div>
+            ) : null}
+
             {editing ? (
               <form className="log-form-grid" onSubmit={save} noValidate>
                 <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                   Edit details
                 </p>
-                <label className="log-field">
+                <label className="log-field" data-field="name">
                   <span className="log-fl">
                     Name <span className="log-req">*</span>
                   </span>
                   <input value={form.name} onChange={set("name")} required />
                 </label>
                 <label
+                  data-field="registration"
                   className={`log-field${idErrors.registration ? " log-field--error" : ""}`}
                 >
                   <span className="log-fl">
@@ -907,9 +1033,10 @@ export default function LogisticsOwnerAsset() {
                   <span className="log-sect__soft">(verification)</span>
                 </p>
                 <p className="log-hint log-field--full">
-                  Upload PDF or image files and set an expiry date. Owner and
-                  assigned operators get a daily alert when a document expires
-                  today or is already past due.
+                  Upload PDF or image files. Expiry dates marked * are required.{" "}
+                  {REMINDER_HINT} From the day after an insurance, road licence,
+                  roadworthy or taxi-permit expiry, the unit is hidden from
+                  customers until you upload the renewed document.
                 </p>
                 <div className="log-field--full">
                   <ul className="log-doc-list">
@@ -921,7 +1048,7 @@ export default function LogisticsOwnerAsset() {
                           ? String(entry.url).split("/").pop()
                           : null);
                       return (
-                        <li key={d.id} className="log-doc-row">
+                        <li key={d.id} className="log-doc-row" data-field={`doc-${d.id}`}>
                           <span className="log-doc-row__icon" aria-hidden="true">
                             <svg
                               width="18"
@@ -940,13 +1067,23 @@ export default function LogisticsOwnerAsset() {
                             <p>{fileLabel || d.hint}</p>
                           </span>
                           <label className="log-doc-row__expiry">
-                            <span>Expiry date</span>
+                            <span>
+                              Expiry date
+                              {ASSET_COMPLIANCE_TYPES.includes(d.id) ? (
+                                <span className="log-req"> *</span>
+                              ) : null}
+                            </span>
                             <LogisticsDateInput
+                              pickerOnly
                               value={entry.expires || ""}
                               onChange={(e) =>
                                 onDocExpiry(d.id, e.target.value)
                               }
+                              required={ASSET_COMPLIANCE_TYPES.includes(d.id) && Boolean(entry.file || entry.url)}
                             />
+                            {(entry.file || entry.url) && !entry.expires && ASSET_COMPLIANCE_TYPES.includes(d.id) ? (
+                              <span className="log-field-error">Expiry date is required</span>
+                            ) : null}
                           </label>
                           {entry.url && !entry.file ? (
                             <a
@@ -979,6 +1116,36 @@ export default function LogisticsOwnerAsset() {
                     })}
                   </ul>
                 </div>
+
+                {asset?.kind === "equipment" ? (
+                  <div className="log-field log-rate-field" data-field="price">
+                    <span className="log-fl">Rate (optional)</span>
+                    <div className="log-rate-row">
+                      <LogisticsMoneyInput
+                        value={form.price}
+                        onChange={(v) => setForm((f) => ({ ...f, price: v }))}
+                        aria-label={form.rate_unit === "hour" ? "Price per hour" : "Price per day"}
+                      />
+                      <div className="log-rate-toggle" role="radiogroup" aria-label="Rate unit">
+                        {[
+                          ["day", "Per day"],
+                          ["hour", "Per hour"],
+                        ].map(([u, label]) => (
+                          <button
+                            key={u}
+                            type="button"
+                            role="radio"
+                            aria-checked={form.rate_unit === u}
+                            className={form.rate_unit === u ? "is-on" : ""}
+                            onClick={() => setForm((f) => ({ ...f, rate_unit: u }))}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 <label className="log-check log-field--full">
                   <input
@@ -1064,7 +1231,15 @@ export default function LogisticsOwnerAsset() {
                   </div>
                   <div className="log-detail-item">
                     <span className="log-fl">Availability</span>
-                    <strong>{avail}</strong>
+                    <strong>
+                      {customerView && !customerView.bookable
+                        ? !operators.length
+                          ? "Not bookable — no operator"
+                          : customerView.status_detail === "Operator not online on this unit"
+                            ? "Not bookable — operator not live"
+                            : avail
+                        : avail}
+                    </strong>
                   </div>
                   <div className="log-detail-item">
                     <span className="log-fl">Carriage (L × W × H)</span>
@@ -1086,11 +1261,8 @@ export default function LogisticsOwnerAsset() {
                   </div>
                   {asset.price_hint?.amount != null ? (
                     <div className="log-detail-item">
-                      <span className="log-fl">Price hint</span>
-                      <strong>
-                        {asset.price_hint.currency || "USD"}{" "}
-                        {asset.price_hint.amount}
-                      </strong>
+                      <span className="log-fl">Rate</span>
+                      <strong>{formatRate(asset.price_hint, { negotiable: false })}</strong>
                     </div>
                   ) : null}
                 </div>
@@ -1132,10 +1304,13 @@ export default function LogisticsOwnerAsset() {
                 {documents.length ? (
                   <ul className="log-doc-list">
                     {documents.map((doc, idx) => {
-                      const expired = isDocExpiredOrToday(doc.expires);
+                      const chip = docExpiryChip(doc.expires);
+                      const showChip =
+                        ASSET_COMPLIANCE_TYPES.includes(doc.type) || chip.status !== "no_expiry";
                       return (
                       <li
-                        key={doc.url || doc.type || idx}
+                        // type + url: two documents can share one uploaded file path
+                        key={`${doc.type || "doc"}-${doc.url || ""}-${idx}`}
                         className="log-doc-row"
                       >
                         <span className="log-doc-row__icon" aria-hidden="true">
@@ -1159,15 +1334,11 @@ export default function LogisticsOwnerAsset() {
                             {doc.url
                               ? String(doc.url).split("/").pop()
                               : "Uploaded"}
-                            {doc.expires
-                              ? ` · expires ${new Date(
-                                  doc.expires
-                                ).toLocaleDateString()}`
-                              : ""}
+                            {doc.expires ? ` · expires ${fmtExpiry(doc.expires)}` : ""}
                           </p>
                         </span>
-                        {expired ? (
-                          <span className="log-chip">Expired / due</span>
+                        {showChip ? (
+                          <span className={`log-chip log-chip--${chip.tone}`}>{chip.label}</span>
                         ) : null}
                         {doc.url ? (
                           <a
@@ -1202,8 +1373,9 @@ export default function LogisticsOwnerAsset() {
                   Operators
                 </h2>
                 <p className="log-hint" style={{ margin: "6px 0 0" }}>
-                  Many-to-many: assign one or more operators. One operator can
-                  cover several trucks or machines.
+                  Every unit needs an operator to be bookable — operators quote
+                  and run the jobs. One operator can cover several units. You
+                  can pick someone whose invite is still pending.
                 </p>
               </div>
               <Link
@@ -1253,6 +1425,32 @@ export default function LogisticsOwnerAsset() {
               <p className="log-hint">No operator assigned yet.</p>
             )}
 
+            {assetInvites.length ? (
+              <ul className="log-doc-list" style={{ marginBottom: 14 }}>
+                {assetInvites.map((inv) => (
+                  <li key={inv.invite_id} className="log-doc-row">
+                    <span className="log-doc-row__body">
+                      <b>
+                        {inv.full_name || inv.email}{" "}
+                        <span className="log-chip log-chip--pending">
+                          {inv.invite_state === "opened" ? "Invite opened" : "Invite pending"}
+                        </span>
+                      </b>
+                      <p>Assigned automatically when they accept the invite.</p>
+                    </span>
+                    <button
+                      type="button"
+                      className="logistics-cta logistics-cta--ghost"
+                      disabled={saving}
+                      onClick={() => removeInvite(inv.invite_id)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
             <div className="log-owner-assign">
               <label className="log-field" style={{ margin: 0, flex: 1 }}>
                 <span className="log-fl">
@@ -1263,21 +1461,34 @@ export default function LogisticsOwnerAsset() {
                 <select
                   value={pickOperator}
                   onChange={(e) => setPickOperator(e.target.value)}
-                  disabled={!availableDrivers.length || saving}
+                  disabled={(!availableDrivers.length && !availableInvites.length) || saving}
                 >
                   <option value="">
-                    {drivers.length
-                      ? availableDrivers.length
+                    {drivers.length || ownerInvites.length
+                      ? availableDrivers.length || availableInvites.length
                         ? "Select operator…"
                         : "All operators already assigned"
                       : "No operators yet — invite from Operators"}
                   </option>
-                  {availableDrivers.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.full_name || d.email}
-                      {d.email ? ` · ${d.email}` : ""}
-                    </option>
-                  ))}
+                  {availableDrivers.length ? (
+                    <optgroup label="Active operators">
+                      {availableDrivers.map((d) => (
+                        <option key={d._id} value={d._id}>
+                          {d.full_name || d.email}
+                          {d.email ? ` · ${d.email}` : ""}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                  {availableInvites.length ? (
+                    <optgroup label="Invite pending (assigned on acceptance)">
+                      {availableInvites.map((inv) => (
+                        <option key={inv._id} value={`invite:${inv._id}`}>
+                          {inv.full_name || inv.email} · invite pending
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
                 </select>
               </label>
               <button

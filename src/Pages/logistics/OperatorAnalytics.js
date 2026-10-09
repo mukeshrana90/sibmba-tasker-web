@@ -4,6 +4,9 @@ import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import LogisticsAnalyticsMap from "../../CommanComponents/LogisticsAnalyticsMap";
 import "./logistics.css";
+import {
+  LogisticsStatsSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 
 function formatMoney(amount, currency = "USD") {
@@ -207,7 +210,7 @@ export default function LogisticsOperatorAnalytics() {
         </form>
 
         {loading ? (
-          <p className="logistics-empty">Loading analytics…</p>
+          <LogisticsStatsSkeleton label="Loading analytics" />
         ) : (
           <>
             <div className="logistics-stats log-analytics-stats">

@@ -8,6 +8,7 @@ import {
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
+import LogisticsActions from "../Redux/Actions/LogisticsActions";
 import ButtonLoader from "../CommanComponents/ButtonLoader";
 import { getFirebaseToken } from "../utils/fireBaseConfig";
 import {
@@ -187,7 +188,16 @@ export default function Login() {
         fallbackEmail: formData.email,
       });
     } else {
-      toast.error(response?.payload?.message);
+      // Invited operators have no account until they accept the invite — never
+      // show a bare "Email doesn't exist"; give invite guidance instead.
+      let message = response?.payload?.message;
+      if (/doesn.?t exist/i.test(String(message || ""))) {
+        const hint = await dispatch(LogisticsActions.loginHint(formData.email.trim()));
+        message =
+          hint?.payload?.data?.message ||
+          "No account found with this email. If your company invited you as an operator, check your invite message or ask your company to resend it.";
+      }
+      toast.error(message);
     }
     setLocalLoading(false);
   };

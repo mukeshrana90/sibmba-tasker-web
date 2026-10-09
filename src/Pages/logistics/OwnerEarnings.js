@@ -4,6 +4,9 @@ import { useDispatch } from "react-redux";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import "./logistics.css";
+import {
+  LogisticsListSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 
 const PAGE_SIZE = 10;
@@ -207,7 +210,7 @@ export default function LogisticsOwnerEarnings() {
 
         <h2 className="log-sect">Completed jobs</h2>
         {loading ? (
-          <p className="logistics-empty">Loading earnings…</p>
+          <LogisticsListSkeleton rows={4} media={false} label="Loading earnings" />
         ) : (
           <>
             <div className="log-jobs-table-wrap">

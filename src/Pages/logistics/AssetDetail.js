@@ -6,6 +6,10 @@ import { buildPublicAssetUrl, defaultImage } from "../../utils/ImagePath";
 import { Roles } from "../../utils/Roles";
 import { assetBookState } from "../../utils/logisticsBooking";
 import "./logistics.css";
+import {
+  LogisticsDetailSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
+import { formatRate } from "../../utils/assetRate";
 
 const AVAIL_LABEL = {
   available_now: "Available now",
@@ -69,10 +73,7 @@ function formatCarriage(carriage) {
 }
 
 function formatPrice(hint) {
-  if (!hint || hint.amount == null || hint.amount === "") return null;
-  const cur = hint.currency || "USD";
-  const base = `${cur} ${Number(hint.amount).toLocaleString()}`;
-  return hint.negotiable ? `${base} (negotiable)` : base;
+  return formatRate(hint);
 }
 
 function formatPhone(owner) {
@@ -369,9 +370,11 @@ export default function LogisticsAssetDetail() {
           </div>
         </div>
       ) : (
-        <p className="logistics-empty">
-          {loaded ? "Asset not found" : "Loading…"}
-        </p>
+        loaded ? (
+          <p className="logistics-empty">Asset not found</p>
+        ) : (
+          <LogisticsDetailSkeleton label="Loading asset" />
+        )
       )}
     </LogisticsPageShell>
   );

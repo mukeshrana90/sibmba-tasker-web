@@ -6,6 +6,10 @@ import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import LogisticsLocationField from "../../CommanComponents/LogisticsLocationField";
 import "./logistics.css";
+import {
+  LogisticsGridSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
+import { notBookableReason } from "../../utils/ownerUnitStatus";
 
 const PAGE_SIZE = 10;
 
@@ -114,7 +118,7 @@ export default function OwnerAvailability() {
   const load = async () => {
     setLoading(true);
     try {
-      // Trucks + cabs (cabs may be owner-driven, so owners set their status here)
+      // Trucks + cabs: unit status and base pin (operators go live themselves)
       const res = await dispatch(LogisticsActions.listAssets({}));
       const rows = (res?.payload?.data?.assets || []).filter(
         (a) => a.kind === "vehicle" || a.kind === "cab"
@@ -194,7 +198,9 @@ export default function OwnerAvailability() {
       const res = await dispatch(
         LogisticsActions.patchAssetAvailability({ id: assetId, state })
       );
-      if (res?.meta?.requestStatus === "rejected") {
+      // The API answers 200 with success:false for refusals (e.g. no
+      // operator live on the unit) — treat that as an error too
+      if (res?.meta?.requestStatus === "rejected" || res?.payload?.success === false) {
         toast.error(res?.payload?.message || "Could not update status");
         return;
       }
@@ -319,7 +325,7 @@ export default function OwnerAvailability() {
         </div>
 
         {loading ? (
-          <p className="logistics-empty">Loading vehicles…</p>
+          <LogisticsGridSkeleton cards={6} label="Loading vehicles" />
         ) : (
           <>
             <div className="log-jobs-table-wrap">
@@ -357,6 +363,9 @@ export default function OwnerAvailability() {
                           >
                             {AVAIL_LABEL[state] || state}
                           </span>
+                          {notBookableReason(asset) ? (
+                            <span className="log-unit-notbookable">{notBookableReason(asset)}</span>
+                          ) : null}
                           <label className="log-owner-avail__status">
                             <span className="visually-hidden">Set status</span>
                             <select

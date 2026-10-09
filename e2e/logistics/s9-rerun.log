@@ -1,0 +1,74 @@
+  PASS  outbox: /home/server/Desktop/Projects/SibmbaTasker/sibmba-tasker-web/e2e/logistics/outbox.jsonl
+
+▶ 9. Owner sign-up with EMAIL OTP — code read from the captured email
+  PASS  OTP email handed to SendGrid
+  PASS  from = SEND_GRID_SENDER (simba-e2e@e2e.example.com)
+  PASS  subject/body is an OTP mail ("Verify Your Simba Tasker Account")
+  PASS  email contains a 4–6 digit code
+  PASS  code from email verifies → owner dashboard
+
+▶ 9b. Owner sign-up with WHATSAPP OTP — code read from the captured template message
+  PASS  WhatsApp OTP accepted by Twilio mock (template + variables valid)
+  PASS  uses the approved OTP template SID
+  PASS  sent from the WhatsApp sender (whatsapp:+263774505088)
+  PASS  code from WhatsApp verifies → owner dashboard
+
+▶ 9c. WhatsApp OTP failure shows a clear error
+  PASS  UI: 'Couldn't send the WhatsApp code — check the number or choose Email'
+  PASS  failed send recorded (provider error surfaced)
+
+▶ 9d. Owner invites operator — default Email + WhatsApp captured, link from email activates
+  PASS  UI toast: 'Invite sent by email and WhatsApp'
+  PASS  invite email (Your fleet owner has invited you to join Simba Tasker)
+  PASS  no SMS — WhatsApp delivered, owner didn't pick SMS
+  PASS  invite WhatsApp template accepted (vars match approved body)
+  PASS  email 'Accept invite' button → https://localhost:3001/logistics/invite?token=61d9f4bfd9e4509a284e90c9f42f929538f83aa5cfd19e58
+  PASS  email and WhatsApp carry the same invite link
+  PASS  link from email activates operator → /logistics/driver
+
+▶ 9d2. Invite channel checks + WhatsApp → SMS fallback
+  PASS  no phone → WhatsApp unavailable ('Add a phone number first')
+  PASS  nothing ticked → 'Pick at least one'
+  PASS  send blocked: 'Tick Email, or add a phone number…'
+  PASS  API refuses WhatsApp-only invite without a phone (INVITE_CHANNEL)
+  PASS  UI toast: WhatsApp unavailable → sent by SMS
+  PASS  WhatsApp failed, SMS fallback carries the link
+  PASS  no email — owner picked WhatsApp only
+
+▶ 9e. Resend invite — new link sent, old link no longer works
+  PASS  UI toast: 'Invite resent by email … valid for 7 more days' (email-only pick kept)
+  PASS  resent email has a NEW token
+  PASS  old link shows invalid/expired
+
+▶ 9f. Invite with every channel failing → owner told to copy the link
+  PASS  UI: 'Invite created, but it couldn't be sent — copy the link'
+
+▶ 9g. Customer SOS → emergency contact gets email + SMS + WhatsApp, admin gets email
+  PASS  contact email ([Simba SOS] E2E mail.cust.z2da92 needs help)
+  PASS  contact email includes location
+  PASS  contact SMS
+  PASS  contact WhatsApp SOS template (name + maps link)
+  PASS  admin alert email (LOGISTICS_ADMIN_ALERT_EMAILS)
+  PASS  SOS messages captured
+  PASS  SOS sent confirmation in UI
+
+▶ 9h. Document expiry reminder → WhatsApp template to owner + operator
+  PASS  owner got doc-expiry WhatsApp
+  PASS  operator got doc-expiry WhatsApp
+  PASS  vars valid (status text matches template check)
+  PASS  scoped run (ownerIds) messages ONLY this owner's team
+  PASS  owner-email: no page/console errors
+  PASS  owner-email: no unexpected 5xx
+  PASS  owner-wa: no page/console errors
+  PASS  owner-wa: no unexpected 5xx
+  PASS  owner-wa-fail: no page/console errors
+  PASS  owner-wa-fail: no unexpected 5xx
+  PASS  operator-mail: no page/console errors
+  PASS  operator-mail: no unexpected 5xx
+  PASS  operator-old-link: no page/console errors
+  PASS  operator-old-link: no unexpected 5xx
+  PASS  customer-mail: no page/console errors
+  PASS  customer-mail: no unexpected 5xx
+  PASS  no provider rejections in outbox (bad template vars / numbers)
+
+54/54 passed

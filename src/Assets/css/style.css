@@ -9896,3 +9896,23 @@ footer .logo{color:#fff;margin-bottom:16px}
   .empty h3{color:var(--ink);margin-bottom:6px}
 }
 
+
+
+/* Toasts sit below the top app bar so the bell / profile buttons stay
+   clickable while notifications are showing. react-toastify v11 positions
+   the container with --toastify-toast-top (its CSS loads after ours, so the
+   override uses higher-specificity selectors). */
+html:root {
+  --toastify-toast-top: 88px;
+}
+
+@media only screen and (max-width: 480px) {
+  html body .Toastify__toast-container--top-left,
+  html body .Toastify__toast-container--top-center,
+  html body .Toastify__toast-container--top-right {
+    top: 72px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+}

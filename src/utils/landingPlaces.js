@@ -97,6 +97,61 @@ export function loadGooglePlaces() {
   return withTimeout(loadPromise, LOAD_TIMEOUT_MS);
 }
 
+/** Optional country limit for place search, e.g. REACT_APP_PLACES_COUNTRIES=zw (comma list). */
+export function placesCountries() {
+  return String(process.env.REACT_APP_PLACES_COUNTRIES || "")
+    .split(",")
+    .map((c) => c.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+const PLUS_CODE_RE = /^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b,?\s*/i;
+
+/** Drop a leading Google plus code ("PPF2+82Q, Sahibzada…" → "Sahibzada…"). */
+export function stripPlusCode(label) {
+  const s = String(label || "").trim();
+  const out = s.replace(PLUS_CODE_RE, "").trim();
+  return out || s;
+}
+
+/** Best human-readable label from Google geocoder results (skips plus-code-only results). */
+export function readableGeocodeLabel(results) {
+  const list = Array.isArray(results) ? results : [];
+  const clean = list.find(
+    (r) => r?.formatted_address && !PLUS_CODE_RE.test(r.formatted_address) && !(r.types || []).includes("plus_code")
+  );
+  if (clean) return clean.formatted_address;
+  return list[0]?.formatted_address ? stripPlusCode(list[0].formatted_address) : "";
+}
+
+const PLACE_TYPES = new Set([
+  "locality",
+  "sublocality",
+  "administrative_area_level_1",
+  "administrative_area_level_2",
+  "administrative_area_level_3",
+  "colloquial_area",
+  "country",
+  "postal_town",
+]);
+
+/** Exact city / town names first ("Harare" → "Harare, Zimbabwe" before "Harare Drive"). */
+function rankPredictions(items, query) {
+  const q = String(query || "").trim().toLowerCase();
+  const score = (p) => {
+    const main = String(p.structured_formatting?.main_text || p.description || "").split(",")[0].trim().toLowerCase();
+    const isPlace = (p.types || []).some((t) => PLACE_TYPES.has(t)) || p.place_kind === "place";
+    if (main === q && isPlace) return 0;
+    if (isPlace) return 1;
+    if (main === q) return 2;
+    return 3;
+  };
+  return items
+    .map((p, i) => ({ p, i, s: score(p) }))
+    .sort((a, b) => a.s - b.s || a.i - b.i)
+    .map((x) => x.p);
+}
+
 function formatPhotonLabel(props) {
   const parts = [
     props.name,
@@ -147,6 +202,10 @@ export async function fetchPhotonPredictions(input, options = {}) {
           description: formatPhotonLabel(props),
           isPhoton: true,
           source: "photon",
+          // cities / towns rank above streets with the same name
+          place_kind: ["city", "town", "village", "district", "county", "state", "country"].includes(props.type)
+            ? "place"
+            : "other",
           lat,
           lng,
         };
@@ -181,8 +240,9 @@ async function fetchGooglePredictions(input) {
   const google = await loadGooglePlaces();
   return new Promise((resolve) => {
     const service = new google.maps.places.AutocompleteService();
+    const countries = placesCountries();
     service.getPlacePredictions(
-      { input: query },
+      countries.length ? { input: query, componentRestrictions: { country: countries } } : { input: query },
       (predictions, status) => {
         if (
           status !== google.maps.places.PlacesServiceStatus.OK ||
@@ -251,15 +311,21 @@ export async function fetchPlacePredictions(input) {
     }
   }
 
+  // OSM fallback only when Google has little; limited to the configured
+  // countries (Zimbabwe box when REACT_APP_PLACES_COUNTRIES=zw)
   let photonItems = [];
-  if (googleItems.length < 6) {
+  if (googleItems.length < 3) {
+    const countries = placesCountries();
     photonItems = await fetchPhotonPredictions(query, {
-      worldwide: true,
+      worldwide: !(countries.length === 1 && countries[0] === "zw"),
       limit: Math.max(4, 8 - googleItems.length),
     });
   }
 
-  return mergeLocationPredictions({ googleItems, photonItems, localItems: [] });
+  return rankPredictions(
+    mergeLocationPredictions({ googleItems: rankPredictions(googleItems, query), photonItems: rankPredictions(photonItems, query), localItems: [] }),
+    query
+  );
 }
 
 export async function fetchPlaceDetails(placeId) {
@@ -361,7 +427,7 @@ export async function reverseGeocodeCoords(lat, lng) {
             resolve({
               lat: Number(lat),
               lng: Number(lng),
-              label: results[0].formatted_address,
+              label: readableGeocodeLabel(results),
             });
           } else {
             resolve(null);

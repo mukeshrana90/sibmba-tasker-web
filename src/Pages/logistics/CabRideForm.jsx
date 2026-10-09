@@ -334,15 +334,15 @@ export default function CabRideForm({ initial, editId, targetAsset, header = nul
               Fare negotiable
               <small>
                 {form.negotiable
-                  ? "Drivers can quote above or below your fare."
-                  : "Drivers must quote this exact fare."}
+                  ? "Operators can quote above or below your fare."
+                  : "Operators must quote this exact fare."}
               </small>
             </span>
           </label>
         </div>
 
         <label className="log-field log-field--full">
-          <span className="log-fl">Note for driver</span>
+          <span className="log-fl">Note for operator</span>
           <textarea
             rows={2}
             maxLength={300}

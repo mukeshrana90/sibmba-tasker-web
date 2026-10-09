@@ -42,8 +42,10 @@ export default function LogisticsPlanBanner({
   // Any plan without unit limits counts as "paid" styling; lowest-ranked plan shows Upgrade
   const unlimited = ["vehicles", "cabs", "equipment"].every((k) => sub.plan.limits?.[k] == null);
   const paid = Number(sub.plan.price?.amount) > 0;
-  const topRank = Math.max(...(sub.plans || []).map((p) => p.rank ?? 0), 0);
-  const canUpgrade = (sub.plan.rank ?? 0) < topRank;
+  const bigger = (sub.plans || []).filter((p) => (p.rank ?? 0) > (sub.plan.rank ?? 0));
+  // Bigger plans exist but none can be activated yet (paid plans off) → no Upgrade CTA
+  const canUpgrade = bigger.some((p) => !p.coming_soon);
+  const comingSoon = bigger.length > 0 && !canUpgrade;
   const locked = Number(sub.plan_locked_units) || 0;
   return (
     <>
@@ -81,7 +83,7 @@ export default function LogisticsPlanBanner({
         </Link>
       ) : (
         <Link className="log-plan-banner__link" to="/logistics/owner/subscription">
-          Manage plan
+          {comingSoon ? "Paid plans coming soon" : "Manage plan"}
         </Link>
       )}
     </div>

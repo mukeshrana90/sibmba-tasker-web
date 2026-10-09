@@ -44,6 +44,9 @@ export default function LogisticsPhoneInput({
     <div className={`log-phone-input${disabled ? " is-disabled" : ""}`}>
       <PhoneInput
         defaultCountry={iso}
+        // Dial code can't be deleted/retyped — country changes only via the
+        // picker, so "+263" can't turn into "+61" while typing
+        forceDialCode
         value={value}
         disabled={disabled}
         placeholder={placeholder}

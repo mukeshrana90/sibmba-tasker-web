@@ -24,6 +24,8 @@ export default function NotifyMenuList({
   onClearAll,
   clearing = false,
   onOpenNotification,
+  // Header title — "Clear all" sits on the same row (right side)
+  title = "Notifications",
 }) {
   const [expandedId, setExpandedId] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -36,18 +38,28 @@ export default function NotifyMenuList({
     }
   }, [isOpen]);
 
+  const head = (actions) => (
+    <div className="notify-menu-head">
+      <h3>{title}</h3>
+      {actions}
+    </div>
+  );
+
   if (!list.length) {
     return (
-      <ul className="notify-menu-list">
-        <li className="notify-empty">No notifications yet</li>
-      </ul>
+      <>
+        {head(null)}
+        <ul className="notify-menu-list">
+          <li className="notify-empty">No notifications yet</li>
+        </ul>
+      </>
     );
   }
 
   return (
     <>
-      <div className="notify-menu-actions">
-        {onClearAll ? (
+      {head(
+        onClearAll ? (
           <button
             type="button"
             className="notify-clear-all"
@@ -59,8 +71,8 @@ export default function NotifyMenuList({
           >
             {clearing ? "Clearing…" : "Clear all"}
           </button>
-        ) : null}
-      </div>
+        ) : null
+      )}
       <ul className="notify-menu-list">
         {list.map((notification, index) => {
           const id = notification?._id || `notify-${index}`;

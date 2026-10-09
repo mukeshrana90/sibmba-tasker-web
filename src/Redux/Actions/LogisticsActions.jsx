@@ -244,6 +244,16 @@ const LogisticsActions = {
     return response.data;
   }),
 
+  /** Owner: save the business base { address, lat, lng } (or other /me fields) */
+  patchMe: createAsyncThunk("/logistics/me/patch", async (body, { rejectWithValue }) => {
+    try {
+      const response = await Api.patch("/logistics/me", body);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
   getMe: createAsyncThunk("/logistics/me", async () => {
     const response = await Api.get("/logistics/me");
     const user = response?.data?.data?.user;
@@ -453,13 +463,27 @@ const LogisticsActions = {
     }
   ),
 
+  cancelInvite: createAsyncThunk(
+    "/logistics/invite/cancel",
+    async (id, { rejectWithValue }) => {
+      try {
+        const response = await Api.delete(`/logistics/invite/${id}`);
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err?.response?.data || { message: err.message });
+      }
+    }
+  ),
+
+  /** { id, sub_user_id } assigns an operator; { id, invite_id } links a pending invite. */
   assignOperator: createAsyncThunk(
     "/logistics/asset/assign",
-    async ({ id, sub_user_id }, { rejectWithValue }) => {
+    async ({ id, sub_user_id, invite_id }, { rejectWithValue }) => {
       try {
-        const response = await Api.post(`/logistics/asset/${id}/assign`, {
-          sub_user_id,
-        });
+        const response = await Api.post(
+          `/logistics/asset/${id}/assign`,
+          invite_id ? { invite_id } : { sub_user_id }
+        );
         return response.data;
       } catch (err) {
         return rejectWithValue(err?.response?.data || { message: err.message });
@@ -469,11 +493,12 @@ const LogisticsActions = {
 
   unassignOperator: createAsyncThunk(
     "/logistics/asset/unassign",
-    async ({ id, sub_user_id }, { rejectWithValue }) => {
+    async ({ id, sub_user_id, invite_id }, { rejectWithValue }) => {
       try {
+        const body = invite_id ? { invite_id } : sub_user_id ? { sub_user_id } : undefined;
         const response = await Api.delete(`/logistics/asset/${id}/assign`, {
-          params: sub_user_id ? { sub_user_id } : undefined,
-          data: sub_user_id ? { sub_user_id } : undefined,
+          params: body,
+          data: body,
         });
         return response.data;
       } catch (err) {
@@ -814,6 +839,113 @@ const LogisticsActions = {
       }
     }
   ),
+
+  /** Owner moves an active job to another operator (and/or unit). */
+  reassignJob: createAsyncThunk(
+    "/logistics/job/reassign",
+    async ({ id, sub_user_id, asset_id }, { rejectWithValue }) => {
+      try {
+        const response = await Api.post(`/logistics/job/${id}/reassign`, { sub_user_id, asset_id });
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err?.response?.data || { message: err.message });
+      }
+    }
+  ),
+
+  /** Public: sign-in guidance for an email with a pending operator invite. */
+  loginHint: createAsyncThunk(
+    "/logistics/auth/login-hint",
+    async (email, { rejectWithValue }) => {
+      try {
+        const response = await Api.post("/logistics/auth/login-hint", { email });
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err?.response?.data || { message: err.message });
+      }
+    }
+  ),
+
+  // ——— SOS + emergency contacts (v2.7.30) ———
+  getEmergencyContacts: createAsyncThunk(
+    "/logistics/emergency-contacts/get",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await Api.get("/logistics/emergency-contacts");
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err?.response?.data || { message: err.message });
+      }
+    }
+  ),
+
+  saveEmergencyContacts: createAsyncThunk(
+    "/logistics/emergency-contacts/save",
+    async (contacts, { rejectWithValue }) => {
+      try {
+        const response = await Api.put("/logistics/emergency-contacts", { contacts });
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err?.response?.data || { message: err.message });
+      }
+    }
+  ),
+
+  /** { lat, lng, accuracy, captured_at, job_id } — location optional */
+  triggerSos: createAsyncThunk("/logistics/sos", async (body, { rejectWithValue }) => {
+    try {
+      const response = await Api.post("/logistics/sos", { source: "web", ...body });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  /** Location that arrived after the SOS was sent */
+  addSosLocation: createAsyncThunk("/logistics/sos/location", async ({ id, ...fix }, { rejectWithValue }) => {
+    try {
+      const response = await Api.post(`/logistics/sos/${id}/location`, fix);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  getOwnerSos: createAsyncThunk("/logistics/sos/owner", async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await Api.get("/logistics/sos/owner", { params });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  getMySos: createAsyncThunk("/logistics/sos/mine", async (_, { rejectWithValue }) => {
+    try {
+      const response = await Api.get("/logistics/sos/mine");
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  ackSos: createAsyncThunk("/logistics/sos/ack", async (id, { rejectWithValue }) => {
+    try {
+      const response = await Api.post(`/logistics/sos/${id}/acknowledge`);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  resolveSos: createAsyncThunk("/logistics/sos/resolve", async ({ id, note }, { rejectWithValue }) => {
+    try {
+      const response = await Api.post(`/logistics/sos/${id}/resolve`, { note });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
 };
 
 export default LogisticsActions;

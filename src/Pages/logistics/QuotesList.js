@@ -10,6 +10,9 @@ import LogisticsCountdown, {
 } from "../../CommanComponents/LogisticsCountdown";
 import { isEquipmentJob } from "../../utils/jobKind";
 import "./logistics.css";
+import {
+  LogisticsListSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 
 const STATUS_OPTS = [
@@ -256,7 +259,7 @@ export default function LogisticsQuotesList() {
         </form>
 
         {loading ? (
-          <p className="logistics-empty">Loading quotes…</p>
+          <LogisticsListSkeleton rows={4} label="Loading quotes" />
         ) : (
           <>
             <p className="log-hint">
@@ -321,7 +324,7 @@ export default function LogisticsQuotesList() {
                                 className="log-jobs-table__open"
                                 to={`${jobBase}/${jobId}`}
                               >
-                                {row.status === "pending"
+                                {row.status === "pending" && !isOwner
                                   ? "Edit / view"
                                   : "View job"}
                               </Link>
@@ -402,7 +405,7 @@ export default function LogisticsQuotesList() {
                                   className="log-jobs-table__open"
                                   to={`${jobBase}/${jobId}`}
                                 >
-                                  Edit / view
+                                  {isOwner ? "View job" : "Edit / view"}
                                 </Link>
                               ) : null}
                             </td>

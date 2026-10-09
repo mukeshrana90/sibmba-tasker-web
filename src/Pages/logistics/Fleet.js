@@ -37,7 +37,12 @@ import {
   sanitizeMoneyInput,
 } from "../../utils/logisticsMoney";
 import "./logistics.css";
+import {
+  LogisticsGridSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
+import { ASSET_COMPLIANCE_TYPES, REMINDER_HINT } from "../../utils/docExpiry";
+import { focusField } from "../../utils/focusField";
 
 const AVAIL_LABEL = {
   available_now: "Available",
@@ -58,7 +63,7 @@ const AVAIL_TONE = {
 const LOGISTIC_DOCS = [
   { id: "ownership", label: "Ownership papers", hint: "Proof you own this truck" },
   { id: "insurance", label: "Insurance", hint: "Current cover" },
-  { id: "rego", label: "Rego / road licensing", hint: "Road papers" },
+  { id: "rego", label: "Road licence (ZINARA)", hint: "Road papers" },
   { id: "roadworthy", label: "Roadworthy / fitness", hint: "Tap to upload" },
 ];
 
@@ -66,7 +71,7 @@ const LOGISTIC_DOCS = [
 const CAB_DOCS = [
   { id: "ownership", label: "Ownership papers", hint: "Proof you own this cab" },
   { id: "insurance", label: "Insurance", hint: "Passenger cover" },
-  { id: "rego", label: "Rego / road licensing", hint: "Road papers" },
+  { id: "rego", label: "Road licence (ZINARA)", hint: "Road papers" },
   { id: "taxi_permit", label: "Taxi / PSV permit", hint: "Permit to carry passengers" },
 ];
 
@@ -104,8 +109,9 @@ const emptyForm = () => ({
   mobility: "Wheeled",
   motor_vehicle: false,
   operating_range: "",
-  price_hour: "",
-  price_day: "",
+  // One rate per unit: amount + per hour / per day
+  price: "",
+  rate_unit: "day",
   location: "",
   location_coords: null,
   direct_booking_enabled: true,
@@ -202,6 +208,29 @@ function PhotoSlots({ files, onAdd, onRemove }) {
   );
 }
 
+/** Under the location field: "Starts at your business base" / "Save as my business base". */
+function BaseLocationNote({ base, coords, saveAsBase, onToggle }) {
+  const atBase =
+    base &&
+    coords &&
+    Math.abs(Number(base.lat) - Number(coords[1])) < 0.0005 &&
+    Math.abs(Number(base.lng) - Number(coords[0])) < 0.0005;
+  if (atBase) {
+    return (
+      <p className="log-hint" style={{ margin: "6px 0 0" }}>
+        Starts at your business base — change it if this unit is kept elsewhere.
+      </p>
+    );
+  }
+  if (!coords) return null;
+  return (
+    <label className="log-check" style={{ marginTop: 6 }}>
+      <input type="checkbox" checked={saveAsBase} onChange={(e) => onToggle(e.target.checked)} />
+      {base ? "Make this my business base for new units" : "Save as my business base — new units will start here"}
+    </label>
+  );
+}
+
 function DocRows({ items, docs, onPick, onExpiry }) {
   return (
     <ul className="log-doc-list">
@@ -209,7 +238,7 @@ function DocRows({ items, docs, onPick, onExpiry }) {
         const entry = docs[d.id];
         const fileLabel = entry?.name || entry?.file?.name;
         return (
-          <li key={d.id} className="log-doc-row">
+          <li key={d.id} className="log-doc-row" data-field={`doc-${d.id}`}>
             <span className="log-doc-row__icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M7 3h7l5 5v13H7V3Z" />
@@ -221,11 +250,19 @@ function DocRows({ items, docs, onPick, onExpiry }) {
               <p>{fileLabel || d.hint}</p>
             </span>
             <label className="log-doc-row__expiry">
-              <span>Expiry date</span>
+              <span>
+                Expiry date
+                {ASSET_COMPLIANCE_TYPES.includes(d.id) ? <span className="log-req"> *</span> : null}
+              </span>
               <LogisticsDateInput
+                pickerOnly
                 value={entry?.expires || ""}
                 onChange={(e) => onExpiry?.(d.id, e.target.value)}
+                required={ASSET_COMPLIANCE_TYPES.includes(d.id)}
               />
+              {entry?.file && !entry?.expires && ASSET_COMPLIANCE_TYPES.includes(d.id) ? (
+                <span className="log-field-error">Expiry date is required</span>
+              ) : null}
             </label>
             <label className="log-doc-row__add" title={fileLabel ? "Replace file" : "Upload"}>
               <input
@@ -261,6 +298,32 @@ export default function LogisticsFleet() {
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(showAddByRoute);
   const [form, setForm] = useState(emptyForm);
+  // Owner business base: new units start here (client review — "base
+  // location asked repeatedly")
+  const [base, setBase] = useState(null);
+  const [saveAsBase, setSaveAsBase] = useState(false);
+
+  useEffect(() => {
+    dispatch(LogisticsActions.getMe()).then((res) => {
+      setBase(res?.payload?.data?.user?.logistics_base || null);
+    });
+  }, [dispatch]);
+
+  // Prefill an empty location with the base whenever the add form is shown
+  useEffect(() => {
+    if (!showForm || !base || form.location || form.location_coords) return;
+    setForm((f) => ({
+      ...f,
+      location: base.address || "",
+      location_coords: [Number(base.lng), Number(base.lat)],
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showForm, base, form.location, form.location_coords]);
+
+  // No base yet → the first unit's location becomes the base (owner can untick)
+  useEffect(() => {
+    if (form.location_coords) setSaveAsBase(!base);
+  }, [form.location_coords, base]);
   // Plan + usage from the banner; the picked category's bucket full → form locked
   const [planSub, setPlanSub] = useState(null);
   const [equipOpen, setEquipOpen] = useState(false);
@@ -386,7 +449,7 @@ export default function LogisticsFleet() {
       value = normalizePlateInput(value);
       setIdErrors((err) => ({ ...err, [key]: "" }));
     }
-    if (key === "price_hour" || key === "price_day") {
+    if (key === "price") {
       value = sanitizeMoneyInput(value);
     }
     setForm((f) => ({ ...f, [key]: value }));
@@ -490,22 +553,38 @@ export default function LogisticsFleet() {
     e.preventDefault();
     if (!String(form.name || "").trim()) {
       toast.error(plant ? "Equipment name is required" : "Vehicle name is required");
+      focusField("name");
       return;
     }
     if (plant && !form.equipment) {
       toast.error("Pick an equipment type");
+      focusField("equipment");
       return;
     }
     if (!plant && !String(form.registration || "").trim()) {
       toast.error("Registration plate is required");
+      focusField("registration");
       return;
     }
     if (plant && form.motor_vehicle && !String(form.registration || "").trim()) {
       toast.error("Registration plate is required for motor vehicles");
+      focusField("registration");
       return;
     }
     if (idErrors.registration || idErrors.chassis_number) {
       toast.error("Fix registration or chassis conflicts before saving");
+      focusField("registration");
+      return;
+    }
+    // Insurance / road licence / roadworthy / taxi permit need an expiry date
+    const missingExpiry = Object.entries(form.docs || {}).find(
+      ([type, entry]) => entry?.file && !entry?.expires && ASSET_COMPLIANCE_TYPES.includes(type)
+    );
+    if (missingExpiry) {
+      const all = [...LOGISTIC_DOCS, ...CAB_DOCS, ...PLANT_DOCS, { id: "rego", label: "Road licence (ZINARA)" }];
+      const label = all.find((d) => d.id === missingExpiry[0])?.label || missingExpiry[0];
+      toast.error(`${label}: expiry date is required`);
+      focusField(`doc-${missingExpiry[0]}`);
       return;
     }
     if (addLocked) {
@@ -515,17 +594,13 @@ export default function LogisticsFleet() {
       return;
     }
     if (plant) {
-      if (form.price_hour !== "" && form.price_hour != null) {
-        const h = parseLogisticsMoney(form.price_hour, { field: "Hourly rate" });
-        if (!h.ok) {
-          toast.error(h.message);
-          return;
-        }
-      }
-      if (form.price_day !== "" && form.price_day != null) {
-        const d = parseLogisticsMoney(form.price_day, { field: "Day rate" });
-        if (!d.ok) {
-          toast.error(d.message);
+      if (form.price !== "" && form.price != null) {
+        const r = parseLogisticsMoney(form.price, {
+          field: form.rate_unit === "hour" ? "Hourly rate" : "Day rate",
+        });
+        if (!r.ok) {
+          toast.error(r.message);
+          focusField("price");
           return;
         }
       }
@@ -557,8 +632,8 @@ export default function LogisticsFleet() {
         mobility: plant ? form.mobility || "" : "",
         engine_type: plant ? form.engine_type || "" : "",
         operating_range_km: plant ? form.operating_range || "" : "",
-        price_hour: plant ? form.price_hour || "" : "",
-        price_day: plant ? form.price_day || "" : "",
+        price: plant ? form.price || "" : "",
+        rate_unit: plant && form.price ? form.rate_unit || "day" : "",
         direct_booking_enabled: form.direct_booking_enabled ? "true" : "false",
         ...(coords
           ? { lng: String(coords[0]), lat: String(coords[1]) }
@@ -596,6 +671,18 @@ export default function LogisticsFleet() {
       const res = await dispatch(LogisticsActions.createAsset(fd));
       if (res?.meta?.requestStatus === "fulfilled" && res?.payload?.success) {
         toast.success(plant ? "Equipment added" : cab ? "Cab added" : "Vehicle added");
+        if (saveAsBase && coords) {
+          const saved = await dispatch(
+            LogisticsActions.patchMe({
+              logistics_base: { address: form.location || "", lat: coords[1], lng: coords[0] },
+            })
+          );
+          const nextBase = saved?.payload?.data?.user?.logistics_base;
+          if (nextBase) {
+            setBase(nextBase);
+            toast.info("Saved as your business base — new units will start there");
+          }
+        }
         closeAdd();
         await load();
       } else {
@@ -775,7 +862,7 @@ export default function LogisticsFleet() {
                 onRemove={onRemovePhoto}
               />
 
-              <label className="log-field">
+              <label className="log-field" data-field="name">
                 <span className="log-fl">
                   Name <span className="log-req">*</span>
                 </span>
@@ -909,6 +996,7 @@ export default function LogisticsFleet() {
                 uses capital letters and numbers only.
               </p>
               <label
+                data-field="registration"
                 className={`log-field${idErrors.registration ? " log-field--error" : ""}`}
               >
                 <span className="log-fl">
@@ -952,8 +1040,8 @@ export default function LogisticsFleet() {
 
               {cab ? (
               <p className="log-hint log-field--full">
-                Assign drivers after saving — or leave it unassigned and drive
-                this cab yourself (quote as owner).
+                Assign an operator after saving — customers can't find or book a
+                cab until an operator is assigned. Operators quote and run the rides.
               </p>
               ) : (
               <>
@@ -1014,8 +1102,9 @@ export default function LogisticsFleet() {
                 </select>
               </label>
               <p className="log-hint log-field--full">
-                Logistic vehicles always need at least one operator (driver).
-                Assign one or more operators after saving — same as plant.
+                Every unit needs at least one operator (driver) — customers
+                can't find or book it until one is assigned. Assign operators
+                after saving; they quote and run the jobs.
               </p>
               </>
               )}
@@ -1035,6 +1124,12 @@ export default function LogisticsFleet() {
                     }))
                   }
                 />
+                <BaseLocationNote
+                  base={base}
+                  coords={form.location_coords}
+                  saveAsBase={saveAsBase}
+                  onToggle={setSaveAsBase}
+                />
               </div>
 
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
@@ -1043,8 +1138,10 @@ export default function LogisticsFleet() {
               </p>
               <p className="log-hint log-field--full">
                 {cab
-                  ? "Ownership, insurance, rego and taxi permit — proves you own the cab and can carry passengers."
-                  : "Ownership, insurance, rego and roadworthy — proves you own the truck and it can legally operate."}
+                  ? "Ownership, insurance, road licence and taxi permit — proves you own the cab and can carry passengers."
+                  : "Ownership, insurance, road licence and roadworthy — proves you own the truck and it can legally operate."}{" "}
+                Expiry dates marked * are required. {REMINDER_HINT} An expired
+                document hides the unit from customers until you upload the renewed one.
               </p>
               <div className="log-field--full">
                 <DocRows
@@ -1057,7 +1154,7 @@ export default function LogisticsFleet() {
             </div>
           ) : (
             <div className="log-form-grid log-form-grid--plant">
-              <div className="log-pick-row log-field--full">
+              <div className="log-pick-row log-field--full" data-field="equipment">
                 <LogisticsPickField
                   label="Equipment type"
                   value={form.equipment}
@@ -1078,7 +1175,7 @@ export default function LogisticsFleet() {
                 Compact · Heavy-Duty.
               </p>
 
-              <label className="log-field">
+              <label className="log-field" data-field="name">
                 <span className="log-fl">
                   Name <span className="log-req">*</span>
                 </span>
@@ -1188,6 +1285,7 @@ export default function LogisticsFleet() {
               </label>
               {form.motor_vehicle ? (
                 <label
+                  data-field="registration"
                   className={`log-field log-field--full${idErrors.registration ? " log-field--error" : ""}`}
                 >
                   <span className="log-fl">
@@ -1210,13 +1308,9 @@ export default function LogisticsFleet() {
               ) : null}
 
               <label className="log-field">
-                <span className="log-fl">Needs operator?</span>
-                <select
-                  value={form.needs_operator}
-                  onChange={set("needs_operator")}
-                >
+                <span className="log-fl">Needs operator? · Locked</span>
+                <select value="yes" disabled>
                   <option value="yes">Yes</option>
-                  <option value="no">No</option>
                 </select>
               </label>
               <label className="log-field">
@@ -1247,6 +1341,12 @@ export default function LogisticsFleet() {
                     }))
                   }
                 />
+                <BaseLocationNote
+                  base={base}
+                  coords={form.location_coords}
+                  saveAsBase={saveAsBase}
+                  onToggle={setSaveAsBase}
+                />
               </div>
               <label className="log-field log-field--full">
                 <span className="log-fl">Operating range (km)</span>
@@ -1259,22 +1359,33 @@ export default function LogisticsFleet() {
                   placeholder="e.g. 80 — hire jobs outside this distance won’t alert you"
                 />
               </label>
-              <label className="log-field">
-                <span className="log-fl">Price / hour</span>
-                <LogisticsMoneyInput
-                  value={form.price_hour}
-                  onChange={(v) => setForm((f) => ({ ...f, price_hour: v }))}
-                  aria-label="Price per hour"
-                />
-              </label>
-              <label className="log-field">
-                <span className="log-fl">Price / day</span>
-                <LogisticsMoneyInput
-                  value={form.price_day}
-                  onChange={(v) => setForm((f) => ({ ...f, price_day: v }))}
-                  aria-label="Price per day"
-                />
-              </label>
+              <div className="log-field log-rate-field" data-field="price">
+                <span className="log-fl">Rate (optional)</span>
+                <div className="log-rate-row">
+                  <LogisticsMoneyInput
+                    value={form.price}
+                    onChange={(v) => setForm((f) => ({ ...f, price: v }))}
+                    aria-label={form.rate_unit === "hour" ? "Price per hour" : "Price per day"}
+                  />
+                  <div className="log-rate-toggle" role="radiogroup" aria-label="Rate unit">
+                    {[
+                      ["day", "Per day"],
+                      ["hour", "Per hour"],
+                    ].map(([u, label]) => (
+                      <button
+                        key={u}
+                        type="button"
+                        role="radio"
+                        aria-checked={form.rate_unit === u}
+                        className={form.rate_unit === u ? "is-on" : ""}
+                        onClick={() => setForm((f) => ({ ...f, rate_unit: u }))}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                 Equipment documents{" "}
@@ -1282,7 +1393,7 @@ export default function LogisticsFleet() {
               </p>
               <p className="log-hint log-field--full">
                 Ownership, insurance and road papers — stops bogus non-owner
-                listings.
+                listings. Expiry dates marked * are required. {REMINDER_HINT}
               </p>
               <div className="log-field--full">
                 <DocRows
@@ -1292,7 +1403,7 @@ export default function LogisticsFleet() {
                           ...PLANT_DOCS.slice(0, 3),
                           {
                             id: "rego",
-                            label: "Rego / road licensing",
+                            label: "Road licence (ZINARA)",
                             hint: "Required when motor vehicle is ticked",
                           },
                           PLANT_DOCS[3],
@@ -1344,7 +1455,7 @@ export default function LogisticsFleet() {
       ) : null}
 
       {loading ? (
-        <p className="logistics-empty">Loading fleet…</p>
+        <LogisticsGridSkeleton cards={6} label="Loading fleet" />
       ) : assets.length ? (
         <>
           {hubFeature && assets.some((x) => x.kind === "vehicle") ? (

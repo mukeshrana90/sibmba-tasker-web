@@ -124,6 +124,44 @@ export function assetCapacityTons(asset) {
   return toTonsValue(cap.value, cap.unit || "tons");
 }
 
+/** Heaviest load the truck must carry on this job (outbound or return leg), in tons. */
+export function jobLoadTons(job) {
+  const out = toTonsValue(job?.load_weight?.value, job?.load_weight?.unit || "tons");
+  const back = job?.return_trip?.weight
+    ? toTonsValue(job.return_trip.weight.value, job.return_trip.weight.unit || "tons")
+    : null;
+  const t = Math.max(out || 0, back || 0);
+  return t > 0 ? t : null;
+}
+
+const fmtTons = (t) => `${Math.round(t * 1000) / 1000} t`;
+
+/**
+ * Can the operator's live truck carry this job? Mirrors the server check on
+ * POST /job/:id/quote (TRUCK_TOO_SMALL). Returns null when it fits (or the
+ * truck has no capacity set), else { need, cap, better[], message }.
+ */
+export function truckTooSmallForJob(job, active, trucks = []) {
+  const need = jobLoadTons(job);
+  const cap = assetCapacityTons(active);
+  if (need == null || cap == null || need <= cap + 1e-9) return null;
+  const better = trucks
+    .filter((a) => String(a._id) !== String(active._id) && Number(a.is_active) !== 0)
+    .map((a) => ({ a, t: assetCapacityTons(a) }))
+    .filter(({ t }) => t != null && t > 0 && t + 1e-9 >= need)
+    .sort((x, y) => y.t - x.t);
+  const label = ({ a }) => `${a.name || "Truck"}${a.registration ? ` (${a.registration})` : ""}`;
+  const base = `This job needs ${fmtTons(need)} but ${active.name || "your truck"} carries up to ${fmtTons(cap)}.`;
+  return {
+    need,
+    cap,
+    better: better.map(({ a }) => a),
+    message: better.length
+      ? `${base} Switch Using now to ${better.map((b) => `${label(b)} — up to ${fmtTons(b.t)}`).join(" or ")} on your Dashboard and Update status, then quote.`
+      : `${base} None of your trucks can carry this load, so you can't quote this job.`,
+  };
+}
+
 export function assetBodyType(asset) {
   const caps = asset?.capabilities || [];
   for (const raw of caps) {

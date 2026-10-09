@@ -26,6 +26,7 @@ import {
   resolveActiveModule,
   Roles,
 } from "../../utils/Roles";
+import { LogisticsSosHost } from "../../CommanComponents/LogisticsSosButton";
 
 const serviceProviderRoutes = [
   { label: "Home", path: "/requests" },
@@ -251,6 +252,7 @@ export default function Header({ isGuestLanding = false }) {
   };
   return (
     <>
+      <LogisticsSosHost />
       {isGuestLanding && !token ? (
         <LandingGuestHeader />
       ) : token && Number(role) === Roles.CUSTOMER ? (

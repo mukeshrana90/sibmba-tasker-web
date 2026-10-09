@@ -30,6 +30,7 @@ import {
   isGoogleLoginDisabled,
 } from "../utils/featureFlags";
 import { Roles } from "../utils/Roles";
+import { EMAIL_PATTERN, checkEmailRemote } from "../utils/emailCheck";
 
 const ROLE_COPY = {
   [Roles.LOGISTICS]: {
@@ -117,8 +118,9 @@ function countryCodeToIso(dialCode) {
 
 function buildPhoneInputValue(countryCode, phone) {
   const local = String(phone || "").replace(/\D/g, "");
-  if (!local) return "";
   const cc = String(countryCode || "+263").replace(/\D/g, "");
+  // Keep the dial code even when the number is empty so the picked country sticks
+  if (!local) return `+${cc}`;
   return `+${cc}${local}`;
 }
 
@@ -156,6 +158,7 @@ export default function SignUp() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
+  const [emailSuggestion, setEmailSuggestion] = useState("");
 
   const roleCopy = ROLE_COPY[selectedRole] || ROLE_COPY[1];
   const returnUrl = resolvePostAuthPath(query.get("returnUrl"));
@@ -164,7 +167,8 @@ export default function SignUp() {
     initialValues: getSignupInitialValues(),
     validationSchema: Yup.object({
       email: Yup.string()
-        .email("Invalid email address")
+        .trim()
+        .matches(EMAIL_PATTERN, "Enter a valid email address (e.g. name@gmail.com)")
         .required("Email is Required"),
       phone: Yup.string()
         .transform((value) => value.replace(/\D/g, ""))
@@ -179,6 +183,16 @@ export default function SignUp() {
       terms: Yup.boolean().oneOf([true], "You must accept the terms"),
     }),
     onSubmit: async (values) => {
+      // Genuine email (deliverable domain, no gmail.comcom-style typo) before
+      // we offer to send an OTP to it
+      setEmailSuggestion("");
+      const check = await checkEmailRemote(values.email);
+      if (!check.ok) {
+        formik.setFieldTouched("email", true, false);
+        formik.setFieldError("email", check.message || "Enter a valid email address");
+        setEmailSuggestion(check.suggestion || "");
+        return;
+      }
       localStorage.setItem("signupFormData", JSON.stringify(values));
       setShowOtpModal(true);
     },
@@ -399,6 +413,19 @@ export default function SignUp() {
                     />
                   </div>
                   {fieldError("email")}
+                  {emailSuggestion ? (
+                    <button
+                      type="button"
+                      className="email-suggestion"
+                      onClick={() => {
+                        formik.setFieldValue("email", emailSuggestion);
+                        formik.setFieldError("email", undefined);
+                        setEmailSuggestion("");
+                      }}
+                    >
+                      Use {emailSuggestion}
+                    </button>
+                  ) : null}
                 </div>
 
                 <div className="field signup-phone-field">
@@ -406,6 +433,7 @@ export default function SignUp() {
                   <div className="input-shell">
                     <PhoneInput
                       defaultCountry={defaultPhoneCountry}
+                      forceDialCode
                       value={phoneInputValue}
                       onChange={handlePhoneChange}
                       onBlur={() => formik.setFieldTouched("phone", true)}

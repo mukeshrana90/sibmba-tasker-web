@@ -26,6 +26,10 @@ import {
   CAPACITY_TIER_OPTIONS,
 } from "../../utils/logisticVehicleWeight";
 import "./logistics.css";
+import {
+  LogisticsSkeletonMeta,
+  LogisticsTableSkeletonRows,
+} from "../../CommanComponents/LogisticsSkeleton";
 
 const PAGE_SIZE = 10;
 const HUB_CATEGORIES = new Set([
@@ -514,7 +518,7 @@ export default function LogisticsSearch() {
             <>
               <div className="log-jobs-meta">
                 {loading
-                  ? "Searching…"
+                  ? <LogisticsSkeletonMeta w={260} />
                   : total
                     ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(
                         page * PAGE_SIZE,
@@ -548,6 +552,9 @@ export default function LogisticsSearch() {
                     </tr>
                   </thead>
                   <tbody>
+                    {loading && !rows.length ? (
+                      <LogisticsTableSkeletonRows cols={8} />
+                    ) : null}
                     {rows.map((row) => {
                       const state = row.availability?.state || "offline";
                       const statusLabel =

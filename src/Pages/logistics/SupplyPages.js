@@ -15,6 +15,10 @@ import LogisticsCountdown, {
   useNowTick,
 } from "../../CommanComponents/LogisticsCountdown";
 import "./logistics.css";
+import {
+  LogisticsSkeletonMeta,
+  LogisticsTableSkeletonRows,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 
 const PAGE_SIZE = 10;
@@ -150,7 +154,7 @@ function formatWeight(job) {
 }
 
 /** Shared Job Opportunities table (owner + operator). */
-function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath }) {
+function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath, ownerView = false }) {
   const dispatch = useDispatch();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -260,6 +264,12 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath }) {
         Open loads you can quote on. Newest posts first — budget is a guide unless
         marked fixed.
       </p> */}
+      {ownerView ? (
+        <p className="log-op-lead">
+          Open jobs your fleet can serve. Your operators quote and run them —
+          make sure each unit has an operator assigned and live.
+        </p>
+      ) : null}
 
       <form className="log-jobs-toolbar" onSubmit={applyFilters}>
         <label className="log-jobs-toolbar__search">
@@ -336,7 +346,7 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath }) {
 
       <div className="log-jobs-meta">
         {loading
-          ? "Loading opportunities…"
+          ? <LogisticsSkeletonMeta w={240} />
           : total
             ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(
                 page * PAGE_SIZE,
@@ -364,6 +374,7 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath }) {
             </tr>
           </thead>
           <tbody>
+            {loading && !jobs.length ? <LogisticsTableSkeletonRows cols={6} /> : null}
             {jobs.map((job) => {
               const weight = formatWeight(job);
               const isReturn = Boolean(job.return_trip?.goods);
@@ -430,7 +441,7 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath }) {
                       }`}
                       to={`${jobBasePath}/${job._id}`}
                     >
-                      {isNow ? "Quote now" : "View"}
+                      {isNow && !ownerView ? "Quote now" : "View"}
                     </Link>
                   </td>
                 </tr>
@@ -478,13 +489,14 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath }) {
   );
 }
 
-/** Owner: open loads to quote. */
+/** Owner: open loads near the fleet (view only — operators quote). */
 export function LogisticsOwnerOpportunities() {
   return (
     <SupplyOpportunitiesPage
       midLabel="Owner"
       homeTo="/logistics/owner"
       jobBasePath="/logistics/owner/job"
+      ownerView
     />
   );
 }
@@ -842,7 +854,7 @@ function SupplyMyJobsTable({
 
       <div className="log-jobs-meta">
         {loading
-          ? "Loading jobs…"
+          ? <LogisticsSkeletonMeta w={220} />
           : tableTotal
             ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(
                 page * PAGE_SIZE,
@@ -875,6 +887,11 @@ function SupplyMyJobsTable({
             </tr>
           </thead>
           <tbody>
+            {loading && !tableJobs.length ? (
+              <LogisticsTableSkeletonRows
+                cols={enableMultiTransit ? (showingMulti ? 7 : 8) : 6}
+              />
+            ) : null}
             {tableJobs.map((job) => {
               const statusLabel =
                 STATUS_LABEL[job.status] ?? `Status ${job.status}`;
@@ -1053,7 +1070,8 @@ export function LogisticsOwnerMyJobs() {
       jobBasePath="/logistics/owner/job"
       emptyHint={
         <>
-          No assigned jobs yet. Check{" "}
+          No assigned jobs yet. Jobs appear here once a customer accepts one
+          of your operators&apos; quotes — see{" "}
           <Link to="/logistics/owner/opportunities">Job Opportunities</Link>.
         </>
       }

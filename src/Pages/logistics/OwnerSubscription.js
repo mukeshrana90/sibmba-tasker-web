@@ -7,6 +7,9 @@ import LogisticsReasonModal from "../../CommanComponents/LogisticsReasonModal";
 import LogisticsPlanUnitsModal from "../../CommanComponents/LogisticsPlanUnitsModal";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
 import "./logistics.css";
+import {
+  LogisticsStatsSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 
 const USAGE_ROWS = [
   { k: "operators", label: "Operators" },
@@ -143,12 +146,30 @@ export default function LogisticsOwnerSubscription() {
   const withCabs = sub?.cab_service_enabled ?? cabConfigEnabled;
   const usageRows = USAGE_ROWS.filter((r) => withCabs || r.k !== "cabs");
   const plans = sub?.plans || [];
+  // Paid plans off (LOGISTICS_PAID_PLANS_ENABLED) → the server sends priced plans
+  // as coming_soon with no price / limits; they share one blurred teaser card
+  const shownPlans = plans.filter((p) => !p.coming_soon);
+  const soonPlans = plans.filter((p) => p.coming_soon);
   const currentRank = sub?.plan?.rank ?? 0;
   const lowestPlan = plans[0];
   const unlimitedNow =
     sub && ["vehicles", "cabs", "equipment"].every((k) => sub.plan.limits?.[k] == null);
   const endsIn = daysLeft(sub?.expires_at);
   const pricedCurrent = Number(sub?.plan?.price?.amount) > 0;
+
+  // Usage row click → that row's units (or operator seats) in the picker
+  const openUsageRow = (r) =>
+    setUnitsModal({
+      planId: current,
+      mode: "manage",
+      focus: r.k,
+      title: r.k === "operators" ? "Operator seats" : `Choose active ${r.label.toLowerCase()}`,
+      message:
+        r.k === "operators"
+          ? `Who uses your ${sub.plan.name} plan's operator seats.`
+          : `Pick which ${r.label.toLowerCase()} use your ${sub.plan.name} plan slots.`,
+      confirmLabel: "Save active units",
+    });
 
   const pickPlan = (p) => {
     // Priced plans are switched off server-side until pricing is final
@@ -177,7 +198,9 @@ export default function LogisticsOwnerSubscription() {
       homeTo="/logistics/owner"
     >
       <div className="log-sub-page">
-        {loading && !sub ? <p className="logistics-empty">Loading…</p> : null}
+        {loading && !sub ? (
+          <LogisticsStatsSkeleton tiles={3} chart={false} list={2} label="Loading plan" />
+        ) : null}
 
         {sub ? (
           <>
@@ -271,7 +294,20 @@ export default function LogisticsOwnerSubscription() {
                   const over = max != null && used > max;
                   const full = max != null && used >= max;
                   return (
-                    <div key={r.k} className={`log-sub-usage__row${full ? " is-full" : ""}${over ? " is-over" : ""}`}>
+                    <div
+                      key={r.k}
+                      className={`log-sub-usage__row is-clickable${full ? " is-full" : ""}${over ? " is-over" : ""}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${r.label}: ${used} of ${limitText(max)} — ${r.k === "operators" ? "see operator seats" : "choose active units"}`}
+                      onClick={() => openUsageRow(r)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openUsageRow(r);
+                        }
+                      }}
+                    >
                       <dt>{r.label}</dt>
                       <dd>
                         <b>{used}</b> / {limitText(max)}
@@ -286,11 +322,11 @@ export default function LogisticsOwnerSubscription() {
             </section>
 
             <section className="log-sub-plans" aria-label="Plans">
-              {sub.plans.map((p) => {
+              {shownPlans.map((p) => {
                 const isCurrent = p.id === current;
                 return (
                   <article key={p.id} className={`log-sub-plan log-sub-plan--${p.id}${isCurrent ? " is-current" : ""}`}>
-                    {p.id === plans[plans.length - 1]?.id && plans.length > 1 ? (
+                    {p.id === shownPlans[shownPlans.length - 1]?.id && shownPlans.length > 1 ? (
                       <span className="log-sub-plan__ribbon">Recommended</span>
                     ) : null}
                     <header>
@@ -348,14 +384,45 @@ export default function LogisticsOwnerSubscription() {
                   </article>
                 );
               })}
+              {soonPlans.length ? (
+                <article className="log-sub-plan log-sub-plan--soon" aria-label="Paid plans coming soon">
+                  {/* Placeholder only — real prices / limits aren't sent until paid plans are on */}
+                  <div className="log-sub-plan__blur" aria-hidden="true">
+                    <header>
+                      <h3>Paid</h3>
+                      <p className="log-sub-plan__price">
+                        <b>USD ••</b>
+                        <span> / month</span>
+                      </p>
+                    </header>
+                    <ul className="log-sub-plan__limits">
+                      {["Operators", "Logistic trucks", ...(withCabs ? ["Cabs"] : []), "Non-logistic equipment", "Hub “Top logistics providers”"].map((l) => (
+                        <li key={l}>
+                          <span>{l}</span>
+                          <b>•••</b>
+                        </li>
+                      ))}
+                    </ul>
+                    <ul className="log-sub-plan__features">
+                      <li>More operators</li>
+                      <li>More trucks and equipment</li>
+                      <li>Hub listing</li>
+                    </ul>
+                    <span className="logistics-cta logistics-cta--primary">Upgrade</span>
+                  </div>
+                  <div className="log-sub-plan__soon">
+                    <span className="log-sub-plan__soon-badge">Coming soon</span>
+                    <h3>Paid plans</h3>
+                    <p>
+                      You're currently on the {lowestPlan?.name || "Free"} plan. Paid plans will be available soon,
+                      with additional features and higher limits. No action is required at this time.
+                    </p>
+                  </div>
+                </article>
+              ) : null}
             </section>
 
-            {sub.paid_plans_enabled === false ? (
-              <p className="log-hint log-sub-demo">
-                Paid plans can't be activated right now — you're on {lowestPlan?.name || "Free"} until a
-                paid plan is active.
-              </p>
-            ) : sub.demo ? (
+            {sub.demo && sub.paid_plans_enabled !== false ? (
               <p className="log-hint log-sub-demo">
                 Demo plans — no payment is collected yet. Switching takes effect immediately; a paid
                 period lasts {plans.find((p) => p.period_days)?.period_days || 30} days.
@@ -387,6 +454,8 @@ export default function LogisticsOwnerSubscription() {
         title={unitsModal?.title}
         message={unitsModal?.message}
         confirmLabel={unitsModal?.confirmLabel}
+        focus={unitsModal?.focus || null}
+        operatorLimit={sub?.plan?.limits?.operators}
         busy={switching}
         onCancel={() => setUnitsModal(null)}
         onConfirm={(ids) =>

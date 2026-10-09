@@ -51,6 +51,9 @@ import {
   parseLogisticsMoney,
 } from "../../utils/logisticsMoney";
 import "./logistics.css";
+import {
+  LogisticsFormSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 
 const KG_PER_TON = 1000;
@@ -110,6 +113,8 @@ const defaultForm = {
   site: "",
   site_coords: null,
   hire_from: "",
+  // Date the job was loaded with (edit): an older post may keep it unchanged
+  orig_date: "",
   hire_to: "",
   plant_budget: "",
   plant_budget_unit: "day",
@@ -136,6 +141,7 @@ function jobToForm(job) {
       site_coords: job.pickup?.coordinates || null,
       hire_from: toDateInput(job.when_needed),
       hire_to: toDateInput(job.when_needed),
+      orig_date: toDateInput(job.when_needed),
       plant_budget:
         job.budget?.amount != null
           ? formatMoneyInputValue(job.budget.amount)
@@ -159,6 +165,7 @@ function jobToForm(job) {
       job.load_weight?.value != null ? String(job.load_weight.value) : "",
     weight_unit: job.load_weight?.unit === "kg" ? "kg" : "tons",
     date: toDateInput(job.when_needed),
+    orig_date: toDateInput(job.when_needed),
     when_mode: job.job_class === "local" ? "now" : "date",
     vehicle_needed: normalizeVehicleNeededLabel(
       vehicleMatch ? vehicleMatch[1].trim() : "below 2 ton"
@@ -241,6 +248,8 @@ function formFromTargetAsset(asset) {
         asset.price_hint?.amount != null
           ? formatMoneyInputValue(asset.price_hint.amount)
           : "",
+      // Booking a unit priced per hour starts the budget per hour too
+      plant_budget_unit: asset.price_hint?.unit === "hour" ? "hour" : "day",
     };
   }
   return {
@@ -453,62 +462,38 @@ export default function LogisticsPostJob() {
     setForm((f) => ({ ...f, [key]: next }));
   };
 
+  // Weight can't go above the chosen Vehicle needed size (or the locked unit's
+  // capacity): an over-limit entry is clamped to the max with a toast. To carry
+  // more, the customer picks a bigger Vehicle needed first.
+  const weightCapFor = (f) => {
+    if (plant) return null;
+    if (categoryLocked) return lockedVehicleMaxTons;
+    return vehicleMaxTons(f.vehicle_needed);
+  };
+
+  const capWeight = (f, weight, unit) => {
+    const max = weightCapFor(f);
+    if (max == null || !weightExceedsMax(toTons(weight, unit), max)) {
+      return { ...f, weight, weight_unit: unit };
+    }
+    // toastId: one toast even when React re-runs this updater (StrictMode)
+    toast.error(
+      categoryLocked
+        ? `This unit can take up to ${max} tons — lower the package weight.`
+        : `Vehicle needed “${f.vehicle_needed}” takes up to ${max} tons. Pick a larger vehicle to carry more.`,
+      { toastId: "post-weight-cap" }
+    );
+    return { ...f, weight: String(unit === "kg" ? max * 1000 : max), weight_unit: unit };
+  };
+
   const onWeightChange = (e) => {
     const nextWeight = e.target.value;
-    setForm((f) => {
-      const tons = toTons(nextWeight, f.weight_unit);
-      if (categoryLocked && !plant && lockedVehicleMaxTons != null) {
-        if (weightExceedsMax(tons, lockedVehicleMaxTons)) {
-          toast.error(
-            `This unit can take up to ${lockedVehicleMaxTons} tons — lower the package weight.`
-          );
-          const capped =
-            f.weight_unit === "kg"
-              ? String(lockedVehicleMaxTons * 1000)
-              : String(lockedVehicleMaxTons);
-          return { ...f, weight: capped };
-        }
-        return { ...f, weight: nextWeight };
-      }
-      if (plant) {
-        return { ...f, weight: nextWeight };
-      }
-      const nextVehicle = suggestVehicleForWeight(tons, f.vehicle_needed);
-      return {
-        ...f,
-        weight: nextWeight,
-        vehicle_needed: nextVehicle,
-      };
-    });
+    setForm((f) => capWeight(f, nextWeight, f.weight_unit));
   };
 
   const onWeightUnitChange = (e) => {
     const nextUnit = e.target.value;
-    setForm((f) => {
-      const tons = toTons(f.weight, nextUnit);
-      if (categoryLocked && !plant && lockedVehicleMaxTons != null) {
-        if (weightExceedsMax(tons, lockedVehicleMaxTons)) {
-          toast.error(
-            `This unit can take up to ${lockedVehicleMaxTons} tons — lower the package weight.`
-          );
-          const capped =
-            nextUnit === "kg"
-              ? String(lockedVehicleMaxTons * 1000)
-              : String(lockedVehicleMaxTons);
-          return { ...f, weight_unit: nextUnit, weight: capped };
-        }
-        return { ...f, weight_unit: nextUnit };
-      }
-      if (plant) {
-        return { ...f, weight_unit: nextUnit };
-      }
-      const nextVehicle = suggestVehicleForWeight(tons, f.vehicle_needed);
-      return {
-        ...f,
-        weight_unit: nextUnit,
-        vehicle_needed: nextVehicle,
-      };
-    });
+    setForm((f) => capWeight(f, f.weight, nextUnit));
   };
 
   const onVehicleNeededChange = (e) => {
@@ -596,12 +581,13 @@ export default function LogisticsPostJob() {
         toast.error("Date is required");
         return false;
       }
-      if (categoryLocked && form.date < localDateStr(1)) {
-        toast.error("Direct bookings must be for a future date (tomorrow or later)");
-        return false;
-      }
-      if (!editId && form.date < localDateStr(0)) {
-        toast.error("Date can't be in the past");
+      // Dated jobs start tomorrow; today is what Now is for (v2.7.34)
+      if (form.date < localDateStr(1) && form.date !== form.orig_date) {
+        toast.error(
+          categoryLocked
+            ? "Direct bookings must be for a future date (tomorrow or later)"
+            : "Scheduled jobs are for tomorrow or later — choose Now for today"
+        );
         return false;
       }
     }
@@ -638,8 +624,12 @@ export default function LogisticsPostJob() {
       toast.error("To date is required");
       return false;
     }
-    if (categoryLocked && form.hire_from < localDateStr(1)) {
-      toast.error("Direct bookings must be for a future date (tomorrow or later)");
+    if (form.hire_from < localDateStr(1) && form.hire_from !== form.orig_date) {
+      toast.error(
+        categoryLocked
+          ? "Direct bookings must be for a future date (tomorrow or later)"
+          : "Equipment hire must start tomorrow or later"
+      );
       return false;
     }
     if (
@@ -788,7 +778,7 @@ export default function LogisticsPostJob() {
         title={editId ? "Edit job" : "Post a job"}
         crumbLabel={editId ? "Edit job" : "Post a job"}
       >
-        <p className="logistics-empty">Loading…</p>
+        <LogisticsFormSkeleton fields={8} label="Loading job" />
       </LogisticsPageShell>
     );
   }
@@ -894,21 +884,31 @@ export default function LogisticsPostJob() {
                   <span className="log-cat-block__lock"> · Locked</span>
                 ) : null}
               </LogFieldLabel>
-              <select
-                value={
-                  vehicleOptions.includes(form.vehicle_needed)
-                    ? form.vehicle_needed
-                    : vehicleOptions[0] || form.vehicle_needed
-                }
-                onChange={onVehicleNeededChange}
-                disabled={categoryLocked}
-              >
-                {vehicleOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
+              {categoryLocked && assetCapacityTons(targetAsset) != null ? (
+                // Direct booking: show this truck's real capacity (e.g. 15 t),
+                // not the size band it falls in ("20 ton")
+                <input
+                  readOnly
+                  value={`Up to ${Number(assetCapacityTons(targetAsset)).toLocaleString()} t — ${targetAsset?.name || "this truck"}`}
+                  aria-label="Vehicle capacity (this truck)"
+                />
+              ) : (
+                <select
+                  value={
+                    vehicleOptions.includes(form.vehicle_needed)
+                      ? form.vehicle_needed
+                      : vehicleOptions[0] || form.vehicle_needed
+                  }
+                  onChange={onVehicleNeededChange}
+                  disabled={categoryLocked}
+                >
+                  {vehicleOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              )}
             </label>
             <label className="log-field">
               <LogFieldLabel icon={<IconTruck size={16} />}>
@@ -1055,18 +1055,14 @@ export default function LogisticsPostJob() {
                   <LogisticsDateInput
                     value={form.date}
                     onChange={set("date")}
-                    min={
-                      editId
-                        ? undefined
-                        : localDateStr(categoryLocked ? 1 : 0)
-                    }
+                    min={localDateStr(1)}
                     required
                   />
-                  {categoryLocked ? (
-                    <span className="log-hint">
-                      Direct bookings are for tomorrow or later.
-                    </span>
-                  ) : null}
+                  <span className="log-hint">
+                    {categoryLocked
+                      ? "Direct bookings are for tomorrow or later."
+                      : "Schedule is for tomorrow or later. Need it today? Choose Now."}
+                  </span>
                 </>
               )}
             </div>
@@ -1170,7 +1166,7 @@ export default function LogisticsPostJob() {
               <div className="log-return-panel log-field--full">
                 <p>
                   Also bring goods back on the return leg. One total price covers
-                  both legs — drivers quote against that total.
+                  both legs — operators quote against that total.
                 </p>
                 <div className="log-form-grid">
                   <label className="log-field log-field--full">
@@ -1335,11 +1331,10 @@ export default function LogisticsPostJob() {
                   className="log-date-input"
                   value={form.hire_from}
                   onChange={set("hire_from")}
-                  min={
-                    editId ? undefined : localDateStr(categoryLocked ? 1 : 0)
-                  }
+                  min={localDateStr(1)}
                   required
                 />
+                <span className="log-hint">Hire starts tomorrow or later.</span>
               </div>
               <div className="log-field">
                 <LogFieldLabel icon={<IconCalendar size={16} />} required>
@@ -1349,10 +1344,7 @@ export default function LogisticsPostJob() {
                   className="log-date-input"
                   value={form.hire_to}
                   onChange={set("hire_to")}
-                  min={
-                    form.hire_from ||
-                    (editId ? undefined : localDateStr(categoryLocked ? 1 : 0))
-                  }
+                  min={form.hire_from || localDateStr(1)}
                   required
                 />
               </div>

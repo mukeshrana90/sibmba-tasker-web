@@ -1702,12 +1702,6 @@ header.appnav .avatar-menu .am-item {
   color: var(--ink);
 }
 
-.notify-menu-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 10px 4px;
-}
-
 .notify-clear-all {
   border: 0;
   background: transparent;
@@ -7084,3 +7078,16 @@ header.appnav .avatar-menu .am-item {
   }
 }
 
+
+/* Sign-up: one-tap fix for a mistyped email ("Use name@gmail.com") */
+.simba-page.p-signup .email-suggestion {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary, #0f5c4c);
+  font-weight: 700;
+  font-size: 0.86rem;
+  text-decoration: underline;
+  cursor: pointer;
+}

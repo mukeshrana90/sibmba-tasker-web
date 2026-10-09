@@ -4,6 +4,10 @@ import { useDispatch } from "react-redux";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import "./logistics.css";
+import {
+  LogisticsGridSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
+import { notBookableReason } from "../../utils/ownerUnitStatus";
 
 const PAGE_SIZE = 8;
 
@@ -201,7 +205,7 @@ export default function OwnerEquipment() {
         </div>
 
         {loading ? (
-          <p className="logistics-empty">Loading equipment…</p>
+          <LogisticsGridSkeleton cards={6} label="Loading equipment" />
         ) : (
           <>
             <div className="log-jobs-table-wrap">
@@ -264,6 +268,9 @@ export default function OwnerEquipment() {
                           >
                             {AVAIL_LABEL[st] || st}
                           </span>
+                          {notBookableReason(asset) ? (
+                            <span className="log-unit-notbookable">{notBookableReason(asset)}</span>
+                          ) : null}
                         </td>
                         <td>
                           <Link

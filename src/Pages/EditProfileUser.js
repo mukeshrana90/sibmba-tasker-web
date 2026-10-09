@@ -17,6 +17,12 @@ import { setCustomer } from "../Redux/Reducers/LoginSlice";
 import { ImagePathCustomer } from "../utils/ImagePath";
 import { handleUserImageError } from "../utils/landingUtils";
 import { sanitizeProfileValue } from "../utils/customerProfileUtils";
+import LogisticsSosProfileCard from "../CommanComponents/LogisticsSosProfileCard";
+import LogisticsActions from "../Redux/Actions/LogisticsActions";
+
+// Logistics fleet / equipment owner (role 4 without an owner above them)
+const isFleetOwner = () =>
+  localStorage.getItem("role") === "4" && !localStorage.getItem("owner_id");
 
 export default function EditProfileUser() {
   const token = localStorage.getItem("token");
@@ -30,6 +36,7 @@ export default function EditProfileUser() {
   });
   const [initialValues, setInitialValues] = useState({
     full_name: "",
+    company_name: "",
     house_number: "",
     address: "",
     suburbs: "",
@@ -92,6 +99,8 @@ export default function EditProfileUser() {
       }
       const formData = new FormData();
       Object.keys(values).forEach((key) => {
+        // Company name is saved through the logistics profile (can be cleared)
+        if (key === "company_name") return;
         if (values[key] instanceof File && values[key]) {
           formData.append(key, values[key]);
         } else if (values[key]) {
@@ -100,6 +109,14 @@ export default function EditProfileUser() {
       });
       setIsLoading(true);
       const apiRes = await dispatch(CustomerActions.createProfile(formData));
+      if (apiRes?.payload?.success && isFleetOwner()) {
+        const companyRes = await dispatch(
+          LogisticsActions.patchMe({ company_name: (values.company_name || "").trim() })
+        );
+        if (companyRes?.payload?.success === false) {
+          toast.error(companyRes?.payload?.message || "Could not save the company name");
+        }
+      }
       if (apiRes?.payload?.success) {
         // toast.success(apiRes?.payload?.message);
         toast.success("Profile Updated Successfully.");
@@ -180,6 +197,7 @@ export default function EditProfileUser() {
     if (customerDetails) {
       setInitialValues({
         full_name: sanitizeProfileValue(customerDetails.full_name),
+        company_name: sanitizeProfileValue(customerDetails.company_name),
         email: sanitizeProfileValue(customerDetails.email),
         house_number: sanitizeProfileValue(customerDetails.house_number),
         address: sanitizeProfileValue(customerDetails.address),
@@ -424,6 +442,22 @@ export default function EditProfileUser() {
                           {formik.errors.full_name}
                         </Form.Control.Feedback>
                       </Form.Group>
+                      {isFleetOwner() ? (
+                        <Form.Group className="mb-3" controlId="profileCompanyName">
+                          <Form.Label>Company name</Form.Label>
+                          <Form.Control
+                            type="text"
+                            name="company_name"
+                            maxLength={80}
+                            placeholder="e.g. Modi Logistics"
+                            value={formik.values.company_name}
+                            onChange={formik.handleChange}
+                          />
+                          <Form.Text className="text-muted">
+                            Optional. Customers see this on your vehicles, equipment and quotes instead of your name.
+                          </Form.Text>
+                        </Form.Group>
+                      ) : null}
                           <Form.Group className="mb-3" controlId="formBasicEmail">
                         <Form.Label>Email*</Form.Label>
                         <Form.Control readOnly className="text-muted"
@@ -595,6 +629,8 @@ export default function EditProfileUser() {
                       {isLoader ? <ButtonLoader /> : "Update"}
                     </button>
                   </Form>
+
+                  <LogisticsSosProfileCard />
                 </div>
               </div>
             </Col>

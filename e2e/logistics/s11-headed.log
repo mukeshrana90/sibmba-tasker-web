@@ -1,0 +1,151 @@
+
+▶ 11. customer loading skeletons (desktop)
+  PASS  /logistics — skeleton shown
+  PASS  /logistics/post — no skeleton (no slow fetch)
+  PASS  /logistics/search — no skeleton (no slow fetch)
+  PASS  /logistics/asset/6ac4ee9de8d62e2226973af9 — skeleton shown
+  PASS  /logistics/asset/6ac4ef68e8d62e222697464b — skeleton shown
+  PASS  /logistics/jobs — skeleton shown
+  PASS  /logistics/jobs/6ac4eecae8d62e2226973ecc — skeleton shown
+  PASS  /logistics/jobs/6ac4eecae8d62e2226973ecc/quotes — skeleton shown
+  PASS  /logistics/jobs/6ac4ef8ee8d62e222697499d — skeleton shown
+  PASS  /logistics/post?edit=6ac4ef4ce8d62e22269744c0 — skeleton shown
+  PASS  /logistics/emergency-contacts — skeleton shown
+
+▶ 11. provider loading skeletons (desktop)
+  PASS  /logistics — skeleton shown
+  PASS  /logistics/search — no skeleton (no slow fetch)
+
+▶ 11. owner loading skeletons (desktop)
+  PASS  /logistics/owner — skeleton shown
+  PASS  /logistics/owner/fleet — skeleton shown
+  PASS  /logistics/owner/fleet/6ac4ee9de8d62e2226973af9 — skeleton shown
+  PASS  /logistics/owner/fleet/6ac4ef68e8d62e222697464b — skeleton shown
+  PASS  /logistics/owner/operators — skeleton shown
+  PASS  /logistics/owner/opportunities — skeleton shown
+  PASS  /logistics/owner/quotes — skeleton shown
+  PASS  /logistics/owner/jobs — skeleton shown
+  PASS  /logistics/owner/job/6ac4eecae8d62e2226973ecc — skeleton shown
+  PASS  /logistics/owner/earnings — skeleton shown
+  PASS  /logistics/owner/equipment — skeleton shown
+  PASS  /logistics/owner/availability — skeleton shown
+  PASS  /logistics/owner/analytics — skeleton shown
+  PASS  /logistics/owner/reports — skeleton shown
+  PASS  /logistics/owner/sos — skeleton shown
+  PASS  /logistics/owner/emergency-contacts — skeleton shown
+  PASS  /logistics/owner/subscription — skeleton shown
+  PASS  /logistics/owner/support — no skeleton (no slow fetch)
+
+▶ 11. operator loading skeletons (desktop)
+  PASS  /logistics/driver — skeleton shown
+  PASS  /logistics/driver/work — skeleton shown
+  PASS  /logistics/driver/jobs — skeleton shown
+  PASS  /logistics/driver/quotes — skeleton shown
+  PASS  /logistics/driver/job/6ac4eecae8d62e2226973ecc — skeleton shown
+  PASS  /logistics/driver/earnings — skeleton shown
+  PASS  /logistics/driver/analytics — skeleton shown
+  PASS  /logistics/driver/emergency-contacts — skeleton shown
+  PASS  /logistics/driver/support — no skeleton (no slow fetch)
+
+▶ 11. customer loading skeletons (mobile 390px)
+  PASS  /logistics — skeleton shown
+  PASS  /logistics/post — no skeleton (no slow fetch)
+  PASS  /logistics/search — no skeleton (no slow fetch)
+  PASS  /logistics/asset/6ac4ee9de8d62e2226973af9 — skeleton shown
+  PASS  /logistics/asset/6ac4ef68e8d62e222697464b — skeleton shown
+  PASS  /logistics/jobs — skeleton shown
+  PASS  /logistics/jobs/6ac4eecae8d62e2226973ecc — skeleton shown
+  PASS  /logistics/jobs/6ac4eecae8d62e2226973ecc/quotes — skeleton shown
+  PASS  /logistics/jobs/6ac4ef8ee8d62e222697499d — skeleton shown
+  PASS  /logistics/post?edit=6ac4ef4ce8d62e22269744c0 — skeleton shown
+  PASS  /logistics/emergency-contacts — skeleton shown
+
+▶ 11. provider loading skeletons (mobile 390px)
+  PASS  /logistics — skeleton shown
+  PASS  /logistics/search — no skeleton (no slow fetch)
+
+▶ 11. owner loading skeletons (mobile 390px)
+  PASS  /logistics/owner — skeleton shown
+  PASS  /logistics/owner/fleet — skeleton shown
+  PASS  /logistics/owner/fleet/6ac4ee9de8d62e2226973af9 — skeleton shown
+  PASS  /logistics/owner/fleet/6ac4ef68e8d62e222697464b — skeleton shown
+  PASS  /logistics/owner/operators — skeleton shown
+  PASS  /logistics/owner/opportunities — skeleton shown
+  PASS  /logistics/owner/quotes — skeleton shown
+  PASS  /logistics/owner/jobs — skeleton shown
+  PASS  /logistics/owner/job/6ac4eecae8d62e2226973ecc — skeleton shown
+  PASS  /logistics/owner/earnings — skeleton shown
+  PASS  /logistics/owner/equipment — skeleton shown
+  PASS  /logistics/owner/availability — skeleton shown
+  PASS  /logistics/owner/analytics — skeleton shown
+  PASS  /logistics/owner/reports — skeleton shown
+  PASS  /logistics/owner/sos — skeleton shown
+  PASS  /logistics/owner/emergency-contacts — skeleton shown
+  PASS  /logistics/owner/subscription — skeleton shown
+  PASS  /logistics/owner/support — no skeleton (no slow fetch)
+
+▶ 11. operator loading skeletons (mobile 390px)
+  PASS  /logistics/driver — skeleton shown
+  PASS  /logistics/driver/work — skeleton shown
+  PASS  /logistics/driver/jobs — skeleton shown
+  PASS  /logistics/driver/quotes — skeleton shown
+  PASS  /logistics/driver/job/6ac4eecae8d62e2226973ecc — skeleton shown
+  PASS  /logistics/driver/earnings — skeleton shown
+  PASS  /logistics/driver/analytics — skeleton shown
+  PASS  /logistics/driver/emergency-contacts — skeleton shown
+  PASS  /logistics/driver/support — no skeleton (no slow fetch)
+
+▶ 11b. No OTP / password fields in any response the pages received
+  PASS  0 leaking response(s)
+
+▶ 11c. User-returning endpoints are clean
+  PASS  customer GET /customer/Notificationlist_user (200, 49183 bytes) has no OTP/password
+  PASS  customer GET /customer/getProfile (200, 1053 bytes) has no OTP/password
+  PASS  owner GET /customer/Notificationlist_user (200, 33193 bytes) has no OTP/password
+  PASS  owner GET /customer/getProfile (200, 1321 bytes) has no OTP/password
+  PASS  operator GET /customer/Notificationlist_user (200, 37141 bytes) has no OTP/password
+  PASS  operator GET /customer/getProfile (200, 1361 bytes) has no OTP/password
+
+Skeleton coverage (desktop):
+SK  customer /logistics
+--  customer /logistics/post
+--  customer /logistics/search
+SK  customer /logistics/asset/6ac4ee9de8d62e2226973af9
+SK  customer /logistics/asset/6ac4ef68e8d62e222697464b
+SK  customer /logistics/jobs
+SK  customer /logistics/jobs/6ac4eecae8d62e2226973ecc
+SK  customer /logistics/jobs/6ac4eecae8d62e2226973ecc/quotes
+SK  customer /logistics/jobs/6ac4ef8ee8d62e222697499d
+SK  customer /logistics/post?edit=6ac4ef4ce8d62e22269744c0
+SK  customer /logistics/emergency-contacts
+SK  provider /logistics
+--  provider /logistics/search
+SK  owner    /logistics/owner
+SK  owner    /logistics/owner/fleet
+SK  owner    /logistics/owner/fleet/6ac4ee9de8d62e2226973af9
+SK  owner    /logistics/owner/fleet/6ac4ef68e8d62e222697464b
+SK  owner    /logistics/owner/operators
+SK  owner    /logistics/owner/opportunities
+SK  owner    /logistics/owner/quotes
+SK  owner    /logistics/owner/jobs
+SK  owner    /logistics/owner/job/6ac4eecae8d62e2226973ecc
+SK  owner    /logistics/owner/earnings
+SK  owner    /logistics/owner/equipment
+SK  owner    /logistics/owner/availability
+SK  owner    /logistics/owner/analytics
+SK  owner    /logistics/owner/reports
+SK  owner    /logistics/owner/sos
+SK  owner    /logistics/owner/emergency-contacts
+SK  owner    /logistics/owner/subscription
+--  owner    /logistics/owner/support
+SK  operator /logistics/driver
+SK  operator /logistics/driver/work
+SK  operator /logistics/driver/jobs
+SK  operator /logistics/driver/quotes
+SK  operator /logistics/driver/job/6ac4eecae8d62e2226973ecc
+SK  operator /logistics/driver/earnings
+SK  operator /logistics/driver/analytics
+SK  operator /logistics/driver/emergency-contacts
+--  operator /logistics/driver/support
+
+87/87 passed

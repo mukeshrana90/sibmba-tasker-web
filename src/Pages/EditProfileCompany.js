@@ -26,6 +26,7 @@ import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 import { Roles } from "../utils/Roles";
 import CorporateCategorySelect from "../CommanComponents/CorporateCategorySelect";
+import LogisticsSosProfileCard from "../CommanComponents/LogisticsSosProfileCard";
 
 function hasValidLocationCoords(lat, lng) {
   const latN = parseFloat(lat);
@@ -776,11 +777,10 @@ export default function EditProfileCompany() {
                         <Form.Group className="mb-3">
                           <Form.Label>Phone Number*</Form.Label>
                           <PhoneNumberInput
-                            initialCountry="in"
                             value={
                               formik.values.country_code &&
                               formik.values.phone_number
-                                ? `${formik.values.country_code} ${formik.values.phone_number}`
+                                ? `+${String(formik.values.country_code).replace(/\D/g, "")} ${formik.values.phone_number}`
                                 : formik.values.phone_number || ""
                             }
                             onPhoneChange={(phone, countryCode) => {
@@ -977,6 +977,8 @@ export default function EditProfileCompany() {
                     )}
                   </Form>
 
+                  <LogisticsSosProfileCard />
+
                   <Modal
                     show={showSocialMediaModal}
                     onHide={() => setShowSocialMediaModal(false)}
@@ -1083,7 +1085,6 @@ export default function EditProfileCompany() {
                             <Form.Group className="mb-3">
                               <Form.Label>Phone Number</Form.Label>
                               <PhoneNumberInput
-                                initialCountry="in"
                                 value={formik.values.ref_phone_number || ""}
                                 onChange={(phone) => {
                                   formik.setFieldValue(

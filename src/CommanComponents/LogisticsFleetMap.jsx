@@ -173,7 +173,10 @@ export function buildJobPopupHtml(point) {
   }
   if (point.local && point.href) {
     lines.push(
-      `<a class="log-map-popup-link" href="${escapeHtml(point.href)}">Quote now →</a>`
+      // Owners view (their operators quote) — v2.7.30
+      `<a class="log-map-popup-link" href="${escapeHtml(point.href)}">${
+        String(point.href).includes("/logistics/owner/") ? "View job" : "Quote now"
+      } →</a>`
     );
   }
   return lines.join("<br/>");

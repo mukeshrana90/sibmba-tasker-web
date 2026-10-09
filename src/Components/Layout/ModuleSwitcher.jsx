@@ -135,9 +135,11 @@ export const LOGISTICS_OWNER_SIDEBAR = [
   },
   { label: "Availability", path: "/logistics/owner/availability", icon: "clock" },
   { label: "Earnings", path: "/logistics/owner/earnings", icon: "earnings" },
-  { label: "Subscription", path: "/logistics/owner/subscription", icon: "earnings" },
+  { label: "Subscription", path: "/logistics/owner/subscription", icon: "subscription" },
   { label: "Analytics", path: "/logistics/owner/analytics", icon: "analytics" },
   { label: "Reports", path: "/logistics/owner/reports", icon: "support" },
+  { label: "SOS alerts", path: "/logistics/owner/sos", icon: "support" },
+  { label: "Emergency contacts", path: "/logistics/owner/emergency-contacts", icon: "users" },
   { label: "Messages", path: "/messages", icon: "messages", badge: "messages" },
   { label: "Support", path: "/logistics/owner/support", icon: "support" },
 ];
@@ -156,6 +158,7 @@ export const LOGISTICS_OPERATOR_SIDEBAR = [
   { label: "Earnings", path: "/logistics/driver/earnings", icon: "earnings" },
   { label: "Analytics", path: "/logistics/driver/analytics", icon: "analytics" },
   { label: "Messages", path: "/messages", icon: "messages", badge: "messages" },
+  { label: "Emergency contacts", path: "/logistics/driver/emergency-contacts", icon: "users" },
   { label: "Support", path: "/logistics/driver/support", icon: "support" },
 ];
 

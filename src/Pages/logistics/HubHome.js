@@ -172,7 +172,7 @@ function HubAssetCard({ row, badge }) {
           <b>{row.name}</b>
           <span className="log-hub-asset__owner">
             {row.owner?.full_name || "Fleet"}
-            {row.owner?.is_verified ? " · Verified" : ""}
+            {Number(row.owner?.is_verified) === 1 ? " · Verified" : ""}
           </span>
           <span className="log-hub-asset__rating">
             {formatRating(row.rating)}

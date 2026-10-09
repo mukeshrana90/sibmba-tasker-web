@@ -1,7 +1,8 @@
 /**
  * Customer "Book" gate for a logistics asset — mirrors backend assetBookable
  * (utils/logistics/availability.js). Customer-facing state already maps
- * returning_empty → available_now and an operator-less truck → offline.
+ * returning_empty → available_now and any operator-less unit (truck, cab,
+ * plant) → offline / not bookable.
  *
  * available_now / returning_empty → Book
  * on_job (operator busy)          → Book + "acceptance may take longer" notice
@@ -29,6 +30,10 @@ export function assetBookState(asset) {
       blockedReason = "Scheduled — not taking bookings yet";
     } else if (availability.status_detail === "No operator assigned") {
       blockedReason = "No operator assigned — booking unavailable right now";
+    } else if (availability.status_detail === "Operator not online on this unit") {
+      blockedReason = "Operator not online — booking unavailable right now";
+    } else if (availability.status_detail === "Documents expired") {
+      blockedReason = "This unit's documents have expired — booking unavailable until renewed";
     }
     return { canBook: false, blockedReason };
   }

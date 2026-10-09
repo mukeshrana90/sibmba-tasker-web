@@ -10,6 +10,8 @@ import ModuleSwitcher, {
   LOGISTICS_HUB_NAV,
   useProductModule,
 } from "./ModuleSwitcher";
+import LogisticsSosButton from "../../CommanComponents/LogisticsSosButton";
+import { canUseSos, emergencyContactsPath } from "../../utils/logisticsSos";
 
 const TASKER_NAV_LINKS = [
   { label: "Home", path: "/corporate", exact: true },
@@ -183,9 +185,6 @@ export default function CorporateAppNav({
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="notify-menu-head">
-                <h3>Notifications</h3>
-              </div>
               <NotifyMenuList
                 notifications={notificationDetail}
                 isOpen={notifyOpen}
@@ -255,6 +254,14 @@ export default function CorporateAppNav({
               <Link to="/wallet" className="am-item" role="menuitem" onClick={() => setAvatarOpen(false)}>
                 My Wallet
               </Link>
+              {isLogistics && canUseSos() ? (
+                <>
+                  <LogisticsSosButton variant="menu" onOpen={() => setAvatarOpen(false)} />
+                  <Link to={emergencyContactsPath()} className="am-item" role="menuitem" onClick={() => setAvatarOpen(false)}>
+                    Emergency contacts
+                  </Link>
+                </>
+              ) : null}
               <Link to="/change-password" className="am-item" role="menuitem" onClick={() => setAvatarOpen(false)}>
                 Change Password
               </Link>

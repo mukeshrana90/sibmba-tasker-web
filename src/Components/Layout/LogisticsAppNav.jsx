@@ -9,6 +9,8 @@ import useNotificationClear from "../../Hooks/useNotificationClear";
 import ModuleSwitcher, { LOGISTICS_HUB_NAV } from "./ModuleSwitcher";
 import { getActiveModule, isSharedModulePath } from "../../utils/Roles";
 import { useLogisticsSupplyChrome } from "./LogisticsSupplyChromeContext";
+import LogisticsSosButton from "../../CommanComponents/LogisticsSosButton";
+import { canUseSos, emergencyContactsPath } from "../../utils/logisticsSos";
 
 function getInitials(name) {
   if (!name) return "U";
@@ -219,9 +221,6 @@ export default function LogisticsAppNav({
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="notify-menu-head">
-                <h3>Notifications</h3>
-              </div>
               <NotifyMenuList
                 notifications={notificationDetail}
                 isOpen={notifyOpen}
@@ -301,6 +300,22 @@ export default function LogisticsAppNav({
               >
                 Change password
               </Link>
+              {canUseSos() ? (
+                <>
+                  <LogisticsSosButton
+                    variant="menu"
+                    onOpen={() => setAvatarOpen(false)}
+                  />
+                  <Link
+                    to={emergencyContactsPath()}
+                    className="am-item"
+                    role="menuitem"
+                    onClick={() => setAvatarOpen(false)}
+                  >
+                    Emergency contacts
+                  </Link>
+                </>
+              ) : null}
               {onDeleteAccount ? (
                 <button
                   type="button"

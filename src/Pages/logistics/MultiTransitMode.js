@@ -12,6 +12,9 @@ import {
   multiStopMapsUrl,
 } from "../../utils/multiTransitRoute";
 import "./logistics.css";
+import {
+  LogisticsDetailSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
 
 const STATUS_LABEL = {
   1: "Accepted",
@@ -260,7 +263,7 @@ export default function MultiTransitMode() {
         </p>
 
         {loading && !data ? (
-          <p className="logistics-empty">Loading multi-transit…</p>
+          <LogisticsDetailSkeleton media={false} label="Loading multi-transit" />
         ) : (
           <>
             <div className="log-mt-toolbar log-jobs-toolbar log-jobs-toolbar--wrap">

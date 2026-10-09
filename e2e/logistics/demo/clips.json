@@ -1,0 +1,62 @@
+[
+  {
+    "name": "customer-my-jobs",
+    "route": "/logistics/jobs",
+    "start": 1.047,
+    "mobile": false
+  },
+  {
+    "name": "customer-job-detail",
+    "route": "/logistics/jobs/6ac4eecae8d62e2226973ecc",
+    "start": 0.964,
+    "mobile": false
+  },
+  {
+    "name": "customer-asset",
+    "route": "/logistics/asset/6ac4ee9de8d62e2226973af9",
+    "start": 1.164,
+    "mobile": false
+  },
+  {
+    "name": "customer-hub",
+    "route": "/logistics",
+    "start": 1.1,
+    "mobile": false
+  },
+  {
+    "name": "owner-dashboard",
+    "route": "/logistics/owner",
+    "start": 1.043,
+    "mobile": false
+  },
+  {
+    "name": "owner-fleet",
+    "route": "/logistics/owner/fleet",
+    "start": 0.977,
+    "mobile": false
+  },
+  {
+    "name": "owner-opportunities",
+    "route": "/logistics/owner/opportunities",
+    "start": 0.984,
+    "mobile": false
+  },
+  {
+    "name": "owner-analytics",
+    "route": "/logistics/owner/analytics",
+    "start": 1.002,
+    "mobile": false
+  },
+  {
+    "name": "operator-home",
+    "route": "/logistics/driver",
+    "start": 1.01,
+    "mobile": false
+  },
+  {
+    "name": "mobile-my-jobs",
+    "route": "/logistics/jobs",
+    "start": 0.959,
+    "mobile": true
+  }
+]

@@ -8,7 +8,7 @@ import { persistUserId } from "../../utils/normalizeMongoId";
 import "./logistics.css";
 
 const AUTH_VISUAL_IMG =
-  "https://images.unsplash.com/photo-1601584115197-6ecc44f4d0f1?auto=format&fit=crop&w=1200&q=80";
+  "https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=1200&q=80";
 
 function LockIcon() {
   return (
@@ -74,6 +74,7 @@ export default function LogisticsInviteActivate() {
   const [info, setInfo] = useState(null);
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -121,6 +122,10 @@ export default function LogisticsInviteActivate() {
   const activate = async (e) => {
     e.preventDefault();
     if (!token) return;
+    if (password !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
     setSaving(true);
     try {
       const res = await dispatch(
@@ -164,7 +169,7 @@ export default function LogisticsInviteActivate() {
   };
 
   const roleLabel = useMemo(
-    () => (info?.sub_user_type === "driver" ? "Driver" : "Operator"),
+    () => "Operator",
     [info?.sub_user_type]
   );
 
@@ -189,6 +194,9 @@ export default function LogisticsInviteActivate() {
             <img
               src={AUTH_VISUAL_IMG}
               alt="Logistics fleet and operators at work"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
             />
             <div className="av-grain" />
             <div className="av-content">
@@ -244,6 +252,20 @@ export default function LogisticsInviteActivate() {
               ) : info?.valid ? (
                 <>
                   <div className="log-invite-meta">
+                    {info.full_name ? (
+                      <div className="log-invite-meta__row">
+                        <span className="log-fl">Name</span>
+                        <strong>{info.full_name}</strong>
+                      </div>
+                    ) : null}
+                    {info.phone_number ? (
+                      <div className="log-invite-meta__row">
+                        <span className="log-fl">Phone</span>
+                        <strong>
+                          {[info.country_code, info.phone_number].filter(Boolean).join(" ")}
+                        </strong>
+                      </div>
+                    ) : null}
                     {info.email ? (
                       <div className="log-invite-meta__row">
                         <span className="log-fl">Account email</span>
@@ -260,7 +282,17 @@ export default function LogisticsInviteActivate() {
                       <span className="log-fl">Role</span>
                       <strong>{roleLabel}</strong>
                     </div>
+                    {info.expires_at ? (
+                      <div className="log-invite-meta__row">
+                        <span className="log-fl">Invite valid until</span>
+                        <strong>{new Date(info.expires_at).toLocaleDateString()}</strong>
+                      </div>
+                    ) : null}
                   </div>
+                  <p className="log-hint">
+                    Your company entered these details. You can change your name
+                    and phone later in your profile.
+                  </p>
 
                   <form onSubmit={activate} noValidate>
                     <div className="field">
@@ -288,10 +320,32 @@ export default function LogisticsInviteActivate() {
                       </div>
                     </div>
 
+                    <div className="field">
+                      <label htmlFor="invite-password-confirm">Confirm password</label>
+                      <div className="input-shell">
+                        <LockIcon />
+                        <input
+                          id="invite-password-confirm"
+                          type={showPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Type it again"
+                          required
+                          minLength={6}
+                          autoComplete="new-password"
+                        />
+                      </div>
+                      {confirmPassword && confirmPassword !== password ? (
+                        <p className="log-hint" style={{ color: "#8a3b3b" }}>
+                          Passwords don&apos;t match
+                        </p>
+                      ) : null}
+                    </div>
+
                     <button
                       type="submit"
                       className="btn btn-primary btn-block"
-                      disabled={saving || password.length < 6}
+                      disabled={saving || password.length < 6 || password !== confirmPassword}
                     >
                       {saving ? <ButtonLoader /> : "Activate account"}
                       {!saving ? (
@@ -313,6 +367,10 @@ export default function LogisticsInviteActivate() {
               ) : (
                 <div className="log-invite-error">
                   <p>{error || "Invite invalid or expired"}</p>
+                  <p className="log-hint">
+                    Ask the company that invited you to tap <b>Resend</b> on their
+                    Operators page — you&apos;ll get a new link valid for 7 days.
+                  </p>
                   <Link to="/login" className="logistics-cta logistics-cta--primary">
                     Go to login
                   </Link>

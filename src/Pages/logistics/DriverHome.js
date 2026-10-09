@@ -18,7 +18,14 @@ import { jobKindTypeChip } from "../../utils/jobKind";
 import { jobImageUrl } from "./MyJobs";
 import { defaultImage } from "../../utils/ImagePath";
 import "./logistics.css";
+import {
+  LogisticsListSkeleton,
+  LogisticsStatsSkeleton,
+} from "../../CommanComponents/LogisticsSkeleton";
+import LogisticsUnitPicker, { unitDisabled } from "../../CommanComponents/LogisticsUnitPicker";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
+import LogisticsSosContactsPrompt from "../../CommanComponents/LogisticsSosContactsPrompt";
+import { OperatorDocBanner } from "../../CommanComponents/LogisticsDocAlerts";
 
 const PLACEHOLDER_LABELS = new Set([
   "current location",
@@ -125,21 +132,20 @@ function OperatorDashboard() {
       const preferredLocked =
         lockedIds.find((id) => assigned.some((a) => String(a._id) === id)) ||
         "";
+      // Units the owner disabled (plan limit / by hand) can't be picked
+      const usable = (id) =>
+        assigned.some((a) => String(a._id) === String(id) && !unitDisabled(a));
       const nextAssetId = String(
-        preferredLocked ||
-          active?._id ||
-          av.active_asset_id ||
-          assigned[0]?._id ||
+        [active?._id, av.active_asset_id].find((id) => id && usable(id)) ||
+          assigned.find((a) => !unitDisabled(a))?._id ||
           ""
       );
       // Keep the operator's selected truck when going offline (active_asset_id cleared)
       // Prefer the unit that still has their active jobs when locked.
       setSelectedAssetId((prev) => {
         if (preferredLocked) return preferredLocked;
-        if (prev && assigned.some((a) => String(a._id) === String(prev))) {
-          return String(prev);
-        }
-        return nextAssetId || prev || "";
+        if (prev && usable(prev)) return String(prev);
+        return nextAssetId;
       });
       const nextState = av.ui_state || av.state || "offline";
       setSelectedState(nextState);
@@ -197,6 +203,9 @@ function OperatorDashboard() {
   // Draft selection for the form only — does not drive the green banner
   const draftAsset =
     assigned.find((a) => String(a._id) === String(selectedAssetId)) || null;
+  const usableUnits = assigned.filter((a) => !unitDisabled(a));
+  const disabledUnits = assigned.filter(unitDisabled);
+  const planLockedUnits = disabledUnits.filter((a) => a.plan_locked);
   const draftKind = draftAsset?.kind || committedAsset?.kind || "vehicle";
   const statusOptions = useMemo(
     () =>
@@ -251,6 +260,9 @@ function OperatorDashboard() {
 
   const onUsingNowChange = (nextId) => {
     const next = String(nextId || "");
+    // Disabled options can't be chosen; guard anyway
+    const picked = assigned.find((a) => String(a._id) === next);
+    if (picked && unitDisabled(picked)) return;
     if (
       truckSwitchLocked &&
       lockedAssetIds.length &&
@@ -464,7 +476,9 @@ function OperatorDashboard() {
   };
 
   if (loading && !data) {
-    return <p className="logistics-empty">Loading dashboard…</p>;
+    return (
+      <LogisticsStatsSkeleton tiles={3} chart={false} list={3} label="Loading dashboard" />
+    );
   }
 
   const busy = saving || locating;
@@ -474,6 +488,8 @@ function OperatorDashboard() {
 
   return (
     <div className="log-dash">
+      <LogisticsSosContactsPrompt />
+      <OperatorDocBanner compliance={data?.document_compliance} />
       {/* <p className="log-dash__intro">
         Drive one vehicle at a time. Change truck, status, and verify GPS here —
         other assigned assets go offline when you go live.
@@ -532,30 +548,19 @@ function OperatorDashboard() {
           ) : (
             <>
               <div className="log-dash-vehicle-panel__grid">
-                <label className="log-field">
-                  <span className="log-fl">Using now</span>
-                  <select
+                <div className="log-field">
+                  <span className="log-fl" id="log-using-now-label">Using now</span>
+                  <LogisticsUnitPicker
+                    units={assigned}
                     value={selectedAssetId}
-                    onChange={(e) => onUsingNowChange(e.target.value)}
+                    onChange={onUsingNowChange}
                     disabled={busy}
-                  >
-                    {assigned.map((a) => (
-                      <option key={a._id} value={a._id}>
-                        {a.name}
-                        {a.registration ? ` · ${a.registration}` : ""}
-                        {a.kind === "equipment" ? " (equipment)" : a.kind === "cab" ? " (cab)" : ""}
-                        {Number(a.is_active) === 0
-                          ? a.plan_locked
-                            ? " — disabled (owner's plan)"
-                            : " — disabled by owner"
-                          : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  />
+                </div>
                 <label className="log-field">
                   <span className="log-fl">Set status</span>
                   <select
+                    aria-label="Set status"
                     value={selectedState}
                     onChange={(e) => setSelectedState(e.target.value)}
                   >
@@ -570,7 +575,7 @@ function OperatorDashboard() {
                   <button
                     type="button"
                     className="logistics-cta logistics-cta--primary"
-                    disabled={busy}
+                    disabled={busy || (!usableUnits.length && selectedState !== "offline")}
                     onClick={saveStatus}
                   >
                     {locating
@@ -581,13 +586,18 @@ function OperatorDashboard() {
                   </button>
                 </div>
               </div>
-              {draftAsset && Number(draftAsset.is_active) === 0 ? (
+              {disabledUnits.length ? (
                 <p className="log-plan-locked-strip log-plan-locked-strip--op" role="alert">
-                  <b>{draftAsset.name} is disabled</b>
+                  <b>
+                    {disabledUnits.length === assigned.length
+                      ? `All your units are disabled by your owner${planLockedUnits.length === disabledUnits.length ? "'s plan limit" : ""}:`
+                      : `${disabledUnits.length} of your units ${disabledUnits.length === 1 ? "is" : "are"} disabled by your owner${planLockedUnits.length === disabledUnits.length ? "'s plan limit" : ""}:`}{" "}
+                    {disabledUnits.map((a) => a.name).join(", ")}.
+                  </b>
                   <span>
-                    {draftAsset.plan_locked
-                      ? "by your owner's plan limit. You can still browse jobs and your history, but can't go online or quote with this unit."
-                      : "by your owner. You can't go online or quote with this unit."}
+                    {disabledUnits.length === assigned.length
+                      ? "You can still browse jobs and your history, but can't go online or quote until your owner makes one of them active."
+                      : "You can't select them, go online or quote with them. Ask your owner to choose them as active units."}
                   </span>
                 </p>
               ) : null}
@@ -844,7 +854,7 @@ function OperatorEarnings() {
 
       <h2 className="log-sect">Completed jobs</h2>
       {loading ? (
-        <p className="logistics-empty">Loading earnings…</p>
+        <LogisticsListSkeleton rows={4} media={false} label="Loading earnings" />
       ) : (
         <>
           <div className="log-jobs-table-wrap">

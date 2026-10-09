@@ -25,7 +25,14 @@ import QuoteChatIconButton from "../../Components/QuoteChatIconButton";
 import { openLogisticsJobChat, telHref } from "../../utils/beginQuoteChat";
 import { buildPublicAssetUrl, defaultImage } from "../../utils/ImagePath";
 import "./logistics.css";
+import {
+  LogisticsDetailSkeleton,
+  LogisticsListSkeleton,
+  LogisticsSkeletonMeta,
+} from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
+import { LogisticsSosJobBar } from "../../CommanComponents/LogisticsSosButton";
+import LogisticsSosContactsPrompt from "../../CommanComponents/LogisticsSosContactsPrompt";
 
 const STATUS_LABEL = {
   0: "Pending quotes",
@@ -40,10 +47,10 @@ const STATUS_LABEL = {
 
 // Cab rides: passenger wording for the same status numbers
 const RIDE_STATUS_LABEL = {
-  0: "Finding driver",
-  1: "Driver assigned",
-  2: "Driver on the way",
-  3: "Driver arrived",
+  0: "Finding operator",
+  1: "Operator assigned",
+  2: "Operator on the way",
+  3: "Operator arrived",
   4: "Trip started",
   5: "Completed",
   6: "Cancelled",
@@ -331,7 +338,7 @@ export default function LogisticsMyJobs() {
 
       <div className="log-jobs-meta">
         {loading
-          ? "Loading jobs…"
+          ? <LogisticsSkeletonMeta />
           : total
             ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(
                 page * pageSize,
@@ -342,6 +349,9 @@ export default function LogisticsMyJobs() {
               : "No jobs yet"}
       </div>
 
+      {loading && !jobs.length ? (
+        <LogisticsListSkeleton rows={5} label="Loading jobs" />
+      ) : null}
       <ul className="log-result-list log-jobs-list log-jl">
         {jobs.map((job) => {
           const thumb = jobImageUrl(job.images?.[0]);
@@ -505,8 +515,8 @@ function DropCheckBanner({ jobId, check, onAnswered }) {
   const m = check.meta || {};
   const what =
     m.reason === "no_location"
-      ? "Your driver's location couldn't be verified when the ride was completed."
-      : `Your driver completed the ride ${m.distance_km} km from your drop-off point.`;
+      ? "Your operator's location couldn't be verified when the ride was completed."
+      : `Your operator completed the ride ${m.distance_km} km from your drop-off point.`;
 
   const answer = async (verdict) => {
     setBusy(true);
@@ -776,6 +786,7 @@ export function LogisticsJobDetail() {
     Number(job?.status) >= 1 &&
     Number(job?.status) <= 5 &&
     assignedPeer?._id &&
+    !assignedPeer?.no_longer_active && // v2.7.36: account deleted — no chat / call
     String(assignedPeer._id) !== String(myUserId);
 
   const canEditOrRemove =
@@ -939,11 +950,11 @@ export function LogisticsJobDetail() {
   if (!job) {
     return (
       <LogisticsPageShell title="Job detail" crumbLabel="Job">
-        <p className="logistics-empty">
-          {loading
-            ? "Loading…"
-            : loadError || "Job not found"}
-        </p>
+        {loading ? (
+          <LogisticsDetailSkeleton label="Loading job" />
+        ) : (
+          <p className="logistics-empty">{loadError || "Job not found"}</p>
+        )}
         {!loading ? (
           <p style={{ textAlign: "center", marginTop: 12 }}>
             <Link to="/logistics/jobs" className="logistics-cta logistics-cta--ghost">
@@ -1098,7 +1109,7 @@ export function LogisticsJobDetail() {
               {plantJob
                 ? "You can cancel until the hire starts (Transit)."
                 : isCabJob(job)
-                  ? "You can cancel until the driver is on the way."
+                  ? "You can cancel until the operator is on the way."
                   : "You can cancel until the operator starts Collect."}
             </p>
           </div>
@@ -1184,7 +1195,7 @@ export function LogisticsJobDetail() {
         </header>
 
         {showAssignedContact ? (
-          <section className="log-jd-party" aria-label={cabRide ? "Your driver" : "Your operator"}>
+          <section className="log-jd-party" aria-label="Your operator">
             <div className="log-jd-party__who">
               {assignedPeer.profile_image ? (
                 <img
@@ -1202,7 +1213,7 @@ export function LogisticsJobDetail() {
                 </span>
               )}
               <div className="log-jd-party__meta">
-                <small>{cabRide ? "Your driver" : plantJob ? "Your operator / owner" : "Your operator"}</small>
+                <small>{plantJob ? "Your operator / owner" : "Your operator"}</small>
                 <b>{assignedPeer.full_name || "Operator"}</b>
                 {assetLine ? (
                   <span className="log-jd-party__vehicle">
@@ -1279,11 +1290,13 @@ export function LogisticsJobDetail() {
                     : latestStatusAt(job.status_history, step.status);
                 const at = formatStatusAt(atRaw);
                 return (
-                  <li key={step.key} className={cls}>
+                  <li key={step.key} className={cls} aria-current={cls === "now" ? "step" : undefined}>
                     <em />
                     <span>{step.label}</span>
                     {at && atRaw ? (
-                      <time dateTime={new Date(atRaw).toISOString()}>{at}</time>
+                      <time dateTime={new Date(atRaw).toISOString()}>
+                        {cls === "now" ? `Started ${at}` : at}
+                      </time>
                     ) : null}
                   </li>
                 );
@@ -1322,10 +1335,10 @@ export function LogisticsJobDetail() {
         {isCabJob(job) && job.ride_pin ? (
           <div className="log-delivery-otp-banner log-ride-pin-banner" role="status">
             <h2 className="log-sect">
-              {jobStatus === 3 ? "Your driver has arrived — share your ride PIN" : "Your ride PIN"}
+              {jobStatus === 3 ? "Your operator has arrived — share your ride PIN" : "Your ride PIN"}
             </h2>
             <p>
-              Share this PIN with the driver only once you are in the cab and it
+              Share this PIN with the operator only once you are in the cab and it
               matches the booked vehicle. The trip can't start without it.
             </p>
             <div className="log-delivery-otp-banner__code" aria-live="polite">
@@ -1372,6 +1385,14 @@ export function LogisticsJobDetail() {
             </div>
           </div>
         ) : null}
+
+        {jobAccepted && jobStatus <= 4 ? (
+          <LogisticsSosJobBar jobId={job._id} jobRef={job.job_number}>
+            Feel unsafe on this {cabRide ? "ride" : "job"}? Hold SOS to alert the
+            fleet owner, Simba and your emergency contacts.
+          </LogisticsSosJobBar>
+        ) : null}
+        {jobAccepted && jobStatus <= 4 ? <LogisticsSosContactsPrompt /> : null}
 
         {job.drop_check ? (
           <DropCheckBanner
@@ -1719,7 +1740,11 @@ export function LogisticsJobDetail() {
                                 <span className="log-qx-card__rating is-new">New</span>
                               )}
                               <span className="log-qx-card__role">
-                                {q.owner_driven ? "Owner drives" : "Fleet operator"}
+                                {q.owner_driven
+                                  ? "Owner drives"
+                                  : owner.company_name
+                                    ? `Operator · ${owner.company_name}`
+                                    : "Fleet operator"}
                               </span>
                               {asset.completed_jobs ? (
                                 <span className="log-qx-card__role">
@@ -1839,7 +1864,7 @@ export function LogisticsJobDetail() {
           isEquipmentJob(job)
             ? "You can cancel only before Transit starts."
             : isCabJob(job)
-              ? "You can cancel only before the driver is on the way."
+              ? "You can cancel only before the operator is on the way."
               : "You can cancel only before Collect."
         }
         placeholder="Optional — let the provider know why"

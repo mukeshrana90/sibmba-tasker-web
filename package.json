@@ -48,7 +48,8 @@
     "test": "react-scripts test",
     "test:places": "node scripts/landingPlaces-smoke.js",
     "e2e:owner": "node scripts/e2e-owner-ui.js",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "e2e:logistics": "bash e2e/logistics/run-all.sh"
   },
   "eslintConfig": {
     "extends": [
