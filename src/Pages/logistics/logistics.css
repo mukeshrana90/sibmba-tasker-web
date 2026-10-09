@@ -10855,3 +10855,126 @@ a.log-mt-transit-link:hover {
   flex: 1 1 320px;
   min-width: 0;
 }
+
+/* Operator dashboard on phones: grid tracks sized "auto" grew to the content's
+   min width (map, vehicle photo, long location) and pushed the page off-screen. */
+.log-dash {
+  grid-template-columns: minmax(0, 1fr);
+}
+.log-dash > *,
+.log-dash-grid > * {
+  min-width: 0;
+}
+@media (max-width: 960px) {
+  .log-dash-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Job tables → stacked cards on phones (operator Opportunities, My Jobs, Quotes,
+   Earnings). Each <td data-label="…"> becomes a "Label  value" line; cells
+   without a label (title, actions) span the card. */
+@media (max-width: 640px) {
+  .log-jobs-table.log-jobs-table--cards {
+    min-width: 0;
+    display: block;
+  }
+  .log-jobs-table--cards thead {
+    display: none;
+  }
+  .log-jobs-table--cards tbody {
+    display: block;
+  }
+  .log-jobs-table--cards tr {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line, #e5e0d4);
+  }
+  .log-jobs-table--cards tbody tr:last-child {
+    border-bottom: none;
+  }
+  .log-jobs-table--cards td {
+    display: block;
+    padding: 0;
+    border: none;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .log-jobs-table--cards tbody tr td,
+  .log-jobs-table--cards tbody tr:last-child td {
+    border: none;
+    padding: 0;
+  }
+  /* "Now" rows: accent bar on the card instead of the first cell */
+  .log-jobs-table.log-jobs-table--cards tr.log-quotes-row--now td:first-child,
+  .log-opp-table.log-jobs-table--cards tr.log-opp-row--now td:first-child {
+    box-shadow: none;
+  }
+  .log-jobs-table--cards tr.log-quotes-row--now,
+  .log-jobs-table--cards tr.log-opp-row--now {
+    box-shadow: inset 4px 0 0 #f59e0b;
+  }
+  .log-opp-table.log-jobs-table--cards tr.log-opp-row--now {
+    background: #fffbeb;
+  }
+  .log-jobs-table--cards td.log-cell--hide-mobile[data-label] {
+    display: none;
+  }
+  .log-jobs-table--cards td[data-label] {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    text-align: right;
+    white-space: normal;
+  }
+  .log-jobs-table--cards td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted, #545454);
+  }
+  .log-jobs-table--cards td.log-cell--title {
+    order: -1;
+    font-size: 1rem;
+  }
+  .log-jobs-table--cards td.log-cell--actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+    white-space: normal;
+  }
+  .log-jobs-table--cards td.log-cell--actions:empty {
+    display: none;
+  }
+  .log-jobs-table--cards td.logistics-empty {
+    text-align: center;
+  }
+  .log-jobs-table--cards tr.log-quotes-group__head {
+    background: var(--soft, #f6f3ec);
+  }
+  .log-jobs-table--cards tr.log-quotes-group__item {
+    padding-left: 28px;
+  }
+}
+
+/* Toolbar buttons (Apply + Start multi-transit / Reset) wrap instead of
+   running past the filter card on phones. */
+@media (max-width: 560px) {
+  .log-jobs-toolbar__actions {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .log-jobs-toolbar__actions .logistics-cta {
+    flex: 1 1 auto;
+  }
+}

@@ -362,7 +362,7 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath, ownerView = fa
       </div>
 
       <div className="log-jobs-table-wrap log-opp-table-wrap">
-        <table className="log-jobs-table log-opp-table">
+        <table className="log-jobs-table log-jobs-table--cards log-opp-table">
           <thead>
             <tr>
               <th>Posted</th>
@@ -383,13 +383,13 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath, ownerView = fa
               const isNow = job.job_class === "local" && Boolean(job.expires_at);
               return (
                 <tr key={job._id} className={isNow ? "log-opp-row--now" : undefined}>
-                  <td className="log-opp-table__posted">
+                  <td className="log-opp-table__posted" data-label="Posted">
                     {formatWhen(job.createdAt)}
                     {job.priority ? (
                       <span className="log-chip">Priority</span>
                     ) : null}
                   </td>
-                  <td>
+                  <td className="log-cell--title">
                     <Link
                       className="log-jobs-table__link"
                       to={`${jobBasePath}/${job._id}`}
@@ -420,8 +420,8 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath, ownerView = fa
                       ) : null}
                     </div>
                   </td>
-                  <td>{routeLabel(job)}</td>
-                  <td>
+                  <td data-label="Route">{routeLabel(job)}</td>
+                  <td data-label={isNow ? "Expires in" : "When needed"}>
                     {isNow && job.expires_at ? (
                       <LogisticsCountdown
                         expiresAt={job.expires_at}
@@ -432,8 +432,8 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath, ownerView = fa
                       formatDay(job.when_needed)
                     )}
                   </td>
-                  <td className="log-opp-table__budget">{formatMoney(job)}</td>
-                  <td className="log-opp-table__open">
+                  <td className="log-opp-table__budget" data-label="Budget">{formatMoney(job)}</td>
+                  <td className="log-opp-table__open log-cell--actions">
                     <JobCategoryBadge job={job} compact />
                     <Link
                       className={`logistics-cta logistics-cta--primary log-opp-table__cta${
@@ -871,7 +871,7 @@ function SupplyMyJobsTable({
       </div>
 
       <div className="log-jobs-table-wrap">
-        <table className="log-jobs-table">
+        <table className="log-jobs-table log-jobs-table--cards">
           <thead>
             <tr>
               {enableMultiTransit && !showingMulti ? (
@@ -923,7 +923,11 @@ function SupplyMyJobsTable({
                   }
                 >
                   {enableMultiTransit && !showingMulti ? (
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td
+                      data-label="Select"
+                      className={canSelect ? undefined : "log-cell--hide-mobile"}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {canSelect ? (
                         <input
                           type="checkbox"
@@ -937,7 +941,13 @@ function SupplyMyJobsTable({
                     </td>
                   ) : null}
                   {enableMultiTransit ? (
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td
+                      data-label="Transit"
+                      className={
+                        transitId && run?._id ? undefined : "log-cell--hide-mobile"
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {transitId && run?._id ? (
                         <Link
                           className="log-chip log-chip--pending log-mt-transit-link"
@@ -951,7 +961,7 @@ function SupplyMyJobsTable({
                       )}
                     </td>
                   ) : null}
-                  <td>
+                  <td className="log-cell--title">
                     {showingMulti ? (
                       <span className="log-jobs-table__link">
                         {job.load_type || "Transport job"}
@@ -969,17 +979,22 @@ function SupplyMyJobsTable({
                       <div className="log-hint">{job.job_number}</div>
                     ) : null}
                   </td>
-                  <td>{routeLabel(job)}</td>
-                  <td>
+                  <td data-label="Route">{routeLabel(job)}</td>
+                  <td data-label="Status">
                     <span
                       className={`log-chip log-chip--${statusTone(job.status)}`}
                     >
                       {statusLabel}
                     </span>
                   </td>
-                  <td>{formatMoney(job)}</td>
-                  <td>{formatWhen(job.updatedAt || job.createdAt)}</td>
-                  <td className="log-opp-table__open" onClick={(e) => e.stopPropagation()}>
+                  <td data-label="Amount">{formatMoney(job)}</td>
+                  <td data-label="Updated">
+                    {formatWhen(job.updatedAt || job.createdAt)}
+                  </td>
+                  <td
+                    className="log-opp-table__open log-cell--actions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <JobCategoryBadge job={job} compact />
                     <Link
                       className="log-jobs-table__open"

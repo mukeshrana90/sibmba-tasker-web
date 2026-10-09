@@ -270,7 +270,7 @@ export default function LogisticsQuotesList() {
               {pages > 1 ? ` · page ${page} of ${pages}` : ""}
             </p>
             <div className="log-jobs-table-wrap">
-              <table className="log-jobs-table">
+              <table className="log-jobs-table log-jobs-table--cards">
                 <thead>
                   <tr>
                     <th>Submitted</th>
@@ -300,12 +300,16 @@ export default function LogisticsQuotesList() {
                           key={row._id}
                           className={isNow ? "log-quotes-row--now" : undefined}
                         >
-                          <td>{formatSubmitted(row.createdAt)}</td>
-                          <td>{jobInfo}</td>
-                          <td>{row.driver?.full_name || "—"}</td>
-                          <td>{row.asset?.name || "—"}</td>
-                          <td>{formatAmount(row)}</td>
-                          <td>
+                          <td data-label="Submitted">
+                            {formatSubmitted(row.createdAt)}
+                          </td>
+                          <td className="log-cell--title">{jobInfo}</td>
+                          <td data-label="Operator">
+                            {row.driver?.full_name || "—"}
+                          </td>
+                          <td data-label="Vehicle">{row.asset?.name || "—"}</td>
+                          <td data-label="Amount">{formatAmount(row)}</td>
+                          <td data-label="Status">
                             <div className="log-quotes-page__status">
                               {countdownRow ? (
                                 <LogisticsCountdown
@@ -318,7 +322,7 @@ export default function LogisticsQuotesList() {
                               <QuoteStatus row={row} />
                             </div>
                           </td>
-                          <td>
+                          <td className="log-cell--actions">
                             {jobId ? (
                               <Link
                                 className="log-jobs-table__open"
@@ -353,7 +357,7 @@ export default function LogisticsQuotesList() {
                               1 job · {group.length} quotes
                             </span>
                           </td>
-                          <td colSpan={4}>
+                          <td colSpan={4} className="log-cell--title">
                             {jobInfo}
                             <div className="log-quotes-group__note">
                               {isOwner
@@ -361,7 +365,7 @@ export default function LogisticsQuotesList() {
                                 : `Same job — you sent ${group.length} quotes on it.`}
                             </div>
                           </td>
-                          <td>
+                          <td className="log-cell--actions">
                             {countdownRow ? (
                               <LogisticsCountdown
                                 expiresAt={job.expires_at}
@@ -371,7 +375,7 @@ export default function LogisticsQuotesList() {
                               />
                             ) : null}
                           </td>
-                          <td>
+                          <td className="log-cell--actions">
                             {jobId ? (
                               <Link
                                 className="log-jobs-table__open"
@@ -389,17 +393,23 @@ export default function LogisticsQuotesList() {
                               isNow ? " log-quotes-row--now" : ""
                             }${i === group.length - 1 ? " is-last" : ""}`}
                           >
-                            <td>{formatSubmitted(row.createdAt)}</td>
-                            <td className="log-quotes-group__label">
+                            <td data-label="Submitted">
+                              {formatSubmitted(row.createdAt)}
+                            </td>
+                            <td className="log-quotes-group__label log-cell--title">
                               ↳ Quote {i + 1} of {group.length}
                             </td>
-                            <td>{row.driver?.full_name || "—"}</td>
-                            <td>{row.asset?.name || "—"}</td>
-                            <td>{formatAmount(row)}</td>
-                            <td>
+                            <td data-label="Operator">
+                              {row.driver?.full_name || "—"}
+                            </td>
+                            <td data-label="Vehicle">
+                              {row.asset?.name || "—"}
+                            </td>
+                            <td data-label="Amount">{formatAmount(row)}</td>
+                            <td data-label="Status">
                               <QuoteStatus row={row} />
                             </td>
-                            <td>
+                            <td className="log-cell--actions">
                               {jobId && row.status === "pending" ? (
                                 <Link
                                   className="log-jobs-table__open"

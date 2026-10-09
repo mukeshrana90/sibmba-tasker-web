@@ -10,7 +10,19 @@ const isUnauthorizedPayload = (data) =>
   data?.status === 401 ||
   data?.message === "Token Expired";
 
+// Backend errorRes replies HTTP 200 with { status_code: 501 } when the account
+// was deleted by an admin (userMiddleware / optionalUserMiddleware).
+const isAccountGonePayload = (data) =>
+  data?.status_code === 501 || data?.status === 501;
+
+const ACCOUNT_GONE_MESSAGE =
+  "Your account is no longer active. Please contact support if you think this is a mistake.";
+
+// Several requests can fail together — toast + redirect only once.
+let redirecting = false;
+
 const redirectToLoginOnAuthFailure = (message) => {
+  if (redirecting) return;
   const hadSession =
     localStorage.getItem("token") || localStorage.getItem("temptoken");
   localStorage.removeItem("token");
@@ -18,6 +30,8 @@ const redirectToLoginOnAuthFailure = (message) => {
   localStorage.removeItem("userId");
   localStorage.removeItem("role");
   localStorage.removeItem("expiresAt");
+  localStorage.removeItem("owner_id");
+  localStorage.removeItem("activeModule");
   try {
     sessionStorage.removeItem("sp_has_service");
   } catch {
@@ -25,6 +39,7 @@ const redirectToLoginOnAuthFailure = (message) => {
   }
   // Visitors browsing public pages should not be forced to login on 401.
   if (!hadSession) return;
+  redirecting = true;
   if (message) {
     toast.error(message);
   }
@@ -53,15 +68,11 @@ Api.interceptors.request.use(
 
 Api.interceptors.response.use(
   (response) => {
-    if (response?.data?.status === 501) {
-      localStorage.clear();
-      toast.error(response?.data?.message);
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 3000);
-    }
-
-    if (isUnauthorizedPayload(response?.data)) {
+    if (isAccountGonePayload(response?.data)) {
+      if (!response?.config?.skipAuthRedirect) {
+        redirectToLoginOnAuthFailure(ACCOUNT_GONE_MESSAGE);
+      }
+    } else if (isUnauthorizedPayload(response?.data)) {
       if (!response?.config?.skipAuthRedirect) {
         redirectToLoginOnAuthFailure(
           response?.data?.message || "Session expired. Please login again."
@@ -73,12 +84,10 @@ Api.interceptors.response.use(
   },
   (error) => {
     console.log(error, "error");
-    if (error?.response?.data?.status === 501) {
-      localStorage.clear();
-      toast.error(error?.response?.data?.message);
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 3000);
+    if (isAccountGonePayload(error?.response?.data)) {
+      if (!error?.config?.skipAuthRedirect) {
+        redirectToLoginOnAuthFailure(ACCOUNT_GONE_MESSAGE);
+      }
     } else if (
       error?.response?.status === 401 ||
       isUnauthorizedPayload(error?.response?.data)

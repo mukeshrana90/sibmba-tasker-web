@@ -858,7 +858,7 @@ function OperatorEarnings() {
       ) : (
         <>
           <div className="log-jobs-table-wrap">
-            <table className="log-jobs-table">
+            <table className="log-jobs-table log-jobs-table--cards">
               <thead>
                 <tr>
                   <th>Job #</th>
@@ -873,18 +873,20 @@ function OperatorEarnings() {
               <tbody>
                 {jobs.map((j) => (
                   <tr key={j.job_id}>
-                    <td>
+                    <td className="log-cell--title">
                       <b>{j.job_number || "—"}</b>
                     </td>
-                    <td>{formatWhen(j.completed_at) || "Completed"}</td>
-                    <td>{j.route || "Job"}</td>
-                    <td>
+                    <td data-label="Completed">
+                      {formatWhen(j.completed_at) || "Completed"}
+                    </td>
+                    <td data-label="Route">{j.route || "Job"}</td>
+                    <td data-label="Job total">
                       {formatMoney(j.amount?.amount, j.amount?.currency)}
                     </td>
-                    <td>
+                    <td data-label="Pay">
                       <span className="log-hint">{j.pay_label || "—"}</span>
                     </td>
-                    <td>
+                    <td data-label="My earning">
                       <b>
                         {formatMoney(
                           j.my_earning?.amount ?? j.operator_earning?.amount,
@@ -895,7 +897,7 @@ function OperatorEarnings() {
                         <div className="log-hint">Monthly salary (manual)</div>
                       ) : null}
                     </td>
-                    <td>
+                    <td className="log-cell--actions">
                       <Link
                         className="log-jobs-table__open"
                         to={`/logistics/driver/job/${j.job_id}`}
