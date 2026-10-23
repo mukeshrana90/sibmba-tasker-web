@@ -674,6 +674,18 @@
   font-weight: 600;
 }
 
+/* Accepted link (v2.7.48): not an error — neutral text, no red */
+.p-logistics-invite .log-invite-accepted p {
+  color: var(--ink, #1e1a15);
+  font-weight: 600;
+}
+
+.p-logistics-invite .log-invite-accepted .log-hint {
+  color: var(--muted, #545454);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
 .p-logistics-invite .log-invite-foot {
   margin: 22px 0 0;
   text-align: center;
@@ -3108,7 +3120,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 16px;
-  max-width: 520px;
+  max-width: 720px;
 }
 
 .log-field--pick {
@@ -3160,11 +3172,21 @@
   box-shadow: 0 0 0 4px var(--primary-soft, #e6f0ec);
 }
 
+/* Value / placeholder stays on one line; long hints end in … (full text in title) */
+.log-pick-field__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .log-pick-field .is-ph {
   color: #9aa0a6;
 }
 
 .log-pick-field__chev {
+  flex: 0 0 auto;
   color: #9aa0a6;
   font-size: 0.75rem;
 }
@@ -4553,32 +4575,107 @@
 
 .log-hire-complete-amount {
   width: 100%;
-  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 18px 0 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--line, #d8e0dc);
+  border-radius: 14px;
+  background: #f7f8fc;
+}
+
+.log-hire-complete-amount__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.log-hire-complete-amount__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink, #1a1a1a);
+}
+
+.log-hire-complete-amount__agreed {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted, #545454);
+  font-variant-numeric: tabular-nums;
+}
+
+.log-hire-complete-amount__hint {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--muted, #545454);
 }
 
 .log-hire-complete-amount__row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   align-items: stretch;
+  margin-top: 4px;
 }
 
-.log-hire-complete-amount__row select,
-.log-hire-complete-amount__row input[type="number"] {
-  border: 1px solid var(--line, #d6d3cd);
-  border-radius: 10px;
-  padding: 10px 12px;
+.log-hire-complete-amount__row .logistics-cta {
+  min-height: 48px;
+  padding-inline: 22px;
+}
+
+/* Amount field with the job's currency as a fixed prefix (no currency picker) */
+.log-money-group {
+  display: flex;
+  align-items: stretch;
+  flex: 0 1 260px;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid var(--line-strong, #b7c4bc);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.log-money-group:focus-within {
+  border-color: #3346a3;
+  box-shadow: 0 0 0 3px rgba(51, 70, 163, 0.15);
+}
+
+.log-money-group__cur {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-right: 1px solid var(--line, #d8e0dc);
+  background: #eef0f8;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  color: #3346a3;
+}
+
+.log-money-group input {
+  flex: 1 1 auto;
+  width: 0; /* ignore the input's default ~20ch width so it fits narrow panels */
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  padding: 0 14px;
   font: inherit;
-  min-height: 44px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
 }
 
-.log-hire-complete-amount__row select {
-  max-width: 96px;
-}
-
-.log-hire-complete-amount__row input[type="number"] {
-  flex: 1;
-  min-width: 120px;
+@media (max-width: 560px) {
+  .log-hire-complete-amount { padding: 14px; }
+  .log-money-group,
+  .log-hire-complete-amount__row .logistics-cta { flex: 1 1 100%; }
 }
 
 .log-delivery-otp-banner__amount {
@@ -5392,13 +5489,15 @@
     margin-left: 0;
   }
 
+  /* Drawer opens under the sticky header (z-index 1100), never behind it */
   .log-side {
     position: fixed;
     left: 0;
-    top: 0;
+    top: var(--log-appnav-h);
     bottom: 0;
     height: auto;
     width: min(280px, 88vw);
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     transform: translateX(-105%);
     transition: transform 0.22s ease;
     box-shadow: 8px 0 28px rgba(0, 0, 0, 0.28);
@@ -5412,7 +5511,7 @@
   .log-side-backdrop {
     display: block;
     position: fixed;
-    inset: 0;
+    inset: var(--log-appnav-h) 0 0 0;
     border: none;
     background: rgba(15, 23, 42, 0.45);
     z-index: 35;
@@ -5430,39 +5529,19 @@
   }
 }
 
-/* Phone: logo + Tasker|Logistics + bell + profile must fit ~360-430px
-   (was ~530px wide, pushing notifications/profile off-screen). */
+/* Phone (≤560px): the header is two rows — full-width Tasker|Logistics on top,
+   then logo · bell · profile · menu (simba-marketing.css). Only the supply-nav
+   bits that differ live here; the old one-row squeeze (96px logo, tiny switch
+   buttons) is gone. */
 @media (max-width: 560px) {
-  .appnav--logistics-supply .appnav-inner {
-    padding: 0 10px;
-    gap: 6px;
+  .log-supply-layout {
+    --log-appnav-h: 106px;
   }
 
   .appnav--logistics-supply .log-side-toggle {
     flex: none;
     width: 32px;
     padding: 0;
-  }
-
-  header.appnav.appnav--logistics-supply .logo {
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-
-  header.appnav.appnav--logistics-supply .logo img {
-    width: 96px;
-    max-width: 100%;
-    height: auto;
-  }
-
-  .appnav--logistics-supply .module-switcher--nav {
-    padding: 3px;
-    margin-right: 0;
-  }
-
-  .appnav--logistics-supply .module-switcher--nav button {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.7rem;
   }
 
   .appnav--logistics-supply .app-tools {
@@ -5488,17 +5567,6 @@
   .appnav--logistics-supply .app-tools .avatar-btn .av {
     width: 32px;
     height: 32px;
-  }
-}
-
-@media (max-width: 370px) {
-  header.appnav.appnav--logistics-supply .logo img {
-    width: 84px;
-  }
-
-  .appnav--logistics-supply .module-switcher--nav button {
-    padding: 0.28rem 0.4rem;
-    font-size: 0.66rem;
   }
 }
 
@@ -5654,9 +5722,15 @@
   min-width: 140px;
 }
 
-.log-dash-map--leaflet {
+/* Leaflet map sets its own height (280px). The 16/11 aspect-ratio of .log-dash-map
+   plus this min-height forced a min width of 280 × 16/11 ≈ 407px, so on phones
+   the map ran past the card's right edge. (Double class: .log-dash-map comes later.) */
+.log-dash-map.log-dash-map--leaflet {
   position: relative;
   min-height: 280px;
+  aspect-ratio: auto;
+  width: 100%;
+  max-width: 100%;
 }
 
 .log-dash-map--leaflet .log-fleet-map {
@@ -5770,10 +5844,13 @@
   border: 0;
 }
 
+/* Top-right: the Leaflet zoom buttons sit top-left and were hidden under it */
 .log-dash-map__badge {
   position: absolute;
   top: 10px;
-  left: 10px;
+  right: 10px;
+  max-width: calc(100% - 68px);
+  z-index: 2;
   background: #fff;
   border-radius: 10px;
   padding: 8px 10px;
@@ -7565,6 +7642,8 @@ a.log-mt-transit-link:hover {
   gap: 18px;
   padding: 0 !important;
   overflow: hidden;
+  /* clip (not just hide) so the hero's decorative shapes can't let focus / scrollIntoView shift the card sideways on phones */
+  overflow: clip;
   border-radius: 20px;
   background: #fbfdfc;
 }
@@ -7580,6 +7659,11 @@ a.log-mt-transit-link:hover {
   --jd-accent-2: #5b6fd6;
   --jd-soft: #eef1ff;
 }
+/* grid children must be allowed to shrink below their content, or the hero widens the card on phones */
+.log-job-detail--v2 > * {
+  min-width: 0;
+}
+
 .log-job-detail--v2 > *:not(.log-jd-hero) {
   margin-left: 22px;
   margin-right: 22px;
@@ -8571,6 +8655,16 @@ a.log-mt-transit-link:hover {
   white-space: nowrap;
 }
 .log-qx-card__price small { font-size: 0.72rem; font-weight: 700; }
+.log-op-quote-total {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff7e6;
+  border: 1px solid #f3dca8;
+  font-size: 0.9rem;
+}
+.log-op-quote-total b { color: var(--primary, #0f5c4c); }
+.log-qx-card__price .log-qx-card__breakdown { color: var(--muted, #545454); font-weight: 600; }
 .log-qx-card__price .is-below { color: #1f6b3a; }
 .log-qx-card__price .is-above { color: #b0540f; }
 .log-qx-card__price .is-match { color: var(--jd-muted, #5f6f69); }
@@ -9022,6 +9116,8 @@ a.log-mt-transit-link:hover {
 .log-sub-plan__features { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .log-sub-plan__features li { font-size: 0.86rem; color: var(--muted, #545454); padding-left: 22px; position: relative; }
 .log-sub-plan__features li::before { content: "✓"; position: absolute; left: 2px; color: var(--primary, #0f5c4c); font-weight: 800; }
+.log-sub-plan__yes { color: var(--primary, #0f5c4c); }
+.log-sub-plan__no { color: #c0392b; }
 .log-sub-plan__current {
   justify-self: start;
   padding: 8px 14px;
@@ -10440,9 +10536,59 @@ a.log-mt-transit-link:hover {
   background: #fdf1f0;
 }
 
+/* v2.7.50 Edit profile → WhatsApp notifications toggle */
+.log-wa-profile {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 14px;
+  border: 1px solid #bfe3cc;
+  border-radius: 12px;
+  background: #eef8f1;
+}
+.log-wa-profile > div:first-child { min-width: 0; }
+.log-wa-profile b { display: block; margin-bottom: 2px; }
+.log-wa-profile p { margin: 0; text-align: left; font-size: 0.9rem; line-height: 1.45; color: var(--muted, #545454); }
+.log-wa-profile--locked { background: #f6f6f6; border-color: #e2e2e2; }
+
+/* Switch (role="switch" button) — 44×24 track, 18px knob */
+.log-switch-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.log-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #c9ced3;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+.log-switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+.log-switch.is-on { background: var(--primary, #0f5c4c); }
+.log-switch.is-on .log-switch__knob { transform: translateX(20px); }
+.log-switch:focus-visible { outline: 2px solid var(--primary, #0f5c4c); outline-offset: 2px; }
+.log-switch:disabled { cursor: not-allowed; opacity: 0.55; }
+.log-switch__state { min-width: 26px; font-size: 0.86rem; font-weight: 700; color: var(--muted, #545454); }
+
 @media (max-width: 640px) {
   .log-sos-jobbar,
   .log-sos-intro,
+  .log-wa-profile,
   .log-sos-profile {
     flex-direction: column;
     align-items: stretch;
@@ -10977,4 +11123,107 @@ a.log-mt-transit-link:hover {
   .log-jobs-toolbar__actions .logistics-cta {
     flex: 1 1 auto;
   }
+}
+
+/* Phones: Equipment / Sub type stack so the placeholder hints stay readable */
+@media (max-width: 480px) {
+  .log-pick-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* v2.7.49: price breakdown in the job detail Price tile (Agreed price / Priority fee / Total) */
+.log-jd-price-lines {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 6px 0 0;
+  border-top: 1px dashed var(--line, #d8e0dc);
+  display: grid;
+  gap: 2px;
+}
+.log-jd-price-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.74rem;
+}
+.log-jd-price-lines li span {
+  color: var(--jd-muted, #545454);
+}
+.log-jd-price-lines li b {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.log-jd-price-lines__total b {
+  color: var(--jd-accent, #0f5c4c);
+}
+.log-delivery-otp-banner__breakdown {
+  color: var(--muted, #545454);
+  font-weight: 500;
+}
+.log-jl-card__hint,
+.log-price-priority {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9a6b00;
+}
+
+/* v2.7.49: required "Rate your operator" popup on completed jobs */
+.log-job-review--ask .log-job-review__open {
+  justify-self: start;
+}
+.log-rate-modal .log-modal__body {
+  display: grid;
+  gap: 10px;
+}
+.log-rate-modal__stars {
+  justify-content: center;
+  gap: 10px;
+}
+.log-rate-modal__stars button {
+  font-size: 2.2rem;
+}
+.log-rate-modal__hint {
+  margin: 0;
+  text-align: center;
+}
+.log-rate-modal__x {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.log-rate-modal__submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* v2.7.49 — quote location step + document rule hints */
+.log-quote-location {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  margin: 4px 0 12px;
+  border: 1px solid #e3e8ef;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.log-quote-location--bad {
+  border-color: #f3b4b4;
+  background: #fff5f5;
+}
+.log-quote-location b {
+  display: block;
+  font-size: 0.9rem;
+}
+.log-doc-row__rule {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.log-approval-banner .logistics-cta {
+  flex-shrink: 0;
 }

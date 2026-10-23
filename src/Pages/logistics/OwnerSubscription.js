@@ -361,6 +361,14 @@ export default function LogisticsOwnerSubscription() {
                         <span>Hub “Top logistics providers”</span>
                         <b>{p.featured_in_hub ? "Listed" : "—"}</b>
                       </li>
+                      <li data-testid="plan-whatsapp">
+                        <span>WhatsApp notifications</span>
+                        {p.whatsapp_notifications ? (
+                          <b className="log-sub-plan__yes" aria-label="Included">✓</b>
+                        ) : (
+                          <b className="log-sub-plan__no" aria-label="Not included">✗</b>
+                        )}
+                      </li>
                     </ul>
                     <ul className="log-sub-plan__features">
                       {p.features.map((f) => (
@@ -396,7 +404,7 @@ export default function LogisticsOwnerSubscription() {
                       </p>
                     </header>
                     <ul className="log-sub-plan__limits">
-                      {["Operators", "Logistic trucks", ...(withCabs ? ["Cabs"] : []), "Non-logistic equipment", "Hub “Top logistics providers”"].map((l) => (
+                      {["Operators", "Logistic trucks", ...(withCabs ? ["Cabs"] : []), "Non-logistic equipment", "Hub “Top logistics providers”", "WhatsApp notifications"].map((l) => (
                         <li key={l}>
                           <span>{l}</span>
                           <b>•••</b>
@@ -407,6 +415,7 @@ export default function LogisticsOwnerSubscription() {
                       <li>More operators</li>
                       <li>More trucks and equipment</li>
                       <li>Hub listing</li>
+                      <li>WhatsApp notifications</li>
                     </ul>
                     <span className="logistics-cta logistics-cta--primary">Upgrade</span>
                   </div>

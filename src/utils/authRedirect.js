@@ -81,3 +81,18 @@ export function resolvePostLoginPath({ role, ownerId, returnUrl } = {}) {
   }
   return deep;
 }
+
+/**
+ * Guest logistics pages (v2.7.49): account-only actions (Book, Post a job,
+ * chat, call) go to /login?redirect=<current page>. Logged-in users keep `to`.
+ */
+export function guestLoginPath(returnPath) {
+  const path =
+    returnPath ||
+    `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  return `/login?redirect=${encodeURIComponent(path)}`;
+}
+
+export function accountLinkTo(to, returnPath) {
+  return isLoggedIn() ? to : guestLoginPath(returnPath);
+}

@@ -5,7 +5,8 @@ import { useSelector } from "react-redux";
 import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import ChatList from "../Components/ChatList";
 import MainChat from "../Components/MainChat";
-import { ChatProvider, ChatContext } from "../context/ChatProvider";
+import { ChatContext } from "../context/ChatProvider";
+import { getChatPeerId } from "../utils/chatUtils";
 import {
   getStoredUserId,
   normalizeMongoId,
@@ -16,7 +17,7 @@ import { getSocketBaseUrl } from "../utils/socketBaseUrl";
 const socket = io(getSocketBaseUrl() || undefined);
 
 function MessagesContent() {
-  const { selectedUser, setSelectedUser } = useContext(ChatContext);
+  const { selectedUser, setSelectedUser, chatList } = useContext(ChatContext);
   const customerDetails = useSelector((state) => state.login.customerDetails);
   const sender_id = getStoredUserId(customerDetails?._id);
   const [searchParams] = useSearchParams();
@@ -27,12 +28,19 @@ function MessagesContent() {
       searchParams.get("userID") || searchParams.get("userId") || ""
     ) || "";
 
-  // Prefer URL (deep link / sidebar navigate), then context selection
-  const receiverId =
-    urlPeer ||
+  // Prefer URL (deep link / sidebar navigate), then the remembered selection —
+  // but only if that peer has a chat in the current module (chat is
+  // module-scoped; a Logistics peer must not open as a blank Tasker thread).
+  const rememberedPeer =
     normalizeMongoId(selectedUser) ||
     normalizeMongoId(localStorage.getItem("reciverID")) ||
     "";
+  const rememberedInModule =
+    !!rememberedPeer &&
+    (chatList || []).some(
+      (chat) => getChatPeerId(chat, sender_id) === rememberedPeer
+    );
+  const receiverId = urlPeer || (rememberedInModule ? rememberedPeer : "");
 
   // Only apply URL → selection when the query param changes (not when user clicks list)
   useEffect(() => {
@@ -66,14 +74,13 @@ function MessagesContent() {
 
 export default function Messages() {
   return (
-    <ChatProvider>
-      <CorporatePageShell pageClass="p-messages" showBanner={false}>
-        <div className="messages-page-head">
-          <h1>Messages</h1>
-          <p>Chat with service providers, customers, and corporate partners.</p>
-        </div>
-        <MessagesContent />
-      </CorporatePageShell>
-    </ChatProvider>
+    // ChatProvider is mounted app-wide in routes/Routes.js
+    <CorporatePageShell pageClass="p-messages" showBanner={false}>
+      <div className="messages-page-head">
+        <h1>Messages</h1>
+        <p>Chat with service providers, customers, and corporate partners.</p>
+      </div>
+      <MessagesContent />
+    </CorporatePageShell>
   );
 }

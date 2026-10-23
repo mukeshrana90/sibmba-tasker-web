@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Api from "../Services/api";
+import { MAX_UPLOAD_MB, setUploadLimitMb } from "../utils/uploadLimits";
 
 /**
  * Server .env settings from GET /logistics/session → config (Now window,
@@ -23,6 +24,8 @@ const DEFAULT_CONFIG = {
   // Cab drop-off geofence (backend CAB_DROP_LOCATION_VERIFICATION)
   cab_drop_verification_enabled: false,
   cab_drop_radius_km: 1,
+  // Upload limit per file (backend LOGISTICS_UPLOAD_MAX_MB)
+  upload: { max_file_mb: MAX_UPLOAD_MB },
 };
 
 let memoryCache = null;
@@ -30,10 +33,15 @@ let inflight = null;
 
 function fetchLogisticsConfig() {
   if (memoryCache) return Promise.resolve(memoryCache);
+  // Guests browsing the public hub: /logistics/session needs login — use the
+  // defaults and don't cache them, so the real config loads after login.
+  if (!localStorage.getItem("token")) return Promise.resolve(DEFAULT_CONFIG);
   if (!inflight) {
     inflight = Api.get("/logistics/session")
       .then((response) => {
-        const cfg = response?.data?.data?.config || {};
+        if (!response?.data?.data?.config) return DEFAULT_CONFIG;
+        const cfg = response.data.data.config;
+        setUploadLimitMb(cfg.upload?.max_file_mb);
         memoryCache = {
           ...DEFAULT_CONFIG,
           ...cfg,

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import { ChatProvider } from "../context/ChatProvider";
 import ScrollToTop from "../Hooks/ScrollToTop";
 import PrivateRoute from "./PrivateRoute";
 import Loader from "../CommanComponents/Loader";
@@ -29,6 +30,7 @@ import PrivacyPolicy from "../Pages/PrivacyPolicy";
 import TermsConditions from "../Pages/TermsConditions";
 import PrivateCorporate from "./PrivateCorporate";
 import PrivateLogisticsHub from "./PrivateLogisticsHub";
+import PublicLogisticsHub from "./PublicLogisticsHub";
 import PrivateLogisticsOwner from "./PrivateLogisticsOwner";
 import PrivateLogisticsDriver from "./PrivateLogisticsDriver";
 import CorporateLeeds from "../Pages/corporate/leads";
@@ -148,6 +150,8 @@ const SearchProvidersPage = lazy(() => import("../Pages/SearchProvidersPage"));
 const RoutesPage = () => {
   return (
     <Router>
+      {/* App-wide so every nav's unread-message badge is live, not only on /messages */}
+      <ChatProvider>
       <ScrollToTop />
       <Suspense fallback={<Loader />}>
         <Routes>
@@ -217,11 +221,15 @@ const RoutesPage = () => {
             <Route path="/corporate/corporate-business/:id" element={<CorporateBusinessPage />} />
           </Route>
 
-          <Route path="/logistics" element={<PrivateLogisticsHub />}>
+          {/* Guests may browse the hub, search and asset pages (v2.7.49) */}
+          <Route path="/logistics" element={<PublicLogisticsHub />}>
             <Route index element={<LogisticsHubHome />} />
-            <Route path="post" element={<LogisticsPostJob />} />
             <Route path="search" element={<LogisticsSearch />} />
             <Route path="asset/:id" element={<LogisticsAssetDetail />} />
+          </Route>
+
+          <Route path="/logistics" element={<PrivateLogisticsHub />}>
+            <Route path="post" element={<LogisticsPostJob />} />
             <Route path="jobs" element={<LogisticsMyJobs />} />
             <Route path="jobs/:id" element={<LogisticsJobDetail />} />
             <Route path="jobs/:id/quotes" element={<LogisticsJobDetail />} />
@@ -378,6 +386,7 @@ const RoutesPage = () => {
           </Route>
         </Routes>
       </Suspense>
+      </ChatProvider>
     </Router>
   );
 };

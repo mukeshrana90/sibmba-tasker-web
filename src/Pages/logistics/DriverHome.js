@@ -15,6 +15,7 @@ import {
 } from "../../utils/logisticsOperatorStatus";
 import { reverseGeocodeCoords } from "../../utils/landingPlaces";
 import { jobKindTypeChip } from "../../utils/jobKind";
+import { jobListPrice } from "../../utils/jobPrice";
 import { jobImageUrl } from "./MyJobs";
 import { defaultImage } from "../../utils/ImagePath";
 import "./logistics.css";
@@ -667,7 +668,7 @@ function OperatorDashboard() {
           <ul className="log-dash-opps__list">
             {nearby.slice(0, 4).map((job) => {
               const isReturn = Boolean(job.return_trip?.goods);
-              const budget = job.budget?.amount;
+              const listPrice = jobListPrice(job);
               const weight = job.load_weight?.value
                 ? `${job.load_weight.value}t`
                 : null;
@@ -704,7 +705,10 @@ function OperatorDashboard() {
                   </p>
                   <div className="log-dash-job__foot">
                     <strong>
-                      {budget != null ? `US$${budget}` : "Quote open"}
+                      {listPrice.price || "Quote open"}
+                      {listPrice.priorityHint ? (
+                        <small className="log-price-priority">{listPrice.priorityHint}</small>
+                      ) : null}
                     </strong>
                     <Link
                       className="logistics-cta logistics-cta--primary log-dash-job__cta"

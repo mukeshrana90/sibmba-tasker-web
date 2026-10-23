@@ -82,13 +82,17 @@ export default function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
-  const returnUrl = resolvePostAuthPath(searchParams.get("returnUrl"));
+  // ?redirect= (guest logistics pages) works the same as ?returnUrl=; only "/…" paths
+  const returnUrl = resolvePostAuthPath(
+    searchParams.get("returnUrl") || searchParams.get("redirect")
+  );
   const loginRole = normalizeRole(searchParams.get("role")) || Roles.CUSTOMER;
   const [localLoading, setLocalLoading] = useState(false);
   const [pendingSocial, setPendingSocial] = useState(null);
   const [roleModalLoading, setRoleModalLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
+    // ?email= prefill (e.g. "Already accepted — log in" on a used invite link)
+    email: searchParams.get("email") || "",
     password: "",
     webPage: false,
   });

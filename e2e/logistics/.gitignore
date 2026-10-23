@@ -5,3 +5,6 @@ full-run.log
 doc.pdf
 outbox.jsonl
 test-api.log
+progress.jsonl
+watch-run.log
+fixtures/gen/

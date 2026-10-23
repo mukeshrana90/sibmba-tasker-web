@@ -174,7 +174,8 @@ export default function HomeLanding() {
             verified, rated service providers near you, all across Zimbabwe.
           </p>
 
-          <UnifiedSearch />
+          {/* Services only — the header has the Services | Logistics switch */}
+          <UnifiedSearch showModeSwitch={false} />
 
           <div className="landing-tags">
             <span className="landing-tags__label">Popular:</span>

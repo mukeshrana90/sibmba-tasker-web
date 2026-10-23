@@ -21,10 +21,21 @@ import {
   LogisticsDetailSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
-import { ASSET_COMPLIANCE_TYPES, REMINDER_HINT, docExpiryChip, fmtExpiry } from "../../utils/docExpiry";
+import {
+  ASSET_COMPLIANCE_TYPES,
+  REMINDER_HINT,
+  docExpiryChip,
+  docReviewChip,
+  docRuleHint,
+  fmtExpiry,
+  tomorrowYmd,
+} from "../../utils/docExpiry";
+import { DEFAULT_COUNTRY_CODE } from "../../utils/logisticsPhone";
 import { focusField } from "../../utils/focusField";
 import { formatRate, rateUnitOf } from "../../utils/assetRate";
 import LogisticsMoneyInput from "../../CommanComponents/LogisticsMoneyInput";
+import { DOC_ACCEPT, PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
+import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
 
 const LEGACY_TYPE_LABELS = new Set([
   "below 5 ton truck",
@@ -140,6 +151,7 @@ const emptyEdit = () => ({
   carriage_width_ft: "",
   carriage_height_ft: "",
   direct_booking_enabled: true,
+  red_plate: false,
 });
 
 function formFromAsset(next) {
@@ -159,6 +171,7 @@ function formFromAsset(next) {
     model: next.model || "",
     year: next.year != null ? String(next.year) : "",
     registration: normalizePlateInput(next.registration || ""),
+    red_plate: Boolean(next.red_plate),
     chassis_number: normalizePlateInput(next.chassis_number || ""),
     vin: assetVin(next),
     vehicle_type,
@@ -178,6 +191,8 @@ function formFromAsset(next) {
 }
 
 export default function LogisticsOwnerAsset() {
+  // Loads the server upload limit (config.upload) for the file pickers
+  useLogisticsConfig();
   const { id } = useParams();
   const dispatch = useDispatch();
   const [asset, setAsset] = useState(null);
@@ -347,7 +362,7 @@ export default function LogisticsOwnerAsset() {
   };
 
   const onAddPhotos = (e) => {
-    const picked = Array.from(e.target.files || []);
+    const picked = keepAllowedFiles(e.target.files, { imagesOnly: true });
     e.target.value = "";
     if (!picked.length) return;
     setNewPhotos((prev) => {
@@ -454,6 +469,7 @@ export default function LogisticsOwnerAsset() {
         carriage_width_ft: form.carriage_width_ft || "",
         carriage_height_ft: form.carriage_height_ft || "",
         direct_booking_enabled: form.direct_booking_enabled ? "true" : "false",
+        ...(asset?.kind !== "equipment" ? { red_plate: form.red_plate ? "true" : "false" } : {}),
         ...(asset?.kind === "equipment"
           ? { price: form.price || "", rate_unit: form.price ? form.rate_unit || "day" : "" }
           : {}),
@@ -765,11 +781,19 @@ export default function LogisticsOwnerAsset() {
               </div>
             ) : null}
 
-            {docCompliance?.expired?.length ? (
+            {docCompliance?.block?.code === "DOC_REQUIRED" ? (
+              <div className="log-callout log-callout--danger log-doc-required" style={{ marginBottom: 16 }}>
+                <p>
+                  <strong>Hidden from customers — road licence (ZINARA) required.</strong>{" "}
+                  {docCompliance.block.message} Add it under Edit details → Documents.
+                </p>
+              </div>
+            ) : docCompliance?.expired?.some((d) => d.blocking !== false) ? (
               <div className="log-callout log-callout--danger" style={{ marginBottom: 16 }}>
                 <p>
                   <strong>Hidden from customers — documents expired.</strong>{" "}
                   {docCompliance.expired
+                    .filter((d) => d.blocking !== false)
                     .map((d) => `${d.label} expired on ${fmtExpiry(d.expires)}`)
                     .join("; ")}
                   . Nobody can book or quote with this unit until you upload the
@@ -792,7 +816,11 @@ export default function LogisticsOwnerAsset() {
               </div>
             ) : null}
 
-            {active && customerView && !customerView.bookable && customerView.status_detail !== "Documents expired" ? (
+            {active &&
+            customerView &&
+            !customerView.bookable &&
+            customerView.status_detail !== "Documents expired" &&
+            !/ required$| rejected$/.test(String(customerView.status_detail || "")) ? (
               <div className="log-callout log-callout--warn" style={{ marginBottom: 16 }}>
                 <p>
                   {!operators.length ? (
@@ -851,6 +879,19 @@ export default function LogisticsOwnerAsset() {
                     </span>
                   ) : null}
                 </label>
+                {asset?.kind !== "equipment" ? (
+                  <label className="log-check log-field--full" data-field="red_plate">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.red_plate)}
+                      onChange={(e) => setForm((f) => ({ ...f, red_plate: e.target.checked }))}
+                    />
+                    <span>
+                      <b>Red-plate (commercial) vehicle</b>
+                      <small>Red-plate vehicles need a valid roadworthy / fitness certificate.</small>
+                    </span>
+                  </label>
+                ) : null}
                 <label className="log-field">
                   <span className="log-fl">Make</span>
                   <input value={form.make} onChange={set("make")} />
@@ -1013,7 +1054,7 @@ export default function LogisticsOwnerAsset() {
                       <label className="log-photo-slot log-photo-slot--add">
                         <input
                           type="file"
-                          accept="image/*"
+                          accept={PHOTO_ACCEPT}
                           multiple
                           hidden
                           onChange={onAddPhotos}
@@ -1065,6 +1106,9 @@ export default function LogisticsOwnerAsset() {
                           <span className="log-doc-row__body">
                             <b>{d.label}</b>
                             <p>{fileLabel || d.hint}</p>
+                            <small className="log-doc-row__rule">
+                              {docRuleHint(d.id, { kind: asset?.kind, redPlate: Boolean(form.red_plate) })}
+                            </small>
                           </span>
                           <label className="log-doc-row__expiry">
                             <span>
@@ -1080,6 +1124,7 @@ export default function LogisticsOwnerAsset() {
                                 onDocExpiry(d.id, e.target.value)
                               }
                               required={ASSET_COMPLIANCE_TYPES.includes(d.id) && Boolean(entry.file || entry.url)}
+                              min={tomorrowYmd()}
                             />
                             {(entry.file || entry.url) && !entry.expires && ASSET_COMPLIANCE_TYPES.includes(d.id) ? (
                               <span className="log-field-error">Expiry date is required</span>
@@ -1101,10 +1146,10 @@ export default function LogisticsOwnerAsset() {
                           >
                             <input
                               type="file"
-                              accept=".pdf,image/*"
+                              accept={DOC_ACCEPT}
                               hidden
                               onChange={(e) => {
-                                const f = e.target.files?.[0];
+                                const [f] = keepAllowedFiles(e.target.files);
                                 if (f) onPickDoc(d.id, f);
                                 e.target.value = "";
                               }}
@@ -1340,6 +1385,14 @@ export default function LogisticsOwnerAsset() {
                         {showChip ? (
                           <span className={`log-chip log-chip--${chip.tone}`}>{chip.label}</span>
                         ) : null}
+                        {docReviewChip(doc.review) ? (
+                          <span
+                            className={`log-chip log-chip--${docReviewChip(doc.review).tone} log-doc-review`}
+                            data-review={doc.review?.status}
+                          >
+                            {docReviewChip(doc.review).label}
+                          </span>
+                        ) : null}
                         {doc.url ? (
                           <a
                             className="logistics-cta logistics-cta--ghost"
@@ -1406,7 +1459,14 @@ export default function LogisticsOwnerAsset() {
                     <span className="log-doc-row__body">
                       <b>{operatorName(op)}</b>
                       <p>
-                        {[op.email, op.phone_number].filter(Boolean).join(" · ") ||
+                        {[
+                          op.email,
+                          op.phone_number
+                            ? `${op.country_code || DEFAULT_COUNTRY_CODE} ${op.phone_number}`
+                            : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") ||
                           "Assigned operator"}
                       </p>
                     </span>

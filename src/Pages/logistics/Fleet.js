@@ -22,6 +22,7 @@ import {
   LogisticsPickField,
   EquipmentPickerModal,
   SubtypePickerModal,
+  useEquipmentPlaceholders,
 } from "../../CommanComponents/LogisticsEquipmentPickers";
 import {
   formatTons,
@@ -41,8 +42,14 @@ import {
   LogisticsGridSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
-import { ASSET_COMPLIANCE_TYPES, REMINDER_HINT } from "../../utils/docExpiry";
+import {
+  ASSET_COMPLIANCE_TYPES,
+  REMINDER_HINT,
+  docRuleHint,
+  tomorrowYmd,
+} from "../../utils/docExpiry";
 import { focusField } from "../../utils/focusField";
+import { DOC_ACCEPT, PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
 
 const AVAIL_LABEL = {
   available_now: "Available",
@@ -101,13 +108,15 @@ const emptyForm = () => ({
   carriage_height_ft: "",
   needs_operator: "yes",
   operators_needed: "1",
-  equipment: "Tractor",
-  subtype: "Compact",
+  // No default machine — the owner must pick (placeholders only suggest)
+  equipment: "",
+  subtype: "",
   size_class: "",
   engine_type: "Diesel",
   weight_kg: "",
   mobility: "Wheeled",
   motor_vehicle: false,
+  red_plate: false,
   operating_range: "",
   // One rate per unit: amount + per hour / per day
   price: "",
@@ -180,7 +189,7 @@ function PhotoSlots({ files, onAdd, onRemove }) {
           <label className="log-photo-slot log-photo-slot--add">
             <input
               type="file"
-              accept="image/*"
+              accept={PHOTO_ACCEPT}
               multiple
               hidden
               onChange={onAdd}
@@ -231,7 +240,7 @@ function BaseLocationNote({ base, coords, saveAsBase, onToggle }) {
   );
 }
 
-function DocRows({ items, docs, onPick, onExpiry }) {
+function DocRows({ items, docs, onPick, onExpiry, kind = "vehicle", redPlate = false }) {
   return (
     <ul className="log-doc-list">
       {items.map((d) => {
@@ -248,6 +257,7 @@ function DocRows({ items, docs, onPick, onExpiry }) {
             <span className="log-doc-row__body">
               <b>{d.label}</b>
               <p>{fileLabel || d.hint}</p>
+              <small className="log-doc-row__rule">{docRuleHint(d.id, { kind, redPlate })}</small>
             </span>
             <label className="log-doc-row__expiry">
               <span>
@@ -259,6 +269,7 @@ function DocRows({ items, docs, onPick, onExpiry }) {
                 value={entry?.expires || ""}
                 onChange={(e) => onExpiry?.(d.id, e.target.value)}
                 required={ASSET_COMPLIANCE_TYPES.includes(d.id)}
+                min={tomorrowYmd()}
               />
               {entry?.file && !entry?.expires && ASSET_COMPLIANCE_TYPES.includes(d.id) ? (
                 <span className="log-field-error">Expiry date is required</span>
@@ -267,10 +278,10 @@ function DocRows({ items, docs, onPick, onExpiry }) {
             <label className="log-doc-row__add" title={fileLabel ? "Replace file" : "Upload"}>
               <input
                 type="file"
-                accept=".pdf,image/*"
+                accept={DOC_ACCEPT}
                 hidden
                 onChange={(e) => {
-                  const f = e.target.files?.[0];
+                  const [f] = keepAllowedFiles(e.target.files);
                   if (f) onPick(d.id, f);
                   e.target.value = "";
                 }}
@@ -352,6 +363,10 @@ export default function LogisticsFleet() {
   });
 
   const plant = isPlantCategory(form.category);
+  const pickPlaceholders = useEquipmentPlaceholders(
+    form.category,
+    form.equipment
+  );
   const cab = isCabCategory(form.category);
   // Logistic → trucks, Cab → cabs, Agricultural / Construction / Industrial → equipment
   const planBucket = plant ? "equipment" : cab ? "cabs" : "vehicles";
@@ -500,7 +515,7 @@ export default function LogisticsFleet() {
   };
 
   const onAddPhotos = (e) => {
-    const picked = Array.from(e.target.files || []);
+    const picked = keepAllowedFiles(e.target.files, { imagesOnly: true });
     e.target.value = "";
     if (!picked.length) return;
     setForm((f) => {
@@ -558,6 +573,11 @@ export default function LogisticsFleet() {
     }
     if (plant && !form.equipment) {
       toast.error("Pick an equipment type");
+      focusField("equipment");
+      return;
+    }
+    if (plant && !form.subtype) {
+      toast.error("Pick a sub type");
       focusField("equipment");
       return;
     }
@@ -635,6 +655,7 @@ export default function LogisticsFleet() {
         price: plant ? form.price || "" : "",
         rate_unit: plant && form.price ? form.rate_unit || "day" : "",
         direct_booking_enabled: form.direct_booking_enabled ? "true" : "false",
+        red_plate: !plant && form.red_plate ? "true" : "",
         ...(coords
           ? { lng: String(coords[0]), lat: String(coords[1]) }
           : {}),
@@ -818,8 +839,8 @@ export default function LogisticsFleet() {
               setForm((f) => ({
                 ...f,
                 category,
-                equipment: "Tractor",
-                subtype: "Compact",
+                equipment: "",
+                subtype: "",
                 ...(isPlantCategory(category)
                   ? {}
                   : {
@@ -1029,6 +1050,19 @@ export default function LogisticsFleet() {
                   <span className="log-field-error">{idErrors.chassis_number}</span>
                 ) : null}
               </label>
+              <label className="log-check log-field--full" data-field="red_plate">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.red_plate)}
+                  onChange={(e) => setForm((f) => ({ ...f, red_plate: e.target.checked }))}
+                />
+                <span>
+                  <b>Red-plate (commercial) vehicle</b>
+                  <small>
+                    Red-plate vehicles need a valid roadworthy / fitness certificate — we remind you before it expires.
+                  </small>
+                </span>
+              </label>
               <label className="log-field log-field--full">
                 <span className="log-fl">VIN</span>
                 <input
@@ -1134,18 +1168,19 @@ export default function LogisticsFleet() {
 
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                 Vehicle documents{" "}
-                <span className="log-sect__soft">(required for verification)</span>
+                <span className="log-sect__soft">(checked by Simba before you go live)</span>
               </p>
               <p className="log-hint log-field--full">
-                {cab
-                  ? "Ownership, insurance, road licence and taxi permit — proves you own the cab and can carry passengers."
-                  : "Ownership, insurance, road licence and roadworthy — proves you own the truck and it can legally operate."}{" "}
-                Expiry dates marked * are required. {REMINDER_HINT} An expired
-                document hides the unit from customers until you upload the renewed one.
+                The road licence (ZINARA) is required
+                {form.red_plate ? " and so is the roadworthy certificate (red-plate vehicle)" : ""} — without a valid
+                one the unit is hidden from customers. The other documents support your listing.
+                Pick each expiry date from the calendar (dates marked * are required). {REMINDER_HINT}
               </p>
               <div className="log-field--full">
                 <DocRows
                   items={cab ? CAB_DOCS : LOGISTIC_DOCS}
+                  kind={cab ? "cab" : "vehicle"}
+                  redPlate={Boolean(form.red_plate)}
                   docs={form.docs}
                   onPick={onPickDoc}
                   onExpiry={onDocExpiry}
@@ -1158,16 +1193,18 @@ export default function LogisticsFleet() {
                 <LogisticsPickField
                   label="Equipment type"
                   value={form.equipment}
-                  placeholder="Pick type"
+                  placeholder={pickPlaceholders.equipment}
                   required
                   onClick={() => setEquipOpen(true)}
                 />
                 <LogisticsPickField
                   label="Sub type"
                   value={form.subtype}
-                  placeholder="Pick sub type"
+                  placeholder={pickPlaceholders.subtype}
                   required
-                  onClick={() => setSubtypeOpen(true)}
+                  onClick={() =>
+                    form.equipment ? setSubtypeOpen(true) : setEquipOpen(true)
+                  }
                 />
               </div>
               <p className="log-hint log-field--full">
@@ -1389,11 +1426,12 @@ export default function LogisticsFleet() {
 
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                 Equipment documents{" "}
-                <span className="log-sect__soft">(required for verification)</span>
+                <span className="log-sect__soft">(checked by Simba before you go live)</span>
               </p>
               <p className="log-hint log-field--full">
-                Ownership, insurance and road papers — stops bogus non-owner
-                listings. Expiry dates marked * are required. {REMINDER_HINT}
+                Ownership, insurance and road papers support your listing and stop bogus
+                non-owner listings — equipment doesn't need a road licence. Pick each expiry
+                date from the calendar (dates marked * are required). {REMINDER_HINT}
               </p>
               <div className="log-field--full">
                 <DocRows
@@ -1411,6 +1449,7 @@ export default function LogisticsFleet() {
                       : PLANT_DOCS
                   }
                   docs={form.docs}
+                  kind="equipment"
                   onPick={onPickDoc}
                   onExpiry={onDocExpiry}
                 />

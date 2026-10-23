@@ -1,0 +1,99 @@
+  PASS  fresh owner approved
+
+▶ 18a. Add truck: corrupt photo refused by the server with a message
+  PASS  exactly 10 MB PDF paper accepted by the picker
+  PASS  Word (.docx) paper attached
+  PASS  corrupt .jpg passes the browser check (it can't decode it)
+  PASS  server refuses it: IMAGE_UNREADABLE
+  PASS  owner sees "this image can't be read" toast
+  PASS  form stays open, nothing saved
+
+▶ 18b. Same form: remove it, add exactly-10 MB photo + JPEG named .heic → saved
+  PASS  exactly 10 MB photo accepted by the picker
+  PASS  2 photos in the form
+  PASS  Vehicle added
+  PASS  10 MB photo stored as a small JPEG (resized + thumb)
+  PASS  JPEG named .heic → read as JPEG, stored .jpg
+  PASS  10 MB PDF stored byte-for-byte
+  PASS  DOCX stored unchanged
+
+▶ 18c. Unit page: replace papers (HEIC insurance, oversized refused)
+  PASS  edit: 11 MB paper → toast
+  PASS  edit: .zip paper → toast
+  PASS  unit saved
+  PASS  .heif insurance paper → JPEG
+  PASS  ownership paper replaced by the PDF
+  PASS  untouched Road licence kept
+
+▶ 18d. Add cab: .heif photo, "mif1" HEIF permit
+  PASS  Cab added
+  PASS  cab .heif photo → JPEG + thumb
+  PASS  "mif1" HEIF permit → JPEG
+
+▶ 18e. Add equipment: HEIC without extension + HEIC named .jpg
+  PASS  both kept by the picker (no-extension image/heic + .jpg)
+  PASS  Equipment added
+  PASS  HEIC without extension → IMG_2001.jpg (JPEG)
+  PASS  HEIC named .jpg → converted (real JPEG now)
+  PASS  equipment page shows both photos
+
+▶ 18f. Invite operator (truck), activate, operator sees own photo
+  PASS  PDF as profile photo → toast
+  PASS  invite sent
+  PASS  activated operator keeps the HEIC photo as JPEG
+  PASS  operator's own pages show their photo
+
+▶ 18g. Owner edits the operator: new .heif photo, HEIC medical, oversized refused
+  PASS  edit: >10 MB photo → toast
+  PASS  edit: 11 MB medical paper → toast
+  PASS  operator saved
+  PASS  new .heif photo stored as JPEG
+  PASS  HEIC medical paper → JPEG
+  PASS  operator now sees the new photo
+
+▶ 18h. Operator goes live → Search card shows the truck photo
+  PASS  truck found in Search
+  PASS  Search card shows the converted photo
+  PASS  customer unit page shows both photos
+
+▶ 18i. Post job, round trip: return-trip photo picker
+  PASS  return photo >10 MB → toast
+  PASS  return photo .docx → toast
+  PASS  return HEIC + HEIF added
+  PASS  round-trip job posted
+  PASS  return-trip photos stored as JPEG
+  PASS  outbound photo stored
+  PASS  job page shows the return-trip photos
+
+▶ 18j. Post job: corrupt photo refused with a message (form kept)
+  PASS  server: IMAGE_UNREADABLE
+  PASS  customer sees "can't be read" toast
+  PASS  stays on the form, no job created
+
+▶ 18k. Post job: equipment hire (Agricultural) site photos
+  PASS  site photo picker accepts HEIC
+  PASS  site photo >10 MB → toast
+  PASS  site photo PDF → toast
+  PASS  2 site photos added
+  PASS  equipment hire job posted
+  PASS  site photos stored as JPEG
+
+▶ 18l. Post job on a phone (390px): pickers, toast, preview, no sideways scroll
+  PASS  phone: >10 MB toast shown
+  PASS  phone: toast fits the screen
+  PASS  phone: 2 previews
+  PASS  phone: no sideways scroll with previews
+  PASS  phone: job posted
+  PASS  phone: HEIC stored as JPEG
+  PASS  phone: job page shows the photos
+  PASS  phone: job page no sideways scroll
+  PASS  up2-owner: no console errors
+  PASS  up2-owner: no 5xx
+  PASS  up2-operator: no console errors
+  PASS  up2-operator: no 5xx
+  PASS  up2-customer: no console errors
+  PASS  up2-customer: no 5xx
+  PASS  up2-customer-phone: no console errors
+  PASS  up2-customer-phone: no 5xx
+
+73/73 passed

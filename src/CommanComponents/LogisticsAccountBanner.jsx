@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import Api from "../Services/api";
 
 // v2.7.36 — admin account state for owners / operators, from GET /logistics/me
-// (user.account = { banned, reason, banned_at, scope: "owner"|"fleet", fleet_verified }).
+// (user.account = { banned, reason, banned_at, scope: "owner"|"fleet", fleet_verified,
+// approval: { status: "pending"|"approved"|"rejected", reason } (v2.7.49) }).
 // One shared request; refreshed on focus and when an account notification arrives.
 let cache = null;
 let cacheAt = 0;
@@ -62,6 +63,42 @@ export default function LogisticsAccountBanner({ isDriver }) {
         <Link className="logistics-cta logistics-cta--ghost" to={support}>
           Contact Simba admin
         </Link>
+      </div>
+    );
+  }
+  // v2.7.49: new company waiting for (or refused) Simba approval
+  const approval = account?.approval?.status;
+  if (!account?.banned && (approval === "pending" || approval === "rejected")) {
+    const fleet = account.scope === "fleet";
+    return (
+      <div
+        className={`log-callout ${approval === "rejected" ? "log-callout--danger" : "log-callout--warn"} log-account-banner log-approval-banner`}
+        role="status"
+        data-approval={approval}
+      >
+        <p>
+          <strong>
+            {approval === "pending"
+              ? fleet
+                ? "Your fleet owner's company is waiting for Simba approval."
+                : "Your company is waiting for Simba approval."
+              : fleet
+                ? "Your fleet owner's company wasn't approved by Simba."
+                : "Simba couldn't approve your company."}
+          </strong>{" "}
+          {approval === "pending"
+            ? fleet
+              ? "You can't go live or take jobs until Simba approves it."
+              : "Upload your vehicle and operator documents — Simba checks each one. Your units stay hidden from customers until your company is approved, then we'll email you."
+            : fleet
+              ? "You can't go live or take jobs until it's approved."
+              : `${account.approval.reason ? `Reason: ${account.approval.reason}. ` : ""}Fix your documents and contact Simba admin.`}
+        </p>
+        {approval === "rejected" ? (
+          <Link className="logistics-cta logistics-cta--ghost" to={support}>
+            Contact Simba admin
+          </Link>
+        ) : null}
       </div>
     );
   }

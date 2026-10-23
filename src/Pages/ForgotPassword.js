@@ -17,8 +17,9 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [userId, setUserId] = useState(null);
-  const [phoneNumber, setPhoneNumber] = useState(null);
-  const [countryCode, setCountryCode] = useState(null);
+  // Masked by the API ("••• ••• 885") — the real number never reaches the browser
+  const [phoneMasked, setPhoneMasked] = useState(null);
+  const [hasPhone, setHasPhone] = useState(false);
   const [sendingOtpLoading, setSendingOtpLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -37,12 +38,13 @@ export default function ForgotPassword() {
     try {
       setForgotLoading(true);
       const res = await dispatch(
-        CustomerActions.forgotPassword({ email, type: 1 })
+        // lookup: only the channels (nothing is sent until the user picks one)
+        CustomerActions.forgotPassword({ email, type: 1, lookup: true })
       );
       if (res?.payload?.success) {
         setUserId(normalizeMongoId(res.payload.data?._id));
-        setPhoneNumber(res.payload.data?.phone_number || null);
-        setCountryCode(res.payload.data?.country_code || null);
+        setPhoneMasked(res.payload.data?.phone_masked || null);
+        setHasPhone(Boolean(res.payload.data?.has_phone));
         setShowOtpModal(true);
       } else {
         toast.error(
@@ -58,12 +60,8 @@ export default function ForgotPassword() {
 
   const handleOtpTypeSelection = async (otpType) => {
     setSendingOtpLoading(true);
-    const payload = {
-      phone_number: phoneNumber,
-      country_code: countryCode,
-      email,
-      type: otpType,
-    };
+    // The server sends to the account's stored number / email
+    const payload = { email, type: otpType };
     try {
       const res = await dispatch(CustomerActions.forgotPassword(payload));
       if (res?.payload?.success) {
@@ -185,7 +183,8 @@ export default function ForgotPassword() {
         show={showOtpModal}
         onHide={() => setShowOtpModal(false)}
         email={email}
-        phoneNumber={phoneNumber}
+        phoneNumber={phoneMasked}
+        showPhone={hasPhone}
         onSelect={handleOtpTypeSelection}
         isLoading={sendingOtpLoading}
       />

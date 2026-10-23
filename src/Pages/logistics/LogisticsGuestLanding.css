@@ -1,0 +1,98 @@
+/* Guest Logistics landing (v2.7.53) — only what landing.css doesn't already cover */
+
+.lgl-hero .lgl-hero__truck {
+  position: absolute;
+  right: -40px;
+  bottom: 20px;
+  width: min(520px, 38vw);
+  opacity: 0.16;
+  filter: saturate(0.8);
+  user-select: none;
+  /* soften the image's rectangular edges into the hero */
+  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 60% 55%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 65% at 60% 55%, #000 45%, transparent 100%);
+}
+
+.lgl-benefits {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 28px;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.lgl-benefits .landing-hstat b {
+  font-size: 1.6rem;
+}
+@media (max-width: 600px) {
+  .lgl-benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Category cards are links with an SVG glyph instead of a photo */
+.lgl-cat-card {
+  display: block;
+  text-decoration: none;
+}
+.lgl-cat-card:hover {
+  text-decoration: none;
+}
+.lgl-cat-ico {
+  color: var(--landing-primary, #0f5c4c);
+}
+.lgl-cat-card:hover .lgl-cat-ico {
+  color: #fff;
+}
+
+/* Spotlight sliders (HubAssetSection) inside the landing layout */
+.lgl-spotlight .log-hub-section {
+  margin-top: 8px;
+}
+.lgl-spotlight .log-hub-section + .log-hub-section {
+  margin-top: 36px;
+}
+.lgl-spotlight .log-hub-section .log-sect {
+  font-size: 1.2rem;
+}
+
+/* Two CTA cards side by side */
+.lgl-cta__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.lgl-cta__grid .landing-cta__inner {
+  padding: 48px 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.lgl-cta__grid .landing-cta__inner:nth-child(2) {
+  background: var(--landing-primary, #0f5c4c);
+}
+.lgl-cta__grid .landing-cta__inner h2 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+}
+
+@media (max-width: 900px) {
+  .lgl-cta__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .lgl-hero .lgl-hero__truck {
+    display: none;
+  }
+  .lgl-cta__grid .landing-cta__inner {
+    padding: 36px 22px;
+  }
+}
+
+/* Logistics search suggestions: "Search all for …" row */
+.landing-search__row--all {
+  font-weight: 700;
+  color: var(--landing-primary, #0f5c4c);
+  border-top: 1px solid var(--landing-line, #e8e2d6);
+}

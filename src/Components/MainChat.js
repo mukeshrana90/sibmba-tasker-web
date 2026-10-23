@@ -1,6 +1,11 @@
 import React, { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { io } from "socket.io-client";
-import { ChatContext } from "../context/ChatProvider";
+import {
+  ChatContext,
+  CHAT_REFRESH_EVENT,
+  chatModuleOf,
+} from "../context/ChatProvider";
+import Api from "../Services/api";
 import { Modal } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import defaultImage from "../Assets/Images/placeholder.jpg";
@@ -31,14 +36,27 @@ import LogisticsActions from "../Redux/Actions/LogisticsActions";
 const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
   const BASE_URL = getSocketBaseUrl();
   const token = localStorage.getItem("token");
-  const { selectedUser, setSelectedUser, chatList, setNewchat } =
-    useContext(ChatContext);
+  const {
+    selectedUser,
+    setSelectedUser,
+    chatList,
+    setChatList,
+    setNewchat,
+    currentModule,
+  } = useContext(ChatContext);
+  // v2.7.55: this thread's module (the list only shows the current module)
+  const chatModule = currentModule === "logistics" ? "logistics" : "tasker";
+  const chatModuleRef = useRef(chatModule);
+  chatModuleRef.current = chatModule;
+  // Server said this sender may not reply here (fleet paid-plan gate)
+  const [serverBlocked, setServerBlocked] = useState(false);
   const [message, setMessage] = useState("");
   const [messageHistory, setMessageHistory] = useState([]);
   const [receiverDetail, setReceiverDetail] = useState(null);
   const [peerHint, setPeerHint] = useState(null);
   const [loading, setLoading] = useState(false);
-  const receiver_id = normalizeChatUserId(selectedUser || reciverID) || null;
+  // Messages.js resolves the peer (URL, else remembered peer of this module)
+  const receiver_id = normalizeChatUserId(reciverID) || null;
   const senderId = normalizeChatUserId(sender_id);
   const messagesEndRef = useRef(null);
   const messageContainerRef = useRef(null);
@@ -92,11 +110,32 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
     Number(localStorage.getItem("isSubscribed")) === 1;
   const activeModule =
     getActiveModule() || packageDetails?.user?.activeModule || "tasker";
-  const canReply = canInitiateLogisticsOrTaskerChat({
-    role: userRole,
-    isSubscribed,
-    activeModule,
-  });
+  const canReply =
+    !serverBlocked &&
+    canInitiateLogisticsOrTaskerChat({
+      role: userRole,
+      isSubscribed,
+      activeModule,
+    });
+
+  // Fleet users (role 4): ask the server whether this thread may be answered —
+  // a fleet ↔ logistics-customer thread is gated in every module.
+  useEffect(() => {
+    setServerBlocked(false);
+    if (userRole !== 4 || !receiver_id || !token) return undefined;
+    let cancelled = false;
+    Api.get("/logistics/chat/can-reply", {
+      params: { peer: receiver_id, module: chatModule },
+    })
+      .then((res) => {
+        const data = res?.data?.data || res?.data || {};
+        if (!cancelled && data.can_reply === false) setServerBlocked(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userRole, receiver_id, chatModule, token]);
 
   useEffect(() => {
     if (!receiver_id || !senderId || loading) return undefined;
@@ -142,6 +181,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
       receiver_id,
       message: JSON.stringify(parsed),
       message_type: parsed?.kind === "logistics_job" ? "7" : "7",
+      module: parsed?.kind === "logistics_job" ? "logistics" : chatModule,
     };
 
     const send = () => {
@@ -179,6 +219,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
   }, [
     receiver_id,
     senderId,
+    chatModule,
     loading,
     messageHistory.length,
     socket,
@@ -227,7 +268,15 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
       if (!incoming) return;
 
       const activeReceiverId = receiverIdRef.current;
-      if (!isMessageForChat(incoming, senderId, activeReceiverId)) return;
+      if (
+        !isMessageForChat(incoming, senderId, activeReceiverId) ||
+        (incoming.module && chatModuleOf(incoming) !== chatModuleRef.current)
+      ) {
+        // Another thread — this socket holds the user's socketId while on
+        // /messages, so let ChatProvider re-pull the unread counts.
+        window.dispatchEvent(new CustomEvent(CHAT_REFRESH_EVENT));
+        return;
+      }
 
       const [normalizedMessage] = normalizeChatMessages([incoming]);
       setNewchat((prev) => !prev);
@@ -246,6 +295,21 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
         });
         return [...withoutOptimistic, normalizedMessage];
       });
+    });
+
+    // v2.7.55: server refused the send (fleet needs the owner's paid plan)
+    realtimeSocket.on("message_blocked", (data) => {
+      if (
+        normalizeChatUserId(data?.receiver_id) !==
+        normalizeChatUserId(receiverIdRef.current)
+      ) {
+        return;
+      }
+      setMessageHistory((prev) =>
+        prev.filter((item) => !String(item?._id || "").startsWith("local-"))
+      );
+      setServerBlocked(true);
+      setShowPlanModal(true);
     });
 
     realtimeSocket.on("Get_detailuser", (data) => {
@@ -290,7 +354,8 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
         senderId,
         receiver_id,
         socketRef.current,
-        BASE_URL
+        BASE_URL,
+        chatModule
       );
 
       if (cancelled || historyRequestRef.current !== requestId) return;
@@ -317,7 +382,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
     return () => {
       cancelled = true;
     };
-  }, [senderId, receiver_id, token, BASE_URL]);
+  }, [senderId, receiver_id, token, BASE_URL, chatModule]);
 
   useEffect(() => {
     if (!receiver_id || !senderId || loading || messageHistory.length > 0) {
@@ -341,7 +406,8 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
         senderId,
         receiver_id,
         socketRef.current,
-        BASE_URL
+        BASE_URL,
+        chatModule
       );
 
       if (!cancelled && messages.length > 0) {
@@ -358,6 +424,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
   }, [
     BASE_URL,
     chatList,
+    chatModule,
     loading,
     messageHistory.length,
     receiver_id,
@@ -394,6 +461,41 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
       getProfileApiCall();
     }
   }, [token, getProfileApiCall]);
+
+  // A deep-linked peer with no room yet is a placeholder row ("Conversation"
+  // until we know who it is) — give it the name the thread just loaded.
+  useEffect(() => {
+    if (!receiverDetail || !receiver_id || !setChatList) return;
+    const name = chatPeerDisplayName(receiverDetail);
+    if (!name) return;
+    setChatList((prev) =>
+      prev.some(
+        (chat) =>
+          chat._seeded &&
+          normalizeChatUserId(chat.receiver_id) === receiver_id &&
+          chat.receiver?.full_name !== name
+      )
+        ? prev.map((chat) =>
+            chat._seeded &&
+            normalizeChatUserId(chat.receiver_id) === receiver_id
+              ? {
+                  ...chat,
+                  receiver: {
+                    ...chat.receiver,
+                    name,
+                    full_name: name,
+                    email: receiverDetail.email || chat.receiver?.email || "",
+                    profile_image:
+                      receiverDetail.profile_image ||
+                      chat.receiver?.profile_image ||
+                      "",
+                  },
+                }
+              : chat
+          )
+        : prev
+    );
+  }, [receiverDetail, receiver_id, setChatList]);
 
   const providerNeedsSubscription = Number.isFinite(userRole) && !canReply;
   const listPeer = chatList.find(
@@ -433,6 +535,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
       receiver_id,
       message: text,
       message_type: 0,
+      module: chatModule,
     };
 
     const optimistic = {

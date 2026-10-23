@@ -109,8 +109,40 @@ function measure(W) {
         const tag = `${route.replace("/logistics/", "")} @${W}`;
         L.check(m.path === route, `${tag}: page opens (not redirected)`, m.path);
         L.check(m.doc <= W + 1, `${tag}: no sideways scroll`, m.doc > W + 1 ? `page ${m.doc}px wide: ${m.offscreen.join(" | ")}` : "");
+        if (W <= 560) {
+          // Phone header = two rows: full-width Tasker|Logistics on top, then logo · bell · profile · menu
+          const hd = await a.page.evaluate(() => {
+            const vw = document.documentElement.clientWidth;
+            const box = (s) => document.querySelector(`header.appnav .appnav-inner > ${s}`)?.getBoundingClientRect();
+            const sw = box(".module-switcher--nav"), logo = box(".logo"), tools = box(".app-tools"), menu = box(".menu-btn");
+            if (!sw || !logo || !tools) return null;
+            const row2 = [logo, tools, menu].filter(Boolean);
+            return {
+              switchTop: row2.every((r) => sw.bottom <= r.top + 1) && sw.width >= vw - 40,
+              inside: row2.every((r) => r.left >= -1 && r.right <= vw + 1),
+              menuLast: !menu || menu.left >= tools.right - 1,
+              detail: `switch ${Math.round(sw.width)}px@${Math.round(sw.top)}, logo ${Math.round(logo.left)}-${Math.round(logo.right)}, tools ${Math.round(tools.left)}-${Math.round(tools.right)}, menu ${menu ? `${Math.round(menu.left)}-${Math.round(menu.right)}` : "—"} / ${vw}`,
+            };
+          });
+          if (hd) {
+            L.check(hd.switchTop, `${tag}: Tasker|Logistics switch is a full-width top row`, hd.detail);
+            L.check(hd.inside && hd.menuLast, `${tag}: logo, bell, profile, menu on screen (menu last)`, hd.detail);
+          }
+        }
         if (route === "/logistics/driver") {
           L.check(!m.dash.length, `${tag}: dashboard cards fit the screen`, m.dash.join(" | "));
+          // The card clips the map, so the page never scrolls — compare the boxes directly
+          const map = await a.page.evaluate(() => {
+            const box = (s) => document.querySelector(s)?.getBoundingClientRect();
+            const card = box(".log-dash-map-card"), wrap = box(".log-dash-map"), badge = box(".log-dash-map__badge"), zoom = box(".leaflet-control-zoom");
+            if (!card || !wrap) return null;
+            const overlap = badge && zoom && !(badge.right <= zoom.left || zoom.right <= badge.left || badge.bottom <= zoom.top || zoom.bottom <= badge.top);
+            return { inside: wrap.left >= card.left - 1 && wrap.right <= card.right + 1, wrapW: Math.round(wrap.width), cardW: Math.round(card.width), overlap: !!overlap };
+          });
+          if (map) {
+            L.check(map.inside, `${tag}: location map inside its card`, `map ${map.wrapW}px in card ${map.cardW}px`);
+            L.check(!map.overlap, `${tag}: GPS badge doesn't cover the zoom buttons`);
+          }
         }
         if (m.toolbars.length || /work|jobs|quotes|earnings|opportunities/.test(route)) {
           L.check(!m.toolbars.length, `${tag}: filter buttons stay inside the card`, m.toolbars.join(" | "));

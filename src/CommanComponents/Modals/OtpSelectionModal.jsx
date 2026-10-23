@@ -7,6 +7,8 @@ const OtpSelectionModal = ({
   onHide,
   phoneNumber,
   email,
+  // Forgot password passes false when the account has no phone (the card is hidden)
+  showPhone = true,
   onSelect,
   isLoading = false,
 }) => {
@@ -48,6 +50,7 @@ const OtpSelectionModal = ({
           <p className="mb-4 text-muted">How would you like to receive OTP?</p>
 
           <div className="otp-options-container mb-4">
+            {showPhone ? (
             <div
               className={`otp-option-card ${
                 selectedType === 3 ? "selected" : ""
@@ -89,6 +92,7 @@ const OtpSelectionModal = ({
                 </div>
               </div>
             </div>
+            ) : null}
 
             <div
               className={`otp-option-card ${

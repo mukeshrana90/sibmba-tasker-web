@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
+import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import { useLanding } from "../../context/LandingContext";
 import {
   requestDeviceLocation,
@@ -48,7 +49,52 @@ function providerId(item) {
   return sp?._id || sp?.id;
 }
 
-export default function UnifiedSearch() {
+/** Logistics suggestions (v2.7.53) from search rows: units, fleet businesses, hub categories. */
+const LG_CATEGORIES = [
+  { id: "logistic", label: "Logistic trucks", words: ["truck", "lorry", "logistic", "transport", "flatbed", "tipper", "trailer", "tanker"] },
+  { id: "agricultural", label: "Agricultural equipment", words: ["agri", "tractor", "harvester", "planter", "harrow", "plough", "farm"] },
+  { id: "construction", label: "Construction equipment", words: ["construct", "excavator", "loader", "crane", "bulldozer", "grader", "roller", "build"] },
+  { id: "industrial", label: "Industrial equipment", words: ["industr", "forklift", "generator", "compressor", "plant"] },
+];
+const KIND_LABEL = { vehicle: "Truck", equipment: "Equipment", cab: "Cab" };
+// "Tata" + "Tata Ace" → "Tata Ace"
+const makeModel = (make, model) => {
+  const mk = String(make || "").trim();
+  const md = String(model || "").trim();
+  if (mk && md.toLowerCase().startsWith(mk.toLowerCase())) return md;
+  return [mk, md].filter(Boolean).join(" ");
+};
+
+function logisticsSuggestions(text, rows) {
+  const t = text.toLowerCase();
+  const units = rows.slice(0, 5).map((r) => {
+    const type = (r.capabilities || []).find((c) => c && !String(c).includes(":") && !/ton truck|regular/i.test(c));
+    const biz = r.owner?.display_name || r.owner?.company_name || "";
+    return {
+      id: r.asset_id,
+      name: r.name || "Unit",
+      kind: KIND_LABEL[r.kind] || "Unit",
+      sub: [type, makeModel(r.make, r.model), biz].filter(Boolean).join(" · "),
+    };
+  });
+  const businesses = [
+    ...new Set(
+      rows
+        .map((r) => r.owner?.company_name || "")
+        .filter((n) => n && n.toLowerCase().includes(t))
+    ),
+  ].slice(0, 3);
+  const categories = LG_CATEGORIES.filter(
+    (c) => c.label.toLowerCase().includes(t) || c.words.some((w) => w.startsWith(t) || t.includes(w))
+  ).slice(0, 2);
+  return { q: text, units, businesses, categories };
+}
+
+/**
+ * defaultMode "logistics" + showModeSwitch false = logistics-only search bar
+ * (guest Logistics landing, v2.7.53); home keeps the Services | Logistics switch.
+ */
+export default function UnifiedSearch({ defaultMode = "services", showModeSwitch = true } = {}) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const popupRef = useRef(null);
@@ -70,7 +116,14 @@ export default function UnifiedSearch() {
   const results = useSelector((s) => s.UserSlice.customerSearchResults);
   const [showPopup, setShowPopup] = useState(false);
   const [searching, setSearching] = useState(false);
+  // v2.7.53 logistics suggestions: units / businesses / categories matching the typed text
+  const [lgSuggest, setLgSuggest] = useState({ q: "", units: [], businesses: [], categories: [] });
+  const lgSeq = useRef(0);
   const [activeField, setActiveField] = useState("search");
+  // "Services | Logistics" switch: Logistics searches trucks / equipment on
+  // /logistics/search (open to guests) instead of service providers.
+  const [mode, setMode] = useState(defaultMode === "logistics" ? "logistics" : "services");
+  const logistics = mode === "logistics";
 
   const locationQueryActive = String(locationText || "").trim().length >= 2;
   const {
@@ -137,12 +190,60 @@ export default function UnifiedSearch() {
     ]
   );
 
+  const goToLogisticsSearch = useCallback(
+    async (opts = {}) => {
+      const q = String(opts.query ?? searchQuery).trim();
+      const loc = String(opts.location ?? locationText).trim();
+      const coordsFromOpts = opts.coords ?? locationCoords;
+      let coords = loc ? resolveSearchCoords(loc, false, coordsFromOpts) : null;
+      if (!coords && loc) {
+        const resolved = await resolveLocationCoords(loc, coordsFromOpts);
+        if (resolved) coords = { lat: resolved.lat, lng: resolved.lng };
+      }
+      setShowPopup(false);
+      const params = new URLSearchParams();
+      params.set("q", q);
+      if (loc) params.set("location", loc);
+      if (loc && coords?.lat != null && coords?.lng != null) {
+        params.set("lat", String(coords.lat));
+        params.set("lng", String(coords.lng));
+      }
+      navigate(`/logistics/search?${params.toString()}`);
+    },
+    [navigate, searchQuery, locationText, locationCoords]
+  );
+
   const runSearch = useCallback(
     async (opts = {}) => {
       const q = opts.query ?? searchQuery;
       const loc = opts.location ?? locationText;
       const nearby = opts.nearby ?? nearbyEnabled;
       const coordsFromOpts = opts.coords ?? locationCoords;
+
+      // Logistics mode: live suggestions from GET /logistics/assets/search?kind=all (public)
+      if (logistics) {
+        if (opts.redirect) {
+          await goToLogisticsSearch(opts);
+          return;
+        }
+        const text = String(q || "").trim();
+        if (text.length < 2) {
+          setLgSuggest({ q: "", units: [], businesses: [], categories: [] });
+          return;
+        }
+        const seq = ++lgSeq.current;
+        setSearching(true);
+        try {
+          const res = await dispatch(LogisticsActions.searchAssets({ q: text, kind: "all", limit: 8, sort: "rating" }));
+          if (seq !== lgSeq.current) return;
+          const rows = res?.payload?.data?.data || [];
+          setLgSuggest(logisticsSuggestions(text, rows));
+          setShowPopup(true);
+        } finally {
+          if (seq === lgSeq.current) setSearching(false);
+        }
+        return;
+      }
 
       if (opts.redirect) {
         await goToResultsPage(opts);
@@ -188,6 +289,8 @@ export default function UnifiedSearch() {
     [
       dispatch,
       goToResultsPage,
+      goToLogisticsSearch,
+      logistics,
       searchQuery,
       locationText,
       locationCoords,
@@ -298,12 +401,17 @@ export default function UnifiedSearch() {
     activeField === "location" &&
     locationQueryActive &&
     (locationLoading || locationPredictions.length > 0 || locationEmpty);
+  const showLogisticsResults =
+    logistics && activeField === "search" && (searching || searchQuery.trim().length >= 2);
+  const hasLogisticsResults =
+    lgSuggest.units.length + lgSuggest.businesses.length + lgSuggest.categories.length > 0;
   const showSearchResults =
+    !logistics &&
     activeField === "search" &&
     (searching || hasSearchResults || searchQuery.trim() || locationText.trim());
   const popupOpen =
     showPopup &&
-    (showLocationList || showSearchResults || searching || locationLoading);
+    (showLocationList || showSearchResults || showLogisticsResults || searching || locationLoading);
 
   const handlePopupRowPointer = (handler) => (e) => {
     e.preventDefault();
@@ -343,15 +451,52 @@ export default function UnifiedSearch() {
   }, [popupOpen]);
 
   return (
-    <div className="landing-search" ref={popupRef}>
+    <div className={`landing-search${logistics ? " landing-search--logistics" : ""}`} ref={popupRef}>
+      {showModeSwitch ? (
+      <div className="landing-search-mode-row">
+        <div
+          className="module-switcher landing-search-mode"
+          role="tablist"
+          aria-label="What do you want to search?"
+        >
+          {[
+            { id: "services", label: "Services" },
+            { id: "logistics", label: "Logistics" },
+          ].map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              role="tab"
+              aria-selected={mode === m.id}
+              className={mode === m.id ? "is-active" : ""}
+              onClick={() => {
+                setMode(m.id);
+                setShowPopup(false);
+              }}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        {logistics ? (
+          <Link to="/logistics" className="landing-search-mode__hub">
+            Open Logistics Hub →
+          </Link>
+        ) : null}
+      </div>
+      ) : null}
       <div className="landing-searchbar">
         <div className="landing-search-field">
           <SearchIcon />
           <div className="landing-search-fcol">
-            <label>Service or provider</label>
+            <label>{logistics ? "Truck or equipment" : "Service or provider"}</label>
             <input
               type="text"
-              placeholder="e.g. Plumbing, cleaning, John's Electrical"
+              placeholder={
+                logistics
+                  ? "e.g. Tipper truck, excavator, tractor"
+                  : "e.g. Plumbing, cleaning, John's Electrical"
+              }
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -440,6 +585,84 @@ export default function UnifiedSearch() {
                 </p>
               )}
             </div>
+          )}
+
+          {showLogisticsResults && (
+            <>
+              {searching && !hasLogisticsResults && <p className="landing-search__loading">Searching…</p>}
+              {lgSuggest.categories.length > 0 && (
+                <div className="landing-search__group">
+                  <p className="landing-search__group-title">Categories</p>
+                  {lgSuggest.categories.map((c) => (
+                    <button
+                      type="button"
+                      key={`cat-${c.id}`}
+                      className="landing-search__row"
+                      onPointerDown={handlePopupRowPointer(() => {
+                        setShowPopup(false);
+                        navigate(`/logistics/search?category=${c.id}&scope=category`);
+                      })}
+                    >
+                      <span>{c.label}</span>
+                      <span className="landing-badge landing-badge--category">Category</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {lgSuggest.units.length > 0 && (
+                <div className="landing-search__group">
+                  <p className="landing-search__group-title">Trucks &amp; equipment</p>
+                  {lgSuggest.units.map((u) => (
+                    <button
+                      type="button"
+                      key={u.id}
+                      className="landing-search__row"
+                      onPointerDown={handlePopupRowPointer(() => {
+                        setShowPopup(false);
+                        navigate(`/logistics/asset/${u.id}`);
+                      })}
+                    >
+                      <span>
+                        {u.name}
+                        {u.sub ? <small> — {u.sub}</small> : null}
+                      </span>
+                      <span className="landing-badge landing-badge--provider">{u.kind}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {lgSuggest.businesses.length > 0 && (
+                <div className="landing-search__group">
+                  <p className="landing-search__group-title">Fleet businesses</p>
+                  {lgSuggest.businesses.map((b) => (
+                    <button
+                      type="button"
+                      key={`biz-${b}`}
+                      className="landing-search__row"
+                      onPointerDown={handlePopupRowPointer(() => goToLogisticsSearch({ query: b }))}
+                    >
+                      <span>{b}</span>
+                      <span className="landing-badge landing-badge--category">Business</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!searching && lgSuggest.q && !hasLogisticsResults && (
+                <p className="landing-search__empty">No trucks or equipment match “{lgSuggest.q}” yet — try another word.</p>
+              )}
+              {searchQuery.trim().length >= 2 && (
+                <button
+                  type="button"
+                  className="landing-search__row landing-search__row--all"
+                  onPointerDown={handlePopupRowPointer(() => goToLogisticsSearch({}))}
+                >
+                  <span>
+                    Search all for “{searchQuery.trim()}”
+                  </span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              )}
+            </>
           )}
 
           {showSearchResults && (

@@ -2056,6 +2056,54 @@ header.appnav .avatar-menu .am-item {
   }
 }
 
+/* Phones: one row (logo + Tasker|Logistics + chat + bell + profile + menu) needs
+   ~515px, so chat / bell / profile / menu ran off-screen. Two rows instead:
+   row 1 = full-width module switch, row 2 = logo · chat · bell · profile · menu.
+   Same markup in every app nav (customer / provider / corporate / logistics). */
+@media (max-width: 560px) {
+  header.appnav .appnav-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    row-gap: 8px;
+    column-gap: 6px;
+  }
+
+  header.appnav .appnav-inner > .module-switcher--nav {
+    order: -1;
+    flex: 1 0 100%;
+    display: flex;
+    margin: 0;
+    padding: 3px;
+  }
+
+  header.appnav .module-switcher--nav button {
+    flex: 1 1 0;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.82rem;
+  }
+
+  header.appnav .appnav-inner > .logo {
+    order: 1;
+  }
+
+  header.appnav .appnav-inner > .app-tools {
+    order: 2;
+    margin-left: auto;
+  }
+
+  /* Menu last — also the logistics sidebar toggle, which sits first on desktop */
+  header.appnav .appnav-inner > .menu-btn {
+    order: 3;
+  }
+
+  /* Dropdowns open under the taller (two-row) header */
+  .notify-wrap.open .notify-menu,
+  .avatar-wrap.open .avatar-menu {
+    top: 112px;
+  }
+}
+
 /* Post task page */
 .simba-page.p-posttask .field-error {
   color: #c0392b;
@@ -7090,4 +7138,20 @@ header.appnav .avatar-menu .am-item {
   font-size: 0.86rem;
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* v2.7.55: other module has new messages / notifications (ModuleSwitcher) */
+.module-switcher button {
+  position: relative;
+}
+.module-switcher__dot {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e11d48;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
 }

@@ -73,6 +73,8 @@ export default function LogisticsInviteActivate() {
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState(null);
   const [error, setError] = useState("");
+  // Link already used to activate (v2.7.48) → "Already accepted, log in", not "Invite unavailable"
+  const [accepted, setAccepted] = useState(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -89,12 +91,17 @@ export default function LogisticsInviteActivate() {
       }
       setLoading(true);
       setError("");
+      setAccepted(null);
       try {
         const res = await dispatch(LogisticsActions.verifyInvite(token));
         const data = res?.payload?.data;
         if (cancelled) return;
         if (res?.payload?.success && data?.valid) {
           setInfo(data);
+          setError("");
+        } else if (data?.code === "INVITE_ACCEPTED") {
+          setInfo(null);
+          setAccepted({ email: data.email || "", business_name: data.business_name || "" });
           setError("");
         } else {
           setInfo(null);
@@ -173,18 +180,22 @@ export default function LogisticsInviteActivate() {
     [info?.sub_user_type]
   );
 
-  const company = info?.business_name || "your company";
+  const company = info?.business_name || accepted?.business_name || "your company";
   const headTitle = loading
     ? "Checking invite…"
     : info?.valid
       ? `Join as ${roleLabel.toLowerCase()}`
-      : "Invite unavailable";
+      : accepted
+        ? "Already accepted"
+        : "Invite unavailable";
 
   const headLead = loading
     ? "Please wait while we verify your invite link."
     : info?.valid
       ? `Set your password to join ${company} on Simba Tasker Logistics.`
-      : error || "This invite link is invalid or has expired.";
+      : accepted
+        ? "You've already accepted this invite. Log in with your email and the password you set."
+        : error || "This invite link is invalid or has expired.";
 
   return (
     <div className="simba-marketing-layout">
@@ -203,14 +214,29 @@ export default function LogisticsInviteActivate() {
               <div className="av-top" />
               <div className="av-bottom">
                 <p className="log-invite-kicker">Simba Tasker · Logistics</p>
-                <h2>
-                  You&apos;re invited to operate with{" "}
-                  <span className="hl">{company}</span>
-                </h2>
-                <p>
-                  Activate your account, set a password only you know, then start
-                  taking assigned jobs on trucks and plant.
-                </p>
+                {accepted ? (
+                  <>
+                    <h2>
+                      You&apos;re an operator with{" "}
+                      <span className="hl">{company}</span>
+                    </h2>
+                    <p>
+                      Your account is active. Log in to see your unit, go live and
+                      take assigned jobs.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2>
+                      You&apos;re invited to operate with{" "}
+                      <span className="hl">{company}</span>
+                    </h2>
+                    <p>
+                      Activate your account, set a password only you know, then start
+                      taking assigned jobs on trucks and plant.
+                    </p>
+                  </>
+                )}
                 <div className="av-stats">
                   <div>
                     <b>Invite-only</b>
@@ -364,6 +390,27 @@ export default function LogisticsInviteActivate() {
                     </button>
                   </form>
                 </>
+              ) : accepted ? (
+                <div className="log-invite-error log-invite-accepted">
+                  <p>
+                    Already accepted — log in
+                    {accepted.email ? (
+                      <>
+                        {" "}as <b>{accepted.email}</b>
+                      </>
+                    ) : null}
+                    .
+                  </p>
+                  <p className="log-hint">
+                    Forgot your password? Use <b>Forgot password</b> on the login page.
+                  </p>
+                  <Link
+                    to={accepted.email ? `/login?email=${encodeURIComponent(accepted.email)}` : "/login"}
+                    className="logistics-cta logistics-cta--primary"
+                  >
+                    Log in
+                  </Link>
+                </div>
               ) : (
                 <div className="log-invite-error">
                   <p>{error || "Invite invalid or expired"}</p>
@@ -377,9 +424,11 @@ export default function LogisticsInviteActivate() {
                 </div>
               )}
 
-              <p className="log-invite-foot">
-                Already activated? <Link to="/login">Sign in</Link>
-              </p>
+              {accepted ? null : (
+                <p className="log-invite-foot">
+                  Already activated? <Link to="/login">Sign in</Link>
+                </p>
+              )}
             </div>
           </div>
         </div>

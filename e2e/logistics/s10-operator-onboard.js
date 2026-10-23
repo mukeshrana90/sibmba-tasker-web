@@ -82,6 +82,8 @@ async function pendingRow(o, email) {
     const owner = await d.collection("users").findOne({ email: ownerEmail });
     // owner sign-up has no company field — set it like the profile would, so invites name the company
     await d.collection("users").updateOne({ _id: owner._id }, { $set: { company_name: company, full_name: `Owner ${RUN}` } });
+    L.check((await d.collection("users").findOne({ _id: owner._id }))?.logistics_approval?.status === "pending", "new company starts Pending approval");
+    L.check((await L.approveOwner(owner._id))?.data?.approval?.status === "approved", "admin approves the new company");
 
     L.sec("10b. Owner adds a truck (UI) — not listed until an operator is assigned");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
@@ -93,6 +95,13 @@ async function pendingRow(o, email) {
     await o.page.waitForSelector(".simba-book-loc-modal");
     await o.page.waitForTimeout(2500);
     await o.page.locator(".simba-book-loc-modal .btn-primary").click();
+    // v2.7.49: Road licence (ZINARA) is required for road units to be listed
+    {
+      const pdf = require("path").join(__dirname, "doc.pdf");
+      const rego = o.page.locator(".log-doc-row").filter({ hasText: "Road licence" }).first();
+      await rego.locator('input[type="file"]').setInputFiles(pdf);
+      await L.pickDate(o.page, rego.locator(".log-doc-row__expiry input"), 6);
+    }
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
     L.check(await L.waitText(o, /Vehicle added/), "Vehicle added");
     const truck = await d.collection("logistics_assets").findOne({ registration: plate });
@@ -101,7 +110,7 @@ async function pendingRow(o, email) {
     await L.seedAuth(c, { token: cust.token, user: cust });
     const searchFor = async () => {
       await L.goto(c, "/logistics/search");
-      await c.page.fill('input[placeholder="Name"]', truckName);
+      await c.page.fill('input[placeholder="Truck, tractor, unit or company name"]', truckName);
       await c.page.getByRole("button", { name: /Search trucks/ }).click();
       await c.page.waitForTimeout(2500);
       return (await L.bodyText(c)).includes(truckName);
@@ -111,18 +120,18 @@ async function pendingRow(o, email) {
     L.sec("10c. Invite form validation");
     await L.goto(o, "/logistics/owner/operators/add", "form");
     await o.page.locator('form button[type="submit"]').last().click();
-    const vmsg = await o.page.locator('input[placeholder="t.moyo@gmail.com"]').evaluate((el) => el.validationMessage);
+    const vmsg = await o.page.locator('input[placeholder="name@example.com"]').evaluate((el) => el.validationMessage);
     L.check(vmsg && /fill|required/i.test(vmsg), `no email → browser blocks submit ("${vmsg}")`);
     const opEmail = `ob.op.${RUN}@e2e.example.com`;
     const opPhone = `78${String(Date.now()).slice(-7)}`;
-    await o.page.fill('input[placeholder="t.moyo@gmail.com"]', opEmail);
+    await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     const lic = o.page.locator(".log-doc-row").filter({ hasText: "Driving / plant licence" }).first();
     await lic.locator('input[type="file"]').setInputFiles(pdf);
     await o.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /expiry date is required/i), "licence uploaded without expiry → blocked");
 
     L.sec("10d. Full invite: name, phone, licence no + class, pay, licence + medical docs, truck");
-    await o.page.fill('input[placeholder="Tendai Moyo"]', `Onboard Operator ${RUN}`);
+    await o.page.fill('input[placeholder="Full name"]', `Onboard Operator ${RUN}`);
     await typePhone(o.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first(), opPhone);
     await o.page.fill('input[placeholder="Licence number"]', `LIC-${RUN}`);
     await o.page.locator(".log-field", { hasText: "Licence class" }).locator("select").selectOption({ index: 1 });
@@ -135,10 +144,13 @@ async function pendingRow(o, email) {
     await med.locator('input[type="file"]').setInputFiles(pdf);
     await L.pickDate(o.page, med.locator(".log-doc-row__expiry input"), 6);
     await o.page.locator(".log-asset-pick__list li").filter({ hasText: truckName }).locator('input[type="checkbox"]').check();
+    // v2.7.50: Free plan → WhatsApp channel greyed out with a "Paid plans only" hint
+    const waOpt = o.page.locator('.log-invite-via__opt[data-channel="whatsapp"]');
+    L.check(await waOpt.locator("input").isDisabled() && /Paid plans only/i.test(await waOpt.innerText()), "Free plan: WhatsApp invite option disabled ('Paid plans only')");
     await L.shot(o, "s10-invite-form");
     t0 = now();
     await o.page.locator('form button[type="submit"]').last().click();
-    L.check(await L.waitText(o, /Invite sent by email and WhatsApp\./), "toast: Invite sent by email and WhatsApp (default channels)");
+    L.check(await L.waitText(o, /Invite sent by email\./), "toast: Invite sent by email (Free plan: WhatsApp is paid-only)");
     const inv = await d.collection("logistics_invites").findOne({ email: opEmail });
     L.check(inv && (inv.asset_ids || []).map(String).includes(String(truck._id)), "invite carries the truck (pending assignment)");
     const msgs = await waitMsg(t0, (r) => r.to === opEmail || r.to === `+263${opPhone}`, 8000);
@@ -147,11 +159,10 @@ async function pendingRow(o, email) {
     const wa = msgs.find((r) => r.channel === "whatsapp");
     L.check(mail?.ok && mail.subject.includes(company), `invite email names the company ("${mail?.subject}")`);
     L.check(mail && text(mail.html).includes(truckName), "invite email shows the assigned truck");
-    L.check(!sms, "no SMS when WhatsApp delivered (owner picked email + WhatsApp)");
-    L.check(wa?.ok && wa.template === "invite" && wa.variables["1"] === company, "invite WhatsApp template (company + link)");
-    L.check(JSON.stringify(inv?.send_via) === '["email","whatsapp"]', "invite stores the owner's channel pick", inv?.send_via);
+    L.check(!sms && !wa, "Free plan: no WhatsApp (and no SMS) — the invite goes by email only", msgs.map((m) => m.channel));
+    L.check(JSON.stringify(inv?.send_via) === '["email"]', "invite stores the owner's channel pick (email)", inv?.send_via);
     const link = hrefs(mail?.html).find((h) => /invite\?token=/.test(h));
-    L.check(link && tok(link) === tok(wa?.variables?.["2"]), "same link by email and WhatsApp");
+    L.check(link && /invite\?token=/.test(link), "invite email carries the activation link");
 
     L.sec("10e. Pending state + login hint before activation");
     let row = await pendingRow(o, opEmail);
@@ -197,9 +208,26 @@ async function pendingRow(o, email) {
     L.check(/emergency contacts/i.test(dash), "prompt to add emergency contacts");
     await L.goto(op, "/logistics/owner/fleet");
     L.check(/\/logistics\/driver/.test(op.page.url()), "operator can't open owner pages → /logistics/driver");
-    await L.goto(op, `/logistics/invite?token=${tok(link)}`);
-    await op.page.waitForTimeout(2000);
-    L.check((await op.page.locator("#invite-password").count()) === 0, "used invite link can't be reused");
+    // Client review (v2.7.48): reopening an accepted link says "Already accepted, log in" — not "Invite unavailable"
+    const reuse = await A("ob-operator-reopen");
+    const checkAccepted = async (label) => {
+      await L.goto(reuse, `/logistics/invite?token=${tok(link)}`);
+      await reuse.page.waitForTimeout(2000);
+      const txt = await L.bodyText(reuse);
+      L.check((await reuse.page.locator("#invite-password").count()) === 0, `${label}: used invite link can't be reused`);
+      L.check(/Already accepted/i.test(txt) && !/Invite unavailable|no longer valid/i.test(txt), `${label}: says 'Already accepted — log in'`, txt.slice(0, 200));
+      return txt;
+    };
+    const accTxt = await checkAccepted("reopened link");
+    L.check(accTxt.includes(opEmail), "shows the email to log in with", accTxt.match(/log in as [^.]*/i)?.[0]);
+    const logInBtn = reuse.page.locator(".log-invite-accepted a", { hasText: "Log in" });
+    L.check((await logInBtn.getAttribute("href") || "").includes(encodeURIComponent(opEmail)), "Log in button carries the email");
+    await logInBtn.click();
+    await reuse.page.waitForURL(/\/login/, { timeout: 10000 }).catch(() => {});
+    L.check((await reuse.page.inputValue("#email").catch(() => "")) === opEmail, "login page opens with the email filled in");
+    // Accepted wins over the expiry date: still "Already accepted" after the 7 days
+    await d.collection("logistics_invites").updateOne({ email: opEmail, status: "activated" }, { $set: { expires_at: new Date(Date.now() - 3600000) } });
+    await checkAccepted("accepted link after its expiry date");
 
     L.sec("10h. Owner sees an active operator on the truck");
     await L.goto(o, "/logistics/owner/operators");
@@ -226,12 +254,12 @@ async function pendingRow(o, email) {
 
     L.sec("10j. Duplicate email, expired invite (seat freed), cancel");
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    await o.page.fill('input[placeholder="t.moyo@gmail.com"]', opEmail);
+    await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     await o.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /already|exists|registered/i), "inviting an existing operator's email is refused", (await L.bodyText(o)).match(/[^.]*(already|exist)[^.]*/i)?.[0]);
     const op2Email = `ob.op2.${RUN}@e2e.example.com`;
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    await o.page.fill('input[placeholder="t.moyo@gmail.com"]', op2Email);
+    await o.page.fill('input[placeholder="name@example.com"]', op2Email);
     t0 = now();
     await o.page.locator('form button[type="submit"]').last().click();
     const [m2] = await waitMsg(t0, (r) => r.channel === "email" && r.to === op2Email);
@@ -258,6 +286,9 @@ async function pendingRow(o, email) {
     const confirm = o.page.locator(".modal, .log-modal, [role=dialog]").getByRole("button", { name: /Cancel invite|Yes|Confirm/ });
     if (await confirm.count()) await confirm.last().click();
     L.check(await L.waitText(o, /Invite cancelled/), "invite cancelled");
+    await op2.page.goto(link2, { waitUntil: "domcontentloaded" });
+    await op2.page.waitForTimeout(2500);
+    L.check(/no longer valid/i.test(await L.bodyText(op2)) && !/Already accepted/i.test(await L.bodyText(op2)), "cancelled link: 'no longer valid' (not 'Already accepted')", (await L.bodyText(op2)).slice(0, 160));
     L.check(!(await d.collection("logistics_invites").findOne({ email: op2Email, status: { $ne: "cancelled" } })) || true, "cancelled invite gone from pending");
 
     L.sec("10k. Operator logs out and back in through /login");

@@ -56,8 +56,12 @@ Api.interceptors.request.use(
     }
     const token =
       localStorage.getItem("token") || localStorage.getItem("temptoken");
-    if (token) {
+    // Guests send no Authorization at all — the backend's optional auth treats
+    // any non-empty header as a token and rejects it (public logistics pages).
+    if (token && token !== "undefined" && token !== "null") {
       config.headers.Authorization = token;
+    } else if (config.headers) {
+      delete config.headers.Authorization;
     }
     return config;
   },

@@ -25,6 +25,7 @@ import {
   TRUCK_BODY_TYPES,
   CAPACITY_TIER_OPTIONS,
 } from "../../utils/logisticVehicleWeight";
+import { guestLoginPath, isLoggedIn } from "../../utils/authRedirect";
 import "./logistics.css";
 import {
   LogisticsSkeletonMeta,
@@ -98,12 +99,14 @@ function formatSpecs(row, plant) {
   return bits.length ? bits.join(" · ") : "—";
 }
 
-function ownerBusiness(row) {
+function ownerBusiness(row, guest = false) {
   const o = row.owner || {};
+  // Guests never see owner phone / email (the API leaves them out too)
   const phoneVisible =
-    o.contact_phone_visible === true ||
-    Number(o.is_subscribed) === 1 ||
-    o.is_subscribed === true;
+    !guest &&
+    (o.contact_phone_visible === true ||
+      Number(o.is_subscribed) === 1 ||
+      o.is_subscribed === true);
   return {
     company: o.company_name || o.display_name || o.full_name || "Fleet",
     contact: o.full_name && o.company_name ? o.full_name : "",
@@ -114,6 +117,7 @@ function ownerBusiness(row) {
         : "",
     verified: Number(o.is_verified) === 1,
     contactLocked: !phoneVisible,
+    guest,
   };
 }
 
@@ -158,7 +162,12 @@ function initialSearchState() {
   const scope = params.get("scope");
   const category = params.get("category");
   const kind = params.get("kind");
-  const fromHub = Boolean(scope || category || kind);
+  // Landing "Logistics" search (guests too): ?q=&location=&lat=&lng=
+  const q = params.get("q");
+  const locText = String(params.get("location") || "").trim();
+  const lat = Number(params.get("lat"));
+  const lng = Number(params.get("lng"));
+  const fromHub = Boolean(scope || category || kind || q != null || locText);
 
   let next = { ...draft };
   let allEquipment = false;
@@ -178,22 +187,34 @@ function initialSearchState() {
     next.location = "";
     next.location_coords = null;
   }
+  if (q != null) next.name = q.trim();
+  if (locText) {
+    next.location = locText;
+    next.location_coords =
+      params.get("lat") && params.get("lng") && Number.isFinite(lat) && Number.isFinite(lng)
+        ? [lng, lat]
+        : null;
+  }
 
   return {
     filters: next,
     allEquipment,
+    // v2.7.53: text search without a category (landing search / chips) → trucks + equipment together
+    allKinds: q != null && Boolean(q.trim()) && !category && !kind && scope !== "category",
     fromHub,
     clearUrl: fromHub,
   };
 }
 
 export default function LogisticsSearch() {
+  const guest = !isLoggedIn();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const boot = useRef(initialSearchState()).current;
   const [filters, setFilters] = useState(boot.filters);
   const [allEquipment, setAllEquipment] = useState(boot.allEquipment);
+  const [allKinds, setAllKinds] = useState(boot.allKinds);
   const [rows, setRows] = useState([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -202,17 +223,21 @@ export default function LogisticsSearch() {
   const [equipOpen, setEquipOpen] = useState(false);
   const [subtypeOpen, setSubtypeOpen] = useState(false);
   const restoredRef = useRef(false);
-  const plant = isPlantCategory(filters.category);
-  const cab = isCabCategory(filters.category);
+  // Trucks + equipment together (text search without a category) until a category is picked
+  const mixed = allKinds && Boolean(String(filters.name || "").trim());
+  const plant = !mixed && isPlantCategory(filters.category);
+  const cab = !mixed && isCabCategory(filters.category);
 
   const set = (key) => (e) =>
     setFilters((f) => ({ ...f, [key]: e.target.value }));
 
   const fetchResults = useCallback(
-    async (nextFilters, nextPage = 1, { notify = true, allEquip } = {}) => {
+    async (nextFilters, nextPage = 1, { notify = true, allEquip, everything } = {}) => {
       const f = nextFilters || filters;
-      const isPlant = isPlantCategory(f.category);
-      const isCab = isCabCategory(f.category);
+      // All kinds only while there's text to search for
+      const anyKind = (everything != null ? everything : allKinds) && Boolean(String(f.name || "").trim());
+      const isPlant = !anyKind && isPlantCategory(f.category);
+      const isCab = !anyKind && isCabCategory(f.category);
       const nearby = hasLocation(f);
       const browseAllEquip =
         allEquip != null ? allEquip : allEquipment && isPlant;
@@ -234,7 +259,7 @@ export default function LogisticsSearch() {
 
         const params = {
           q: q || undefined,
-          kind: isPlant ? "equipment" : isCab ? "cab" : "vehicle",
+          kind: anyKind ? "all" : isPlant ? "equipment" : isCab ? "cab" : "vehicle",
           hub_category: isPlant && !browseAllEquip ? f.category : undefined,
           sort: nearby ? "nearest" : "rating",
           page: nextPage,
@@ -243,7 +268,7 @@ export default function LogisticsSearch() {
 
         if (isCab) {
           if (f.cab_class) params.cab_class = f.cab_class;
-        } else if (!isPlant) {
+        } else if (!isPlant && !anyKind) {
           if (f.truck_type) params.truck_type = f.truck_type;
           if (f.vehicle_needed) params.vehicle_needed = f.vehicle_needed;
         }
@@ -265,7 +290,7 @@ export default function LogisticsSearch() {
         setLoading(false);
       }
     },
-    [dispatch, filters, allEquipment]
+    [dispatch, filters, allEquipment, allKinds]
   );
 
   useEffect(() => {
@@ -289,7 +314,12 @@ export default function LogisticsSearch() {
 
   const runSearch = async (e) => {
     e?.preventDefault();
-    await fetchResults(filters, 1, { notify: true });
+    // A typed name / type / company searches trucks and equipment together; a category tile narrows it
+    const everything =
+      Boolean(String(filters.name || "").trim()) &&
+      !filters.truck_type && !filters.vehicle_needed && !filters.equipment && !filters.subtype;
+    setAllKinds(everything);
+    await fetchResults(filters, 1, { notify: true, everything });
   };
 
   const onCategoryChange = async (category) => {
@@ -302,9 +332,10 @@ export default function LogisticsSearch() {
     };
     const nextAllEquip = false;
     setAllEquipment(nextAllEquip);
+    setAllKinds(false);
     setFilters(next);
     setPage(1);
-    await fetchResults(next, 1, { notify: false, allEquip: nextAllEquip });
+    await fetchResults(next, 1, { notify: false, allEquip: nextAllEquip, everything: false });
   };
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE) || 1);
@@ -331,7 +362,7 @@ export default function LogisticsSearch() {
             <h2 className="log-search-filters__title">Filters</h2>
             <LogisticsCategoryTiles
               compact
-              value={filters.category}
+              value={mixed ? "" : filters.category}
               onChange={onCategoryChange}
             />
 
@@ -367,11 +398,11 @@ export default function LogisticsSearch() {
                   </select>
                 </label>
                 <label className="log-field">
-                  <span className="log-fl">Name</span>
+                  <span className="log-fl">Search</span>
                   <input
                     value={filters.name}
                     onChange={set("name")}
-                    placeholder="Name"
+                    placeholder="Truck, tractor, unit or company name"
                   />
                 </label>
                 {cab ? (
@@ -494,7 +525,9 @@ export default function LogisticsSearch() {
             >
               {loading
                 ? "Searching…"
-                : plant
+                : mixed
+                  ? "Search"
+                  : plant
                   ? "Search equipment"
                   : cab
                     ? "Search cabs"
@@ -507,7 +540,7 @@ export default function LogisticsSearch() {
           {!searched ? (
             <div className="log-search-empty">
               <p className="log-search-empty__title">
-                {plant ? "Find equipment" : cab ? "Find cabs" : "Find trucks"}
+                {mixed ? "Find trucks & equipment" : plant ? "Find equipment" : cab ? "Find cabs" : "Find trucks"}
               </p>
               <p className="log-hint">
                 Browse by category anytime. Add a map location later to narrow
@@ -523,14 +556,14 @@ export default function LogisticsSearch() {
                     ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(
                         page * PAGE_SIZE,
                         total
-                      )} of ${total} ${plant ? "asset" : cab ? "cab" : "truck"}${
+                      )} of ${total} ${mixed ? "result" : plant ? "asset" : cab ? "cab" : "truck"}${
                         total === 1 ? "" : "s"
                       }${
                         hasLocation(filters)
                           ? ` within ${filters.radius_km} km`
                           : " (all areas — add location to filter by distance)"
                       }${filterSummary}`
-                    : `No ${plant ? "assets" : cab ? "cabs" : "trucks"} found${
+                    : `No ${mixed ? "trucks or equipment" : plant ? "assets" : cab ? "cabs" : "trucks"} found${
                         hasLocation(filters)
                           ? ` within ${filters.radius_km} km`
                           : ""
@@ -541,7 +574,7 @@ export default function LogisticsSearch() {
                 <table className="log-jobs-table log-search-table">
                   <thead>
                     <tr>
-                      <th>{plant ? "Equipment" : "Vehicle"}</th>
+                      <th>{mixed ? "Truck / equipment" : plant ? "Equipment" : "Vehicle"}</th>
                       <th>Specs</th>
                       <th>Owner / business</th>
                       <th>Status</th>
@@ -562,7 +595,7 @@ export default function LogisticsSearch() {
                         AVAIL_LABEL[state] ||
                         state;
                       const statusDetail = row.availability?.status_detail;
-                      const biz = ownerBusiness(row);
+                      const biz = ownerBusiness(row, guest);
                       const thumb =
                         assetPhotoUrl(row.photos?.[0]) || defaultImage;
                       const place = placeShortLabel(row.current_location);
@@ -589,7 +622,7 @@ export default function LogisticsSearch() {
                               </Link>
                             </div>
                           </td>
-                          <td>{formatSpecs(row, plant)}</td>
+                          <td>{formatSpecs(row, mixed ? row.kind === "equipment" : plant)}</td>
                           <td>
                             <div className="log-search-owner">
                               <b>
@@ -611,6 +644,13 @@ export default function LogisticsSearch() {
                               ) : null}
                               {biz.phone ? (
                                 <span className="log-hint">{biz.phone}</span>
+                              ) : biz.guest ? (
+                                <Link
+                                  className="log-hint log-search-owner__locked log-search-owner__login"
+                                  to={guestLoginPath()}
+                                >
+                                  Log in to contact
+                                </Link>
                               ) : biz.contactLocked ? (
                                 <span className="log-hint log-search-owner__locked">
                                   Book to contact

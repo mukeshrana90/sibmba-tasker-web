@@ -27,6 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { Roles } from "../utils/Roles";
 import CorporateCategorySelect from "../CommanComponents/CorporateCategorySelect";
 import LogisticsSosProfileCard from "../CommanComponents/LogisticsSosProfileCard";
+import LogisticsWhatsappNotifyCard from "../CommanComponents/LogisticsWhatsappNotifyCard";
 
 function hasValidLocationCoords(lat, lng) {
   const latN = parseFloat(lat);
@@ -977,6 +978,7 @@ export default function EditProfileCompany() {
                     )}
                   </Form>
 
+                  <LogisticsWhatsappNotifyCard />
                   <LogisticsSosProfileCard />
 
                   <Modal

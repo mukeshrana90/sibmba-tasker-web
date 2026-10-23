@@ -176,6 +176,36 @@ export function getSubtypesForEquipment(equipment, catalog) {
   return SUBTYPES_BY_EQUIPMENT[equipment] || DEFAULT_SUBTYPES;
 }
 
+/** "e.g. A, B" hint from the first items of a list (names or {label|name}). */
+function exampleHint(list, max = 2) {
+  const names = (list || [])
+    .map((it) => (typeof it === "string" ? it : it?.label || it?.name))
+    .filter(Boolean)
+    .slice(0, max);
+  return names.length ? `e.g. ${names.join(", ")}` : "";
+}
+
+/**
+ * Placeholder (never a value) for the Equipment picker — suggestions from the
+ * selected category's catalog, so Construction shows Excavator, not Tractor.
+ */
+export function equipmentPlaceholder(category, byHub) {
+  const catalog = getEquipmentCatalog(category, byHub);
+  const firsts = (catalog?.sections || [])
+    .map((section) => (section.items || [])[0])
+    .filter(Boolean);
+  const hint = exampleHint(firsts);
+  return hint ? `Pick equipment — ${hint}` : "Pick equipment";
+}
+
+/** Placeholder for the Sub type picker — follows the picked Equipment. */
+export function subtypePlaceholder(equipment, category, byHub) {
+  if (!String(equipment || "").trim()) return "Pick equipment first";
+  const catalog = getEquipmentCatalog(category, byHub);
+  const hint = exampleHint(getSubtypesForEquipment(equipment, catalog));
+  return hint ? `Pick sub type — ${hint}` : "Pick sub type";
+}
+
 export function categoryLabel(category) {
   const map = {
     agricultural: "Agricultural",

@@ -66,6 +66,8 @@ const BACKEND = path.resolve(__dirname, "../../../sibmba-tasker-backend");
   const withModule = (m) => a.page.evaluate((v) => localStorage.setItem("adminModule", v), m);
   const state = async (id) => (await db.collection("users").findOne({ _id: oid(id) }, { projection: { email: 1, phone_number: 1, full_name: 1, is_deleted: 1, status: 1, social_id: 1, device_token: 1, account_state: 1 } }));
 
+  // Admin shows names via capName ("…Fleet Abc12"), so compare names case-insensitively
+  const has = (txt, x) => txt.toLowerCase().includes(String(x).toLowerCase());
   L.sec("13.1 User Accounts page (both modules)");
   await goto("/Dashboard");
   await withModule("logistics");
@@ -74,13 +76,13 @@ const BACKEND = path.resolve(__dirname, "../../../sibmba-tasker-backend");
   await a.page.locator('input[type="search"]').first().fill(RUN);
   await a.page.waitForTimeout(1500);
   t = await L.bodyText(a);
-  L.check(t.includes(`E2E Acct Fleet ${RUN}`) && t.includes(`E2E Acct Operator ${RUN}`) && !t.includes(`acct.cust.${RUN}`), "Logistics: owner + operator (customers hidden by the default filter)");
+  L.check(has(t, `E2E Acct Fleet ${RUN}`) && has(t, `E2E Acct Operator ${RUN}`) && !has(t, `acct.cust.${RUN}`), "Logistics: owner + operator (customers hidden by the default filter)");
   await withModule("tasker");
   t = await goto("/user-accounts", /User Accounts/);
   await a.page.locator('input[type="search"]').first().fill(RUN);
   await a.page.waitForTimeout(1500);
   t = await L.bodyText(a);
-  L.check(t.includes(`acct.cust.${RUN}`) && t.includes(`acct.sp.${RUN}`) && t.includes(`E2E Acct Fleet ${RUN}`), "Simba Tasker: all user types");
+  L.check(has(t, `acct.cust.${RUN}`) && has(t, `acct.sp.${RUN}`) && has(t, `E2E Acct Fleet ${RUN}`), "Simba Tasker: all user types");
   await L.shot(a, "s13-user-accounts");
   const adm = await L.api("GET", `/admin/accounts/${admin._id}`, H);
   L.check(adm?.success === false, `admin account can't be opened / acted on (${adm?.message})`);
@@ -89,8 +91,8 @@ const BACKEND = path.resolve(__dirname, "../../../sibmba-tasker-backend");
 
   L.sec("13.2 Account page — details, equipment, operators, documents");
   await withModule("logistics");
-  t = await goto(`/user-account/${owner._id}`, new RegExp(`E2E Acct Fleet ${RUN}`));
-  L.check(t.includes(`E2E Acct Truck ${RUN}`) && t.includes(`E2E Acct Operator ${RUN}`) && /Equipment & vehicles/i.test(t) && /Operators \(1\)/i.test(t), "owner page lists equipment + operators");
+  t = await goto(`/user-account/${owner._id}`, new RegExp(`E2E Acct Fleet ${RUN}`, "i"));
+  L.check(has(t, `E2E Acct Truck ${RUN}`) && has(t, `E2E Acct Operator ${RUN}`) && /Equipment & vehicles/i.test(t) && /Operators \(1\)/i.test(t), "owner page lists equipment + operators");
   L.check(/Suspend Account/i.test(t) && /Delete Account/i.test(t) && /Permanent Delete/i.test(t), "three account cards (Suspend, Delete, Permanent Delete)");
   await L.shot(a, "s13-owner-account");
 

@@ -18,6 +18,7 @@ import { ImagePathCustomer } from "../utils/ImagePath";
 import { handleUserImageError } from "../utils/landingUtils";
 import { sanitizeProfileValue } from "../utils/customerProfileUtils";
 import LogisticsSosProfileCard from "../CommanComponents/LogisticsSosProfileCard";
+import LogisticsWhatsappNotifyCard from "../CommanComponents/LogisticsWhatsappNotifyCard";
 import LogisticsActions from "../Redux/Actions/LogisticsActions";
 
 // Logistics fleet / equipment owner (role 4 without an owner above them)
@@ -37,6 +38,7 @@ export default function EditProfileUser() {
   const [initialValues, setInitialValues] = useState({
     full_name: "",
     company_name: "",
+    email: "",
     house_number: "",
     address: "",
     suburbs: "",
@@ -630,6 +632,7 @@ export default function EditProfileUser() {
                     </button>
                   </Form>
 
+                  <LogisticsWhatsappNotifyCard />
                   <LogisticsSosProfileCard />
                 </div>
               </div>

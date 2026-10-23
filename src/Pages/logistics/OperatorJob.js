@@ -27,6 +27,7 @@ import {
 } from "../../utils/beginQuoteChat";
 import { jobImageUrl } from "./MyJobs";
 import { defaultImage } from "../../utils/ImagePath";
+import { jobPriceLines, withPriorityFee } from "../../utils/jobPrice";
 import {
   formatMoneyInputValue,
   parseLogisticsMoney,
@@ -37,6 +38,7 @@ import {
   LogisticsDetailSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
 import { readDeviceGps } from "../../utils/deviceGps";
+import { haversineKm } from "../../utils/multiTransitRoute";
 import { truckTooSmallForJob } from "../../utils/logisticVehicleWeight";
 import { LogisticsSosJobBar } from "../../CommanComponents/LogisticsSosButton";
 
@@ -263,6 +265,9 @@ export default function LogisticsOperatorJob() {
   const [currency, setCurrency] = useState("USD");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // v2.7.49: location confirmed on every quote (radius enforced for Now jobs)
+  const [quoteLoc, setQuoteLoc] = useState(null);
+  const [quoteLocState, setQuoteLocState] = useState("idle"); // idle | reading | ok | denied
   const [advancing, setAdvancing] = useState(false);
   const { config: logisticsConfig } = useLogisticsConfig();
   const [confirmingOtp, setConfirmingOtp] = useState(false);
@@ -703,6 +708,14 @@ export default function LogisticsOperatorJob() {
       ? NEXT_ACTION_RIDE[status]
       : NEXT_ACTION_TRANSPORT[status];
 
+  const confirmQuoteLocation = async () => {
+    setQuoteLocState("reading");
+    const fix = await readDeviceGps();
+    setQuoteLoc(fix);
+    setQuoteLocState(fix ? "ok" : "denied");
+    return fix;
+  };
+
   const sendQuote = async (e) => {
     e.preventDefault();
     if (!assetId) {
@@ -731,11 +744,26 @@ export default function LogisticsOperatorJob() {
       toast.error("Add a message for the customer");
       return;
     }
+    // Fresh location (≤ 9 min) goes with every quote
+    let loc = quoteLoc;
+    if (!loc || Date.now() - new Date(loc.captured_at).getTime() > 9 * 60 * 1000) {
+      loc = await confirmQuoteLocation();
+    }
+    if (!loc) {
+      toast.error("Allow location access to send a quote — Simba checks where you are before you quote");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await dispatch(
         LogisticsActions.createQuote({
           jobId: id,
+          location: {
+            lat: loc.lat,
+            lng: loc.lng,
+            accuracy: loc.accuracy,
+            captured_at: loc.captured_at,
+          },
           asset_id: assetId,
           amount: quoteValue,
           currency: fixedBudget
@@ -1057,6 +1085,13 @@ export default function LogisticsOperatorJob() {
     : `${pickupShort} → ${dropoffShort}`;
   const weight = formatWeight(job.load_weight);
   const budget = formatMoney(job.budget);
+  // v2.7.53: priority job — budget + priority fee = what the customer offers in total (paid in cash)
+  const priceInfo = jobPriceLines(job);
+  const priorityFee = job.priority ? priceInfo.fee : null;
+  const offeredTotal =
+    priorityFee && priceInfo.summary.fee_in_total && priceInfo.summary.budget
+      ? withPriorityFee(job, priceInfo.summary.budget).total
+      : null;
   const when = formatWhen(job.when_needed);
   const images = (job.images || []).map(jobImageUrl).filter(Boolean);
   const returnImages = (job.return_trip?.images || [])
@@ -1088,13 +1123,31 @@ export default function LogisticsOperatorJob() {
   const factTiles = [
     when ? { k: "when", label: cabJob ? "Booked" : plantJob ? "Hire from" : "Needed", value: when, sub: job.flexible_dates ? "Flexible dates" : null } : null,
     agreed
-      ? { k: "price", label: "Agreed price", value: agreed, sub: budget ? `Customer offered ${budget}` : null }
+      ? {
+          k: "price",
+          label: "Agreed price",
+          value: agreed,
+          sub:
+            [
+              budget ? `Customer offered ${budget}` : null,
+              job.price_summary?.priority_fee
+                ? `+ ${job.price_summary.priority_fee.currency} ${job.price_summary.priority_fee.value} priority fee${
+                    job.price_summary.fee_in_total && job.price_summary.total
+                      ? ` · Total ${job.price_summary.total.currency} ${job.price_summary.total.value}`
+                      : ""
+                  }`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || null,
+        }
       : budget
         ? {
             k: "price",
-            label: cabJob ? "Fare offered" : "Budget",
-            value: budget,
+            label: offeredTotal ? "Total offered" : cabJob ? "Fare offered" : "Budget",
+            value: offeredTotal || budget,
             sub: [
+              offeredTotal ? `Budget ${budget} + ${priorityFee} priority fee` : null,
               job.budget?.rate_unit === "hour" ? "per hour" : job.budget?.rate_unit === "day" ? "per day" : null,
               job.budget?.negotiable ? "Negotiable" : "Fixed",
             ].filter(Boolean).join(" · "),
@@ -1110,7 +1163,15 @@ export default function LogisticsOperatorJob() {
       k: "type",
       label: "Type",
       value: plantJob ? "Equipment hire" : isNowJob || cabJob ? "Now" : "Scheduled",
-      sub: job.priority ? "Priority" : plantJob ? null : job.job_class === "local" ? "Local" : "Corridor",
+      sub: job.priority
+        ? job.price_summary?.priority_fee
+          ? `Priority (+ ${job.price_summary.priority_fee.currency} ${job.price_summary.priority_fee.value} to your company)`
+          : "Priority"
+        : plantJob
+          ? null
+          : job.job_class === "local"
+            ? "Local"
+            : "Corridor",
     },
   ].filter(Boolean);
 
@@ -1429,25 +1490,35 @@ export default function LogisticsOperatorJob() {
               plantJob &&
               next.status === 5 ? (
                 <div className="log-hire-complete-amount">
-                  <p className="log-delivery-otp__lead">
-                    Enter the final negotiated hire amount (by hour/day or
-                    agreed total). The customer will see this with the OTP
-                    before the job is marked Done.
+                  <div className="log-hire-complete-amount__head">
+                    <label className="log-hire-complete-amount__title" htmlFor="log-final-hire-amount">
+                      Final hire amount
+                    </label>
+                    {job.assigned?.amount?.value > 0 ? (
+                      <span className="log-hire-complete-amount__agreed">
+                        Agreed {job.assigned.amount.currency || completionCurrency}{" "}
+                        {job.assigned.amount.value}
+                        {job.budget?.rate_unit === "hour" ? " / hour" : job.budget?.rate_unit === "day" ? " / day" : ""}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="log-hire-complete-amount__hint">
+                    Total for the whole hire (days or hours worked). The
+                    customer sees it with the completion code before the job
+                    is marked Done.
                   </p>
                   <div className="log-hire-complete-amount__row">
-                    <select
-                      value={completionCurrency}
-                      onChange={(e) => setCompletionCurrency(e.target.value)}
-                      aria-label="Currency"
-                    >
-                      <option value="USD">USD</option>
-                      <option value="ZWG">ZWG</option>
-                    </select>
-                    <LogisticsMoneyInput
-                      value={completionAmount}
-                      onChange={setCompletionAmount}
-                      aria-label="Final hire amount"
-                    />
+                    <div className="log-money-group">
+                      <span className="log-money-group__cur" aria-hidden="true">
+                        {completionCurrency}
+                      </span>
+                      <LogisticsMoneyInput
+                        id="log-final-hire-amount"
+                        value={completionAmount}
+                        onChange={setCompletionAmount}
+                        aria-label={`Final hire amount in ${completionCurrency}`}
+                      />
+                    </div>
                     <button
                       type="button"
                       className="logistics-cta logistics-cta--primary"
@@ -1761,14 +1832,20 @@ export default function LogisticsOperatorJob() {
                   : fixedBudget
                     ? `Customer set a fixed price${
                         budget ? ` (${budget})` : ""
+                      }${
+                        offeredTotal ? ` + ${priorityFee} priority fee = ${offeredTotal} in total, paid in cash` : ""
                       }. Quote amount is locked — accept that amount or leave this job${
                         job.return_trip ? " (total for both legs)" : ""
                       }.`
-                    : `Their budget is negotiable${
-                        budget ? ` (around ${budget})` : ""
-                      }. Quote what the trip is worth to you${
-                        job.return_trip ? " for both legs" : ""
-                      }.`}
+                    : offeredTotal
+                      ? `Priority job — the customer offers ${offeredTotal} in total (budget ${budget} + ${priorityFee} priority fee). The price isn't fixed: quote your own amount${
+                          job.return_trip ? " for both legs" : ""
+                        }. The customer pays your quote + the ${priorityFee} priority fee (for your company), in cash.`
+                      : `Their budget is negotiable${
+                          budget ? ` (around ${budget})` : ""
+                        }. Quote what the trip is worth to you${
+                          job.return_trip ? " for both legs" : ""
+                        }.`}
               {" "}
               {needKind === "vehicle"
                 ? "Logistic jobs accept trucks only."
@@ -1843,6 +1920,14 @@ export default function LogisticsOperatorJob() {
                     </div>
                   </label>
                 </div>
+                {priorityFee && Number(amount) > 0 ? (
+                  <p className="log-op-quote-total" data-testid="quote-customer-pays">
+                    Customer pays you{" "}
+                    <b>{withPriorityFee(job, { value: Number(amount), currency: currency || "USD" }).total}</b>{" "}
+                    in cash — your quote {withPriorityFee(job, { value: Number(amount), currency: currency || "USD" }).amount} +{" "}
+                    {priorityFee} priority fee.
+                  </p>
+                ) : null}
                 {isOwnerShell ? (
                   (() => {
                     const selected =
@@ -1866,6 +1951,50 @@ export default function LogisticsOperatorJob() {
                     );
                   })()
                 ) : null}
+
+                {(() => {
+                  const pickup = job?.pickup?.coordinates;
+                  const radius = Number(job?.pickup_radius_km) > 0 ? Number(job.pickup_radius_km) : 25;
+                  const nowJob = job?.job_class === "local" && Boolean(job?.expires_at);
+                  const dist =
+                    quoteLoc && Array.isArray(pickup)
+                      ? Math.round(haversineKm({ lat: quoteLoc.lat, lng: quoteLoc.lng }, { lat: pickup[1], lng: pickup[0] }) * 10) / 10
+                      : null;
+                  const outside = nowJob && dist != null && dist > radius;
+                  return (
+                    <div
+                      className={`log-quote-location${outside ? " log-quote-location--bad" : ""}`}
+                      data-state={quoteLocState}
+                    >
+                      <div>
+                        <b>Your location</b>
+                        <p className="log-hint" style={{ margin: 0 }}>
+                          {quoteLocState === "reading"
+                            ? "Reading your location…"
+                            : quoteLocState === "denied"
+                              ? "Location not available — allow location access in your browser, then try again."
+                              : dist != null
+                                ? outside
+                                  ? `You are ${dist} km from the pickup. Now jobs need you within ${radius} km.`
+                                  : nowJob
+                                    ? `You are ${dist} km from the pickup — within the ${radius} km radius.`
+                                    : `You are ${dist} km from the pickup. Your location is saved with your quote.`
+                                : nowJob
+                                  ? `Confirm you're within ${radius} km of the pickup before quoting.`
+                                  : "Confirm your current location — it's saved with your quote."}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="logistics-cta logistics-cta--ghost log-quote-location__btn"
+                        onClick={confirmQuoteLocation}
+                        disabled={quoteLocState === "reading"}
+                      >
+                        {quoteLoc ? "Update location" : "Confirm my location"}
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 <label className="log-field">
                   <span className="log-fl">Message *</span>

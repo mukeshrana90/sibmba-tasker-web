@@ -1,0 +1,75 @@
+  PASS  fresh owner approved
+
+▶ 17a. Add truck: photo + paper pickers refuse >10 MB and other types
+  PASS  photo picker accepts iPhone HEIC
+  PASS  10 MB + 1 byte photo → toast
+  PASS  oversized photo not added
+  PASS  .zip photo → toast
+  PASS  .zip not added
+  PASS  PDF in the photo picker → toast
+  PASS  PDF not added as a photo
+  PASS  mixed pick: the big one refused…
+  PASS  …the HEIC + JPG are kept (2 slots)
+  PASS  paper picker: PDF + images + HEIC
+  PASS  11 MB PDF paper → toast
+  PASS  oversized paper not attached
+  PASS  truck saved with HEIC + JPG photos, PDF + HEIC papers
+
+▶ 17b. Stored files: HEIC → JPG (≤1920px + thumb), JPG resized, PDF untouched
+  PASS  2 photos stored
+  PASS  iPhone photo stored as .jpg
+  PASS  HEIC photo → real JPEG ≤1920px + thumb_
+  PASS  2400px JPG resized to 1920 + thumb_
+  PASS  PDF paper keeps .pdf
+  PASS  PDF bytes identical (not optimised)
+  PASS  no thumb_ for a PDF
+  PASS  HEIC insurance paper → JPEG
+
+▶ 17c. Unit page shows the photos; edit refuses >10 MB, adds HEIC
+  PASS  both photos render (naturalWidth > 0)
+  PASS  edit: oversized photo → toast
+  PASS  edit: HEIC added
+  PASS  edit saved
+  PASS  edit saved the HEIC as JPEG
+
+▶ 17d. Post job: photo picker rules + HEIC job photo
+  PASS  job photo >10 MB → toast
+  PASS  job photo .zip → toast
+  PASS  nothing added
+  PASS  HEIC + JPG added
+  PASS  job posted with photos
+  PASS  job HEIC photo stored as JPEG + thumb
+  PASS  job page shows the converted photo
+
+▶ 17d2. Edit job: add another iPhone photo
+  PASS  Job updated (photo upload succeeded)
+  PASS  edit added the HEIC as JPEG
+
+▶ 17e. Operator invite: HEIC profile photo + licence, extra doc rules
+  PASS  profile photo >10 MB → toast
+  PASS  licence >10 MB → toast
+  PASS  extra doc .zip → toast
+  PASS  invite saved
+  PASS  invite record created
+  PASS  operator HEIC profile photo → JPEG
+  PASS  HEIC licence scan → JPEG
+  PASS  extra PDF doc stored as .pdf
+  PASS  no raw .heic stored
+
+▶ 17f. API (bypasses the browser): size + type enforced on the server
+  PASS  corrupt JPG → IMAGE_UNREADABLE (not a 500)
+  PASS  fake .heic → IMAGE_UNREADABLE
+  PASS  10 MB + 1 → FILE_TOO_LARGE (JSON, not an HTML 500)
+  PASS  .exe → FILE_TYPE_NOT_ALLOWED
+  PASS  HEIC without extension (detected by bytes) → JPEG
+  PASS  a PDF is refused as a job PHOTO (photo fields take images only)
+  PASS  exactly 10 MB PDF accepted, stored byte-for-byte
+  PASS  DOCX paper accepted, kept as .docx
+  PASS  11 MB paper → FILE_TOO_LARGE
+  PASS  Word file as a unit PHOTO → refused
+  PASS  up-owner: no console errors
+  PASS  up-owner: no 5xx
+  PASS  up-customer: no console errors
+  PASS  up-customer: no 5xx
+
+59/59 passed

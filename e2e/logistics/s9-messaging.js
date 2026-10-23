@@ -28,7 +28,9 @@ const text = (html) => String(html || "").replace(/<style[\s\S]*?<\/style>/gi, "
 const hrefs = (html) => [...String(html || "").matchAll(/href="([^"]+)"/g)].map((m) => m[1].replace(/&amp;/g, "&"));
 
 async function typeOtp(a, otp) {
-  const inputs = a.page.locator("input");
+  // Wait for the OTP boxes: counting before they render put the whole code in one box
+  await a.page.locator(".set-otp input").nth(otp.length - 1).waitFor({ timeout: 15000 }).catch(() => {});
+  const inputs = a.page.locator(".set-otp input");
   const n = await inputs.count();
   if (n >= otp.length) for (let i = 0; i < otp.length; i++) await inputs.nth(i).fill(otp[i]);
   else await inputs.first().fill(otp);
@@ -81,6 +83,10 @@ async function signupOwner(a, { email, phone, channel }) {
     await o.page.waitForURL(/\/logistics\/owner/, { timeout: 20000 }).then(() => L.check(true, "code from email verifies → owner dashboard")).catch(async () => L.check(false, "code from email verifies → owner dashboard", (await L.bodyText(o)).slice(0, 200)));
     const ownerUser = await d.collection("users").findOne({ email: ownerEmail });
     st.owner = { _id: String(ownerUser._id), email: ownerEmail, role: 4, token: await o.page.evaluate(() => localStorage.getItem("token")) };
+    // v2.7.49: new companies start Pending — approve so the fleet can work
+    L.check((await L.approveOwner(st.owner._id))?.data?.approval?.status === "approved", "admin approves the new company");
+    // v2.7.50: WhatsApp (invites, reminders) is a paid-plan feature — this stage tests WhatsApp delivery
+    await L.setPlan(st.owner._id, "paid");
 
     // ── 2. WhatsApp OTP
     L.sec("9b. Owner sign-up with WHATSAPP OTP — code read from the captured template message");
@@ -110,8 +116,8 @@ async function signupOwner(a, { email, phone, channel }) {
     const opEmail = `mail.op.${RUN}@e2e.example.com`;
     const opPhone = `78${String(Date.now()).slice(-7)}`;
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    await o.page.fill('input[placeholder="Tendai Moyo"]', `Mail Operator ${RUN}`);
-    await o.page.fill('input[placeholder="t.moyo@gmail.com"]', opEmail);
+    await o.page.fill('input[placeholder="Full name"]', `Mail Operator ${RUN}`);
+    await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     const ph = o.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
     await ph.click(); await ph.press("End"); await ph.pressSequentially(opPhone, { delay: 15 });
     t0 = now();
@@ -138,7 +144,7 @@ async function signupOwner(a, { email, phone, channel }) {
 
     L.sec("9d2. Invite channel checks + WhatsApp → SMS fallback");
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    await o.page.fill('input[placeholder="t.moyo@gmail.com"]', `nophone.${RUN}@e2e.example.com`);
+    await o.page.fill('input[placeholder="name@example.com"]', `nophone.${RUN}@e2e.example.com`);
     const waBox = o.page.locator(".log-invite-via__opt", { hasText: "WhatsApp" });
     L.check((await waBox.locator("input").isDisabled()) && /Add a phone number first/.test(await waBox.innerText()), "no phone → WhatsApp unavailable ('Add a phone number first')");
     await L.setInviteVia(o.page, []);
@@ -148,12 +154,13 @@ async function signupOwner(a, { email, phone, channel }) {
     await L.shot(o, "s9-invite-via");
     // second owner (free seats): API check + WhatsApp only, number not on WhatsApp → same link by SMS
     const wToken = await w.page.evaluate(() => localStorage.getItem("token"));
+    await L.setPlan((await d.collection("users").findOne({ email: waEmail }))._id, "paid");
     const apiNoVia = await L.api("POST", "/logistics/sub-user", { token: wToken, body: { email: `bad.via.${RUN}@e2e.example.com`, send_via: ["whatsapp"] } });
     L.check(apiNoVia.success === false && apiNoVia.data?.code === "INVITE_CHANNEL", "API refuses WhatsApp-only invite without a phone (INVITE_CHANNEL)", apiNoVia.message);
     const waOnlyEmail = `waonly.${RUN}@e2e.example.com`;
     const waOnlyPhone = `71888${String(Date.now()).slice(-4)}`;
     await L.goto(w, "/logistics/owner/operators/add", "form");
-    await w.page.fill('input[placeholder="t.moyo@gmail.com"]', waOnlyEmail);
+    await w.page.fill('input[placeholder="name@example.com"]', waOnlyEmail);
     const ph3 = w.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
     await ph3.click(); await ph3.press("End"); await ph3.pressSequentially(waOnlyPhone, { delay: 15 });
     await L.setInviteVia(w.page, ["whatsapp"]);
@@ -167,7 +174,7 @@ async function signupOwner(a, { email, phone, channel }) {
     L.sec("9e. Resend invite — new link sent, old link no longer works");
     const op2Email = `mail.op2.${RUN}@e2e.example.com`;
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    await o.page.fill('input[placeholder="t.moyo@gmail.com"]', op2Email);
+    await o.page.fill('input[placeholder="name@example.com"]', op2Email);
     await L.setInviteVia(o.page, ["email"]);
     t0 = now();
     await o.page.locator('form button[type="submit"]').last().click();
@@ -191,7 +198,7 @@ async function signupOwner(a, { email, phone, channel }) {
 
     L.sec("9f. Invite with every channel failing → owner told to copy the link");
     await L.goto(w, "/logistics/owner/operators/add", "form");
-    await w.page.fill('input[placeholder="t.moyo@gmail.com"]', `fail.${RUN}@e2e.example.com`);
+    await w.page.fill('input[placeholder="name@example.com"]', `fail.${RUN}@e2e.example.com`);
     const ph2 = w.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
     await ph2.click(); await ph2.press("End"); await ph2.pressSequentially(`71999${String(Date.now()).slice(-4)}`, { delay: 15 });
     await w.page.locator('form button[type="submit"]').last().click();

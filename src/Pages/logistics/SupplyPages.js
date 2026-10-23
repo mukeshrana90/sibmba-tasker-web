@@ -6,6 +6,7 @@ import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import { placeShortLabel } from "../../CommanComponents/LogisticsJobRoutePanel";
 import { isEquipmentJob, jobCategoryKey, jobKindTypeChip } from "../../utils/jobKind";
+import { jobListPrice } from "../../utils/jobPrice";
 import {
   JobCategoryBadge,
   JobCategorySelect,
@@ -107,23 +108,15 @@ function jobMatchesLocalFilters(job, applied) {
   return true;
 }
 
-function formatMoney(job) {
-  const amount =
-    job?.assigned?.amount?.amount ??
-    job?.assigned?.amount?.value ??
-    job?.budget?.amount;
-  if (amount == null || amount === "") return "—";
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return "—";
-  const currency =
-    job?.assigned?.amount?.currency || job?.budget?.currency || "USD";
-  const rate =
-    job?.budget?.rate_unit === "hour"
-      ? " / hour"
-      : job?.budget?.rate_unit === "day"
-        ? " / day"
-        : "";
-  return `${currency} ${n.toLocaleString()}${rate}`;
+/** Agreed price once accepted, else budget — plus "+ USD 5 priority" on priority jobs. */
+function JobPrice({ job }) {
+  const { price, priorityHint } = jobListPrice(job);
+  return (
+    <>
+      {price || "—"}
+      {priorityHint ? <small className="log-price-priority">{priorityHint}</small> : null}
+    </>
+  );
 }
 
 function statusTone(status) {
@@ -148,7 +141,9 @@ function formatDay(value) {
 }
 
 function formatWeight(job) {
-  if (job?.load_weight?.value == null) return null;
+  // Equipment hire has no load (saved as weight 0)
+  if (isEquipmentJob(job) || job?.load_weight?.value == null) return null;
+  if (!(Number(job.load_weight.value) > 0)) return null;
   const unit = job.load_weight.unit === "kg" ? "kg" : "t";
   return `${job.load_weight.value}${unit}`;
 }
@@ -432,7 +427,7 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath, ownerView = fa
                       formatDay(job.when_needed)
                     )}
                   </td>
-                  <td className="log-opp-table__budget" data-label="Budget">{formatMoney(job)}</td>
+                  <td className="log-opp-table__budget" data-label="Budget"><JobPrice job={job} /></td>
                   <td className="log-opp-table__open log-cell--actions">
                     <JobCategoryBadge job={job} compact />
                     <Link
@@ -987,7 +982,7 @@ function SupplyMyJobsTable({
                       {statusLabel}
                     </span>
                   </td>
-                  <td data-label="Amount">{formatMoney(job)}</td>
+                  <td data-label="Amount"><JobPrice job={job} /></td>
                   <td data-label="Updated">
                     {formatWhen(job.updatedAt || job.createdAt)}
                   </td>

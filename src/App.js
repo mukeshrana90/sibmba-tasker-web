@@ -5,6 +5,7 @@ import RoutesPage from "./routes/Routes";
 import { io } from "socket.io-client";
 import { onForegroundMessage } from "./utils/fireBaseConfig";
 import { getSocketBaseUrl } from "./utils/socketBaseUrl";
+import { CHAT_REFRESH_EVENT } from "./context/ChatProvider";
 
 function App() {
   const ToastifyNotification = ({ title, body }) => (
@@ -84,12 +85,24 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = onForegroundMessage((payload) => {
-      const { notification: { title, body } } = payload;
-      showNotificationToast(title, body);
+      const { title, body } = payload?.notification || {};
+      if (title || body) showNotificationToast(title, body);
+      // Chat push (data.chatRoomId) → re-pull unread counts for the nav badges
+      if (payload?.data?.chatRoomId) {
+        window.dispatchEvent(new CustomEvent(CHAT_REFRESH_EVENT));
+      }
     });
+
+    // New chat message while off /messages (ChatProvider)
+    const onChatToast = (e) => {
+      const { title, body } = e.detail || {};
+      showNotificationToast(title, body);
+    };
+    window.addEventListener("simba:chat_toast", onChatToast);
 
     return () => {
       unsubscribe();
+      window.removeEventListener("simba:chat_toast", onChatToast);
     };
   }, []);
 

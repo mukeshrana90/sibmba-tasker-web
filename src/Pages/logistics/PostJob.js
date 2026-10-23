@@ -14,6 +14,7 @@ import {
   EquipmentPickerModal,
   LogisticsPickField,
   SubtypePickerModal,
+  useEquipmentPlaceholders,
 } from "../../CommanComponents/LogisticsEquipmentPickers";
 import LogisticsLocationField from "../../CommanComponents/LogisticsLocationField";
 import {
@@ -50,11 +51,15 @@ import {
   formatMoneyInputValue,
   parseLogisticsMoney,
 } from "../../utils/logisticsMoney";
+import { isEquipmentJob, jobCategoryKey } from "../../utils/jobKind";
+import { formatPrice } from "../../utils/jobPrice";
 import "./logistics.css";
 import {
   LogisticsFormSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
+import { PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
+import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
 
 const KG_PER_TON = 1000;
 
@@ -108,8 +113,9 @@ const defaultForm = {
   return_weight: "",
   return_weight_unit: "tons",
   special_notes: "",
-  equipment: "Tractor",
-  subtype: "Compact",
+  // No default machine — the customer must pick (placeholders only suggest)
+  equipment: "",
+  subtype: "",
   site: "",
   site_coords: null,
   hire_from: "",
@@ -125,18 +131,23 @@ function jobToForm(job) {
   const notes = String(job.special_notes || "");
   const vehicleMatch = notes.match(/Vehicle:\s*([^·]+)/);
   const truckMatch = notes.match(/Truck type:\s*([^·]+)/);
+  // Hire jobs keep their own hub (Construction / Industrial …), not Agricultural
   const samePlace =
-    job.pickup?.address &&
-    job.pickup.address === job.dropoff?.address &&
-    !vehicleMatch;
+    isEquipmentJob(job) ||
+    (job.pickup?.address &&
+      job.pickup.address === job.dropoff?.address &&
+      !vehicleMatch);
   const parts = String(job.load_type || "").split(" · ");
 
   if (samePlace) {
     return {
       ...defaultForm,
-      category: "agricultural",
-      equipment: parts[0] || "Tractor",
-      subtype: parts[1] || "Compact",
+      // jobCategoryKey only returns a plant hub for hire jobs (else logistic / cab)
+      category: ["logistic", "cab"].includes(jobCategoryKey(job))
+        ? "agricultural"
+        : jobCategoryKey(job),
+      equipment: parts[0] || "",
+      subtype: parts[1] || "",
       site: job.pickup?.address || "",
       site_coords: job.pickup?.coordinates || null,
       hire_from: toDateInput(job.when_needed),
@@ -262,14 +273,23 @@ function formFromTargetAsset(asset) {
 }
 
 export default function LogisticsPostJob() {
+  // Loads the server upload limit (config.upload) for the file pickers
+  useLogisticsConfig();
   const dispatch = useDispatch();
   // "Now" window comes from backend .env (LOGISTICS_NOW_JOB_EXPIRY_MINUTES) via session
   const [nowMinutes, setNowMinutes] = useState(30);
+  // Priority fee from backend .env (LOGISTICS_PRIORITY_FEE); amount 0 = priority is free
+  const [priorityFee, setPriorityFee] = useState(null);
   useEffect(() => {
     let alive = true;
     dispatch(LogisticsActions.getSession()).then((res) => {
-      const m = Number(res?.payload?.data?.config?.now_job_expiry_minutes);
+      const cfg = res?.payload?.data?.config || {};
+      const m = Number(cfg.now_job_expiry_minutes);
       if (alive && Number.isFinite(m) && m > 0) setNowMinutes(m);
+      const fee = Number(cfg.priority_fee?.amount);
+      if (alive && Number.isFinite(fee)) {
+        setPriorityFee(fee > 0 ? formatPrice({ value: fee, currency: cfg.priority_fee?.currency }) : null);
+      }
     });
     return () => {
       alive = false;
@@ -298,6 +318,10 @@ export default function LogisticsPostJob() {
   const [returnImageFiles, setReturnImageFiles] = useState([]);
   const [existingReturnImages, setExistingReturnImages] = useState([]);
   const plant = isPlantCategory(form.category);
+  const pickPlaceholders = useEquipmentPlaceholders(
+    form.category,
+    form.equipment
+  );
   const categoryLocked = Boolean(targetAsset) && !editId;
   // "Now" is for open logistic posts only (direct bookings are future-dated)
   const nowMode = !plant && !categoryLocked && form.when_mode === "now";
@@ -471,44 +495,42 @@ export default function LogisticsPostJob() {
     return vehicleMaxTons(f.vehicle_needed);
   };
 
+  // Toasts stay outside setForm updaters: React may run updaters while rendering,
+  // and toasting there warns "Cannot update a component while rendering …"
   const capWeight = (f, weight, unit) => {
     const max = weightCapFor(f);
     if (max == null || !weightExceedsMax(toTons(weight, unit), max)) {
-      return { ...f, weight, weight_unit: unit };
+      return { next: { ...f, weight, weight_unit: unit } };
     }
-    // toastId: one toast even when React re-runs this updater (StrictMode)
-    toast.error(
-      categoryLocked
+    return {
+      next: { ...f, weight: String(unit === "kg" ? max * 1000 : max), weight_unit: unit },
+      message: categoryLocked
         ? `This unit can take up to ${max} tons — lower the package weight.`
         : `Vehicle needed “${f.vehicle_needed}” takes up to ${max} tons. Pick a larger vehicle to carry more.`,
-      { toastId: "post-weight-cap" }
-    );
-    return { ...f, weight: String(unit === "kg" ? max * 1000 : max), weight_unit: unit };
+    };
   };
 
-  const onWeightChange = (e) => {
-    const nextWeight = e.target.value;
-    setForm((f) => capWeight(f, nextWeight, f.weight_unit));
+  const applyWeight = (weight, unit) => {
+    const { next, message } = capWeight(form, weight, unit);
+    setForm(next);
+    if (message) toast.error(message, { toastId: "post-weight-cap" });
   };
 
-  const onWeightUnitChange = (e) => {
-    const nextUnit = e.target.value;
-    setForm((f) => capWeight(f, f.weight, nextUnit));
-  };
+  const onWeightChange = (e) => applyWeight(e.target.value, form.weight_unit);
+
+  const onWeightUnitChange = (e) => applyWeight(form.weight, e.target.value);
 
   const onVehicleNeededChange = (e) => {
     const nextVehicle = e.target.value;
-    setForm((f) => {
-      const tons = toTons(f.weight, f.weight_unit);
-      const max = vehicleMaxTons(nextVehicle);
-      if (tons != null && tons > max) {
-        toast.error(
-          `Weight exceeds ${nextVehicle} capacity (max ${max} tons). Lower the weight or pick a larger vehicle.`
-        );
-        return f;
-      }
-      return { ...f, vehicle_needed: nextVehicle };
-    });
+    const tons = toTons(form.weight, form.weight_unit);
+    const max = vehicleMaxTons(nextVehicle);
+    if (tons != null && tons > max) {
+      toast.error(
+        `Weight exceeds ${nextVehicle} capacity (max ${max} tons). Lower the weight or pick a larger vehicle.`
+      );
+      return;
+    }
+    setForm((f) => ({ ...f, vehicle_needed: nextVehicle }));
   };
 
   const onLocation = (field, coordsField) => ({ address, coords }) => {
@@ -520,7 +542,7 @@ export default function LogisticsPostJob() {
   };
 
   const onPickImages = (e) => {
-    const picked = Array.from(e.target.files || []);
+    const picked = keepAllowedFiles(e.target.files, { imagesOnly: true });
     e.target.value = "";
     if (!picked.length) return;
     setImageFiles((prev) => [...prev, ...picked].slice(0, 10));
@@ -531,7 +553,7 @@ export default function LogisticsPostJob() {
   };
 
   const onPickReturnImages = (e) => {
-    const picked = Array.from(e.target.files || []);
+    const picked = keepAllowedFiles(e.target.files, { imagesOnly: true });
     e.target.value = "";
     if (!picked.length) return;
     setReturnImageFiles((prev) => [...prev, ...picked].slice(0, 10));
@@ -674,7 +696,8 @@ export default function LogisticsPostJob() {
             "Equipment"
           : form.goods || "General",
         load_weight: {
-          value: Number(form.weight) || (plant ? 0 : 1),
+          // Hire carries no load — ignore weight left over from a Logistic draft
+          value: plant ? 0 : Number(form.weight) || 1,
           unit: form.weight_unit || "tons",
         },
         pickup: {
@@ -687,7 +710,7 @@ export default function LogisticsPostJob() {
         },
         when_needed: nowMode
           ? undefined
-          : form.date || form.hire_from || undefined,
+          : (plant ? form.hire_from : form.date) || undefined,
         priority: !!form.priority,
         special_notes: plant
           ? form.plant_note
@@ -737,13 +760,22 @@ export default function LogisticsPostJob() {
         );
         if (res?.payload?.success) {
           if (imageFiles.length || returnImageFiles.length) {
-            await dispatch(
+            const up = await dispatch(
               LogisticsActions.uploadJobImages({
                 jobId: editId,
                 files: imageFiles,
                 returnFiles: form.return_trip ? returnImageFiles : [],
               })
             );
+            if (!up?.payload?.success) {
+              toast.error(
+                `Job updated, but the photos were not added: ${
+                  up?.payload?.message || "upload failed"
+                }`
+              );
+              navigate(`/logistics/jobs/${editId}`);
+              return;
+            }
           }
           toast.success("Job updated");
           navigate(`/logistics/jobs/${editId}`);
@@ -853,8 +885,8 @@ export default function LogisticsPostJob() {
             setForm((f) => ({
               ...f,
               category,
-              equipment: "Tractor",
-              subtype: "Compact",
+              equipment: "",
+              subtype: "",
             }));
           }}
         />
@@ -1074,7 +1106,7 @@ export default function LogisticsPostJob() {
               <label className="log-upload log-upload--post">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={PHOTO_ACCEPT}
                   multiple
                   onChange={onPickImages}
                 />
@@ -1129,7 +1161,15 @@ export default function LogisticsPostJob() {
                   checked={form.priority}
                   onChange={set("priority")}
                 />
-                Priority job
+                <span className="log-priority-check">
+                  {priorityFee ? `Priority job (+ ${priorityFee})` : "Priority job"}
+                  {priorityFee ? (
+                    <small>
+                      Shown first to operators. {priorityFee} is added to the agreed price and paid to the
+                      equipment owner.
+                    </small>
+                  ) : null}
+                </span>
               </label>
               <label className="log-check log-check--row">
                 <input
@@ -1209,7 +1249,7 @@ export default function LogisticsPostJob() {
                     <label className="log-upload log-upload--post log-upload--compact">
                       <input
                         type="file"
-                        accept="image/*"
+                        accept={PHOTO_ACCEPT}
                         multiple
                         onChange={onPickReturnImages}
                       />
@@ -1290,7 +1330,7 @@ export default function LogisticsPostJob() {
                   categoryLocked ? "Equipment · Locked" : "Equipment"
                 }
                 value={form.equipment}
-                placeholder="Pick equipment"
+                placeholder={pickPlaceholders.equipment}
                 required
                 onClick={() => {
                   if (!categoryLocked) setEquipOpen(true);
@@ -1299,17 +1339,20 @@ export default function LogisticsPostJob() {
               <LogisticsPickField
                 label={categoryLocked ? "Sub type · Locked" : "Sub type"}
                 value={form.subtype}
-                placeholder="Pick sub type"
+                placeholder={pickPlaceholders.subtype}
                 required
                 onClick={() => {
-                  if (!categoryLocked) setSubtypeOpen(true);
+                  if (categoryLocked) return;
+                  // Sub type options depend on Equipment — pick that first
+                  if (!form.equipment) setEquipOpen(true);
+                  else setSubtypeOpen(true);
                 }}
               />
             </div>
             <p className="log-hint log-field--full">
               {categoryLocked
                 ? "Equipment type is fixed for this direct booking."
-                : "Sub type follows Equipment — e.g. Tractor size bands."}
+                : "Sub type follows Equipment — pick Equipment first, then its size band."}
             </p>
             <div className="log-field--full">
               <LogisticsLocationField
@@ -1394,7 +1437,7 @@ export default function LogisticsPostJob() {
               <label className="log-upload log-upload--post log-upload--compact">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={PHOTO_ACCEPT}
                   multiple
                   onChange={onPickImages}
                 />
@@ -1448,6 +1491,11 @@ export default function LogisticsPostJob() {
           </div>
         )}
 
+        {!plant && form.priority && priorityFee ? (
+          <p className="log-hint log-post-priority-note">
+            Priority job: {priorityFee} will be added to the agreed price.
+          </p>
+        ) : null}
         <div className="log-form-actions">
           <button
             className="logistics-cta logistics-cta--primary log-form-submit"

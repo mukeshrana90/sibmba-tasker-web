@@ -531,13 +531,15 @@ const LogisticsActions = {
 
   createQuote: createAsyncThunk(
     "/logistics/job/quote",
-    async ({ jobId, asset_id, amount, currency, message }, { rejectWithValue }) => {
+    async ({ jobId, asset_id, amount, currency, message, location }, { rejectWithValue }) => {
       try {
         const response = await Api.post(`/logistics/job/${jobId}/quote`, {
           asset_id,
           amount,
           currency,
           message,
+          // v2.7.49: { lat, lng, accuracy, captured_at } — confirmed on every quote
+          ...(location ? { location } : {}),
         });
         return response.data;
       } catch (err) {

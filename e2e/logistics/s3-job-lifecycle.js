@@ -7,6 +7,10 @@ const L = require("./lib");
   const st = L.loadState();
   const d = await L.db();
   const { ObjectId } = L.mongoose.Types;
+  const OUTBOX = require("path").join(__dirname, "outbox.jsonl");
+  const outboxLen = () => { try { return require("fs").readFileSync(OUTBOX, "utf8").trim().split("\n").length; } catch { return 0; } };
+  const outboxSince = (n) => { try { return require("fs").readFileSync(OUTBOX, "utf8").trim().split("\n").slice(n).map((l) => JSON.parse(l)); } catch { return []; } };
+  const WA0 = outboxLen();
   const op = await L.actor("operator");
   const o = await L.actor("owner");
   let c;
@@ -34,7 +38,7 @@ const L = require("./lib");
     await L.shot(c, "s3-hub");
     L.check(/logistic|truck|post|search/i.test(await L.bodyText(c)), "hub home renders");
     await L.goto(c, "/logistics/search");
-    await c.page.fill('input[placeholder="Name"]', st.truck.name);
+    await c.page.fill('input[placeholder="Truck, tractor, unit or company name"]', st.truck.name);
     await c.page.getByRole("button", { name: /Search trucks/ }).click();
     await c.page.waitForTimeout(3000);
     await L.shot(c, "s3-search");
@@ -149,6 +153,9 @@ const L = require("./lib");
     await op.page.waitForTimeout(1000);
     const qt = await d.collection("logistics_quotes").findOne({ job_id: new ObjectId(jobId) });
     L.check(qt && String(qt.driver_id) === st.operator._id && qt.amount?.value === 280, "quote row by operator, USD 280", qt && { d: qt.driver_id, amt: qt.amount });
+    L.check(Array.isArray(qt?.quoted_from?.coordinates) && qt.quoted_from.source === "quote_location", "quote saved the operator's confirmed location (v2.7.49)", qt?.quoted_from);
+    await op.page.waitForTimeout(800);
+    L.check(outboxSince(WA0).some((m) => m.channel === "whatsapp" && m.template === "new_quote" && m.ok), "customer got the 'new quote' WhatsApp");
 
     // ── owner can view but not quote
     L.sec("3d. Owner is view-only on the job");
@@ -201,13 +208,26 @@ const L = require("./lib");
     job = await d.collection("transport_jobs").findOne({ _id: new ObjectId(jobId) });
     L.check(Number(job.status) === 5, "job status 5 (delivered)", job.status);
 
+    L.sec("3f2. WhatsApp job alerts + owner job updates (v2.7.49)");
+    await op.page.waitForTimeout(1000);
+    const wa = outboxSince(WA0).filter((m) => m.channel === "whatsapp");
+    const steps = wa.filter((m) => m.template === "job_status" && m.ok).map((m) => m.variables["2"]);
+    L.check(steps.some((t) => /accepted/i.test(t)) && steps.some((t) => /in transit/i.test(t)) && steps.some((t) => /delivered/i.test(t)), "customer got trip-step WhatsApps (accepted … in transit … delivered)", steps);
+    L.check(wa.some((m) => m.template === "job_status" && m.ok && /confirmation code is ready/.test(m.variables["2"]) && !m.variables["2"].includes(otp)), "code-ready alert sent to the customer's WhatsApp (code itself stays in the app)", wa.filter((m) => m.template === "job_status").map((m) => m.variables));
+    // v2.7.50: WhatsApp to owners / operators is paid-only — this fleet is on Free
+    L.check(!wa.some((m) => m.template === "job_status" && /owner\/job/.test(m.variables["3"] || "")), "Free-plan owner gets NO accepted / completed WhatsApp (paid-only)");
+    const ownerNotes2 = await d.collection(" notifications").find({ receiver_id: new ObjectId(st.owner._id), type: "logistics_owner_job_update", job_id: new ObjectId(jobId) }).toArray().catch(() => []);
+    L.check(ownerNotes2.length >= 3, "owner in-app notices for start / pickup / transit / completed", ownerNotes2.length);
+
     // ── customer review
     L.sec("3g. Customer reviews (UI)");
     await L.goto(c, `/logistics/jobs/${jobId}`);
-    await c.page.waitForSelector("form.log-job-review", { timeout: 15000 });
-    await c.page.locator(".log-job-review__stars button").nth(3).click();
-    await c.page.fill('textarea[placeholder="Optional review message"]', "Great e2e delivery");
-    await c.page.getByRole("button", { name: "Submit review" }).click();
+    // v2.7.49: "Rate your operator" popup opens by itself; Submit disabled until a star is picked
+    await c.page.waitForSelector(".log-rate-modal", { timeout: 15000 });
+    L.check(await c.page.locator(".log-rate-modal__submit").isDisabled(), "rating Submit disabled before a star");
+    await c.page.locator(".log-rate-modal__stars button").nth(3).click();
+    await c.page.fill('.log-rate-modal textarea', "Great e2e delivery");
+    await c.page.locator(".log-rate-modal__submit").click();
     L.check(await L.waitText(c, /Thanks for your review/), "review submitted");
     await L.goto(c, "/logistics/jobs");
     await c.page.waitForTimeout(1500);
@@ -234,6 +254,33 @@ const L = require("./lib");
   for (const x of [op, o, c].filter(Boolean)) {
     L.check(x.errors.length === 0, `${x.name}: no page/console errors`, x.errors.slice(0, 5));
     L.check(x.apiFails.length === 0, `${x.name}: no 5xx`, x.apiFails);
+  }
+  // ── priority fee (API — the web label + total are checked in the UI on My jobs)
+  try {
+    const jobId = st.job._id;
+    L.sec("3i. Priority job fee (v2.7.49)");
+    const sess = await L.api("GET", "/logistics/session", { token: st.customer.token });
+    L.check(sess?.data?.config?.priority_fee?.amount === 5, "session config: priority fee USD 5", sess?.data?.config?.priority_fee);
+    const c2 = c || (await L.actor("customer-p"));
+    if (!c) await L.seedAuth(c2, { token: st.customer.token, user: st.customer });
+    await L.goto(c2, "/logistics/post");
+    await c2.page.waitForTimeout(1500);
+    L.check(/Priority job \(\+ USD 5\)/.test(await L.bodyText(c2)), "Post job shows 'Priority job (+ USD 5)'");
+    const pj = await d.collection("transport_jobs").findOne({ _id: new ObjectId(jobId) });
+    await d.collection("transport_jobs").updateOne({ _id: pj._id }, { $set: { priority: true, priority_fee: { value: 5, currency: "USD" } } });
+    const gj = await L.api("GET", `/logistics/job/${jobId}`, { token: st.customer.token });
+    const ps = gj?.data?.job?.price_summary || gj?.data?.price_summary;
+    L.check(ps?.agreed?.value === 280 && ps?.priority_fee?.value === 5 && ps?.total?.value === 285, "price_summary: agreed 280 + fee 5 = total 285", ps);
+    await L.goto(c2, `/logistics/jobs/${jobId}`);
+    await c2.page.waitForTimeout(2000);
+    const jt = await L.bodyText(c2);
+    L.check(/Agreed price/.test(jt) && /Priority fee/.test(jt) && /285/.test(jt), "customer job page: Agreed price + Priority fee + Total 285", jt.match(/.{0,80}Priority fee.{0,80}/)?.[0]);
+    const earn = await L.api("GET", "/logistics/driver-earnings?limit=50", { token: L.tokenFor(st.owner._id) });
+    const row = JSON.stringify(earn?.data || {}).includes("285");
+    L.check(row, "owner earnings count the priority fee (285)");
+    await d.collection("transport_jobs").updateOne({ _id: pj._id }, { $set: { priority: false }, $unset: { priority_fee: "" } });
+  } catch (e) {
+    L.check(false, "priority section crashed", e.message.split("\n")[0]);
   }
   L.saveState(st);
   await L.done();

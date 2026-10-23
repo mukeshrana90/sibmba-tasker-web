@@ -27,7 +27,7 @@ const ChatList = ({ onSelect }) => {
   const currentUserId = getStoredUserId(customerDetails?._id);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleChatSelect = (peerId, chatIndex) => {
+  const handleChatSelect = (peerId, roomId) => {
     const normalizedPeerId = normalizeChatUserId(peerId);
     if (!normalizedPeerId) return;
 
@@ -35,9 +35,10 @@ const ChatList = ({ onSelect }) => {
     navigate(messagesPath(normalizedPeerId), { replace: true });
     setSelectedUser(normalizedPeerId);
 
+    // setChatList works on the full (both-module) list — match by room id
     setChatList((prevChatList) =>
-      prevChatList.map((chat, index) =>
-        index === chatIndex ? { ...chat, unreadCount: 0 } : chat
+      prevChatList.map((chat) =>
+        chat._id === roomId ? { ...chat, unreadCount: 0 } : chat
       )
     );
     onSelect?.();
@@ -93,7 +94,6 @@ const ChatList = ({ onSelect }) => {
         {filteredChatList.length > 0 ? (
           filteredChatList.map((ele, index) => {
             const peerId = getChatPeerId(ele, currentUserId);
-            const chatIndex = chatList.indexOf(ele);
             const isActive =
               selectedUser && peerId && String(selectedUser) === String(peerId);
             const createdAt = ele?.lastMessage?.createdAt;
@@ -105,7 +105,7 @@ const ChatList = ({ onSelect }) => {
             return (
               <li
                 key={peerId || ele?._id || `chat-${index}`}
-                onClick={() => handleChatSelect(peerId, chatIndex)}
+                onClick={() => handleChatSelect(peerId, ele?._id)}
                 className={isActive ? 'active' : ''}
               >
                 <div className="chat-list-row">

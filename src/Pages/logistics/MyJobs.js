@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LogisticsReasonModal from "../../CommanComponents/LogisticsReasonModal";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -15,6 +15,7 @@ import {
   isEquipmentJob,
   jobCategoryKey,
   jobSite,
+  parseJobLoadSpec,
 } from "../../utils/jobKind";
 import { CategoryGlyph } from "../../CommanComponents/LogisticsFormIcons";
 import {
@@ -24,6 +25,7 @@ import {
 import QuoteChatIconButton from "../../Components/QuoteChatIconButton";
 import { openLogisticsJobChat, telHref } from "../../utils/beginQuoteChat";
 import { buildPublicAssetUrl, defaultImage } from "../../utils/ImagePath";
+import { jobPriceLines, withPriorityFee } from "../../utils/jobPrice";
 import "./logistics.css";
 import {
   LogisticsDetailSkeleton,
@@ -150,22 +152,10 @@ function formatJobWeight(loadWeight) {
     return null;
   }
   const value = Number(loadWeight.value);
-  if (!Number.isFinite(value)) return null;
+  // Equipment hire is saved with weight 0 — no load to show
+  if (!Number.isFinite(value) || value <= 0) return null;
   const unit = loadWeight.unit || "tons";
   return `${value} ${unit}`;
-}
-
-function formatMoney(budget) {
-  if (!budget || budget.amount == null || budget.amount === "") return null;
-  const amount = Number(budget.amount);
-  if (!Number.isFinite(amount)) return null;
-  const rate =
-    budget.rate_unit === "hour"
-      ? " / hour"
-      : budget.rate_unit === "day"
-        ? " / day"
-        : "";
-  return `${budget.currency || "USD"} ${amount}${rate}`;
 }
 
 function formatWhen(value) {
@@ -358,7 +348,7 @@ export default function LogisticsMyJobs() {
           const weight = formatJobWeight(job.load_weight);
           const posted = formatWhen(job.createdAt);
           const when = formatWhen(job.when_needed);
-          const budget = formatMoney(job.budget);
+          const price = jobPriceLines(job);
           const status =
             (isCabJob(job) ? RIDE_STATUS_LABEL : STATUS_LABEL)[job.status] ??
             `status ${job.status}`;
@@ -455,9 +445,13 @@ export default function LogisticsMyJobs() {
                 </span>
 
                 <span className="log-jl-card__side">
-                  {budget ? <strong className="log-jl-card__price">{budget}</strong> : null}
-                  {job.budget?.amount != null ? (
-                    <small>{job.budget?.negotiable ? "Negotiable" : "Fixed"}</small>
+                  {price.headline ? <strong className="log-jl-card__price">{price.headline}</strong> : null}
+                  {price.stage === "agreed" ? (
+                    <small>{price.fee ? `Agreed + ${price.fee} priority` : "Agreed price"}</small>
+                  ) : job.budget?.amount != null ? (
+                    <small>
+                      {price.fee ? `Budget + ${price.fee} priority` : job.budget?.negotiable ? "Negotiable" : "Fixed"}
+                    </small>
                   ) : null}
                   <span className="log-jl-card__end">
                     <JobCategoryBadge job={job} compact />
@@ -635,6 +629,100 @@ function DropCheckBanner({ jobId, check, onAnswered }) {
   );
 }
 
+/**
+ * Rating popup shown when a customer opens a completed job they haven't rated.
+ * Stars start empty; Submit stays disabled until one is picked. Message optional.
+ */
+function RateJobModal({ open, rating, message, busy, onRating, onMessage, onClose, onSubmit }) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape" && !busy) onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, busy, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="log-modal log-rate-modal" role="dialog" aria-modal="true" aria-label="Rate your operator">
+      <button
+        type="button"
+        className="log-modal__backdrop"
+        aria-label="Close"
+        onClick={() => !busy && onClose()}
+      />
+      <form className="log-modal__sheet log-modal__sheet--narrow" onSubmit={onSubmit}>
+        <div className="log-modal__head">
+          <div>
+            <h2>Rate your operator</h2>
+            <p>How was this job? Your rating helps other customers choose operators.</p>
+          </div>
+          <button
+            type="button"
+            className="log-modal__close log-rate-modal__x"
+            aria-label="Close"
+            disabled={busy}
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="log-modal__body">
+          <div className="log-job-review__stars log-rate-modal__stars" role="group" aria-label="Rating">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={n <= rating ? "on" : ""}
+                onClick={() => onRating(n)}
+                aria-label={`${n} star${n === 1 ? "" : "s"}`}
+                aria-pressed={n <= rating}
+              >
+                ★
+              </button>
+            ))}
+          </div>
+          <p className="log-hint log-rate-modal__hint">
+            {rating ? `${rating} of 5` : "Tap a star to rate"}
+          </p>
+          <textarea
+            className="log-job-review__msg"
+            rows={3}
+            maxLength={1000}
+            placeholder="Add a message (optional)"
+            value={message}
+            onChange={(e) => onMessage(e.target.value)}
+          />
+          <div className="log-reason-modal__actions">
+            <button
+              type="button"
+              className="logistics-cta logistics-cta--ghost log-rate-modal__later"
+              disabled={busy}
+              onClick={onClose}
+            >
+              Later
+            </button>
+            <button
+              type="submit"
+              className="logistics-cta logistics-cta--primary log-rate-modal__submit"
+              disabled={busy || !(rating >= 1)}
+            >
+              {busy ? "Submitting…" : "Submit rating"}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export function LogisticsJobDetail() {
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -647,7 +735,10 @@ export function LogisticsJobDetail() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [requestingCollect, setRequestingCollect] = useState(false);
-  const [reviewRating, setReviewRating] = useState(5);
+  // Stars start empty — the customer must pick one before Submit is enabled
+  const [reviewRating, setReviewRating] = useState(0);
+  const [rateOpen, setRateOpen] = useState(false);
+  const rateAutoOpenedFor = useRef(null);
   const [reviewMessage, setReviewMessage] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
@@ -684,6 +775,17 @@ export function LogisticsJobDetail() {
     reloadJob();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, id]);
+
+  // Completed job without a review → ask for a rating once per visit.
+  // "Later" / X only hides it until the page is opened again (no persistence).
+  useEffect(() => {
+    if (!job || String(job._id) !== String(id)) return;
+    if (Number(job.status) !== 5 || job.customer_review?.rating) return;
+    if (rateAutoOpenedFor.current === id) return;
+    rateAutoOpenedFor.current = id;
+    setReviewRating(0);
+    setRateOpen(true);
+  }, [job, id]);
 
   useEffect(() => {
     const onFocus = () => {
@@ -864,7 +966,7 @@ export function LogisticsJobDetail() {
   };
 
   const submitReview = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     if (!(reviewRating >= 1 && reviewRating <= 5)) {
       toast.error("Pick a rating from 1 to 5");
       return;
@@ -887,6 +989,7 @@ export function LogisticsJobDetail() {
       }
       toast.success("Thanks for your review");
       setReviewMessage("");
+      setRateOpen(false);
       await reloadJob();
     } finally {
       setSubmittingReview(false);
@@ -971,7 +1074,7 @@ export function LogisticsJobDetail() {
     .map(jobImageUrl)
     .filter(Boolean);
   const weight = formatJobWeight(job.load_weight);
-  const budget = formatMoney(job.budget);
+  const price = jobPriceLines(job);
   const when = formatWhen(job.when_needed);
   const plantJob = isEquipmentJob(job);
   const site = jobSite(job);
@@ -1047,17 +1150,26 @@ export function LogisticsJobDetail() {
     when
       ? { k: "when", label: cabRide ? "Booked" : plantJob ? "Hire from" : "Needed", value: when, sub: job.flexible_dates ? "Flexible dates" : null }
       : null,
-    budget
+    price.headline
       ? {
           k: "price",
-          label: cabRide ? "Fare" : plantJob ? "Budget" : "Price",
-          value: budget,
-          sub: [
-            job.budget?.rate_unit === "hour" ? "per hour" : job.budget?.rate_unit === "day" ? "per day" : null,
-            job.budget?.negotiable ? "Negotiable" : "Fixed",
-          ]
-            .filter(Boolean)
-            .join(" · "),
+          // Budget until a quote is accepted, then the agreed price (+ priority fee → Total)
+          label: price.lines.some((l) => l.key === "total")
+            ? "Total"
+            : cabRide && price.stage === "budget"
+              ? "Fare"
+              : price.baseLabel,
+          value: price.headline,
+          sub:
+            price.stage === "budget" && price.lines.length <= 1
+              ? [
+                  job.budget?.rate_unit === "hour" ? "per hour" : job.budget?.rate_unit === "day" ? "per day" : null,
+                  job.budget?.negotiable ? "Negotiable" : "Fixed",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : null,
+          lines: price.lines.length > 1 ? price.lines : null,
         }
       : null,
     !plantJob && distanceKm != null
@@ -1070,9 +1182,17 @@ export function LogisticsJobDetail() {
           value: String(job.ride.passengers),
           sub: job.ride?.cab_class ? job.ride.cab_class.charAt(0).toUpperCase() + job.ride.cab_class.slice(1) : null,
         }
-      : weight
-        ? { k: "weight", label: "Load", value: weight, sub: null }
-        : null,
+      : plantJob
+        ? (() => {
+            // Equipment hire carries no load — show the machine instead (same as operator view)
+            const spec = parseJobLoadSpec(job);
+            return spec.equipment
+              ? { k: "equip", label: "Equipment", value: spec.equipment, sub: spec.subtype || null }
+              : null;
+          })()
+        : weight
+          ? { k: "weight", label: "Load", value: weight, sub: null }
+          : null,
   ].filter(Boolean);
 
   return (
@@ -1182,6 +1302,16 @@ export function LogisticsJobDetail() {
                 <dt>{f.label}</dt>
                 <dd>{f.value}</dd>
                 {f.sub ? <span>{f.sub}</span> : null}
+                {f.lines ? (
+                  <ul className="log-jd-price-lines">
+                    {f.lines.map((l) => (
+                      <li key={l.key} className={`log-jd-price-lines__${l.key}`}>
+                        <span>{l.label}</span>
+                        <b>{l.value}</b>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             ))}
           </dl>
@@ -1358,13 +1488,21 @@ export function LogisticsJobDetail() {
                 : "Share this code with your operator so they can mark the job delivered."}
             </p>
             {plantJob && job.completion_amount?.value > 0 ? (
-              <p className="log-delivery-otp-banner__amount">
-                Amount to pay:{" "}
-                <strong>
-                  {job.completion_amount.currency || "USD"}{" "}
-                  {job.completion_amount.value}
-                </strong>
-              </p>
+              (() => {
+                // Priority fee goes on top of the hire amount (paid to the equipment owner)
+                const pay = withPriorityFee(job, job.completion_amount);
+                return (
+                  <p className="log-delivery-otp-banner__amount">
+                    Amount to pay: <strong>{pay.total}</strong>
+                    {pay.fee ? (
+                      <small className="log-delivery-otp-banner__breakdown">
+                        {" "}
+                        ({pay.amount} + {pay.fee} priority fee)
+                      </small>
+                    ) : null}
+                  </p>
+                );
+              })()
             ) : null}
             <div className="log-delivery-otp-banner__code" aria-live="polite">
               {job.delivery_otp}
@@ -1403,7 +1541,7 @@ export function LogisticsJobDetail() {
         ) : null}
 
         {canReview ? (
-          <form className="log-job-review" onSubmit={submitReview}>
+          <div className="log-job-review log-job-review--ask">
             <h2 className="log-sect">
               {plantJob ? "Rate this hire" : isCabJob(job) ? "Rate this ride" : "Rate this delivery"}
             </h2>
@@ -1411,35 +1549,14 @@ export function LogisticsJobDetail() {
               How was this job? Your rating helps other customers choose
               operators.
             </p>
-            <div className="log-job-review__stars" role="group" aria-label="Rating">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className={n <= reviewRating ? "on" : ""}
-                  onClick={() => setReviewRating(n)}
-                  aria-label={`${n} star${n === 1 ? "" : "s"}`}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
-            <textarea
-              className="log-job-review__msg"
-              rows={3}
-              maxLength={1000}
-              placeholder="Optional review message"
-              value={reviewMessage}
-              onChange={(e) => setReviewMessage(e.target.value)}
-            />
             <button
-              type="submit"
-              className="logistics-cta logistics-cta--primary"
-              disabled={submittingReview}
+              type="button"
+              className="logistics-cta logistics-cta--primary log-job-review__open"
+              onClick={() => setRateOpen(true)}
             >
-              {submittingReview ? "Submitting…" : "Submit review"}
+              Rate this job
             </button>
-          </form>
+          </div>
         ) : null}
 
         {existingReview ? (
@@ -1695,6 +1812,9 @@ export function LogisticsJobDetail() {
                   const amount = Number(q.amount?.value || 0);
                   const currency = q.amount?.currency || "USD";
                   const diff = Number.isFinite(offered) && offered > 0 ? amount - offered : null;
+                  // v2.7.53: priority job → the customer pays quote + priority fee (one total, in cash)
+                  const qPay = withPriorityFee(job, q.amount);
+                  const qHasFee = Boolean(qPay.fee);
                   const jobCancelledByCustomer = Number(job.status) === 6;
                   const canQuoteChat =
                     chatPeer._id && String(chatPeer._id) !== String(myUserId) && !jobCancelledByCustomer;
@@ -1756,8 +1876,13 @@ export function LogisticsJobDetail() {
                         </div>
                         <div className="log-qx-card__price">
                           <strong>
-                            {currency} {amount.toFixed(2).replace(/\.00$/, "")}
+                            {qHasFee ? qPay.total : `${currency} ${amount.toFixed(2).replace(/\.00$/, "")}`}
                           </strong>
+                          {qHasFee ? (
+                            <small className="log-qx-card__breakdown">
+                              Quote {qPay.amount} + {qPay.fee} priority fee
+                            </small>
+                          ) : null}
                           {diff != null && diff !== 0 ? (
                             <small className={diff < 0 ? "is-below" : "is-above"}>
                               {diff < 0 ? "▼" : "▲"} {currency} {Math.abs(diff).toFixed(2).replace(/\.00$/, "")}{" "}
@@ -1857,6 +1982,16 @@ export function LogisticsJobDetail() {
           )}
         </section>
       </div>
+      <RateJobModal
+        open={rateOpen && canReview}
+        rating={reviewRating}
+        message={reviewMessage}
+        busy={submittingReview}
+        onRating={setReviewRating}
+        onMessage={setReviewMessage}
+        onClose={() => setRateOpen(false)}
+        onSubmit={submitReview}
+      />
       <LogisticsReasonModal
         open={cancelModalOpen}
         title={isEquipmentJob(job) ? "Cancel this hire?" : "Cancel this job?"}

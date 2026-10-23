@@ -165,6 +165,45 @@ export default function LogisticsSupplySidebar({
     chrome?.closeMobile?.();
   }, [path]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep --log-appnav-h equal to the real header height (it wraps to two
+  // rows on phones) so the drawer always opens just under the header.
+  useEffect(() => {
+    const header = document.querySelector("header.appnav");
+    const layout = document.querySelector(".log-supply-layout");
+    if (!header || !layout) return undefined;
+    let last = 0;
+    let frame = 0;
+    const apply = () => {
+      frame = 0;
+      const h = header.offsetHeight;
+      if (h > 0 && h !== last) {
+        last = h;
+        layout.style.setProperty("--log-appnav-h", `${h}px`);
+      }
+    };
+    // Write on the next frame, not inside the observer callback: a layout
+    // change there (e.g. a restored tab still settling) makes the browser
+    // throw "ResizeObserver loop completed with undelivered notifications".
+    const sync = () => {
+      if (!frame) frame = window.requestAnimationFrame(apply);
+    };
+    apply();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", sync);
+      return () => {
+        window.removeEventListener("resize", sync);
+        if (frame) window.cancelAnimationFrame(frame);
+      };
+    }
+    const ro = new ResizeObserver(sync);
+    ro.observe(header);
+    return () => {
+      ro.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
+      layout.style.removeProperty("--log-appnav-h");
+    };
+  }, []);
+
   useEffect(() => {
     let alive = true;
     let timer = null;

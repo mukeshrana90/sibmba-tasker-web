@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import ModuleSwitcher from "../../Components/Layout/ModuleSwitcher";
+import { guestLoginPath } from "../../utils/authRedirect";
 import "../../Assets/css/landing.css";
 
 function MenuIcon() {
@@ -27,6 +29,11 @@ const NAV_ANCHORS = [
 
 export default function LandingGuestHeader() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Guests browsing Logistics come back to the same page after Sign in
+  const signInPath = location.pathname.startsWith("/logistics")
+    ? guestLoginPath(`${location.pathname}${location.search}`)
+    : "/login";
   const [joinOpen, setJoinOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const joinRef = useRef(null);
@@ -96,6 +103,12 @@ export default function LandingGuestHeader() {
           <img src={require("../../Assets/Images/dark-logo.png")} alt="Simba Tasker" />
         </Link>
 
+        <ModuleSwitcher
+          className="landing-nav__module"
+          taskerLabel="Services"
+          logisticsLabel="Logistics"
+        />
+
         <nav className="landing-nav__links">
           <a href="/#categories">Categories</a>
           <a href="/#providers">Providers</a>
@@ -110,7 +123,7 @@ export default function LandingGuestHeader() {
           <button
             type="button"
             className="landing-btn landing-btn--ghost landing-nav__signin"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(signInPath)}
           >
             Sign in
           </button>
@@ -263,7 +276,7 @@ export default function LandingGuestHeader() {
               className="landing-btn landing-btn--ghost landing-nav__signin"
               onClick={() => {
                 setMobileOpen(false);
-                navigate("/login");
+                navigate(signInPath);
               }}
             >
               Sign in

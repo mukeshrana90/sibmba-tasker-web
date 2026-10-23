@@ -54,3 +54,45 @@ export function docExpiryChip(expires) {
   }
   return { label: `Valid until ${fmtExpiry(expires)}`, tone: "done", status };
 }
+
+/** "YYYY-MM-DD" of tomorrow in Harare — the earliest expiry a new document may have (v2.7.49). */
+export function tomorrowYmd(now = Date.now()) {
+  return new Date(Date.parse(`${harareTodayYmd(now)}T00:00:00Z`) + DAY).toISOString().slice(0, 10);
+}
+
+/**
+ * v2.7.49 client rules — which documents block work:
+ *  - road units (truck / cab): Road licence (ZINARA) required; roadworthy too on red-plate vehicles
+ *  - equipment: none
+ *  - operators: driving / plant licence (medical fitness is optional)
+ * Every other document is supporting only.
+ */
+export const OPERATOR_BLOCKING_TYPES = ["licence"];
+
+export function assetBlockingTypes(kind, redPlate) {
+  if (kind === "equipment" || kind === "plant") return [];
+  return ["rego", ...(redPlate ? ["roadworthy"] : [])];
+}
+
+/** Short role of a document under the rules above (shown next to its label). */
+export function docRuleHint(type, { kind = "vehicle", redPlate = false, operator = false } = {}) {
+  if (operator) {
+    if (type === "licence") return "Required to go live";
+    if (type === "medical") return "Optional";
+    return "Supporting document";
+  }
+  if (assetBlockingTypes(kind, redPlate).includes(type)) {
+    return type === "rego" ? "Required to take work" : "Required for red-plate vehicles";
+  }
+  if (type === "roadworthy") return "Needed for red-plate vehicles";
+  return "Supporting document";
+}
+
+/** Chip for the Simba document check (review), or null when not checked yet / old upload. */
+export function docReviewChip(review) {
+  const s = review?.status;
+  if (s === "pending") return { label: "Pending Simba check", tone: "progress" };
+  if (s === "verified") return { label: "Verified by Simba", tone: "done" };
+  if (s === "rejected") return { label: `Rejected${review.reason ? `: ${review.reason}` : ""}`, tone: "closed" };
+  return null;
+}

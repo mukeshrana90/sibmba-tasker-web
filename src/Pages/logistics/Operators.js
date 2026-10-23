@@ -24,8 +24,18 @@ import {
   LogisticsListSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
-import { OPERATOR_COMPLIANCE_TYPES, docExpiryChip, fmtExpiry, REMINDER_HINT } from "../../utils/docExpiry";
+import {
+  OPERATOR_COMPLIANCE_TYPES,
+  docExpiryChip,
+  docReviewChip,
+  docRuleHint,
+  fmtExpiry,
+  REMINDER_HINT,
+  tomorrowYmd,
+} from "../../utils/docExpiry";
 import { LICENCE_CLASSES } from "../../utils/logisticsLicence";
+import { DOC_ACCEPT, PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
+import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
 
 const OPERATOR_DOCS = [
   {
@@ -149,7 +159,7 @@ function OperatorDocStatus({ compliance }) {
           {c.text}
         </span>
       ))}
-      {compliance.expired?.length ? (
+      {compliance.expired?.some((d) => d.blocking !== false) ? (
         <span className="log-hint" style={{ margin: 0 }}>
           Can&apos;t go live or quote until renewed
         </span>
@@ -183,6 +193,9 @@ function OperatorDocRows({ items, docs, onPick, onExpiry }) {
             </span>
             <span className="log-doc-row__body">
               <b>{d.label}</b>
+              {d.id === "licence" || d.id === "medical" ? (
+                <small className="log-doc-row__rule">{docRuleHint(d.id, { operator: true })}</small>
+              ) : null}
               <p>
                 {fileLabel
                   ? `${fileLabel}${
@@ -204,6 +217,14 @@ function OperatorDocRows({ items, docs, onPick, onExpiry }) {
                 {docExpiryChip(entry?.expires).label}
               </span>
             ) : null}
+            {entry?.url && !entry?.file && docReviewChip(entry.review) ? (
+              <span
+                className={`log-chip log-chip--${docReviewChip(entry.review).tone} log-doc-review`}
+                data-review={entry.review?.status}
+              >
+                {docReviewChip(entry.review).label}
+              </span>
+            ) : null}
             <label className="log-doc-row__expiry">
               <span>
                 Expiry date
@@ -214,6 +235,7 @@ function OperatorDocRows({ items, docs, onPick, onExpiry }) {
                 value={entry?.expires || ""}
                 onChange={(e) => onExpiry?.(d.id, e.target.value)}
                 required={OPERATOR_COMPLIANCE_TYPES.includes(d.id) && Boolean(entry?.file || entry?.url)}
+                min={tomorrowYmd()}
               />
               {(entry?.file || entry?.url) && !entry?.expires && OPERATOR_COMPLIANCE_TYPES.includes(d.id) ? (
                 <span className="log-field-error">Expiry date is required</span>
@@ -225,10 +247,10 @@ function OperatorDocRows({ items, docs, onPick, onExpiry }) {
             >
               <input
                 type="file"
-                accept=".pdf,image/*"
+                accept={DOC_ACCEPT}
                 hidden
                 onChange={(e) => {
-                  const f = e.target.files?.[0];
+                  const [f] = keepAllowedFiles(e.target.files);
                   if (f) onPick(d.id, f);
                   e.target.value = "";
                 }}
@@ -243,6 +265,8 @@ function OperatorDocRows({ items, docs, onPick, onExpiry }) {
 }
 
 export default function LogisticsOperators() {
+  // Loads the server upload limit (config.upload) for the file pickers
+  useLogisticsConfig();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -253,6 +277,20 @@ export default function LogisticsOperators() {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // v2.7.50: WhatsApp (invites + notifications) is a paid-plan feature; null = not known yet
+  const [waAvailable, setWaAvailable] = useState(null);
+  useEffect(() => {
+    let live = true;
+    dispatch(LogisticsActions.getMe())
+      .then((r) => {
+        const n = r?.payload?.data?.user?.notifications;
+        if (live && n) setWaAvailable(n.whatsapp_available !== false);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [dispatch]);
   const [showForm, setShowForm] = useState(showAddByRoute);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyInvite);
@@ -323,6 +361,7 @@ export default function LogisticsOperators() {
         expires: doc.expires
           ? new Date(doc.expires).toISOString().slice(0, 10)
           : "",
+        review: doc.review || null,
       };
       docs[id].orig_expires = docs[id].expires;
     });
@@ -366,7 +405,7 @@ export default function LogisticsOperators() {
   };
 
   const onPickPhoto = (e) => {
-    const file = e.target.files?.[0];
+    const [file] = keepAllowedFiles(e.target.files, { imagesOnly: true });
     e.target.value = "";
     if (!file) return;
     setForm((f) => {
@@ -407,7 +446,7 @@ export default function LogisticsOperators() {
   };
 
   const onAddExtraDoc = (e) => {
-    const file = e.target.files?.[0];
+    const [file] = keepAllowedFiles(e.target.files);
     e.target.value = "";
     if (!file) return;
     const id = `other_${Date.now()}`;
@@ -462,7 +501,7 @@ export default function LogisticsOperators() {
     }
     // WhatsApp only counts once a phone number is entered
     const hasPhone = Boolean(String(form.phone_number || "").replace(/\D/g, ""));
-    const sendVia = (form.send_via || []).filter((c) => c !== "whatsapp" || hasPhone);
+    const sendVia = (form.send_via || []).filter((c) => c !== "whatsapp" || (hasPhone && waAvailable !== false));
     if (!sendVia.length) {
       toast.error(
         hasPhone
@@ -851,7 +890,7 @@ export default function LogisticsOperators() {
               <label className="log-photo-slot log-photo-slot--add">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={PHOTO_ACCEPT}
                   hidden
                   onChange={onPickPhoto}
                 />
@@ -869,7 +908,7 @@ export default function LogisticsOperators() {
               <input
                 value={form.full_name}
                 onChange={set("full_name")}
-                placeholder="Tendai Moyo"
+                placeholder="Full name"
               />
             </label>
             {!isEditing ? (
@@ -882,7 +921,7 @@ export default function LogisticsOperators() {
                     type="email"
                     value={form.email}
                     onChange={set("email")}
-                    placeholder="t.moyo@gmail.com"
+                    placeholder="name@example.com"
                     required
                   />
                 </label>
@@ -967,8 +1006,9 @@ export default function LogisticsOperators() {
           </p>
           <p className="log-hint log-field--full">
             Licence scan, medical fitness and any other papers for this
-            operator. Licence and medical need an expiry date (*). {REMINDER_HINT}{" "}
-            With an expired licence or medical the operator can&apos;t go live or quote.
+            operator. Pick each expiry date from the calendar — licence and medical need one (*).{" "}
+            {REMINDER_HINT} The driving / plant licence is required: with an expired one the
+            operator can&apos;t go live or quote. Medical fitness is optional.
           </p>
           <div className="log-field--full">
             <OperatorDocRows
@@ -983,7 +1023,7 @@ export default function LogisticsOperators() {
             >
               <input
                 type="file"
-                accept=".pdf,image/*"
+                accept={DOC_ACCEPT}
                 hidden
                 onChange={onAddExtraDoc}
               />
@@ -1098,18 +1138,21 @@ export default function LogisticsOperators() {
               <span className="log-fl">Send invite link via *</span>
               <div className="log-invite-via__opts" role="group" aria-label="Send invite link via">
                 {INVITE_CHANNEL_OPTIONS.map((c) => {
+                  const paidOnly = c.id === "whatsapp" && waAvailable === false;
                   const noPhone =
                     c.id === "whatsapp" && !String(form.phone_number || "").replace(/\D/g, "");
-                  const on = !noPhone && (form.send_via || []).includes(c.id);
+                  const off = paidOnly || noPhone;
+                  const on = !off && (form.send_via || []).includes(c.id);
                   return (
                     <label
                       key={c.id}
-                      className={`log-invite-via__opt${on ? " is-on" : ""}${noPhone ? " is-unavailable" : ""}`}
+                      data-channel={c.id}
+                      className={`log-invite-via__opt${on ? " is-on" : ""}${off ? " is-unavailable" : ""}`}
                     >
                       <input
                         type="checkbox"
                         checked={on}
-                        disabled={noPhone}
+                        disabled={off}
                         onChange={() =>
                           setForm((f) => {
                             const cur = f.send_via || [];
@@ -1122,14 +1165,24 @@ export default function LogisticsOperators() {
                       />
                       <span>
                         <b>{c.label}</b>
-                        <small>{noPhone ? "Add a phone number first" : c.hint}</small>
+                        <small>
+                          {paidOnly ? (
+                            <>
+                              Paid plans only — <Link to="/logistics/owner/subscription">see plans</Link>
+                            </>
+                          ) : noPhone ? (
+                            "Add a phone number first"
+                          ) : (
+                            c.hint
+                          )}
+                        </small>
                       </span>
                     </label>
                   );
                 })}
               </div>
               {!(form.send_via || []).filter(
-                (c) => c !== "whatsapp" || String(form.phone_number || "").replace(/\D/g, "")
+                (c) => c !== "whatsapp" || (waAvailable !== false && String(form.phone_number || "").replace(/\D/g, ""))
               ).length ? (
                 <span className="log-hint log-hint--warn">Pick at least one.</span>
               ) : null}

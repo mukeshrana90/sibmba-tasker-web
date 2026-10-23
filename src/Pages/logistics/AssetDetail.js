@@ -5,6 +5,7 @@ import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import { buildPublicAssetUrl, defaultImage } from "../../utils/ImagePath";
 import { Roles } from "../../utils/Roles";
 import { assetBookState } from "../../utils/logisticsBooking";
+import { accountLinkTo, isLoggedIn } from "../../utils/authRedirect";
 import "./logistics.css";
 import {
   LogisticsDetailSkeleton,
@@ -142,8 +143,10 @@ export default function LogisticsAssetDetail() {
     String(availState).replace(/_/g, " ");
   const availDetail = asset?.availability?.status_detail;
   const phone = formatPhone(owner);
-  const showPhone = Boolean(owner?.contact_phone_visible && phone);
-  const showEmail = Boolean(owner?.contact_phone_visible && owner?.email);
+  // Guests never see owner contact details (the API also leaves them out)
+  const guest = !isLoggedIn();
+  const showPhone = Boolean(!guest && owner?.contact_phone_visible && phone);
+  const showEmail = Boolean(!guest && owner?.contact_phone_visible && owner?.email);
   const providerName =
     owner?.full_name ||
     owner?.company_name ||
@@ -258,7 +261,7 @@ export default function LogisticsAssetDetail() {
                 {canBook ? (
                   <Link
                     className="logistics-cta logistics-cta--primary log-asset-detail-actions__book"
-                    to={`/logistics/post?asset=${asset._id}`}
+                    to={accountLinkTo(`/logistics/post?asset=${asset._id}`)}
                   >
                     {asset.kind === "cab" ? "Request ride now" : "Book / request quote"}
                   </Link>
@@ -353,6 +356,11 @@ export default function LogisticsAssetDetail() {
                 {showPhone ? (
                   <p className="log-asset-detail-provider__row">
                     <a href={`tel:${phone}`}>{phone}</a>
+                  </p>
+                ) : guest ? (
+                  <p className="log-hint log-asset-detail-provider__privacy log-asset-detail-provider__guest">
+                    <Link to={accountLinkTo(`/logistics/asset/${id}`)}>Log in</Link> to book
+                    or contact this provider.
                   </p>
                 ) : (
                   <p className="log-hint log-asset-detail-provider__privacy">

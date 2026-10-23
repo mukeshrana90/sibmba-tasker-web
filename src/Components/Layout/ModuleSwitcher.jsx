@@ -1,11 +1,42 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { ChatContext } from "../../context/ChatProvider";
 import {
   getActiveModule,
   resolveActiveModule,
   setActiveModule,
   syncActiveModuleFromPath,
 } from "../../utils/Roles";
+
+/** Logistics notices use logistics_* types and / or carry a TransportJob id. */
+export const notificationModuleOf = (n) =>
+  String(n?.type || "").startsWith("logistics") || n?.job_id
+    ? "logistics"
+    : "tasker";
+
+// Last time the user had each module open (per user, this browser). In-app
+// notifications have no read flag, so "new" = created after that moment.
+const seenKey = (module) =>
+  `moduleSeenAt:${localStorage.getItem("userId") || "guest"}:${module}`;
+function readSeenAt(module) {
+  try {
+    const v = Number(localStorage.getItem(seenKey(module)));
+    if (v > 0) return v;
+    const now = Date.now(); // first run: only later activity counts as new
+    localStorage.setItem(seenKey(module), String(now));
+    return now;
+  } catch {
+    return Date.now();
+  }
+}
+function markSeen(module) {
+  try {
+    localStorage.setItem(seenKey(module), String(Date.now()));
+  } catch {
+    /* ignore */
+  }
+}
 
 /**
  * Product module toggle for the app header (between logo and menus).
@@ -19,6 +50,9 @@ export default function ModuleSwitcher({
   logisticsHome = "/logistics",
   activeOverride = null,
   className = "",
+  // Guest header shows "Services | Logistics"
+  taskerLabel = "Simba Tasker",
+  logisticsLabel = "Logistics",
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,6 +80,36 @@ export default function ModuleSwitcher({
 
   const selected = activeOverride || active;
 
+  // v2.7.55 red dot on the other module: unread chats there (chat is
+  // module-scoped) or notifications for it since it was last open.
+  const { unreadByModule } = useContext(ChatContext) || {};
+  const notifications = useSelector((state) => state.UserSlice?.notificationData);
+  const loggedIn = !!localStorage.getItem("token");
+  useEffect(() => {
+    if (loggedIn) markSeen(selected);
+  }, [selected, notifications, loggedIn]);
+  const hasNew = useMemo(() => {
+    const out = { tasker: false, logistics: false };
+    if (!loggedIn) return out;
+    for (const module of ["tasker", "logistics"]) {
+      if (module === selected) continue;
+      const seenAt = readSeenAt(module);
+      out[module] =
+        (unreadByModule?.[module] || 0) > 0 ||
+        (Array.isArray(notifications) &&
+          notifications.some(
+            (n) =>
+              notificationModuleOf(n) === module &&
+              new Date(n?.createdAt).getTime() > seenAt
+          ));
+    }
+    return out;
+  }, [selected, unreadByModule, notifications, loggedIn]);
+  const dot = (module) =>
+    hasNew[module] ? (
+      <span className="module-switcher__dot" aria-label="New activity" />
+    ) : null;
+
   return (
     <div
       className={`module-switcher module-switcher--nav${className ? ` ${className}` : ""}`}
@@ -59,7 +123,8 @@ export default function ModuleSwitcher({
         className={selected === "tasker" ? "is-active" : ""}
         onClick={() => select("tasker")}
       >
-        Simba Tasker
+        {taskerLabel}
+        {dot("tasker")}
       </button>
       <button
         type="button"
@@ -68,7 +133,8 @@ export default function ModuleSwitcher({
         className={selected === "logistics" ? "is-active" : ""}
         onClick={() => select("logistics")}
       >
-        Logistics
+        {logisticsLabel}
+        {dot("logistics")}
       </button>
     </div>
   );

@@ -46,6 +46,29 @@ const L = require("./lib");
     L.check(/dashboard|fleet|operator/i.test(t), "owner dashboard renders", t.slice(0, 200));
     st.owner.token = await p.evaluate(() => localStorage.getItem("token"));
 
+    L.sec("1a. New company waits for Simba approval (v2.7.49)");
+    {
+      const row = await d.collection("users").findOne({ email }, { projection: { logistics_approval: 1 } });
+      L.check(row?.logistics_approval?.status === "pending", "new owner starts as Pending approval", row?.logistics_approval);
+      const banner = await p.locator(".log-approval-banner").first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false);
+      L.check(banner, "dashboard shows the 'waiting for Simba approval' banner");
+      const me = await L.api("GET", "/logistics/me", { token: st.owner.token });
+      L.check(me?.data?.user?.account?.approval?.status === "pending", "/me account.approval = pending", me?.data?.user?.account);
+      const live = await L.api("POST", "/logistics/job/000000000000000000000000/quote", { token: st.owner.token, body: {} });
+      L.check(live?.success === false, "pending owner can't take work", live?.message);
+      const ap = await L.approveOwner(st.owner._id);
+      L.check(ap?.success !== false && ap?.data?.approval?.status === "approved", "admin approves the company", ap?.message);
+      const me2 = await L.api("GET", "/logistics/me", { token: st.owner.token });
+      L.check(me2?.data?.user?.account?.approval?.status === "approved", "/me account.approval = approved");
+      const mail = require("fs").existsSync(require("path").join(__dirname, "outbox.jsonl"))
+        ? require("fs").readFileSync(require("path").join(__dirname, "outbox.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)
+        : [];
+      L.check(mail.some((m) => String(m.to || "").includes(email) && /approved/i.test(JSON.stringify(m))), "approval email sent to the owner");
+      await p.reload();
+      await p.waitForLoadState("networkidle").catch(() => {});
+      L.check(!(await p.locator(".log-approval-banner").count()), "banner gone after approval");
+    }
+
     L.sec("1b. Logout + login through UI");
     await p.evaluate(() => localStorage.clear());
     await L.goto(o, "/login", "form");

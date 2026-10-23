@@ -6,12 +6,15 @@ import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import { placeShortLabel } from "../../CommanComponents/LogisticsJobRoutePanel";
 import { buildPublicAssetUrl, defaultImage } from "../../utils/ImagePath";
 import { assetBookState } from "../../utils/logisticsBooking";
+import { accountLinkTo } from "../../utils/authRedirect";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
 import { CategoryGlyph } from "../../CommanComponents/LogisticsFormIcons";
 import {
   CATEGORIES,
   CAB_CATEGORY,
 } from "../../CommanComponents/LogisticsCategoryTiles";
+
+import LogisticsGuestLanding from "./LogisticsGuestLanding";
 
 import "./logistics.css";
 
@@ -209,7 +212,7 @@ function HubAssetCard({ row, badge }) {
           title={canBook ? undefined : blockedReason}
           to={
             canBook
-              ? `/logistics/post?asset=${row.asset_id}`
+              ? accountLinkTo(`/logistics/post?asset=${row.asset_id}`)
               : `/logistics/asset/${row.asset_id}`
           }
         >
@@ -413,6 +416,19 @@ export default function LogisticsHubHome() {
     };
   }, [dispatch]);
 
+  // v2.7.53: before login /logistics is a landing page (home style); signed-in customers keep the Hub
+  if (!localStorage.getItem("token")) {
+    return (
+      <LogisticsGuestLanding
+        cabEnabled={cabEnabled}
+        spotlight={spotlight}
+        loading={loading}
+        AssetSection={HubAssetSection}
+        Shimmer={HubSpotlightShimmer}
+      />
+    );
+  }
+
   return (
     <LogisticsPageShell title="Logistics Hub" crumbLabel="Hub">
       <div className="log-hub-home">
@@ -429,7 +445,7 @@ export default function LogisticsHubHome() {
               Providers land here as customers too.
             </p>
             <div className="log-hub-hero__ctas">
-              <Link className="logistics-cta logistics-cta--primary" to="/logistics/post">
+              <Link className="logistics-cta logistics-cta--primary" to={accountLinkTo("/logistics/post")}>
                 Post a job
               </Link>
               <Link className="logistics-cta logistics-cta--ghost" to="/logistics/search">
@@ -445,7 +461,7 @@ export default function LogisticsHubHome() {
                   key={c.id}
                   to={
                     c.id === "cab"
-                      ? "/logistics/post?category=cab"
+                      ? accountLinkTo("/logistics/post?category=cab")
                       : `/logistics/search?category=${c.id}&scope=category`
                   }
                   className={`log-hub-hero__cat log-hub-hero__cat--${c.id}`}
@@ -468,7 +484,8 @@ export default function LogisticsHubHome() {
             {PRIMARY.filter((a) => !a.cabOnly || cabEnabled).map((a) => (
               <Link
                 key={a.to}
-                to={a.to}
+                // Search is public; posting / my jobs need an account
+                to={a.to === "/logistics/search" ? a.to : accountLinkTo(a.to)}
                 className={`log-hub-need__card log-hub-need__card--v2 log-hub-need__card--${a.icon}`}
               >
                 <span className="log-hub-need__icon" aria-hidden="true">

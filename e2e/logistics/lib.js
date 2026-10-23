@@ -21,6 +21,11 @@ const HEADED = !!process.env.E2E_HEADED;
 const pages = [];
 const stage = (process.argv[1] || "").split("/").pop().replace(/\.js$/, "");
 let lastCheck = "";
+// Outbox viewer (outbox-viewer.js) timeline: which stage / section / check was running when a message went out
+const PROGRESS = path.join(__dirname, "progress.jsonl");
+function progress(kind, text, ok) {
+  try { fs.appendFileSync(PROGRESS, JSON.stringify({ ts: new Date().toISOString(), stage, kind, text, ok }) + "\n"); } catch {}
+}
 function paintBanner() {
   if (!HEADED) return;
   const tally = `${results.filter((r) => r.ok).length} pass · ${results.filter((r) => !r.ok).length} fail`;
@@ -31,12 +36,14 @@ function paintBanner() {
 }
 function sec(name) {
   section = name;
+  progress("section", name);
   console.log(`\n▶ ${name}`);
   paintBanner();
 }
 function check(ok, label, extra) {
   results.push({ section, ok: !!ok, label, extra: ok ? undefined : extra });
   lastCheck = `${ok ? "✔" : "✘"} ${label}`;
+  progress("check", label, !!ok);
   paintBanner();
   console.log(`  ${ok ? "PASS" : "FAIL"}  ${label}${!ok && extra !== undefined ? "  → " + String(typeof extra === "string" ? extra : JSON.stringify(extra)).slice(0, 400) : ""}`);
   return !!ok;
@@ -45,6 +52,64 @@ function loadState() {
   try { return JSON.parse(fs.readFileSync(STATE, "utf8")); } catch { return {}; }
 }
 function saveState(s) { fs.writeFileSync(STATE, JSON.stringify(s, null, 2)); }
+
+/**
+ * Chromium hands intercepted requests over WITHOUT the bytes of attached files,
+ * so uploads can't go through route.fetch (the API got empty files), and
+ * route.continue can't send a request with a body to another origin. So the
+ * page itself (uploadInitScript) sends FormData requests to this HTTPS relay,
+ * which pipes them to the test API untouched (the API sends the CORS headers).
+ */
+let relayPort;
+async function uploadRelay() {
+  if (relayPort) return relayPort;
+  const https = require("https");
+  const http = require("http");
+  const pems = require(path.join(ROOT, "sibmba-tasker-web/node_modules/selfsigned")).generate([{ name: "commonName", value: "localhost" }], { days: 1, keySize: 2048 });
+  const target = new URL(API);
+  const server = https.createServer({ key: pems.private, cert: pems.cert }, (req, res) => {
+    const up = http.request({ host: target.hostname, port: target.port, path: req.url, method: req.method, headers: { ...req.headers, host: target.host } }, (r) => {
+      res.writeHead(r.statusCode, r.headers);
+      r.pipe(res);
+    });
+    up.on("error", (e) => { res.writeHead(502); res.end(e.message); });
+    req.pipe(up);
+  });
+  await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+  server.unref();
+  relayPort = server.address().port;
+  return relayPort;
+}
+
+/**
+ * Runs in the page: XHR (axios) and fetch calls to /api with a FormData body
+ * go to the upload relay instead of the same-origin /api (see uploadRelay).
+ */
+function uploadInitScript(relay) {
+  const toRelay = (u) => {
+    const url = new URL(u, window.location.href);
+    return url.origin === window.location.origin && url.pathname.startsWith("/api/") ? relay + url.pathname + url.search : null;
+  };
+  const X = XMLHttpRequest.prototype;
+  const open = X.open, setHeader = X.setRequestHeader, send = X.send;
+  X.open = function (method, url, ...rest) { this.__e2e = { method, url, rest, headers: [] }; };
+  X.setRequestHeader = function (k, v) { if (this.__e2e && !this.__e2eOpen) this.__e2e.headers.push([k, v]); else setHeader.call(this, k, v); };
+  X.send = function (body) {
+    const q = this.__e2e;
+    if (q && !this.__e2eOpen) {
+      const relayed = body instanceof FormData ? toRelay(q.url) : null;
+      open.call(this, q.method, relayed || q.url, ...q.rest);
+      this.__e2eOpen = true;
+      q.headers.forEach(([k, v]) => setHeader.call(this, k, v));
+    }
+    return send.call(this, body);
+  };
+  const f = window.fetch;
+  window.fetch = function (input, init) {
+    const relayed = init && init.body instanceof FormData && typeof input === "string" ? toRelay(input) : null;
+    return f.call(this, relayed || input, init);
+  };
+}
 
 let browser;
 async function getBrowser() {
@@ -67,6 +132,7 @@ async function actor(name, { geo = HARARE, mobile = false } = {}) {
   });
   const errors = [];
   const apiFails = [];
+  await ctx.addInitScript(uploadInitScript, `https://localhost:${await uploadRelay()}`);
   await ctx.route(/^https:\/\/localhost:3001\/(api|public)\//, async (route) => {
     const url = route.request().url().replace("https://localhost:3001", API);
     try {
@@ -161,6 +227,41 @@ async function api(method, p, { token, body } = {}) {
 async function db() {
   if (mongoose.connection.readyState !== 1) await mongoose.connect(process.env.DB_URL);
   return mongoose.connection.db;
+}
+
+/** Admin JWT for the first admin in the DB (admin API calls from tests). */
+async function adminToken() {
+  const d = await db();
+  const admin = await d.collection("admins").findOne({}, { projection: { _id: 1 } });
+  if (!admin) throw new Error("no admin account in the DB");
+  const JWT = require(require("path").resolve(__dirname, "../../../sibmba-tasker-backend/node_modules/jsonwebtoken"));
+  return JWT.sign({ _id: String(admin._id) }, process.env.JWT_SECRET, { expiresIn: "1d" });
+}
+
+/**
+ * v2.7.49: new logistics owners start "pending" until Simba admin approves the
+ * company. Stages that need a working fleet approve their fresh owner through
+ * the admin API (same path as the admin panel button).
+ */
+async function approveOwner(ownerId, status = "approved", reason = "") {
+  return api("POST", `/admin/logistics/owners/${ownerId}/approval`, {
+    token: await adminToken(),
+    body: { status, ...(reason ? { reason } : {}) },
+  });
+}
+
+/**
+ * v2.7.50: put a fleet owner on "paid" (WhatsApp notifications on) or back on "free".
+ * Writes the plan directly — paid plans can't be bought while LOGISTICS_PAID_PLANS_ENABLED is off.
+ */
+async function setPlan(ownerId, plan = "paid") {
+  const d = await db();
+  const { ObjectId } = mongoose.Types;
+  const now = new Date();
+  const logistics_plan = plan === "paid"
+    ? { id: "paid", started_at: now, changed_at: now, expires_at: new Date(Date.now() + 30 * 86400000), source: "e2e" }
+    : { id: "free", changed_at: now, expires_at: null, source: "e2e" };
+  await d.collection("users").updateOne({ _id: new ObjectId(String(ownerId)) }, { $set: { logistics_plan, isSubscribed: plan === "paid" ? 1 : 0 } });
 }
 
 /** Visible text of page body (trimmed). */
@@ -275,4 +376,4 @@ async function done() {
   if (fail.length) process.exitCode = 1;
 }
 
-module.exports = { WEB, API, HARARE, sec, check, actor, shot, seedAuth, goto, tokenFor, api, db, bodyText, waitText, done, pickDate, pickLocation, typeMoney, postTransportJob, vehicleSelect, setInviteVia, makeCustomer, loadState, saveState, mongoose, results };
+module.exports = { setPlan, adminToken, approveOwner, WEB, API, HARARE, sec, check, actor, shot, seedAuth, goto, tokenFor, api, db, bodyText, waitText, done, pickDate, pickLocation, typeMoney, postTransportJob, vehicleSelect, setInviteVia, makeCustomer, loadState, saveState, mongoose, results };

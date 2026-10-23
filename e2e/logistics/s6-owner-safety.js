@@ -210,6 +210,24 @@ async function holdSos(a) {
     await o.page.locator(".simba-book-loc-modal .btn-primary").click();
     const priceSel = 'input[aria-label="Price per day"], input[aria-label="Price per hour"]';
     if (await o.page.locator(priceSel).count()) await L.typeMoney(o.page, priceSel, "120");
+    // No default machine: both pickers start empty with category hints only
+    const picks = o.page.locator("form.log-fleet-form .log-pick-field");
+    const eqPh = await picks.nth(0).innerText();
+    L.check(/^Pick equipment — e\.g\./.test(eqPh.trim()), "Equipment starts empty with an e.g. hint", eqPh);
+    L.check(/Pick equipment first/.test(await picks.nth(1).innerText()), "Sub type says pick equipment first");
+    await o.page.locator('form.log-fleet-form button[type="submit"]').click();
+    L.check(await L.waitText(o, /Pick an equipment type/), "save without equipment refused");
+    // Sub type before Equipment opens the Equipment picker
+    await picks.nth(1).click();
+    await o.page.waitForSelector(".log-modal .log-eq-tile");
+    await o.page.locator(".log-modal .log-eq-tile", { hasText: "Tractor" }).first().click();
+    L.check((await picks.nth(0).innerText()).includes("Tractor"), "Tractor picked");
+    await o.page.locator('form.log-fleet-form button[type="submit"]').click();
+    L.check(await L.waitText(o, /Pick a sub type/), "save without sub type refused");
+    await picks.nth(1).click();
+    await o.page.waitForSelector(".log-modal .log-subpick__opt");
+    await o.page.locator(".log-modal .log-subpick__opt").first().click();
+    L.check(!/Pick sub type/.test(await picks.nth(1).innerText()), "sub type picked", await picks.nth(1).innerText());
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
     L.check(await L.waitText(o, /Equipment added/), "Equipment added toast", (await L.bodyText(o)).slice(0, 250));
     const tr = await d.collection("logistics_assets").findOne({ owner_id: OID(st.owner._id), kind: "equipment" });
@@ -218,17 +236,18 @@ async function holdSos(a) {
     await o.page.waitForTimeout(1500);
     L.check((await L.bodyText(o)).includes(`E2E Tractor ${st.RUN}`), "tractor listed on Equipment page");
 
-    L.sec("6g. Expired unit document blocks the truck");
+    L.sec("6g. Expired Road licence (ZINARA) blocks the truck");
     const tid = OID(st.truck._id);
     const asset = await d.collection("logistics_assets").findOne({ _id: tid });
     const docs = asset.documents;
     const expField = ["expires_at", "expires", "expiry"].find((k) => docs[0][k] !== undefined) || "expires_at";
     const past = new Date(Date.now() - 3 * 86400000);
-    const expired = docs.map((x) => (x.type === "insurance" ? { ...x, [expField]: past } : x));
+    // v2.7.49: ZINARA blocks; insurance is a supporting document only
+    const expired = docs.map((x) => (x.type === "rego" ? { ...x, [expField]: past } : x));
     await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: expired } });
     try {
       await L.goto(c, "/logistics/search");
-      await c.page.fill('input[placeholder="Name"]', st.truck.name);
+      await c.page.fill('input[placeholder="Truck, tractor, unit or company name"]', st.truck.name);
       await c.page.getByRole("button", { name: /Search trucks/ }).click();
       await c.page.waitForTimeout(2500);
       L.check(!(await L.bodyText(c)).includes(st.truck.name), "expired truck hidden from search");
@@ -262,6 +281,42 @@ async function holdSos(a) {
       await L.shot(op, "s6-op-expired");
     } finally {
       await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs } });
+    }
+
+    L.sec("6h. Document rules (v2.7.49): supporting docs don't block; ZINARA required; red-plate roadworthy");
+    let lastSearch = null;
+    const listed = async () => {
+      const r = await L.api("GET", `/logistics/assets/search?kind=vehicle&q=${encodeURIComponent(st.truck.name)}&limit=50`, { token: L.tokenFor(st.customer._id) });
+      const rows = r?.data?.data || [];
+      lastSearch = { ok: r?.success, msg: r?.message, names: rows.map((a) => `${a.name}:${a.customer_view?.status_detail || a.availability?.state || ""}`) };
+      return rows.some((a) => String(a.asset_id || a._id) === String(st.truck._id));
+    };
+    try {
+      L.check(await listed(), "baseline: truck listed with valid ZINARA", lastSearch);
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs.map((x) => (x.type === "insurance" ? { ...x, expires: past } : x)) } });
+      L.check(await listed(), "expired insurance alone → truck still listed (supporting document)", lastSearch);
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs.filter((x) => x.type !== "rego") } });
+      L.check(!(await listed()), "no ZINARA on file → truck hidden");
+      await L.goto(o, `/logistics/owner/fleet/${st.truck._id}`);
+      L.check(await L.waitText(o, /road licence \(ZINARA\) required/i), "owner unit page: 'road licence (ZINARA) required'");
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs.map((x) => (x.type === "rego" ? { ...x, review: { status: "rejected", reason: "blurry" } } : x)) } });
+      L.check(!(await listed()), "rejected ZINARA → truck hidden");
+      await d.collection("logistics_assets").updateOne(
+        { _id: tid },
+        { $set: { red_plate: true, documents: [...docs.filter((x) => x.type !== "roadworthy"), { type: "roadworthy", name: "rw.pdf", url: "/x.pdf", expires: past }] } }
+      );
+      L.check(!(await listed()), "red-plate truck with expired roadworthy → hidden");
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { red_plate: false } });
+      L.check(await listed(), "same truck without red plate → listed (roadworthy only matters for red plates)", lastSearch);
+      // Expiry must be after today
+      const todayYmd = new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10);
+      const pr = await L.api("PATCH", `/logistics/asset/${st.truck._id}`, {
+        token: L.tokenFor(st.owner._id),
+        body: { document_expiry_updates: JSON.stringify([{ type: "rego", expires: todayYmd }]) },
+      });
+      L.check(pr?.success === false && /after today/.test(pr?.message || ""), "API: expiry date of today is refused", pr?.message);
+    } finally {
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs, red_plate: false } });
     }
   } catch (e) {
     L.check(false, "stage crashed", e.message.split("\n")[0]);

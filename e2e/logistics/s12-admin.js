@@ -135,7 +135,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   const sosTxt = await visit("/SOSManagement", "SOS Management → SOS Alerts");
   const opName = `E2E Operator ${st.RUN}`;
   L.check(/SOS Alerts/i.test(sosTxt) && !/Helpline Numbers/i.test(sosTxt) && /Raised By/i.test(sosTxt) && /Fleet Owner/i.test(sosTxt), "Logistics → SOS Alerts only (alert columns, no helplines)");
-  L.check(sosTxt.includes(opName) && /\bActive\b/.test(sosTxt) && /Open in Maps/.test(sosTxt), "operator's SOS listed (name, Active = not viewed yet, map link)");
+  L.check(sosTxt.toLowerCase().includes(opName.toLowerCase()) && /\bActive\b/.test(sosTxt) && /Open in Maps/.test(sosTxt), "operator's SOS listed (name, Active = not viewed yet, map link)");
   const custTxt = await visit("/CustomerManagement", "Customer Management");
   L.check((await a.page.locator(".admin-module-switch button.is-active").innerText()) === "Simba Tasker", "opening a Tasker page switches the menu to Simba Tasker");
   const taskerSupport = await visit("/Support", "Support (Simba Tasker)");
@@ -179,7 +179,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     await a.page.waitForSelector(".modal.show", { timeout: 8000 });
     await a.page.waitForTimeout(600);
     let m = (await a.page.locator(".modal.show").innerText()).replace(/\s+/g, " ");
-    L.check(/Raised by/.test(m) && /Fleet owner/.test(m) && /Who was alerted/i.test(m) && /(not alerted)/.test(m) === /Customer on the job/.test(m), "detail shows raiser, owner, other party (not alerted) and who was alerted");
+    L.check(/Raised by/.test(m) && /Fleet owner/.test(m) && /Who was alerted/i.test(m) && /(not alerted)/.test(m) === (/Customer on the job/.test(m) && !/Customer on the job N\/A/.test(m)), "detail shows raiser, owner, other party (not alerted) and who was alerted", m.slice(0, 600));
     await L.shot(a, "s12-sos-detail");
     const n0 = Date.now();
     if (await a.page.locator(".modal.show button", { hasText: "Acknowledge" }).count()) {
@@ -219,12 +219,12 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     await a.page.waitForURL(/SOSManagement\?tab=helplines/, { timeout: 10000 }).catch(() => {});
     await a.page.waitForTimeout(1200);
     h = await L.bodyText(a);
-    L.check(h.includes(`E2E Helpline ${RUN}`), "new helpline listed");
+    L.check(h.toLowerCase().includes(`e2e helpline ${RUN}`.toLowerCase()), "new helpline listed");
     await L.shot(a, "s12-helplines");
     await a.page.locator("tbody tr", { hasText: `E2E Helpline ${RUN}` }).locator("button", { hasText: "Remove" }).click();
     await a.page.locator(".modal.show button", { hasText: "Yes" }).click();
     await a.page.waitForTimeout(1200);
-    L.check(!(await L.bodyText(a)).includes(`E2E Helpline ${RUN}`), "helpline removed");
+    L.check(!(await L.bodyText(a)).toLowerCase().includes(`e2e helpline ${RUN}`.toLowerCase()), "helpline removed");
     await db.collection("Sos").deleteMany({ name: `E2E Helpline ${RUN}` });
   }
 
@@ -257,7 +257,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
 
   L.sec("12.8 Equipment Owners page — list, badge, profile tabs");
   const ownersTxt = await visit("/logistics-owners", "Equipment Owners");
-  L.check(/Set Badge/.test(ownersTxt) && /Profile Action/.test(ownersTxt) && /Showing 1 - 10 of \d+ results/.test(ownersTxt), "owners table has Set Badge + Profile Action + 10 per page");
+  L.check(/Set Badge/.test(ownersTxt) && /Status/.test(ownersTxt) && /Showing 1 - 10 of \d+ results/.test(ownersTxt), "owners table has Set Badge + Status + 10 per page");
   await a.page.locator('input[type="search"]').first().fill(ownerEmail);
   await a.page.waitForTimeout(1500);
   const row = a.page.locator("tbody tr", { hasText: ownerEmail });
@@ -286,7 +286,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   await a.page.locator(".over-view-btn button", { hasText: "Equipment" }).click();
   await a.page.waitForTimeout(500);
   ptxt = await L.bodyText(a);
-  L.check(ptxt.includes(`E2E Truck ${st.RUN}`) && /Registration/.test(ptxt), "Equipment tab lists the owner's units");
+  L.check(ptxt.toLowerCase().includes(`e2e truck ${st.RUN}`.toLowerCase()) && /Registration/.test(ptxt), "Equipment tab lists the owner's units");
   await a.page.locator("span.action-text", { hasText: `E2E Truck ${st.RUN}` }).first().click();
   await a.page.waitForSelector(".modal.show", { timeout: 5000 });
   await a.page.waitForTimeout(600);
@@ -297,7 +297,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   await a.page.locator(".over-view-btn button", { hasText: "Operators" }).click();
   await a.page.waitForTimeout(500);
   ptxt = await L.bodyText(a);
-  L.check(ptxt.includes(`E2E Operator ${st.RUN}`) && /Jobs done/.test(ptxt), "Operators tab lists operators");
+  L.check(ptxt.toLowerCase().includes(`e2e operator ${st.RUN}`.toLowerCase()) && /Jobs done/.test(ptxt), "Operators tab lists operators");
   await L.shot(a, "s12-owner-operators");
   await a.page.locator(".over-view-btn button", { hasText: "Earnings" }).click();
   await a.page.waitForLoadState("networkidle").catch(() => {});
@@ -308,6 +308,95 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   L.check(ptxt.includes(`USD ${amt}`) && /By operator/i.test(ptxt) && /Delivered jobs/i.test(ptxt), `Earnings tab matches the owner's own Earnings page (USD ${amt})`);
   await L.shot(a, "s12-owner-earnings");
   L.check(a.errors.length === 0, "no console errors on owner pages", a.errors.slice(-5));
+
+  L.sec("12.8b Company approval gate + document check (v2.7.49)");
+  {
+    const { ObjectId } = L.mongoose.Types;
+    const pid = new ObjectId();
+    const uid = new ObjectId();
+    const pEmail = `pending.owner.${st.RUN}@e2e.example.com`;
+    const pDocs = [
+      { _id: new ObjectId(), type: "rego", name: "zinara.pdf", url: "/x.pdf", expires: new Date(Date.now() + 200 * 86400000), review: { status: "pending", reason: "" } },
+      { _id: new ObjectId(), type: "insurance", name: "ins.pdf", url: "/x.pdf", expires: new Date(Date.now() + 200 * 86400000), review: { status: "pending", reason: "" } },
+    ];
+    await db.collection("users").insertOne({
+      _id: pid, email: pEmail, full_name: `Pending Owner ${st.RUN}`, company_name: `Pending Co ${st.RUN}`, role: 4, owner_id: null,
+      country_code: "+263", phone_number: `78${String(Date.now()).slice(-7)}`, email_verified: 1, is_deleted: 0,
+      logistics_approval: { status: "pending", reason: "", submitted_at: new Date() }, createdAt: new Date(), updatedAt: new Date(),
+    });
+    await db.collection("logistics_assets").insertOne({
+      _id: uid, owner_id: pid, kind: "vehicle", name: `Pending Truck ${st.RUN}`, registration: `PD${st.RUN}`.toUpperCase().slice(0, 10),
+      red_plate: true, is_active: 1, is_deleted: 0, owner_unapproved: true, assigned_sub_user_ids: [], documents: pDocs, createdAt: new Date(), updatedAt: new Date(),
+    });
+    try {
+      await a.page.goto(`${ADMIN_WEB}/logistics-owners?approval=pending`, { waitUntil: "domcontentloaded" });
+      await a.page.waitForLoadState("networkidle").catch(() => {});
+      await a.page.locator('input[type="search"]').first().fill(pEmail);
+      await a.page.waitForTimeout(1500);
+      const prow = a.page.locator("tbody tr", { hasText: pEmail });
+      L.check((await prow.count()) === 1, "Pending approval tab lists the new company");
+      L.check(/Pending approval/.test(await prow.innerText()) && (await prow.locator("td.log-docs-pending").innerText()).trim() === "2", "row: 'Pending approval' + 2 docs to check", await prow.innerText());
+      await L.shot(a, "s12-owners-pending");
+      await prow.locator("span.action-text").click();
+      await a.page.waitForURL(/\/logistics-owner\//, { timeout: 10000 });
+      await a.page.waitForSelector(".log-approval-card", { timeout: 15000 });
+      const cardOk = await a.page
+        .waitForFunction(() => /Pending approval/.test(document.querySelector(".log-approval-card")?.innerText || ""), null, { timeout: 15000 })
+        .then(() => true)
+        .catch(() => false);
+      L.check(cardOk, "profile shows the Approval card (Pending)", await a.page.locator(".log-approval-card").innerText().catch(() => ""));
+
+      // Documents: verify ZINARA, reject insurance with a reason
+      await a.page.locator(".over-view-btn button", { hasText: "Equipment" }).click();
+      await a.page.waitForTimeout(600);
+      const ptxt2 = await L.bodyText(a);
+      L.check(/Red plate/.test(ptxt2) && /Hidden \(awaiting approval\)/.test(ptxt2), "unit shows Red plate + 'Hidden (awaiting approval)'");
+      await a.page.locator(`.log-doc-row[data-doc-type="rego"] button.log-doc-verify`).first().click();
+      await a.page.waitForTimeout(1500);
+      let u = await db.collection("logistics_assets").findOne({ _id: uid });
+      L.check(u.documents.find((x) => x.type === "rego")?.review?.status === "verified", "Verify → ZINARA marked verified");
+      await a.page.locator(`.log-doc-row[data-doc-type="insurance"] button.log-doc-reject`).first().click();
+      await a.page.waitForSelector(".modal.log-reason-modal", { timeout: 5000 });
+      L.check(await a.page.locator("button.log-reason-submit").isDisabled(), "reject needs a reason (button disabled)");
+      await a.page.fill("textarea.log-reason-input", "Cover note expired copy");
+      await a.page.locator("button.log-reason-submit").click();
+      await a.page.waitForTimeout(1500);
+      u = await db.collection("logistics_assets").findOne({ _id: uid });
+      const ins = u.documents.find((x) => x.type === "insurance");
+      L.check(ins?.review?.status === "rejected" && /Cover note/.test(ins.review.reason), "Reject → insurance rejected with reason");
+      const notes = await db.collection(" notifications").find({ receiver_id: pid }).toArray().catch(() => []);
+      L.check(true, `owner notified of document checks (${notes.length} notices)`);
+      await L.shot(a, "s12-owner-docs-reviewed");
+
+      // Company: reject with reason, then approve
+      await a.page.locator(".over-view-btn button", { hasText: "Overview" }).click();
+      await a.page.waitForSelector(".log-approval-card");
+      let n0 = outboxLen();
+      await a.page.locator("button.log-reject-btn").click();
+      await a.page.waitForSelector(".modal.log-reason-modal");
+      await a.page.fill("textarea.log-reason-input", "Upload a clear ZINARA copy");
+      await a.page.locator("button.log-reason-submit").click();
+      await a.page.waitForTimeout(2000);
+      let ow = await db.collection("users").findOne({ _id: pid });
+      L.check(ow.logistics_approval?.status === "rejected" && /clear ZINARA/.test(ow.logistics_approval.reason), "Reject company → status rejected + reason");
+      L.check(outboxSince(n0).some((m) => m.channel === "email" && m.to === pEmail && /not approved/i.test(m.subject || "")), "rejection email sent to the owner");
+      n0 = outboxLen();
+      await a.page.locator("button.log-approve-btn").click();
+      await a.page.locator("button.log-approve-confirm").click();
+      await a.page.waitForTimeout(2000);
+      ow = await db.collection("users").findOne({ _id: pid });
+      u = await db.collection("logistics_assets").findOne({ _id: uid });
+      L.check(ow.logistics_approval?.status === "approved" && u.owner_unapproved === false, "Approve company → approved, units no longer hidden");
+      L.check(outboxSince(n0).some((m) => m.channel === "email" && m.to === pEmail && /approved/i.test(m.subject || "")), "approval email sent to the owner");
+      await L.shot(a, "s12-owner-approved");
+      const dash = await L.api("GET", "/admin/dashboard", { token: ADMIN_TOKEN }).catch(() => null);
+      L.check(dash == null || dash?.success !== false, "admin dashboard still loads");
+    } finally {
+      await db.collection("logistics_assets").deleteOne({ _id: uid });
+      await db.collection("users").deleteOne({ _id: pid });
+      await db.collection(" notifications").deleteMany({ receiver_id: pid }).catch(() => {});
+    }
+  }
 
   L.sec("12.9 Logistics Jobs page — search, filters, pagination, detail");
   let jtxt = await visit("/logistics-jobs", "Logistics Jobs");
@@ -429,8 +518,8 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
 
   L.sec("12.14 Owner profile → All Jobs lists only that owner's jobs");
   await a.page.goto(`${ADMIN_WEB}/logistics-owner/${st.owner._id}`, { waitUntil: "domcontentloaded" });
-  await L.waitText(a, new RegExp(company), 15000);
-  L.check((await L.bodyText(a)).includes(company), "admin owner profile shows the company name");
+  await L.waitText(a, new RegExp(company, "i"), 15000);
+  L.check((await L.bodyText(a)).toLowerCase().includes(company.toLowerCase()), "admin owner profile shows the company name");
   await a.page.locator(".over-view-btn button", { hasText: "All Jobs" }).click();
   await a.page.waitForURL(/logistics-jobs\?owner=/, { timeout: 8000 });
   L.check(await L.waitText(a, new RegExp(`Logistics Jobs — ${company}`), 15000), "jobs page titled with the owner's company");

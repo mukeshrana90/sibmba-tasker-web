@@ -49,7 +49,12 @@ export default function LogisticsPlanUnitsModal({
   const [loading, setLoading] = useState(false);
   const [picked, setPicked] = useState({});
   const [seats, setSeats] = useState(null);
+  // Which open (plan + row) the data belongs to: the modal stays mounted, so on
+  // reopen the last row's units would flash before the effect starts loading
+  const [loadedFor, setLoadedFor] = useState(null);
   const operatorsView = focus === "operators";
+  const viewKey = `${planId || ""}|${focus || ""}`;
+  const stale = loadedFor !== viewKey;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -65,6 +70,7 @@ export default function LogisticsPlanUnitsModal({
         const d = res?.payload?.data || {};
         const ops = Array.isArray(d.operators) ? d.operators : Array.isArray(d.drivers) ? d.drivers : [];
         setSeats({ operators: ops, invites: Array.isArray(d.invites) ? d.invites : [] });
+        setLoadedFor(viewKey);
         setLoading(false);
       });
       return () => {
@@ -83,11 +89,13 @@ export default function LogisticsPlanUnitsModal({
           .map((u) => String(u._id));
       });
       setPicked(next);
+      setLoadedFor(viewKey);
       setLoading(false);
     });
     return () => {
       alive = false;
       window.removeEventListener("keydown", onKey);
+      setLoadedFor(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, planId, focus]);
@@ -147,10 +155,10 @@ export default function LogisticsPlanUnitsModal({
         </div>
         <div className="log-modal__body">
           {/* Skeleton until the first response too (no empty frame before the fetch starts) */}
-          {loading || (operatorsView ? !seats : !preview) ? (
+          {loading || stale || (operatorsView ? !seats : !preview) ? (
             <LogisticsListSkeleton rows={3} media={false} label="Loading your units" />
           ) : null}
-          {!loading && operatorsView && seats ? (
+          {!loading && !stale && operatorsView && seats ? (
             <fieldset className="log-plan-units__bucket">
               <legend>
                 Operator seats
@@ -193,12 +201,12 @@ export default function LogisticsPlanUnitsModal({
               </p>
             </fieldset>
           ) : null}
-          {!loading && !operatorsView && !shownBuckets.length ? (
+          {!loading && !stale && !operatorsView && !shownBuckets.length ? (
             <p className="log-plan-units__none">
               ✓ All your units fit in the {preview?.plan_name || "selected"} plan — nothing will be disabled.
             </p>
           ) : null}
-          {!loading &&
+          {!loading && !stale &&
             !operatorsView &&
             shownBuckets.map(({ k, label }) => {
               const b = preview.buckets[k];
@@ -255,7 +263,7 @@ export default function LogisticsPlanUnitsModal({
                 </fieldset>
               );
             })}
-          {!loading && canSave ? (
+          {!loading && !stale && canSave ? (
             <p className="log-hint">
               Disabled units are hidden from customers and their operators are set offline and can't
               quote with them (operators can still log in). Empty slots are filled automatically:
@@ -279,7 +287,7 @@ export default function LogisticsPlanUnitsModal({
               <button
                 type="submit"
                 className="logistics-cta logistics-cta--primary"
-                disabled={busy || loading}
+                disabled={busy || loading || stale}
               >
                 {busy ? "Please wait…" : confirmLabel}
               </button>

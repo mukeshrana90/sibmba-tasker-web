@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import {
   categoryLabel,
+  equipmentPlaceholder,
   getEquipmentCatalog,
   getSubtypesForEquipment,
+  subtypePlaceholder,
 } from "./logisticsEquipmentCatalog";
 import { useLogisticsEquipmentTaxonomy } from "./useLogisticsEquipmentTaxonomy";
 
@@ -14,6 +16,35 @@ function EquipIcon() {
       <circle cx="15" cy="17" r="1.5" />
     </svg>
   );
+}
+
+/**
+ * Esc closes + page scroll locked while a picker is open. Hiding the body
+ * overflow removes the scrollbar and the page jumps sideways; reserve its
+ * width (padding-right) so nothing behind the modal moves.
+ */
+function useModalLock(open, onClose) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const { body } = document;
+    const prevOverflow = body.style.overflow;
+    const prevPadding = body.style.paddingRight;
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollbar > 0) {
+      const current = parseFloat(window.getComputedStyle(body).paddingRight) || 0;
+      body.style.paddingRight = `${current + scrollbar}px`;
+    }
+    body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      body.style.overflow = prevOverflow;
+      body.style.paddingRight = prevPadding;
+    };
+  }, [open, onClose]);
 }
 
 export function LogisticsPickField({
@@ -30,8 +61,15 @@ export function LogisticsPickField({
         {label}
         {required ? <span className="log-req"> *</span> : null}
       </span>
-      <button type="button" className="log-pick-field" onClick={onClick}>
-        <span className={value ? "" : "is-ph"}>{value || placeholder}</span>
+      <button
+        type="button"
+        className="log-pick-field"
+        onClick={onClick}
+        title={value || placeholder}
+      >
+        <span className={`log-pick-field__text${value ? "" : " is-ph"}`}>
+          {value || placeholder}
+        </span>
         <span className="log-pick-field__chev" aria-hidden="true">
           ▾
         </span>
@@ -40,23 +78,23 @@ export function LogisticsPickField({
   );
 }
 
+/**
+ * Category-aware placeholders for the Equipment / Sub type pickers. Forms start
+ * with both empty so the customer must choose — these are hints, not defaults.
+ */
+export function useEquipmentPlaceholders(category, equipment) {
+  const { byHub } = useLogisticsEquipmentTaxonomy();
+  return {
+    equipment: equipmentPlaceholder(category, byHub),
+    subtype: subtypePlaceholder(equipment, category, byHub),
+  };
+}
+
 export function EquipmentPickerModal({ open, category, onClose, onSelect }) {
   const { byHub } = useLogisticsEquipmentTaxonomy();
   const catalog = getEquipmentCatalog(category, byHub);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open, onClose]);
+  useModalLock(open, onClose);
 
   if (!open) return null;
 
@@ -108,19 +146,7 @@ export function SubtypePickerModal({ open, equipment, category, onClose, onSelec
   const catalog = getEquipmentCatalog(category, byHub);
   const options = getSubtypesForEquipment(equipment, catalog);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open, onClose]);
+  useModalLock(open, onClose);
 
   if (!open) return null;
 

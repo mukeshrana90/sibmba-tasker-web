@@ -29,6 +29,10 @@ const path = require("path");
     const ins = o.page.locator(".log-doc-row").filter({ hasText: "Taxi / PSV permit" }).first();
     await ins.locator('input[type="file"]').setInputFiles(pdf);
     await L.pickDate(o.page, ins.locator(".log-doc-row__expiry input"), 3);
+    // v2.7.49: Road licence (ZINARA) is required for cabs too
+    const cabRego = o.page.locator(".log-doc-row").filter({ hasText: "Road licence" }).first();
+    await cabRego.locator('input[type="file"]').setInputFiles(pdf);
+    await L.pickDate(o.page, cabRego.locator(".log-doc-row__expiry input"), 6);
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
     L.check(await L.waitText(o, /Cab added/), "Cab added toast", (await L.bodyText(o)).slice(0, 200));
     await o.page.waitForTimeout(1000);
@@ -39,8 +43,8 @@ const path = require("path");
     L.sec("5b. Invite + activate 2nd operator for the cab");
     await L.goto(o, "/logistics/owner/operators/add", "form");
     const email = `operator2.${st.RUN}@e2e.example.com`;
-    await o.page.fill('input[placeholder="Tendai Moyo"]', `E2E Driver2 ${st.RUN}`);
-    await o.page.fill('input[placeholder="t.moyo@gmail.com"]', email);
+    await o.page.fill('input[placeholder="Full name"]', `E2E Driver2 ${st.RUN}`);
+    await o.page.fill('input[placeholder="name@example.com"]', email);
     await o.page.locator(".log-asset-pick__list li").filter({ hasText: `E2E Cab ${st.RUN}` }).locator('input[type="checkbox"]').check();
     await o.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /Invite (sent|created)/), "invite #2 sent");
@@ -158,6 +162,13 @@ const path = require("path");
     const rep = await d.collection("logistics_job_reports").findOne({ job_id: OID(rideId) });
     L.check(rep && /suspicious/.test(rep.type || rep.kind || JSON.stringify(rep)), "suspicious_dropoff report created", rep && { t: rep.type, s: rep.status });
     await L.goto(c, `/logistics/jobs/${rideId}`);
+    // v2.7.49: the "Rate your operator" popup opens on a completed ride — "Later" closes it for this visit
+    const rate = c.page.locator(".log-rate-modal");
+    if (await rate.waitFor({ timeout: 8000 }).then(() => true).catch(() => false)) {
+      L.check(true, "rating popup opens after the ride");
+      await c.page.locator(".log-rate-modal__later").click();
+      await rate.waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
+    }
     const noIssue = c.page.getByRole("button", { name: "No issue" });
     L.check(await noIssue.count(), "customer prompted: No issue / Report issue");
     if (await noIssue.count()) {

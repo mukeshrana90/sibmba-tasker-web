@@ -27,7 +27,10 @@ export function canStartQuoteChat({ role, activeModule } = {}) {
  * - Role 1 customers: always
  * - Role 2/3 in Logistics hub: act as customers → always
  * - Role 2/3 in Tasker as providers: need isSubscribed
- * - Role 4 in Tasker module (customer mode): always
+ * - Role 4 in Tasker module (customer mode): always — chat is module-scoped
+ *   (v2.7.55), so logistics threads are not listed there, and the server
+ *   (send_message_new → message_blocked, GET /logistics/chat/can-reply) keeps a
+ *   fleet ↔ logistics-customer thread on the paid gate whatever the module
  * - Role 4 in Logistics supply: need fleet owner paid plan (operators inherit;
  *   isSubscribed on /logistics/me is already the effective owner flag)
  */
