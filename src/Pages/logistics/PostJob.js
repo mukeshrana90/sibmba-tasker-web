@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import LogisticsMoneyInput from "../../CommanComponents/LogisticsMoneyInput";
 import { useDispatch } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -27,7 +27,12 @@ import {
   IconDoc,
   IconDollar,
   IconGallery,
+  IconGear,
+  IconPencil,
   IconPlusCircle,
+  IconShop,
+  IconSofa,
+  IconTools,
   IconTruck,
   IconWeight,
   LogFieldLabel,
@@ -91,6 +96,70 @@ function toDateInput(value) {
   return d.toISOString().slice(0, 10);
 }
 
+// Goods quick picks: one tap sets Goods (default General Parts & Industrial).
+// "Describe it yourself" (goods_kind "custom") opens a short free-text input.
+const GOODS_PRESETS = [
+  {
+    label: "Home & Living",
+    sub: "Furniture, appliances, house moves",
+    icon: <IconSofa size={18} />,
+  },
+  {
+    label: "Shop & Retail Supply",
+    sub: "Stock, boxes, groceries, store goods",
+    icon: <IconShop size={18} />,
+  },
+  {
+    label: "Equipment & Tools",
+    sub: "Machines, tools, generators",
+    icon: <IconTools size={18} />,
+  },
+  {
+    label: "General Parts & Industrial",
+    sub: "Spare parts, metal, building materials",
+    icon: <IconGear size={18} />,
+  },
+];
+const GOODS_DEFAULT = "General Parts & Industrial";
+const GOODS_MAX_WORDS = 11;
+
+// First letter of the text in capitals (leading spaces kept), as the user types
+function capFirst(text) {
+  return String(text || "").replace(/^(\s*)(\p{Ll})/u, (_, sp, ch) =>
+    sp + ch.toUpperCase()
+  );
+}
+
+function countWords(text) {
+  return String(text || "").trim().split(/\s+/).filter(Boolean).length;
+}
+
+// Keep at most `max` words. Typing past the limit is ignored (prev kept);
+// a pasted longer text is cut to its first `max` words.
+function limitWords(text, max, prev = "") {
+  if (countWords(text) <= max) return text;
+  if (countWords(prev) >= max) return prev;
+  return String(text).trim().split(/\s+/).slice(0, max).join(" ");
+}
+
+function goodsPreset(kind) {
+  return GOODS_PRESETS.find((p) => p.label === kind) || null;
+}
+
+// Value posted as load_type: the card name, or the typed text for "custom"
+function composeGoods(f) {
+  if (goodsPreset(f.goods_kind)) return f.goods_kind;
+  return String(f.goods || "").trim();
+}
+
+// Saved load_type back into card / typed text (edit job)
+function splitGoods(loadType) {
+  const raw = String(loadType || "").trim();
+  if (!raw) return { goods_kind: GOODS_DEFAULT, goods: "" };
+  if (goodsPreset(raw)) return { goods_kind: raw, goods: "" };
+  return { goods_kind: "custom", goods: raw };
+}
+
 const defaultForm = {
   category: "logistic",
   pickup: "",
@@ -98,6 +167,8 @@ const defaultForm = {
   pickup_coords: null,
   dropoff_coords: null,
   goods: "",
+  // A GOODS_PRESETS label | "custom"
+  goods_kind: GOODS_DEFAULT,
   weight: "",
   weight_unit: "tons",
   date: "",
@@ -171,7 +242,7 @@ function jobToForm(job) {
     dropoff: job.dropoff?.address || "",
     pickup_coords: job.pickup?.coordinates || null,
     dropoff_coords: job.dropoff?.coordinates || null,
-    goods: job.load_type || "",
+    ...splitGoods(job.load_type),
     weight:
       job.load_weight?.value != null ? String(job.load_weight.value) : "",
     weight_unit: job.load_weight?.unit === "kg" ? "kg" : "tons",
@@ -475,9 +546,25 @@ export default function LogisticsPostJob() {
     }));
   }, [plant, categoryLocked, vehicleOptions, form.vehicle_needed]);
 
+  const goodsRef = useRef(null);
+  const goodsInputRef = useRef(null);
+
+  // One card is always selected; "custom" focuses the text input
+  const pickGoods = (kind) => {
+    setForm((f) => ({ ...f, goods_kind: kind }));
+    if (kind === "custom") setTimeout(() => goodsInputRef.current?.focus(), 0);
+  };
+  const goodsWordsLeft = GOODS_MAX_WORDS - countWords(form.goods);
+
   const set = (key) => (e) => {
     const value =
       e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    setForm((f) => ({ ...f, [key]: value }));
+  };
+
+  // Free-text fields start with a capital letter
+  const setText = (key) => (e) => {
+    const value = capFirst(e.target.value);
     setForm((f) => ({ ...f, [key]: value }));
   };
 
@@ -574,6 +661,18 @@ export default function LogisticsPostJob() {
     }
     if (!String(form.dropoff || "").trim() || !form.dropoff_coords) {
       toast.error("Choose Deliver to on the map");
+      return false;
+    }
+    const goodsTooLong =
+      form.goods_kind === "custom" &&
+      countWords(form.goods) > GOODS_MAX_WORDS;
+    if (!composeGoods(form) || goodsTooLong) {
+      toast.error(
+        composeGoods(form)
+          ? `Describe your goods in ${GOODS_MAX_WORDS} words or fewer`
+          : "Describe the goods you're sending"
+      );
+      goodsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return false;
     }
     if (weightTons == null || weightTons <= 0) {
@@ -694,7 +793,7 @@ export default function LogisticsPostJob() {
         load_type: plant
           ? [form.equipment, form.subtype].filter(Boolean).join(" · ") ||
             "Equipment"
-          : form.goods || "General",
+          : composeGoods(form),
         load_weight: {
           // Hire carries no load — ignore weight left over from a Logistic draft
           value: plant ? 0 : Number(form.weight) || 1,
@@ -965,16 +1064,88 @@ export default function LogisticsPostJob() {
                 ))}
               </select>
             </label>
-            <label className="log-field log-field--full">
+            <div className="log-field log-field--full" ref={goodsRef}>
               <LogFieldLabel icon={<IconCube size={16} />} required>
                 Goods
               </LogFieldLabel>
-              <input
-                value={form.goods}
-                onChange={set("goods")}
-                placeholder="e.g. Construction materials"
-              />
-            </label>
+              <p className="log-goods__hint">
+                What are you sending? Pick the closest match, or describe it
+                yourself in a few words.
+              </p>
+              <div
+                className="log-goods"
+                role="radiogroup"
+                aria-label="Goods type"
+              >
+                {[
+                  ...GOODS_PRESETS,
+                  {
+                    label: "custom",
+                    title: "Describe it yourself",
+                    sub: "Type exactly what you're sending",
+                    icon: <IconPencil size={18} />,
+                  },
+                ].map((opt) => {
+                  const on = form.goods_kind === opt.label;
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      className={`log-goods__opt${on ? " on" : ""}${
+                        opt.label === "custom" ? " log-goods__opt--custom" : ""
+                      }`}
+                      onClick={() => pickGoods(opt.label)}
+                    >
+                      <span className="log-goods__pic">{opt.icon}</span>
+                      <span className="log-goods__text">
+                        <b>{opt.title || opt.label}</b>
+                        <small>{opt.sub}</small>
+                      </span>
+                      {on ? (
+                        <span className="log-goods__check" aria-hidden="true">
+                          <IconCheck size={11} />
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+              {form.goods_kind === "custom" ? (
+                <div className="log-goods__detail">
+                  <span className="log-goods__detail-label">
+                    Describe your goods
+                  </span>
+                  <input
+                    ref={goodsInputRef}
+                    value={form.goods}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        goods: limitWords(
+                          capFirst(e.target.value),
+                          GOODS_MAX_WORDS,
+                          f.goods
+                        ),
+                      }))
+                    }
+                    placeholder="e.g. Construction materials"
+                    autoCapitalize="sentences"
+                  />
+                  <small
+                    className={`log-goods__count${
+                      goodsWordsLeft <= 0 ? " log-goods__count--full" : ""
+                    }`}
+                    aria-live="polite"
+                  >
+                    {goodsWordsLeft > 0
+                      ? `${goodsWordsLeft} of ${GOODS_MAX_WORDS} words left`
+                      : `Word limit reached (${GOODS_MAX_WORDS} words)`}
+                  </small>
+                </div>
+              ) : null}
+            </div>
 
             <div className="log-field">
               <LogFieldLabel icon={<IconWeight size={16} />} required>
@@ -1213,7 +1384,8 @@ export default function LogisticsPostJob() {
                     <span className="log-fl">Return goods</span>
                     <input
                       value={form.return_goods}
-                      onChange={set("return_goods")}
+                      onChange={setText("return_goods")}
+                      autoCapitalize="sentences"
                     />
                   </label>
                   <div className="log-field">
@@ -1312,8 +1484,9 @@ export default function LogisticsPostJob() {
                 <textarea
                   rows={3}
                   value={form.special_notes}
-                  onChange={set("special_notes")}
+                  onChange={setText("special_notes")}
                   placeholder="Crane offload at delivery — call on arrival"
+                  autoCapitalize="sentences"
                   maxLength={500}
                 />
                 <span className="log-textarea-count">
@@ -1479,8 +1652,9 @@ export default function LogisticsPostJob() {
                 <textarea
                   rows={3}
                   value={form.plant_note}
-                  onChange={set("plant_note")}
+                  onChange={setText("plant_note")}
                   placeholder="Need a tractor with slasher for 3 days…"
+                  autoCapitalize="sentences"
                   maxLength={500}
                 />
                 <span className="log-textarea-count">

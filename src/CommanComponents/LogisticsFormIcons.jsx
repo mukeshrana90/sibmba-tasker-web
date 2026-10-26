@@ -84,6 +84,50 @@ export function IconCube({ size = 18 }) {
   );
 }
 
+export function IconSofa({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path {...stroke} d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3" />
+      <path {...stroke} d="M3 13a2 2 0 0 1 4 0v1h10v-1a2 2 0 0 1 4 0v5H3v-5zM6 18v2M18 18v2" />
+    </svg>
+  );
+}
+
+export function IconShop({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path {...stroke} d="M4 9 5.5 4h13L20 9M4 9h16v1.5a2.7 2.7 0 0 1-5.3 0 2.7 2.7 0 0 1-5.4 0 2.7 2.7 0 0 1-5.3 0V9z" />
+      <path {...stroke} d="M5.5 13v7h13v-7M10 20v-4h4v4" />
+    </svg>
+  );
+}
+
+export function IconTools({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path {...stroke} d="M14.5 6.5a3.5 3.5 0 0 0 4.6 4.6L21 13l-2 2-6.5-6.5L14.5 6.5zM12.5 8.5 4 17l3 3 8.5-8.5" />
+      <path {...stroke} d="M3 6l3-3 3 3-1 1 4 4M18 18l3 3" />
+    </svg>
+  );
+}
+
+export function IconGear({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <circle {...stroke} cx="12" cy="12" r="3" />
+      <path {...stroke} d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" />
+    </svg>
+  );
+}
+
+export function IconPencil({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path {...stroke} d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" />
+    </svg>
+  );
+}
+
 export function IconWeight({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
