@@ -1,0 +1,13 @@
+Zimbabwe cast photos (resized, EXIF removed). Wikimedia Commons unless noted:
+  tipper-1.jpg       "Freightliner Tipper truck Harare.jpg" — Bob Adams from George, South Africa — CC BY-SA 2.0
+  intl-1.jpg         "International truck, Harare (11760915654).jpg" — Bob Adams from George, South Africa — CC BY-SA 2.0
+  intl-2.jpg         "International trucks Harare (11760741683).jpg" — Bob Adams from George, South Africa — CC BY-SA 2.0
+  seddon-1.jpg       "Seddon Atkinson Strato 325, Harare (11761261066).jpg" — Bob Adams from Amanzimtoti, South Africa — CC BY-SA 2.0
+  mf-tractor-1.jpg   "Massey Ferguson tractor and trailer.jpg" — Ossewa — CC BY 4.0
+  mf-tractor-2.jpg   "Massey Ferguson 275 tractor (16262123916).jpg" — Bob Adams from Amanzimtoti, South Africa — CC BY-SA 2.0
+  jcb3cx-1.jpg       "JCB 3CX backhoe loader.jpg" — Andrey Butko — CC BY-SA 3.0
+  jcb3cx-2.jpg       "JCB 3CX Backhoe Loader on outriggers.jpg" — Gabinho — CC BY-SA 3.0
+  fit-taxi-1.jpg     "PRIME Taxi Honda Fit.jpg" — ANP — CC BY-SA 3.0
+  tipper-2, seddon-2, fit-taxi-2 are crops of the -1 photo.
+  hino-1/2, cat-1/2   copied from flow-video/assets (chosen for the Nov 2026 client videos).
+Faces in ../zw-faces: AI-generated (this-person-does-not-exist.com / thispersondoesnotexist.com) — not real people.

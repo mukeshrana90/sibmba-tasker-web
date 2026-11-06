@@ -1678,6 +1678,12 @@
   font-size: 1.05rem;
 }
 
+.log-asset-detail-provider__names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .log-asset-detail-provider__row {
   margin: 0 0 4px;
   font-size: 0.9rem;
@@ -11399,4 +11405,516 @@ a.log-mt-transit-link:hover {
 }
 .log-approval-banner .logistics-cta {
   flex-shrink: 0;
+}
+
+/* Business documents for the Simba approval (owner verification page, 29 Oct 2026) */
+.log-bizdoc-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.log-bizdoc-status__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.log-bizdoc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.log-bizdoc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  background: #fff;
+}
+.log-bizdoc[data-status="rejected"] {
+  border-color: #efc9c9;
+  background: #fffafa;
+}
+.log-bizdoc__main {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.log-bizdoc__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.log-bizdoc__req,
+.log-bizdoc__opt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a3b3b;
+}
+.log-bizdoc__opt {
+  color: #7a8079;
+}
+.log-bizdoc__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.log-bizdoc__view {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary, #0f5c4c);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.log-bizdoc__reason {
+  margin: 6px 0 0;
+  font-size: 0.84rem;
+  color: #8a3b3b;
+}
+.log-bizdoc__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.log-bizdoc__kind {
+  border: 1px solid #d5dbd7;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+.log-bizdoc__upload {
+  cursor: pointer;
+  margin: 0;
+}
+.log-bizdoc__upload.is-busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Locked "add" state while the company waits for Simba approval */
+.log-locked-add {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.log-locked-add p {
+  flex: 1 1 260px;
+}
+.logistics-cta.is-locked,
+button.logistics-cta.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 30 Oct 2026: Edit profile → Business documents (fleet owners) */
+.log-bizdoc-profile {
+  text-align: left;
+  margin-top: 24px;
+  padding: 14px;
+  border: 1px solid #d7e6df;
+  border-radius: 12px;
+  background: #f6faf8;
+}
+.log-bizdoc-profile > b {
+  display: block;
+  margin-bottom: 4px;
+}
+.log-bizdoc-profile .log-bizdoc-status__links {
+  display: none;
+}
+.log-bizdoc-profile .log-hint,
+.log-bizdoc-profile .log-callout p {
+  text-align: left;
+}
+/* Edit profile styles every form label (.login-box-inner-wrap label) — keep the CTA colours */
+.log-bizdoc-profile label.logistics-cta--primary {
+  color: #fff;
+}
+.log-bizdoc-profile label.logistics-cta--ghost {
+  color: var(--primary, #0f5c4c);
+}
+
+/* 30 Oct 2026: business document expiry date */
+.log-bizdoc__actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.log-bizdoc__date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #6b645b;
+}
+.log-bizdoc__date input {
+  border: 1px solid #d5dbd7;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  background: #fff;
+  color: #1f2a24;
+}
+.log-bizdoc__upload.is-locked {
+  opacity: 0.55;
+}
+.log-bizdoc__expires {
+  font-size: 0.8rem;
+}
+
+/* 30 Oct 2026: owner onboarding popup (Google / Apple sign-up, skipped step 2) */
+.log-onboard-modal .modal-title {
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+.log-onboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.log-onboard-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.log-onboard-field input[type="text"] {
+  min-height: 52px;
+  padding: 0 12px;
+  border: 1.5px solid var(--line-strong, #d9d2c5);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 500;
+}
+.log-onboard-field .log-field {
+  margin: 0;
+}
+.log-onboard-field .log-weight-hint {
+  display: none;
+}
+.log-onboard-opt {
+  color: #6b645b;
+  font-weight: 500;
+}
+.log-onboard-docs > b {
+  display: block;
+  margin-bottom: 8px;
+}
+.log-onboard-docs .log-bizdoc-status__links {
+  display: none;
+}
+@media (max-width: 640px) {
+  .log-onboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.log-onboard-modal .modal-dialog {
+  margin-top: 84px;
+}
+.log-onboard-modal.modal-dialog-scrollable .modal-content,
+.log-onboard-modal .modal-dialog-scrollable .modal-content {
+  max-height: calc(100vh - 110px);
+}
+
+/* v2.7.61 owner-operator */
+.log-unit-op {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 8px;
+}
+.log-unit-op--compact {
+  margin-top: 0;
+}
+.log-unit-op .logistics-cta {
+  white-space: nowrap;
+}
+.log-unit-op__job {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.log-who-operates__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 10px;
+}
+.log-who-operates__opt {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #e3ded5;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  min-width: 0;
+}
+.log-who-operates__opt.is-selected {
+  border-color: #16794c;
+  box-shadow: 0 0 0 1px #16794c inset;
+}
+.log-who-operates__opt b,
+.log-who-operates__opt small {
+  display: block;
+}
+.log-who-operates__opt small {
+  color: #6b6459;
+  font-weight: 400;
+}
+.log-who-operates__opt input {
+  width: auto;
+  margin-top: 3px;
+  flex: none;
+}
+.log-owner-op-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  min-width: 0;
+}
+.log-owner-op-setup__save {
+  align-self: flex-start;
+}
+.log-owner-op-setup__blocks {
+  margin: 0;
+  padding: 10px 12px 10px 28px;
+  background: #fff6e8;
+  border-radius: 8px;
+  font-size: 0.86rem;
+}
+.log-doc-row__warn {
+  display: block;
+  color: #9a6400;
+  font-weight: 500;
+}
+.log-doc-replace {
+  cursor: pointer;
+  white-space: nowrap;
+}
+.log-doc-replace__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-basis: 100%;
+  min-width: 0;
+}
+.log-doc-replace__confirm .log-hint {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.log-doc-replace__btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.is-doc-highlight {
+  outline: 3px solid #f0a81e;
+  outline-offset: 2px;
+  border-radius: 8px;
+  transition: outline-color 0.3s;
+}
+.log-wa-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid #1a9e55;
+  border-radius: 999px;
+  background: #fff;
+  color: #128c4b;
+  font-weight: 600;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.log-wa-chat-btn--compact {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+.log-wa-chat-btn:hover:not(:disabled) {
+  background: #eaf8f0;
+}
+.log-wa-chat-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@media (max-width: 560px) {
+  .log-unit-op .logistics-cta {
+    white-space: normal;
+  }
+}
+
+/* v2.7.61 WhatsApp extras countdown */
+.log-wa-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #128c4b;
+}
+.log-wa-extras.is-soon {
+  color: #9a6400;
+}
+.log-sub-plan__after {
+  font-weight: 500;
+  font-size: 0.78rem;
+  color: #6b6459;
+}
+
+/* Edit profile, logistics accounts (v2.7.65) */
+.edit-profile--logistics {
+  border-radius: 20px;
+  text-align: left;
+}
+.edit-profile--logistics .login-box-inner-wrap {
+  max-width: none !important;
+  width: 100%;
+  padding: 32px !important;
+  text-align: left;
+}
+.edit-profile--logistics .login-box-inner-wrap > h2,
+.edit-profile--logistics .login-box-inner-wrap > p {
+  text-align: left;
+}
+.edit-profile--logistics .profile-upload-sec {
+  justify-content: flex-start !important;
+  margin: 20px 0 8px;
+}
+.edit-profile--logistics form > button[type="submit"] {
+  display: block;
+  width: auto !important;
+  min-width: 180px;
+  margin: 8px 0 0 auto;
+  padding-inline: 32px;
+}
+.edit-profile--logistics .log-bizdoc-profile {
+  margin-top: 32px;
+  padding: 24px 0 0;
+  border: 0;
+  border-top: 1px solid #e3e8e5;
+  border-radius: 0;
+  background: transparent;
+}
+.edit-profile--logistics .log-bizdoc-profile > b {
+  font-size: 1.15rem;
+}
+.edit-profile--logistics .log-bizdoc-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.edit-profile--logistics .log-bizdoc {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+}
+.edit-profile--logistics .log-bizdoc__main {
+  flex: 1 1 auto;
+}
+.edit-profile--logistics .log-bizdoc[data-type="business_registration"],
+.edit-profile--logistics .log-bizdoc[data-type="owner_id"] {
+  grid-column: 1 / -1;
+}
+.edit-profile--logistics .log-bizdoc__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.edit-profile--logistics .log-bizdoc__date {
+  flex: 1 1 150px;
+  margin: 0;
+}
+.edit-profile--logistics .log-bizdoc__date input {
+  width: 100%;
+}
+.edit-profile--logistics .log-bizdoc__kind {
+  flex: 1 1 150px;
+  min-height: 42px;
+}
+.edit-profile--logistics .log-bizdoc__upload {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.edit-profile--logistics .log-bizdoc-profile ~ * {
+  margin-top: 16px;
+  text-align: left;
+}
+.log-bizdoc__idhelp {
+  margin: 4px 0 0;
+}
+.log-bizdoc__copy {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eef1ef;
+}
+.log-bizdoc__copy:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+@media (max-width: 767px) {
+  .edit-profile--logistics .login-box-inner-wrap {
+    padding: 20px 16px !important;
+  }
+  .edit-profile--logistics .log-bizdoc-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .edit-profile--logistics form > button[type="submit"] {
+    width: 100% !important;
+  }
+}
+.edit-profile--logistics .log-bizdoc {
+  min-width: 0;
+}
+.edit-profile--logistics .log-bizdoc__view {
+  max-width: 100%;
+}
+.edit-profile--logistics .log-sos-profile p,
+.edit-profile--logistics .log-wa-profile p {
+  text-align: left;
+}
+.edit-profile--logistics .log-bizdoc__main,
+.edit-profile--logistics .log-bizdoc__actions {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.edit-profile--logistics .log-bizdoc__view {
+  display: block;
+  flex: 0 1 100%;
+  min-width: 0;
+}
+.log-bizdoc__replace-id {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary, #0f5c4c);
+  text-decoration: underline;
 }

@@ -10,6 +10,20 @@
  *   5. no otp / password in any admin response
  */
 const L = require("./lib");
+const fs = require("fs");
+const path = require("path");
+const DOCS = require("./docs");
+const BACKEND = path.resolve(__dirname, "../../../sibmba-tasker-backend");
+
+/** Copy a fixture into the API's public folder → stored path (rows seeded straight into the DB). */
+function seedPublicFile(src, folder = "logistics/assets/docs") {
+  const dir = path.join(BACKEND, "public", folder);
+  fs.mkdirSync(dir, { recursive: true });
+  const name = `${Date.now()}--${path.basename(src)}`;
+  fs.copyFileSync(src, path.join(dir, name));
+  return `/${folder}/${name}`;
+}
+const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Own port (3012) so a developer's admin on 3002 (pointing at a real backend) is never driven by the test
 const ADMIN_WEB = process.env.E2E_ADMIN_WEB || "http://localhost:3012";
@@ -38,21 +52,30 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     await db.collection("logistics_assets").updateMany({ owner_id: ownerOid0 }, { $set: { owner_banned: false } });
   }
   const RUN = Date.now().toString(36);
+  const REF = RUN.slice(-5).toUpperCase(); // short ticket / reference number
   const created = { supportId: null, sosIds: [], reportId: null };
+  // Cast (Zimbabwe / Harare): people from earlier stages + this stage's pending company
+  const C = L.cast(st.RUN);
+  const opName = st.operator?.name || C.slot("operator", "s2").name;
+  const custName = st.customer?.name || L.castPersonFor(`cust.${st.RUN}`, 1).name;
+  const truckName = st.truck?.name || C.unit("truck", 20).name;
+  const hasCI = (txt, s2) => String(txt).toLowerCase().includes(String(s2).toLowerCase());
 
   L.sec("12.1 Seed logistics data that should reach admin");
   const sos = await L.api("POST", "/logistics/sos", {
     token: tok(st.operator),
-    body: { lat: -17.8292, lng: 31.0522, accuracy: 15, source: "web", message: `e2e admin check ${RUN}` },
+    // Seke Road near Chitungwiza, south of Harare
+    body: { lat: -17.9530, lng: 31.0690, accuracy: 15, source: "web", message: `Tyre burst on Seke Road near the Chitungwiza turn-off, truck stuck in the left lane (ref ${REF})` },
   });
   const alertId = sos?.data?.alert?._id || sos?.data?.alert?.id;
   L.check(!!alertId && sos?.data?.alerted?.simba, `operator SOS sent (${sos?.message})`, sos);
   if (alertId) created.sosIds.push(alertId);
 
-  const ticketMsg = `E2E logistics owner ticket ${RUN}`;
+  const ticketMsg = `Payment for my delivered Chitungwiza trip is not showing in Earnings yet. Please check (ref ${REF}).`;
+  const ticketTitle = `[Logistics Owner] Earnings not updated · Ref ${REF}`;
   const sup = await L.api("POST", "/customer/add_helpandsupport", {
     token: tok(st.owner),
-    body: { title: `[Logistics Owner] E2E ${RUN}`, message: ticketMsg },
+    body: { title: ticketTitle, message: ticketMsg },
   });
   L.check(sup?.success !== false && !sup?.raw, `owner support ticket created (${sup?.message})`, sup);
   const supDoc = await db.collection("helpandsupports").findOne({ message: ticketMsg });
@@ -61,7 +84,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   let report = null;
   for (const j of [st.job, st.directJob, st.ride].filter(Boolean)) {
     const id = j._id || j;
-    const r = await L.api("POST", `/logistics/job/${id}/report`, { token: tok(st.customer), body: { message: `E2E admin report ${RUN}` } });
+    const r = await L.api("POST", `/logistics/job/${id}/report`, { token: tok(st.customer), body: { message: `Operator arrived 2 hours late and two cement bags were torn (ref ${REF}).` } });
     if (r?.data?.report) { report = r.data.report; break; }
   }
   if (report) created.reportId = report._id || report.id;
@@ -83,6 +106,9 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   });
   await a.ctx.addInitScript((t) => { try { sessionStorage.setItem("token", t); } catch {} }, ADMIN_TOKEN);
 
+  // "Showing 1 - n of N": n = 10 when N >= 10 (a fresh DB can have fewer)
+  const shownTotal = (t) => Number((t.match(/Showing 1 - \d+ of (\d+) results/) || [])[1] || -1);
+  const pagedOk = (t) => { const m = t.match(/Showing 1 - (\d+) of (\d+) results/); return !!m && Number(m[1]) === Math.min(10, Number(m[2])); };
   const visit = async (route, label, expect) => {
     const e0 = a.errors.length, f0 = adminFails.length;
     await a.page.goto(`${ADMIN_WEB}${route}`, { waitUntil: "domcontentloaded" });
@@ -129,11 +155,10 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
 
   const supportTxt = await visit("/Support", "Help & Support (Logistics)");
   L.check(supportTxt.includes(ticketMsg) && /Logistics Support/.test(supportTxt), "logistics owner ticket is listed on Logistics Support");
-  L.check(supportTxt.includes(`[Logistics Owner] E2E ${RUN}`), "ticket subject ([Logistics Owner] …) is shown");
+  L.check(supportTxt.includes(ticketTitle), "ticket subject ([Logistics Owner] …) is shown");
   const sosCopies = await db.collection("Sos").countDocuments({ name: /^🚨 SOS / });
   L.check(sosCopies === 0, "SOS alerts are no longer copied into the helpline list (v2.7.36)", sosCopies);
   const sosTxt = await visit("/SOSManagement", "SOS Management → SOS Alerts");
-  const opName = `E2E Operator ${st.RUN}`;
   L.check(/SOS Alerts/i.test(sosTxt) && !/Helpline Numbers/i.test(sosTxt) && /Raised By/i.test(sosTxt) && /Fleet Owner/i.test(sosTxt), "Logistics → SOS Alerts only (alert columns, no helplines)");
   L.check(sosTxt.toLowerCase().includes(opName.toLowerCase()) && /\bActive\b/.test(sosTxt) && /Open in Maps/.test(sosTxt), "operator's SOS listed (name, Active = not viewed yet, map link)");
   const custTxt = await visit("/CustomerManagement", "Customer Management");
@@ -157,7 +182,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   const rows = reports?.data?.data || reports?.data?.reports || reports?.data || [];
   L.check(Array.isArray(rows) && (!created.reportId || rows.some((r) => String(r._id || r.id) === String(created.reportId))), `GET /admin/logistics-reports lists the new report (${Array.isArray(rows) ? rows.length : "?"} open)`, Object.keys(reports?.data || {}));
   if (created.reportId) {
-    const res = await L.api("POST", `/admin/logistics-reports/${created.reportId}/resolve`, { ...H, body: { adminRemark: "E2E resolved by admin" } });
+    const res = await L.api("POST", `/admin/logistics-reports/${created.reportId}/resolve`, { ...H, body: { adminRemark: "Spoke to the owner — delay was due to traffic at Tribune Chowk; the 2 torn bags will be replaced." } });
     const doc = await db.collection("logistics_job_reports").findOne({ _id: new L.mongoose.Types.ObjectId(String(created.reportId)) });
     L.check(doc?.status === "resolved" && doc?.resolved_by_role === "admin", `admin resolves report (${res?.message})`, { status: doc?.status, by: doc?.resolved_by_role });
     const n = await db.collection(" notifications").findOne({ receiver_id: new L.mongoose.Types.ObjectId(String(st.customer._id)), type: "logistics_job_report_resolved" }, { sort: { _id: -1 } });
@@ -189,12 +214,12 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     }
     let al = await db.collection("logistics_sos_alerts").findOne({ _id: new L.mongoose.Types.ObjectId(String(alertId)) });
     L.check(al?.status === "acknowledged" && al?.acknowledged_by_role === "admin", "alert acknowledged by admin");
-    await a.page.locator(".modal.show textarea").fill("E2E admin resolve");
+    await a.page.locator(".modal.show textarea").fill("Operator safe, tyre changed with help from the ZRP traffic section at Chitungwiza.");
     await a.page.locator(".modal.show button", { hasText: "Resolve" }).click();
     L.check(await L.waitText(a, /SOS resolved/), "Resolve → toast");
     await a.page.waitForTimeout(800);
     al = await db.collection("logistics_sos_alerts").findOne({ _id: new L.mongoose.Types.ObjectId(String(alertId)) });
-    L.check(al?.status === "resolved" && al?.resolved_by_role === "admin" && al?.resolve_note === "E2E admin resolve", "alert resolved by admin with note");
+    L.check(al?.status === "resolved" && al?.resolved_by_role === "admin" && al?.resolve_note === "Operator safe, tyre changed with help from the ZRP traffic section at Chitungwiza.", "alert resolved by admin with note");
     m = (await a.page.locator(".modal.show").innerText()).replace(/\s+/g, " ");
     L.check(/Resolved/.test(m) && /Simba admin/.test(m), "detail now says resolved by Simba admin");
     await L.shot(a, "s12-sos-resolved");
@@ -213,19 +238,20 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     await a.page.waitForURL(/AddSOSNumber/, { timeout: 8000 });
     L.check(/Add Helpline Number/i.test(await L.bodyText(a)), "Add Number's opens 'Add Helpline Number'");
     const inputs = a.page.locator("form input");
-    await inputs.nth(0).fill(`E2E Helpline ${RUN}`);
-    await inputs.nth(1).fill("263242700000");
+    const helpline = `ZRP Traffic Harare ${REF}`;
+    await inputs.nth(0).fill(helpline);
+    await inputs.nth(1).fill("911722740100");
     await a.page.locator("form button[type=submit], form button").last().click();
     await a.page.waitForURL(/SOSManagement\?tab=helplines/, { timeout: 10000 }).catch(() => {});
     await a.page.waitForTimeout(1200);
     h = await L.bodyText(a);
-    L.check(h.toLowerCase().includes(`e2e helpline ${RUN}`.toLowerCase()), "new helpline listed");
+    L.check(hasCI(h, helpline), "new helpline listed");
     await L.shot(a, "s12-helplines");
-    await a.page.locator("tbody tr", { hasText: `E2E Helpline ${RUN}` }).locator("button", { hasText: "Remove" }).click();
+    await a.page.locator("tbody tr", { hasText: new RegExp(esc(helpline), "i") }).locator("button", { hasText: "Remove" }).click();
     await a.page.locator(".modal.show button", { hasText: "Yes" }).click();
     await a.page.waitForTimeout(1200);
-    L.check(!(await L.bodyText(a)).toLowerCase().includes(`e2e helpline ${RUN}`.toLowerCase()), "helpline removed");
-    await db.collection("Sos").deleteMany({ name: `E2E Helpline ${RUN}` });
+    L.check(!hasCI(await L.bodyText(a), helpline), "helpline removed");
+    await db.collection("Sos").deleteMany({ name: helpline });
   }
 
   L.sec("12.4 Tasker 'deactivate' (customer tab) is separate from the logistics ban");
@@ -257,7 +283,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
 
   L.sec("12.8 Equipment Owners page — list, badge, profile tabs");
   const ownersTxt = await visit("/logistics-owners", "Equipment Owners");
-  L.check(/Set Badge/.test(ownersTxt) && /Status/.test(ownersTxt) && /Showing 1 - 10 of \d+ results/.test(ownersTxt), "owners table has Set Badge + Status + 10 per page");
+  L.check(/Set Badge/.test(ownersTxt) && /Status/.test(ownersTxt) && pagedOk(ownersTxt), "owners table has Set Badge + Status + 10 per page");
   await a.page.locator('input[type="search"]').first().fill(ownerEmail);
   await a.page.waitForTimeout(1500);
   const row = a.page.locator("tbody tr", { hasText: ownerEmail });
@@ -286,8 +312,8 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   await a.page.locator(".over-view-btn button", { hasText: "Equipment" }).click();
   await a.page.waitForTimeout(500);
   ptxt = await L.bodyText(a);
-  L.check(ptxt.toLowerCase().includes(`e2e truck ${st.RUN}`.toLowerCase()) && /Registration/.test(ptxt), "Equipment tab lists the owner's units");
-  await a.page.locator("span.action-text", { hasText: `E2E Truck ${st.RUN}` }).first().click();
+  L.check(hasCI(ptxt, truckName) && /Registration/.test(ptxt), "Equipment tab lists the owner's units");
+  await a.page.locator("span.action-text", { hasText: new RegExp(esc(truckName), "i") }).first().click();
   await a.page.waitForSelector(".modal.show", { timeout: 5000 });
   await a.page.waitForTimeout(600);
   const unitTxt = (await a.page.locator(".modal.show").innerText()).replace(/\s+/g, " ");
@@ -297,7 +323,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   await a.page.locator(".over-view-btn button", { hasText: "Operators" }).click();
   await a.page.waitForTimeout(500);
   ptxt = await L.bodyText(a);
-  L.check(ptxt.toLowerCase().includes(`e2e operator ${st.RUN}`.toLowerCase()) && /Jobs done/.test(ptxt), "Operators tab lists operators");
+  L.check(hasCI(ptxt, opName) && /Jobs done/.test(ptxt), "Operators tab lists operators");
   await L.shot(a, "s12-owner-operators");
   await a.page.locator(".over-view-btn button", { hasText: "Earnings" }).click();
   await a.page.waitForLoadState("networkidle").catch(() => {});
@@ -314,18 +340,25 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     const { ObjectId } = L.mongoose.Types;
     const pid = new ObjectId();
     const uid = new ObjectId();
-    const pEmail = `pending.owner.${st.RUN}@e2e.example.com`;
+    // A new company waiting for approval: real-looking road tax + insurance for its tipper
+    const pOwner = C.slot("owner", "s12", 0);
+    const pUnit = C.unit("truck", 120);
+    const pEmail = pOwner.email;
+    const docInfo = { owner: pOwner.company, plate: pUnit.plate, make: pUnit.make, model: pUnit.model, year: pUnit.year, kind: "vehicle", expires: DOCS.addMonths(7) };
+    const regoFile = await L.docFile("rego", docInfo);
+    const insFile = await L.docFile("insurance", docInfo);
     const pDocs = [
-      { _id: new ObjectId(), type: "rego", name: "zinara.pdf", url: "/x.pdf", expires: new Date(Date.now() + 200 * 86400000), review: { status: "pending", reason: "" } },
-      { _id: new ObjectId(), type: "insurance", name: "ins.pdf", url: "/x.pdf", expires: new Date(Date.now() + 200 * 86400000), review: { status: "pending", reason: "" } },
+      { _id: new ObjectId(), type: "rego", name: path.basename(regoFile), url: seedPublicFile(regoFile), expires: new Date(Date.now() + 200 * 86400000), review: { status: "pending", reason: "" } },
+      { _id: new ObjectId(), type: "insurance", name: path.basename(insFile), url: seedPublicFile(insFile), expires: new Date(Date.now() + 200 * 86400000), review: { status: "pending", reason: "" } },
     ];
     await db.collection("users").insertOne({
-      _id: pid, email: pEmail, full_name: `Pending Owner ${st.RUN}`, company_name: `Pending Co ${st.RUN}`, role: 4, owner_id: null,
-      country_code: "+263", phone_number: `78${String(Date.now()).slice(-7)}`, email_verified: 1, is_deleted: 0,
+      _id: pid, email: pEmail, full_name: pOwner.name, company_name: pOwner.company, role: 4, owner_id: null,
+      country_code: C.CC, phone_number: pOwner.phone, email_verified: 1, is_deleted: 0,
       logistics_approval: { status: "pending", reason: "", submitted_at: new Date() }, createdAt: new Date(), updatedAt: new Date(),
     });
     await db.collection("logistics_assets").insertOne({
-      _id: uid, owner_id: pid, kind: "vehicle", name: `Pending Truck ${st.RUN}`, registration: `PD${st.RUN}`.toUpperCase().slice(0, 10),
+      _id: uid, owner_id: pid, kind: "vehicle", name: pUnit.name, registration: pUnit.plate, make: pUnit.make, model: pUnit.model, year: pUnit.year,
+      photos: (await L.photoFixtures(pUnit)).map((f) => seedPublicFile(f, "logistics/assets")),
       red_plate: true, is_active: 1, is_deleted: 0, owner_unapproved: true, assigned_sub_user_ids: [], documents: pDocs, createdAt: new Date(), updatedAt: new Date(),
     });
     try {
@@ -345,6 +378,56 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
         .then(() => true)
         .catch(() => false);
       L.check(cardOk, "profile shows the Approval card (Pending)", await a.page.locator(".log-approval-card").innerText().catch(() => ""));
+
+      // 29 Oct 2026: business documents gate the company approval
+      L.sec("12.8b1 Business documents: Approve locked until registration + owner ID are uploaded");
+      await a.page.waitForSelector(".log-biz-docs-card", { timeout: 10000 });
+      L.check(/Missing/i.test(await a.page.locator(".log-biz-docs-card").innerText()), "Business documents card shows the required documents as Missing");
+      L.check(await a.page.locator("button.log-approve-btn").isDisabled(), "Approve company is disabled without business documents");
+      const rawApprove = await L.api("POST", `/admin/logistics/owners/${pid}/approval`, { token: ADMIN_TOKEN, body: { status: "approved" } });
+      L.check(rawApprove?.success === false && rawApprove?.data?.code === "BUSINESS_DOCS_REQUIRED", "API: approve without business documents → BUSINESS_DOCS_REQUIRED", rawApprove?.message);
+      const bizFiles = await L.businessDocFiles({ name: pOwner.name, company: pOwner.company }, 6);
+      const up = await L.apiForm("POST", "/logistics/business-docs", {
+        token: L.tokenFor(pid),
+        body: { owner_id_kind: "driving_licence", owner_id_expires: L.docExpiryYmd(), tax_expires: L.docExpiryYmd(1) },
+        files: [["business_registration", bizFiles.business_registration], ["owner_id", bizFiles.owner_id], ["tax", bizFiles.tax]],
+      });
+      L.check(up?.success !== false && (up?.data?.missing || []).length === 0, "owner uploads registration certificate + owner ID + tax certificate", up?.message);
+      // Owners list: DOCS TO CHECK tab + dashboard tile
+      await a.page.goto(`${ADMIN_WEB}/logistics-owners?docs=pending`, { waitUntil: "domcontentloaded" });
+      await a.page.waitForLoadState("networkidle").catch(() => {});
+      await a.page.locator('input[type="search"]').first().fill(pEmail);
+      await a.page.waitForTimeout(1500);
+      L.check((await a.page.locator("tbody tr", { hasText: pEmail }).count()) === 1, "DOCS TO CHECK tab lists the company with waiting documents");
+      L.check((await a.page.locator("a.log-docs-tab").count()) > 0, "owners page has the DOCS TO CHECK tab");
+      await withModule("logistics");
+      const dash2 = await visit("/Dashboard", "Dashboard (documents waiting)");
+      L.check(/Documents waiting for check/i.test(dash2), "dashboard tile 'Documents waiting for check'");
+      await a.page.goto(`${ADMIN_WEB}/logistics-owner/${pid}`, { waitUntil: "domcontentloaded" });
+      await a.page.waitForSelector(".log-biz-docs-card", { timeout: 15000 });
+      await a.page.waitForTimeout(800);
+      const bizCard = a.page.locator(".log-biz-docs-card");
+      L.check((await bizCard.locator('.log-doc-row[data-doc-type="business_registration"] .log-doc-view').count()) > 0, "registration certificate shown with a file icon (PDF)");
+      L.check(!(await a.page.locator("button.log-approve-btn").isDisabled()), "Approve company enabled once the documents are uploaded");
+      // Verify the registration certificate, reject the owner ID with a reason
+      await bizCard.locator('.log-doc-row[data-doc-type="business_registration"] button.log-doc-verify').first().click();
+      await a.page.waitForTimeout(1500);
+      await bizCard.locator('.log-doc-row[data-doc-type="owner_id"] button.log-doc-reject').first().click();
+      await a.page.waitForSelector(".modal.log-reason-modal", { timeout: 5000 });
+      await a.page.fill("textarea.log-reason-input", "ID photo is blurred — upload a clear copy");
+      await a.page.locator("button.log-reason-submit").click();
+      await a.page.waitForTimeout(1500);
+      const ownerBiz = await L.api("GET", "/logistics/business-docs", { token: L.tokenFor(pid) });
+      const bd = (t) => (ownerBiz?.data?.documents || []).find((x) => x.type === t);
+      L.check(bd("business_registration")?.review?.status === "verified", "owner sees the registration certificate Verified");
+      L.check(bd("owner_id")?.review?.status === "rejected" && /blurred/.test(bd("owner_id")?.review?.reason || ""), "owner sees the owner ID Rejected with the reason");
+      L.check(await a.page.locator("button.log-approve-btn").isDisabled(), "rejected owner ID → Approve disabled again");
+      // Owner uploads a clear ID again → back to the admin
+      const re = await L.apiForm("POST", "/logistics/business-docs", { token: L.tokenFor(pid), body: { owner_id_kind: "driving_licence", owner_id_expires: L.docExpiryYmd() }, files: [["owner_id", bizFiles.owner_id]] });
+      L.check(re?.success !== false && (re?.data?.missing || []).length === 0, "owner re-uploads the owner ID", re?.message);
+      await a.page.reload({ waitUntil: "domcontentloaded" });
+      await a.page.waitForSelector(".log-approval-card", { timeout: 15000 });
+      await a.page.waitForTimeout(800);
 
       // Documents: verify ZINARA, reject insurance with a reason
       await a.page.locator(".over-view-btn button", { hasText: "Equipment" }).click();
@@ -398,25 +481,91 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     }
   }
 
+  L.sec("12.8c Unit + operator documents gate customer search (29 Oct 2026)");
+  {
+    const OID = (x) => new L.mongoose.Types.ObjectId(String(x));
+    let lastSearch = null;
+    const listed = async () => {
+      const r = await L.api("GET", `/logistics/assets/search?kind=vehicle&q=${encodeURIComponent(truckName)}&limit=50`, { token: tok(st.customer) });
+      const rows = r?.data?.data || [];
+      lastSearch = rows.map((x) => `${x.name}:${x.customer_view?.status_detail || ""}`);
+      return rows.some((x) => String(x.asset_id || x._id) === String(st.truck._id));
+    };
+    const truckDoc = await db.collection("logistics_assets").findOne({ _id: OID(st.truck._id) }, { projection: { documents: 1, assigned_sub_user_ids: 1 } });
+    const savedDocs = truckDoc?.documents || [];
+    const opIds = (truckDoc?.assigned_sub_user_ids || []).map(String);
+    try {
+      L.check(await listed(), "baseline: truck with verified documents + verified operator is in customer search", lastSearch);
+      // Admin rejects the insurance in the Equipment tab
+      await a.page.goto(`${ADMIN_WEB}/logistics-owner/${st.owner._id}`, { waitUntil: "domcontentloaded" });
+      await a.page.waitForSelector(".over-view-btn button", { timeout: 15000 });
+      await a.page.locator(".over-view-btn button", { hasText: "Equipment" }).click();
+      const unitRow = a.page.locator(`tr[data-unit-id="${st.truck._id}"]`);
+      await unitRow.waitFor({ timeout: 10000 });
+      await unitRow.locator('.log-doc-row[data-doc-type="insurance"] button.log-doc-reject').first().click();
+      await a.page.waitForSelector(".modal.log-reason-modal", { timeout: 5000 });
+      await a.page.fill("textarea.log-reason-input", "Policy schedule page 2 missing");
+      await a.page.locator("button.log-reason-submit").click();
+      await a.page.waitForTimeout(1500);
+      // v2.7.61 (items 1, 9): optional document only warns; a compulsory one hides the truck
+      L.check(await listed(), "rejected insurance (optional) → truck stays in customer search", lastSearch);
+      L.check(/rejected/i.test(await unitRow.innerText()), "admin Equipment tab shows the rejection on the unit");
+      await L.shot(a, "s12-unit-doc-rejected");
+      await unitRow.locator('.log-doc-row[data-doc-type="insurance"] button.log-doc-verify').first().click();
+      await a.page.waitForTimeout(1500);
+      await unitRow.locator('.log-doc-row[data-doc-type="rego"] button.log-doc-reject').first().click();
+      await a.page.waitForSelector(".modal.log-reason-modal", { timeout: 5000 });
+      await a.page.fill("textarea.log-reason-input", "Road licence copy unreadable");
+      await a.page.locator("button.log-reason-submit").click();
+      await a.page.waitForTimeout(1500);
+      L.check(!(await listed()), "rejected ZINARA (compulsory) → truck hidden from customer search", lastSearch);
+      const cv = await L.api("GET", `/logistics/asset/${st.truck._id}`, { token: tok(st.customer) });
+      L.check(cv?.data?.asset?.availability?.bookable === false || cv?.success === false, "asset page: not bookable while a compulsory document is rejected", cv?.data?.asset?.availability || cv?.message);
+      // Admin verifies it again → listed
+      await unitRow.locator('.log-doc-row[data-doc-type="rego"] button.log-doc-verify').first().click();
+      await a.page.waitForTimeout(1500);
+      L.check(await listed(), "ZINARA verified again → truck back in customer search", lastSearch);
+      // Operator licences: rejected → no ready operator → hidden; verified → listed
+      const withLicence = [];
+      for (const id of opIds) {
+        const u = await db.collection("users").findOne({ _id: OID(id) }, { projection: { logistics_documents: 1 } });
+        if ((u?.logistics_documents || []).some((x) => x.type === "licence" && x.review?.status === "verified")) withLicence.push(id);
+      }
+      for (const id of withLicence) await L.reviewDocs("operator", id, { status: "rejected", reason: "Licence photo cut off", only: ["licence"] });
+      L.check(!(await listed()), "operator licence rejected → truck hidden (no operator with a verified licence)", lastSearch);
+      const goLive = await L.api("PATCH", "/logistics/me/availability", { token: tok(st.operator), body: { state: "available_now", active_asset_id: String(st.truck._id) } });
+      L.check(goLive?.success === false && goLive?.data?.code === "DOC_REJECTED", "operator with a rejected licence can't go live (DOC_REJECTED)", goLive?.message);
+      await a.page.reload({ waitUntil: "networkidle" });
+      await a.page.waitForTimeout(800);
+      await a.page.locator(".over-view-btn button", { hasText: "Operators" }).click();
+      await a.page.waitForTimeout(800);
+      L.check((await a.page.locator(".log-op-block").count()) > 0, "admin Operators tab shows the licence block badge");
+      for (const id of withLicence) await L.reviewDocs("operator", id, { status: "verified", only: ["licence"] });
+      L.check(await listed(), "licence verified again → truck back in customer search", lastSearch);
+    } finally {
+      await db.collection("logistics_assets").updateOne({ _id: OID(st.truck._id) }, { $set: { documents: savedDocs } });
+    }
+  }
+
   L.sec("12.9 Logistics Jobs page — search, filters, pagination, detail");
   let jtxt = await visit("/logistics-jobs", "Logistics Jobs");
-  L.check(/Showing 1 - 10 of \d+ results/.test(jtxt), "10 per page by default");
-  L.check((await a.page.locator("table.table-cmn tbody tr").count()) === 10, "first page has 10 rows");
-  await a.page.locator('input[type="search"]').first().fill(`cust.${st.RUN}`);
+  L.check(pagedOk(jtxt), "10 per page by default");
+  L.check((await a.page.locator("table.table-cmn tbody tr").count()) === Math.min(10, shownTotal(jtxt)), "first page has min(10, total) rows");
+  await a.page.locator('input[type="search"]').first().fill(custName);
   await a.page.waitForTimeout(1500);
   jtxt = await L.bodyText(a);
   const custRows = await a.page.locator("table.table-cmn tbody tr").count();
-  L.check(custRows > 0 && (await a.page.locator("table.table-cmn tbody tr", { hasText: `E2E cust.${st.RUN}` }).count()) === custRows, `search by customer name → ${custRows} job(s), all theirs`);
-  await a.page.locator('input[type="search"]').first().fill(`E2E Operator ${st.RUN}`);
+  L.check(custRows > 0 && (await a.page.locator("table.table-cmn tbody tr", { hasText: new RegExp(esc(custName), "i") }).count()) === custRows, `search by customer name → ${custRows} job(s), all theirs`);
+  await a.page.locator('input[type="search"]').first().fill(opName);
   await a.page.waitForTimeout(1500);
   const opRows = await a.page.locator("table.table-cmn tbody tr").count();
-  L.check(opRows > 0 && (await a.page.locator("table.table-cmn tbody tr", { hasText: `E2E Operator ${st.RUN}` }).count()) === opRows, `search by operator name → ${opRows} job(s)`);
+  L.check(opRows > 0 && (await a.page.locator("table.table-cmn tbody tr", { hasText: new RegExp(esc(opName), "i") }).count()) === opRows, `search by operator name → ${opRows} job(s)`);
   await a.page.locator("select[aria-label='Job status']").selectOption("5");
   await a.page.waitForTimeout(1500);
   const delRows = await a.page.locator("table.table-cmn tbody tr").count();
   L.check(delRows > 0 && (await a.page.locator("table.table-cmn tbody tr", { hasText: "Delivered" }).count()) === delRows, `status filter Delivered → ${delRows} row(s), all Delivered`);
   await a.page.locator("select[aria-label='Job status']").selectOption("");
-  await a.page.locator('input[type="search"]').first().fill(`cust.${st.RUN}`);
+  await a.page.locator('input[type="search"]').first().fill(custName);
   await a.page.waitForTimeout(1500);
   const catOpts = (await a.page.locator("select[aria-label='Category'] option").allInnerTexts()).join("|");
   L.check(catOpts === "Category: All|Logistic|Agricultural|Construction|Industrial|Cab", `category filter = Hub categories (${catOpts})`);
@@ -441,7 +590,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   L.check(/JOB DETAILS/i.test(dtxt) && /PAYMENT/i.test(dtxt) && /QUOTES/i.test(dtxt) && /STATUS HISTORY/i.test(dtxt), "transport job detail sections (details, payment, quotes, history)");
   L.check(/Customer posted/.test(dtxt) && /Agreed amount/.test(dtxt) && /Cash/.test(dtxt) && !/Not paid/.test(dtxt), "payment = customer posted + agreed, cash in hand (no Paid)");
   L.check(/Load/.test(dtxt) && /Weight/.test(dtxt) && !/Cab class/.test(dtxt), "transport rows (load, weight), no cab rows");
-  L.check(dtxt.includes(`E2E cust.${st.RUN}`) && dtxt.includes(`E2E Operator ${st.RUN}`) && /Equipment owner/i.test(dtxt), "job detail shows customer, operator and owner");
+  L.check(hasCI(dtxt, custName) && hasCI(dtxt, opName) && /Equipment owner/i.test(dtxt), "job detail shows customer, operator and owner");
   await L.shot(a, "s12-job-detail");
   const rideJob = await db.collection("transport_jobs").findOne({ job_type: "ride", requester_id: new L.mongoose.Types.ObjectId(String(st.customer._id)) });
   if (rideJob) {
@@ -478,17 +627,18 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
   L.check(true, "restored the original badge");
 
   L.sec("12.13 Owner company name (profile) → customers see it");
-  const company = `E2E Freight ${RUN}`;
+  // the owner renames the business (put back at the end of this section)
+  const company = `${C.slot("owner", "s1").last} Transport & Logistics LLP`;
   const ownerPrev = await db.collection("users").findOne({ _id: ownerOid }, { projection: { company_name: 1, profile_image: 1 } });
   // Edit profile needs a photo; seed one in the DB (Playwright's request proxy can't forward a file upload)
-  if (!ownerPrev?.profile_image) await db.collection("users").updateOne({ _id: ownerOid }, { $set: { profile_image: "/user/e2e-owner.png" } });
+  if (!ownerPrev?.profile_image) await db.collection("users").updateOne({ _id: ownerOid }, { $set: { profile_image: seedPublicFile(DOCS.face(6), "user") } });
   {
     const w = await L.actor("owner-profile");
     await L.seedAuth(w, { token: L.tokenFor(st.owner._id), user: { ...st.owner, role: 4 } });
     await w.page.goto(`${L.WEB}/edit-profile`, { waitUntil: "domcontentloaded" });
     await w.page.waitForSelector('input[name="company_name"]', { timeout: 20000 });
     L.check(true, "owner's Edit profile has a Company name field");
-    if (!(await w.page.locator('input[name="full_name"]').first().inputValue())) await w.page.locator('input[name="full_name"]').first().fill(`E2E Owner ${st.RUN}`);
+    if (!(await w.page.locator('input[name="full_name"]').first().inputValue())) await w.page.locator('input[name="full_name"]').first().fill(st.ownerName || C.slot("owner", "s1").name);
     await w.page.locator('input[name="company_name"]').fill(company);
     await L.shot(w, "s12-owner-company-field");
     await w.page.locator('button[type="submit"]', { hasText: "Update" }).click();
@@ -511,7 +661,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     await c.page.goto(`${L.WEB}/logistics/asset/${st.truck._id}`, { waitUntil: "domcontentloaded" });
     const ok = await L.waitText(c, new RegExp(company), 20000);
     const prov = ok ? await c.page.locator("text=Provider").first().locator("xpath=..").innerText().catch(() => "") : "";
-    L.check(ok && !/E2E Owner/.test(prov), "customer asset page shows the company under Provider");
+    L.check(ok && hasCI(prov, company), "customer asset page shows the company under Provider", prov.slice(0, 160));
     await L.shot(c, "s12-customer-company");
     await c.ctx.close();
   }
@@ -572,11 +722,11 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     await L.shot(a, "s12-logistics-notification-form");
 
     // Real send to Operators (test API mocks push + email), then remove the in-app rows it created
-    const title = `E2E notice ${RUN}`;
+    const title = `Diwali week dispatch timings ${REF}`;
     await a.page.locator('select[name="userType"]').selectOption("operators");
     await a.page.locator('input[name="title"]').fill(title);
-    await a.page.locator('textarea[name="description"]').fill("E2E logistics announcement — please ignore.");
-    L.check(/Simba Logistics: E2E notice/.test(await L.bodyText(a)), "form shows how users will see the title");
+    await a.page.locator('textarea[name="description"]').fill("Loading bays at Industrial Area Phase 1 & 2 close at 6 pm from 30 Oct to 3 Nov. Plan pickups before noon. Happy Diwali!");
+    L.check(new RegExp(`Simba Logistics: ${esc(title)}`).test(await L.bodyText(a)), "form shows how users will see the title");
     await a.page.locator("button", { hasText: /^CREATE$/i }).click();
     L.check(await L.waitText(a, new RegExp(`Notification sent to ${expect.operators} user`), 10000), `toast: sent to ${expect.operators} operators`);
     await a.page.waitForURL(/\/Notification$/, { timeout: 8000 }).catch(() => {});

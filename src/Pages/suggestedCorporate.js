@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Modal from "react-bootstrap/Modal";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
+import { guestLoginPath } from "../utils/authRedirect";
 import { useDispatch } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import SimbaPager from "../CommanComponents/SimbaPager";
@@ -145,7 +146,7 @@ export default function SuggestedCorporatePage() {
     const fetchCorporateInfo = async () => {
       if (!userId) return;
       setLoading(true);
-      const customerId = localStorage.getItem("userId");
+      const customerId = localStorage.getItem("userId") || undefined;
       try {
         const response = await dispatch(
           CustomerActions.corpoInfoProductListUser({
@@ -154,7 +155,7 @@ export default function SuggestedCorporatePage() {
             limit,
             status: leadFilter,
             search: searchText,
-            customerId,
+            ...(customerId ? { customerId } : {}),
           })
         );
 
@@ -181,12 +182,17 @@ export default function SuggestedCorporatePage() {
     };
 
     fetchCorporateInfo();
-    getProfileApiCall();
+    // Guests have no profile to check (the API needs a login)
+    if (localStorage.getItem("token")) getProfileApiCall();
   }, [dispatch, userId, page, limit, leadFilter, searchText, getProfileApiCall]);
 
   const isSubscriptionExpired = () => !packageDetails;
 
   const guardSpAction = (action) => {
+    if (!localStorage.getItem("token")) {
+      navigate(guestLoginPath());
+      return;
+    }
     if (String(role) === "2" && isSubscriptionExpired()) {
       setShowPlanModal(true);
       return;
@@ -228,9 +234,7 @@ export default function SuggestedCorporatePage() {
     });
   };
 
-  const handleMap = () => {
-    guardSpAction(() => setShowMapModal(true));
-  };
+  const handleMap = () => setShowMapModal(true);
 
   if (loading && !corpoProfile) {
     return (

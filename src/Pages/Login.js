@@ -155,55 +155,59 @@ export default function Login() {
     if (!validateForm()) return;
 
     setLocalLoading(true);
+    try {
+      const { token: deviceToken, isFcm, reason } =
+        await resolveWebDeviceTokenDetailed(fcmToken);
 
-    const { token: deviceToken, isFcm, reason } =
-      await resolveWebDeviceTokenDetailed(fcmToken);
-
-    if (isFcm && deviceToken) {
-      localStorage.setItem("device_token", deviceToken);
-      setFcmToken(deviceToken);
-    }
-
-    if (!isFcm) {
-      console.warn("Login FCM unavailable:", reason);
-      if (reason === "insecure_context_use_https_or_localhost") {
-        toast.warn(
-          "Open the site via HTTPS or localhost to enable push notifications."
-        );
-      } else if (String(reason).includes("notification_permission")) {
-        toast.warn(
-          "Allow browser notifications to receive job alerts on this device."
-        );
+      if (isFcm && deviceToken) {
+        localStorage.setItem("device_token", deviceToken);
+        setFcmToken(deviceToken);
       }
-    }
 
-    // Only send real FCM tokens — web-* fallbacks are not deliverable by Firebase.
-    const payload = { ...formData, device_type: "web" };
-    if (isFcm && deviceToken) payload.device_token = deviceToken;
-
-    const response = await dispatch(CustomerActions.loginCustomer(payload));
-
-    if (response?.payload?.status_code === 200) {
-      await handleAuthSuccess({
-        payload: response.payload,
-        dispatch,
-        navigate,
-        returnUrl,
-        fallbackEmail: formData.email,
-      });
-    } else {
-      // Invited operators have no account until they accept the invite — never
-      // show a bare "Email doesn't exist"; give invite guidance instead.
-      let message = response?.payload?.message;
-      if (/doesn.?t exist/i.test(String(message || ""))) {
-        const hint = await dispatch(LogisticsActions.loginHint(formData.email.trim()));
-        message =
-          hint?.payload?.data?.message ||
-          "No account found with this email. If your company invited you as an operator, check your invite message or ask your company to resend it.";
+      if (!isFcm) {
+        console.warn("Login FCM unavailable:", reason);
+        if (reason === "insecure_context_use_https_or_localhost") {
+          toast.warn(
+            "Open the site via HTTPS or localhost to enable push notifications."
+          );
+        } else if (String(reason).includes("notification_permission")) {
+          toast.warn(
+            "Allow browser notifications to receive job alerts on this device."
+          );
+        }
       }
-      toast.error(message);
+
+      // Only send real FCM tokens — web-* fallbacks are not deliverable by Firebase.
+      const payload = { ...formData, device_type: "web" };
+      if (isFcm && deviceToken) payload.device_token = deviceToken;
+
+      const response = await dispatch(CustomerActions.loginCustomer(payload));
+
+      if (response?.payload?.status_code === 200) {
+        await handleAuthSuccess({
+          payload: response.payload,
+          dispatch,
+          navigate,
+          returnUrl,
+          fallbackEmail: formData.email,
+        });
+      } else {
+        // Invited operators have no account until they accept the invite — never
+        // show a bare "Email doesn't exist"; give invite guidance instead.
+        let message = response?.payload?.message;
+        if (/doesn.?t exist/i.test(String(message || ""))) {
+          const hint = await dispatch(LogisticsActions.loginHint(formData.email.trim()));
+          message =
+            hint?.payload?.data?.message ||
+            "No account found with this email. If your company invited you as an operator, check your invite message or ask your company to resend it.";
+        }
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error(error?.message || "Login failed. Please try again.");
+    } finally {
+      setLocalLoading(false);
     }
-    setLocalLoading(false);
   };
 
   const handleSocialNeedRole = (pending) => {
@@ -214,27 +218,31 @@ export default function Login() {
     if (!pendingSocial) return;
 
     setRoleModalLoading(true);
-    const response = await dispatch(
-      CustomerActions.socialLogin({
-        type: Number(pendingSocial.type) || 1,
-        social_token: pendingSocial.socialToken,
-        role: Number(role),
-        device_type: "web",
-        device_token: pendingSocial.deviceToken || undefined,
-        allow_create: true,
-      })
-    );
+    try {
+      const response = await dispatch(
+        CustomerActions.socialLogin({
+          type: Number(pendingSocial.type) || 1,
+          social_token: pendingSocial.socialToken,
+          role: Number(role),
+          device_type: "web",
+          device_token: pendingSocial.deviceToken || undefined,
+          allow_create: true,
+        })
+      );
 
-    const ok = await handleAuthSuccess({
-      payload: response?.payload,
-      dispatch,
-      navigate,
-      returnUrl,
-    });
-
-    setRoleModalLoading(false);
-    if (ok) {
-      setPendingSocial(null);
+      const ok = await handleAuthSuccess({
+        payload: response?.payload,
+        dispatch,
+        navigate,
+        returnUrl,
+      });
+      if (ok) {
+        setPendingSocial(null);
+      }
+    } catch (error) {
+      toast.error(error?.message || "Sign-in failed. Please try again.");
+    } finally {
+      setRoleModalLoading(false);
     }
   };
 

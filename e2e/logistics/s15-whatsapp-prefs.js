@@ -1,10 +1,12 @@
-/* Stage 15 — WhatsApp notifications: profile toggle + paid-plan only (v2.7.50).
-   Free fleet: plan card ✗, profile toggle locked, invite WhatsApp option disabled, API refuses
-   WhatsApp invites, no WhatsApp to the owner / operators. Paid fleet: toggle on by default,
-   switching it off (in the browser) stops WhatsApp, on brings it back. Customers: own toggle only.
+/* Stage 15 — WhatsApp notifications: profile toggle + plan rules (v2.7.50, changed v2.7.61).
+   Free fleet: essentials free forever (invites work), extras during the 60-day trial, none after it.
+   Toggle usable on every plan. Paid fleet: toggle on by default, switching it off (in the browser)
+   stops WhatsApp, on brings it back. Customers: own toggle only.
    WhatsApp sends go through the real backend code (utils/logistics/jobWhatsapp.js) in a child
    process with the mocked Twilio, so every message lands in outbox.jsonl. Uses s1–s3 state. */
 const L = require("./lib");
+const F = require("./fleet-helpers");
+const DOCS = require("./docs");
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
@@ -18,19 +20,24 @@ const outbox = (since) =>
     : [];
 
 /** Real backend send (policy + template + mocked Twilio). Returns { ok, error }. */
-function sendWa(userId, key, vars) {
+function sendWa(userId, key, vars, opts = {}) {
   const out = execFileSync(process.execPath, ["-r", path.join(BACKEND, "scripts/e2e/mock-providers.js"), "-e",
-    `require("dotenv").config();const m=require("mongoose");m.connect(process.env.DB_URL).then(async()=>{const w=require("./src/utils/logistics/jobWhatsapp");const r=await w.sendJobWhatsapp(${JSON.stringify(userId)},${JSON.stringify(key)},${JSON.stringify(vars)});console.log("RESULT"+JSON.stringify(r));await m.disconnect()})`],
+    `require("dotenv").config();const m=require("mongoose");m.connect(process.env.DB_URL).then(async()=>{const w=require("./src/utils/logistics/jobWhatsapp");const r=await w.sendJobWhatsapp(${JSON.stringify(userId)},${JSON.stringify(key)},${JSON.stringify(vars)},${JSON.stringify(opts)});console.log("RESULT"+JSON.stringify(r));await m.disconnect()})`],
     { cwd: BACKEND, env: { ...process.env }, stdio: "pipe" }).toString();
   const line = out.split("\n").find((l) => l.startsWith("RESULT"));
   return line ? JSON.parse(line.slice(6)) : { ok: false, error: "no result" };
 }
 
 const WEB = L.WEB;
+// Template variables as the backend fills them for a Harare → Mutare trip of the s1 fleet
+const ST0 = L.loadState();
+const CAST = L.cast(ST0.RUN);
+const FLEET = ST0.ownerCompany || CAST.slot("owner", "s1").company;
+const ROUTE = `${L.PLACES.corridor.from} → ${L.PLACES.corridor.to}`;
 const vars = {
-  owner: (id) => ({ 1: "E2E15 (Harare → Bulawayo)", 2: "Your operator is in transit", 3: `${WEB}/logistics/owner/job/${id}` }),
-  operator: (id) => ({ 1: "Harare → Bulawayo · 4 ton truck · tomorrow", 2: `${WEB}/logistics/driver/job/${id}` }),
-  customer: (id) => ({ 1: "E2E15 (Harare → Bulawayo)", 2: "Moyo Freight · USD 120", 3: `${WEB}/logistics/jobs/${id}` }),
+  owner: (id) => ({ 1: `Kinnow boxes, 300 crates (${ROUTE})`, 2: "Your operator is in transit", 3: `${WEB}/logistics/owner/job/${id}` }),
+  operator: (id) => ({ 1: `${ROUTE} · 4 ton truck · tomorrow`, 2: `${WEB}/logistics/driver/job/${id}` }),
+  customer: (id) => ({ 1: `Kinnow boxes, 300 crates (${ROUTE})`, 2: `${FLEET} · USD 120`, 3: `${WEB}/logistics/jobs/${id}` }),
 };
 
 async function card(a) {
@@ -57,50 +64,74 @@ async function flip(a, c, wantOn) {
   try {
     if (!st.owner?.token || !st.operator?.token || !st.customer?.token) throw new Error("run s1–s3 first (needs owner, operator, customer)");
     await L.setPlan(st.owner._id, "free");
+    const inFreePeriod = async () => d.collection("users").updateOne({ _id: new L.mongoose.Types.ObjectId(String(st.owner._id)) }, { $set: { "logistics_plan.trial_started_at": new Date(), "logistics_plan.trial_ends_at": new Date(Date.now() + 60 * 864e5), "logistics_plan.trial_ended_at": null } });
 
     // ── Free fleet
-    L.sec("15a. Free plan: WhatsApp notifications marked ✗ on the plan card");
+    L.sec("15a. Free plan: card says Essentials (v2.7.61), not paid-only");
     const o = await A("owner", st.owner);
     await L.goto(o, "/logistics/owner/subscription", ".log-sub-plan");
     const freeRow = o.page.locator(".log-sub-plan").filter({ hasText: "Free" }).first().locator('[data-testid="plan-whatsapp"]');
     await freeRow.waitFor({ timeout: 15000 }).catch(() => {});
-    L.check(/WhatsApp notifications\s*✗/.test(await freeRow.innerText().catch(() => "")), "Free card: 'WhatsApp notifications ✗'", await freeRow.innerText().catch(() => "missing"));
+    L.check(/WhatsApp notifications\s*Essentials/.test(await freeRow.innerText().catch(() => "")), "Free card: 'WhatsApp notifications Essentials'", await freeRow.innerText().catch(() => "missing"));
     L.check(/WhatsApp notifications/.test(await o.page.locator(".log-sub-plan--soon").innerText().catch(() => "")), "paid teaser lists WhatsApp notifications");
     const subApi = await L.api("GET", "/logistics/subscription", { token: st.owner.token });
     const freePlan = (subApi?.data?.plans || []).find((p) => p.id === "free");
-    L.check(freePlan && freePlan.whatsapp_notifications === false, "API: Free plan whatsapp_notifications=false", freePlan);
+    L.check(freePlan && freePlan.whatsapp_notifications === false, "API: Free plan whatsapp_notifications=false (the full pack needs trial or Paid)", freePlan);
     await L.shot(o, "s15-plan-free");
 
-    L.sec("15b. Free plan: profile toggle locked for the owner and the operator");
+    L.sec("15b. Free plan: profile switch usable by the owner and the operator");
     let c = await card(o);
-    L.check(await c.locator("#wa-notify-switch").isDisabled(), "owner: switch disabled");
-    L.check(/paid fleet plans/i.test(await c.innerText()) && (await c.locator('a[href="/logistics/owner/subscription"]').count()) === 1, "owner: 'on paid fleet plans' + See plans link");
+    L.check(!(await c.locator("#wa-notify-switch").isDisabled()) && (await c.locator("#wa-notify-switch").isChecked()), "owner: switch enabled and ON");
+    L.check(/Essentials free, full pack free for 60 days/.test(await c.innerText()), "owner: 'Essentials free, full pack free for 60 days'", await c.innerText());
     await L.shot(o, "s15-profile-owner-free");
     let n = await me(st.owner.token);
-    L.check(n.whatsapp === true && n.whatsapp_available === false && n.whatsapp_active === false && n.whatsapp_reason === "free_plan", "/me notifications: on by default, not available on Free", n);
+    L.check(n.whatsapp === true && n.whatsapp_available === true && n.whatsapp_active === true, "/me notifications: whatsapp_available always true, active", n);
     const op = await A("operator", st.operator);
     c = await card(op);
-    L.check(await c.locator("#wa-notify-switch").isDisabled() && /Ask your fleet owner/i.test(await c.innerText()), "operator: switch disabled + 'Ask your fleet owner'");
+    L.check(!(await c.locator("#wa-notify-switch").isDisabled()), "operator: switch enabled");
     await L.shot(op, "s15-profile-operator-free");
 
-    L.sec("15c. Free plan: no WhatsApp invites (UI + API)");
-    await L.goto(o, "/logistics/owner/operators/add", "form");
-    const waOpt = o.page.locator('.log-invite-via__opt[data-channel="whatsapp"]');
+    L.sec("15c. Free plan: WhatsApp invites work (UI + API, essential)");
+    await F.resetPeople([CAST.slot("owner", "s15").email]);
+    const inviter = await F.makeOwner(CAST.slot("owner", "s15"));
+    const oi = await A("owner-inviter", inviter);
+    await L.goto(oi, "/logistics/owner/operators/add", "form");
+    const waOpt = oi.page.locator('.log-invite-via__opt[data-channel="whatsapp"]');
     await waOpt.waitFor({ timeout: 10000 }).catch(() => {});
-    await o.page.waitForFunction(() => /Paid plans only/.test(document.querySelector('.log-invite-via__opt[data-channel="whatsapp"]')?.innerText || ""), null, { timeout: 10000 }).catch(() => {});
-    L.check(await waOpt.locator("input").isDisabled(), "invite form: WhatsApp checkbox disabled");
-    L.check(/Paid plans only/.test(await waOpt.innerText()), "invite form: 'Paid plans only — see plans'");
-    await L.shot(o, "s15-invite-free");
-    const inv = await L.api("POST", "/logistics/sub-user", { token: st.owner.token, body: { email: `wa15.${st.RUN}@e2e.example.com`, country_code: "+263", phone_number: "771234567", send_via: ["email", "whatsapp"] } });
-    L.check(inv.success === false && inv.data?.code === "WHATSAPP_PAID_ONLY", "API refuses a WhatsApp invite on Free (WHATSAPP_PAID_ONLY)", inv.message);
-
-    L.sec("15d. Free plan: owner and operator get no WhatsApp (in-app / push / email unchanged)");
+    await L.typePhone(oi.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first(), CAST.CC, CAST.slot("operator", "s15").phone);
+    L.check(!(await waOpt.locator("input").isDisabled()), "invite form: WhatsApp checkbox enabled once a phone is typed");
+    L.check(!/Paid plans only/.test(await waOpt.innerText()), "invite form: no 'Paid plans only'");
+    await L.shot(oi, "s15-invite-free");
+    const waOp = CAST.slot("operator", "s15");
     let t0 = now();
+    const inv = await L.apiForm("POST", "/logistics/sub-user", { token: inviter.token, body: { email: waOp.email, full_name: waOp.name, country_code: CAST.CC, phone_number: waOp.phone, send_via: ["email", "whatsapp"] }, files: [["profile_photo", DOCS.face(5)]] });
+    L.check(inv.success !== false && inv.data?.code !== "WHATSAPP_PAID_ONLY", "API accepts a WhatsApp invite on Free", inv.message);
+    await new Promise((ok) => setTimeout(ok, 800));
+    L.check(outbox(t0).some((m) => m.channel === "whatsapp" && m.ok && m.template === "invite"), "invite really sent on WhatsApp", outbox(t0).map((m) => [m.channel, m.template]));
+
+    L.sec("15d. Free plan: extras in the trial; after it only essentials");
+    await inFreePeriod();
+    t0 = now();
     let r = sendWa(st.owner._id, "job_status", vars.owner(jobId));
-    L.check(!r.ok && r.error === "free_plan", "owner job update skipped (free_plan)", r);
-    r = sendWa(st.operator._id, "new_job", vars.operator(jobId));
-    L.check(!r.ok && r.error === "free_plan", "operator new-job alert skipped (free_plan)", r);
-    L.check(outbox(t0).filter((m) => m.channel === "whatsapp").length === 0, "nothing reached Twilio");
+    L.check(r.ok, "day 0 owner: job update sent (trial)", r);
+    r = sendWa(st.operator._id, "new_job", vars.operator(jobId), { category: "essential" });
+    L.check(r.ok, "operator new-job alert sent (essential)", r);
+    const toFleet = (m) => [String(st.owner.phone), String(st.operator.phone)].some((ph) => String(m.to).endsWith(ph));
+    L.check(outbox(t0).filter((m) => m.channel === "whatsapp" && m.ok && toFleet(m)).length === 2, "2 WhatsApps in the outbox");
+    const ownerOid = new L.mongoose.Types.ObjectId(String(st.owner._id));
+    await d.collection("users").updateOne({ _id: ownerOid }, { $set: { "logistics_plan.trial_ends_at": new Date(Date.now() - 864e5) } });
+    try {
+      t0 = now();
+      r = sendWa(st.owner._id, "job_status", vars.owner(jobId));
+      L.check(!r.ok && r.error === "free_plan", "trial over: owner's job update skipped (free_plan)", r);
+      r = sendWa(st.operator._id, "job_status", vars.owner(jobId));
+      L.check(!r.ok && r.error === "free_plan", "trial over: operator's extra skipped too", r);
+      L.check(outbox(t0).filter((m) => m.channel === "whatsapp" && toFleet(m)).length === 0, "nothing reached Twilio");
+      r = sendWa(st.operator._id, "new_job", vars.operator(jobId), { category: "essential" });
+      L.check(r.ok, "trial over: operator's new-job alert still sent", r);
+    } finally {
+      await inFreePeriod();
+    }
 
     // ── Paid fleet
     L.sec("15e. Paid plan: toggle on by default → WhatsApp delivered");
@@ -112,15 +143,12 @@ async function flip(a, c, wantOn) {
     const paidRow = o.page.locator(".log-sub-plan").filter({ hasText: "Current plan" }).locator('[data-testid="plan-whatsapp"]');
     await paidRow.waitFor({ timeout: 10000 }).catch(() => {});
     L.check(/WhatsApp notifications\s*✓/.test(await paidRow.innerText().catch(() => "")), "current Paid plan card: 'WhatsApp notifications ✓'", await paidRow.innerText().catch(() => "missing"));
-    await L.goto(o, "/logistics/owner/operators/add", "form");
-    await o.page.waitForFunction(() => !/Paid plans only/.test(document.querySelector('.log-invite-via__opt[data-channel="whatsapp"]')?.innerText || "x"), null, { timeout: 10000 }).catch(() => {});
-    L.check(!/Paid plans only/.test(await o.page.locator('.log-invite-via__opt[data-channel="whatsapp"]').innerText()), "invite form: WhatsApp option available on Paid");
     t0 = now();
     r = sendWa(st.owner._id, "job_status", vars.owner(jobId));
     L.check(r.ok, "owner job update sent on WhatsApp", r);
-    r = sendWa(st.operator._id, "new_job", vars.operator(jobId));
-    L.check(r.ok, "operator new-job alert sent on WhatsApp (fleet is paid)", r);
-    L.check(outbox(t0).filter((m) => m.channel === "whatsapp" && m.ok).length === 2, "2 WhatsApps in the outbox");
+    r = sendWa(st.operator._id, "new_job", vars.operator(jobId), { category: "essential" });
+    L.check(r.ok, "operator new-job alert sent on WhatsApp", r);
+    L.check(outbox(t0).filter((m) => m.channel === "whatsapp" && m.ok && toFleet(m)).length === 2, "2 WhatsApps in the outbox");
 
     L.sec("15f. Paid plan: owner switches WhatsApp OFF in the profile → no WhatsApp");
     c = await card(o);
@@ -131,7 +159,7 @@ async function flip(a, c, wantOn) {
     t0 = now();
     r = sendWa(st.owner._id, "job_status", vars.owner(jobId));
     L.check(!r.ok && r.error === "opted_out", "owner job update skipped (opted_out)", r);
-    r = sendWa(st.operator._id, "new_job", vars.operator(jobId));
+    r = sendWa(st.operator._id, "new_job", vars.operator(jobId), { category: "essential" });
     L.check(r.ok, "operator still gets WhatsApp — the owner's switch is only for the owner", r);
     await o.page.reload();
     c = o.page.locator('[data-testid="wa-notify-card"]');

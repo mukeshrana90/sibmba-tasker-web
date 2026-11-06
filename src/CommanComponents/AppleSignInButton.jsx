@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "./ButtonLoader";
+import { isPopupCancel, watchPopupAbandoned } from "../utils/popupSignIn";
 import { getAppleIdToken } from "../utils/appleAuth";
 import { resolveWebDeviceTokenDetailed } from "../utils/webDeviceToken";
 import { isAppleLoginDisabled } from "../utils/featureFlags";
@@ -26,6 +27,8 @@ export default function AppleSignInButton({
 }) {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  // Only the latest click drives the spinner (a closed popup can be retried)
+  const attemptRef = useRef(0);
 
   if (isAppleLoginDisabled()) {
     return null;
@@ -34,9 +37,22 @@ export default function AppleSignInButton({
   const handleClick = async () => {
     if (loading || disabled) return;
 
+    const attempt = ++attemptRef.current;
+    const isLatest = () => attemptRef.current === attempt;
     setLoading(true);
     try {
-      const socialToken = await getAppleIdToken();
+      // User closed the popup → stop loading as soon as they're back on the page
+      const stopWatch = watchPopupAbandoned(() => {
+        if (isLatest()) setLoading(false);
+      });
+      let socialToken;
+      try {
+        socialToken = await getAppleIdToken();
+      } finally {
+        stopWatch();
+      }
+      if (!isLatest()) return;
+      setLoading(true);
       const { token: deviceToken, isFcm } = await resolveWebDeviceTokenDetailed();
       if (isFcm && deviceToken) localStorage.setItem("device_token", deviceToken);
 
@@ -64,13 +80,8 @@ export default function AppleSignInButton({
         await onSuccess(payload);
       }
     } catch (error) {
+      if (isPopupCancel(error)) return;
       const code = error?.code;
-      if (
-        code === "auth/popup-closed-by-user" ||
-        code === "auth/cancelled-popup-request"
-      ) {
-        return;
-      }
       const message =
         code === "auth/unauthorized-domain"
           ? "Apple sign-in isn't enabled for this domain yet."
@@ -79,7 +90,7 @@ export default function AppleSignInButton({
             : error?.message || "Apple sign-in failed. Please try again.";
       toast.error(message);
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoading(false);
     }
   };
 

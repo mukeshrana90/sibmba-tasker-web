@@ -111,6 +111,28 @@ export async function resolveCoordsForCorporateSearch(entity, fallbackCoords = n
   }
 }
 
+/** The Zimbabwe city closest to these coordinates (empty results, item 54). */
+export function nearestZimCity(coords) {
+  if (coords?.lat == null || coords?.lng == null) return null;
+  let best = null;
+  let bestD = Infinity;
+  Object.values(ZIM_CITIES).forEach((c) => {
+    const dLat = c.lat - Number(coords.lat);
+    const dLng = (c.lng - Number(coords.lng)) * Math.cos((c.lat * Math.PI) / 180);
+    const d = dLat * dLat + dLng * dLng;
+    if (d < bestD) {
+      bestD = d;
+      best = c;
+    }
+  });
+  return best;
+}
+
+export const HARARE = ZIM_CITIES.harare;
+
+/** Cities for "Top providers" (item 53), Harare first. */
+export const TOP_PROVIDER_CITIES = ["harare", "bulawayo", "mutare", "gweru", "masvingo"].map((k) => ZIM_CITIES[k]);
+
 export function geocodeLocationText(text) {
   const trimmed = String(text || "").trim();
   if (!trimmed) return null;

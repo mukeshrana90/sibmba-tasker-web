@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import UnifiedSearch from "../../CommanComponents/Landing/UnifiedSearch";
+import GuestMarketplaceSwitch from "../../CommanComponents/Landing/GuestMarketplaceSwitch";
 import { CategoryGlyph } from "../../CommanComponents/LogisticsFormIcons";
 import { CATEGORIES, CAB_CATEGORY } from "../../CommanComponents/LogisticsCategoryTiles";
 import { accountLinkTo } from "../../utils/authRedirect";
@@ -9,8 +10,8 @@ import "./LogisticsGuestLanding.css";
 /**
  * /logistics before login (v2.7.53): the Logistics Hub as a marketing page in the
  * home landing style (landing.css building blocks). Logged-in customers keep the
- * Hub (HubHome). Search, categories and asset pages are public; posting / booking
- * go through login (accountLinkTo).
+ * Hub (HubHome). Search, categories and asset pages are public. A guest can fill in
+ * Post a job and signs in to send it; booking a unit goes through login (accountLinkTo).
  */
 
 const POPULAR = [
@@ -158,7 +159,8 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
         </div>
 
         <div className="landing-wrap landing-hero__inner">
-          <span className="landing-eyebrow">🚚 Zimbabwe&apos;s logistics &amp; equipment marketplace</span>
+          <GuestMarketplaceSwitch active="logistics" />
+          <span className="landing-eyebrow">Zimbabwe&apos;s logistics &amp; equipment marketplace</span>
           <h1>
             Trucks &amp; <span className="landing-hl">machines</span>
             <br />
@@ -319,7 +321,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
             <h2>Need something moved today?</h2>
             <p>Post your job once and let verified fleet owners near you send their best quote.</p>
             <div className="landing-cta__actions">
-              <Link className="landing-btn landing-btn--gold" to={accountLinkTo("/logistics/post")}>
+              <Link className="landing-btn landing-btn--gold" to="/logistics/post">
                 Post a job
               </Link>
               <Link className="landing-btn landing-btn--ghost" to="/logistics/search">

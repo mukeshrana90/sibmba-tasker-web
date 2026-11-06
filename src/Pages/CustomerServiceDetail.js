@@ -22,6 +22,7 @@ import {
   formatMoney,
   handleCategoryImageError,
   handleUserImageError,
+  limitWords,
   providerDisplayName,
   providerInitials,
   serviceImageUrl,
@@ -108,6 +109,8 @@ export default function CustomerServiceDetail() {
   const service_id = normalizeMongoId(searchParams.get("service_id"));
 
   const [show, setShow] = useState(false);
+  // Long (older) service names: 11 words + "…" until the visitor expands the title
+  const [titleOpen, setTitleOpen] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
@@ -232,6 +235,8 @@ export default function CustomerServiceDetail() {
     serviceDetail?.serviceSubCategoryName,
     ""
   );
+  const titleShort = limitWords(serviceTitle);
+  const crumbTitle = limitWords(serviceTitle, 5).display;
   const providerLoc =
     safeVal(sp?.street_address) || safeVal(sp?.suburbs) || null;
   const displayPrice = formatMoney(serviceDetail?.price);
@@ -295,13 +300,31 @@ export default function CustomerServiceDetail() {
               <span>/</span>
               <Link to="/services">Services</Link>
               <span>/</span>
-              <span style={{ color: "var(--ink)", opacity: 1 }}>
-                {serviceTitle || "Service details"}
+              <span
+                className="svc-crumb-current"
+                style={{ color: "var(--ink)", opacity: 1 }}
+                title={serviceTitle || undefined}
+              >
+                {crumbTitle || "Service details"}
               </span>
             </div>
 
             <div className="page-head">
-              <h1>{serviceTitle || "Service details"}</h1>
+              <h1 className={`svc-detail-title${titleOpen ? " is-open" : ""}`}>
+                {titleShort.truncated ? (
+                  <button
+                    type="button"
+                    className="svc-detail-title__btn"
+                    onClick={() => setTitleOpen((v) => !v)}
+                    aria-expanded={titleOpen}
+                    title={titleOpen ? "Show less" : "Show full name"}
+                  >
+                    {titleOpen ? titleShort.full : titleShort.display}
+                  </button>
+                ) : (
+                  serviceTitle || "Service details"
+                )}
+              </h1>
             </div>
 
             {!serviceDetail ? (
@@ -351,7 +374,9 @@ export default function CustomerServiceDetail() {
                   </div>
 
                   <div className="card">
-                    <h2>{serviceTitle || "N/A"}</h2>
+                    <h2 title={titleShort.truncated ? titleShort.full : undefined}>
+                      {titleShort.display || "N/A"}
+                    </h2>
                     <p className="svc-detail-sub">
                       {categoryName} · Service listing
                     </p>

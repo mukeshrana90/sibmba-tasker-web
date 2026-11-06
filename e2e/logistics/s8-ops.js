@@ -5,7 +5,7 @@ async function quote(op, jobId, amt) {
   await L.goto(op, `/logistics/driver/job/${jobId}`);
   await op.page.waitForSelector('input[aria-label="Quote amount"]', { timeout: 15000 });
   await L.typeMoney(op.page, 'input[aria-label="Quote amount"]', amt);
-  await op.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "ok");
+  await op.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "Can load by 9 am, tarpaulin cover included.");
   await op.page.getByRole("button", { name: /Send my quote/ }).click();
   return L.waitText(op, /Quote (sent|submitted)/i);
 }
@@ -31,8 +31,11 @@ async function accept(c, jobId, amt) {
     const r = await L.api("POST", `/logistics/asset/${st.truck._id}/assign`, { token: st.owner.token, body: { sub_user_id: st.operator2._id } });
     L.check(r.success, "operator #2 also assigned to truck (API)", r.message);
     const ids = [];
-    for (const [i, drop] of [["A", "Epworth, Harare"], ["B", "Norton Zimbabwe"], ["C", "Ruwa"]]) {
-      const id = await L.postTransportJob(c, { goods: `E2E multi${i} ${st.RUN}`, drop, price: "200" });
+    // Three Harare-area drops; goods carry a PO ref so the run can find them
+    const PO = st.RUN.toUpperCase();
+    const goodsOf = { A: `PVC pipes & fittings · PO ${PO}-A`, B: `Ceramic floor tiles (120 boxes) · PO ${PO}-B`, C: `Paint drums (Asian Paints) · PO ${PO}-C` };
+    for (const [i, drop] of [["A", L.PLACES.drops[1]], ["B", L.PLACES.drops[2]], ["C", L.PLACES.drops[3]]]) {
+      const id = await L.postTransportJob(c, { goods: goodsOf[i], drop, price: "200" });
       ids.push(id);
       L.check(await quote(op, id, "190"), `quoted job ${i}`);
       L.check(await accept(c, id, "190"), `accepted job ${i}`);
@@ -50,7 +53,7 @@ async function accept(c, jobId, amt) {
     L.check(String(job.assigned?.driver_id) === st.operator2._id, "job A now on operator #2", job.assigned?.driver_id);
     await L.goto(op2, "/logistics/driver/jobs");
     await op2.page.waitForTimeout(1500);
-    L.check((await L.bodyText(op2)).includes(`E2E multiA ${st.RUN}`), "operator #2 sees job A in My jobs");
+    L.check((await L.bodyText(op2)).includes(goodsOf.A), "operator #2 sees job A in My jobs");
     await L.goto(o, `/logistics/owner/job/${jA}`);
     await sel.waitFor({ timeout: 15000 });
     await sel.selectOption(st.operator._id);
@@ -69,7 +72,7 @@ async function accept(c, jobId, amt) {
     const modalBtn = o.page.locator(".modal, .log-modal, [role=dialog]").getByRole("button", { name: /Reject/ });
     if (await modalBtn.count()) {
       const ta = o.page.locator(".modal textarea, .log-modal textarea, [role=dialog] textarea");
-      if (await ta.count()) await ta.first().fill("E2E: unit unavailable");
+      if (await ta.count()) await ta.first().fill("Truck is booked for a Mutare trip that day — sorry.");
       await modalBtn.last().click();
     }
     await o.page.waitForTimeout(2000);
@@ -91,7 +94,7 @@ async function accept(c, jobId, amt) {
     await op.page.waitForTimeout(2500);
     await L.shot(op, "s8-multi-run");
     const mt = await L.bodyText(op);
-    L.check(mt.includes(`E2E multiA ${st.RUN}`) && mt.includes(`E2E multiB ${st.RUN}`), "run lists both jobs");
+    L.check(mt.includes(goodsOf.A) && mt.includes(goodsOf.B), "run lists both jobs");
     const startBtn = op.page.getByRole("button", { name: "Start collect" }).first();
     if (await startBtn.count()) {
       await startBtn.click();
@@ -103,7 +106,7 @@ async function accept(c, jobId, amt) {
     L.sec("8e. Expired operator licence blocks going live");
     const u = await d.collection("users").findOne({ _id: OID(st.operator._id) });
     const prevDocs = u.logistics_documents || [];
-    await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: [...prevDocs.filter((x) => x.type !== "licence"), { type: "licence", name: "lic.pdf", url: "/x.pdf", expires: new Date(Date.now() - 5 * 86400000) }] } });
+    await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: [...prevDocs.filter((x) => x.type !== "licence"), { type: "licence", name: "driving-licence.jpg", url: "/x.jpg", expires: new Date(Date.now() - 5 * 86400000) }] } });
     try {
       await L.goto(op, "/logistics/driver", ".log-dash-avail-controls");
       await op.page.waitForSelector(".log-dash-avail-controls select");
@@ -127,7 +130,7 @@ async function accept(c, jobId, amt) {
     await op3.page.fill('input[placeholder="Enter your email"]', st.operator.email);
     await op3.page.fill('input[placeholder="Enter your password"]', "Passw0rd!");
     await op3.page.locator('button[type="submit"]').click();
-    await op3.page.waitForURL(/\/logistics\/driver/, { timeout: 20000 }).then(() => L.check(true, "operator login → /logistics/driver")).catch(async () => L.check(false, "operator login → /logistics/driver", (await L.bodyText(op3)).slice(0, 200)));
+    await op3.page.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" }).then(() => L.check(true, "operator login → /logistics/driver")).catch(async () => L.check(false, "operator login → /logistics/driver", (await L.bodyText(op3)).slice(0, 200)));
     L.check(op3.errors.length === 0, "login: no errors", op3.errors);
   } catch (e) {
     L.check(false, "stage crashed", e.message.split("\n")[0]);

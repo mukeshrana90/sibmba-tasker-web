@@ -298,7 +298,7 @@ export default function LogisticsOperatorAnalytics() {
                     <b>{data?.fleet?.equipment ?? 0}</b>
                   </li>
                   <li>
-                    <span>Available now</span>
+                    <span>Bookable now</span>
                     <b>{data?.fleet?.availability?.available_now ?? 0}</b>
                   </li>
                   <li>
@@ -306,7 +306,7 @@ export default function LogisticsOperatorAnalytics() {
                     <b>{data?.fleet?.availability?.on_job ?? 0}</b>
                   </li>
                   <li>
-                    <span>Offline</span>
+                    <span>Not bookable</span>
                     <b>{data?.fleet?.availability?.offline ?? 0}</b>
                   </li>
                 </ul>

@@ -296,7 +296,7 @@
 .simba-page.p-signup .field-error {
   color: #c0392b;
   font-size: 0.82rem;
-  margin-top: 6px;
+  margin-top: 2px;
   font-weight: 600;
 }
 
@@ -5874,6 +5874,16 @@ header.appnav .avatar-menu .am-item {
   font-size: 0.82rem;
 }
 
+.simba-page.p-sp-add-service .sp-word-count {
+  display: block;
+  margin-top: 6px;
+  text-align: right;
+}
+
+.simba-page.p-sp-add-service .sp-word-count.is-over {
+  color: #c0392b;
+}
+
 .simba-page.p-sp-add-service .field-error {
   color: #c0392b;
   font-size: 0.82rem;
@@ -7154,4 +7164,253 @@ header.appnav .avatar-menu .am-item {
   background: #e11d48;
   box-shadow: 0 0 0 2px #fff;
   pointer-events: none;
+}
+
+/* Service detail: long service names (older data) stay tidy */
+.simba-page.p-servicedetail .svc-crumb-current {
+  display: inline-block;
+  max-width: min(420px, 60vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.simba-page.p-servicedetail .svc-detail-title {
+  max-width: 900px;
+  overflow-wrap: anywhere;
+}
+
+.simba-page.p-servicedetail .svc-detail-title__btn {
+  all: unset;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.simba-page.p-servicedetail .svc-detail-title__btn:hover {
+  color: var(--green, #0f5c4c);
+}
+
+.simba-page.p-servicedetail .svc-detail-title__btn:focus-visible {
+  outline: 2px solid var(--green, #0f5c4c);
+  outline-offset: 3px;
+}
+
+.simba-page.p-servicedetail .svc-detail-title.is-open {
+  font-size: clamp(1.15rem, 2.4vw, 1.6rem) !important;
+  line-height: 1.35;
+}
+
+.simba-page.p-servicedetail .tgrid .card > h2 {
+  overflow-wrap: anywhere;
+}
+
+/* Equipment Owner sign-up — business documents for the Simba approval */
+.simba-page.p-signup .log-signup-docs__note {
+  margin: 0 0 10px;
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.simba-page.p-signup .log-signup-doc {
+  margin-bottom: 12px;
+}
+.simba-page.p-signup .log-signup-doc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.simba-page.p-signup .log-signup-doc__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.simba-page.p-signup .log-signup-doc__req {
+  color: #c0392b;
+}
+.simba-page.p-signup .log-signup-doc__opt {
+  color: var(--muted);
+  font-weight: 500;
+}
+.simba-page.p-signup .log-signup-doc__kind {
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 5px 8px;
+  font-size: 0.84rem;
+  background: #fff;
+  color: var(--ink);
+}
+.simba-page.p-signup .log-signup-doc__pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.simba-page.p-signup .log-signup-doc__pick:hover {
+  border-color: var(--primary);
+}
+.simba-page.p-signup .log-signup-doc__pick.has-file {
+  border-style: solid;
+  border-color: var(--primary);
+  background: rgba(15, 92, 74, 0.05);
+  color: var(--primary);
+}
+.simba-page.p-signup .log-signup-doc__file {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.simba-page.p-signup .log-signup-doc__change {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: underline;
+}
+.simba-page.p-signup .log-signup-doc__remove {
+  border: 0;
+  background: none;
+  padding: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Equipment Owner sign-up in two steps (30 Oct 2026): 1 account details, 2 business documents */
+.simba-page.p-signup .signup-step[hidden] {
+  display: none !important;
+}
+.simba-page.p-signup .signup-steps {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+}
+.simba-page.p-signup .signup-steps li {
+  flex: 1;
+  min-width: 0;
+}
+.simba-page.p-signup .signup-steps button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+.simba-page.p-signup .signup-steps__num {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  color: #fff;
+  font-size: 0.76rem;
+}
+.simba-page.p-signup .signup-steps li.is-active button {
+  border-color: var(--primary);
+  color: var(--ink);
+}
+.simba-page.p-signup .signup-steps li.is-active .signup-steps__num,
+.simba-page.p-signup .signup-steps li.is-done .signup-steps__num {
+  background: var(--primary);
+}
+.simba-page.p-signup .signup-step-next {
+  margin: 4px 0 16px;
+  background: #fff;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.simba-page.p-signup .signup-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.simba-page.p-signup .signup-step-skip,
+.simba-page.p-signup .signup-step-back {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--primary);
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  box-shadow: none;
+}
+.simba-page.p-signup .signup-step-back {
+  margin: 2px 0 6px;
+  color: var(--muted);
+}
+
+/* Owner sign-up — optional business location (30 Oct 2026) */
+.simba-page.p-signup .signup-optional {
+  color: var(--muted);
+  font-weight: 500;
+}
+.simba-page.p-signup .signup-base-field .log-field {
+  margin: 0;
+}
+.simba-page.p-signup .signup-base-field .log-location-btn {
+  border-radius: 14px;
+  border-color: var(--line-strong);
+  min-height: 48px;
+}
+.simba-page.p-signup .signup-base-field .log-weight-hint {
+  display: none;
+}
+.simba-page.p-signup .signup-field-hint {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.simba-page.p-signup .signup-base-field {
+  margin: 4px 0 14px;
+}
+.simba-page.p-signup .log-signup-doc__expiry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.simba-page.p-signup .log-signup-doc__expiry input {
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 0.86rem;
+  background: #fff;
+  color: var(--ink);
 }

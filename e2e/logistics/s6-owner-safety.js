@@ -19,6 +19,13 @@ async function holdSos(a) {
 
 (async () => {
   const st = L.loadState();
+  const C = L.cast(st.RUN);
+  const opName = st.operatorName || C.slot("operator", "s2").name;
+  const tractor = C.unit("tractor", 60);
+  const spare = C.unit("truck", 61);
+  const spare2 = C.unit("truck", 62);
+  const custLast = String(st.customer?.name || "Verma").split(" ").pop();
+  const contact = { name: `Nyasha ${custLast}`, phone: C.phone("s6-contact"), email: `nyasha.${custLast.toLowerCase()}${String(st.RUN).slice(-2)}@yopmail.com` };
   const d = await L.db();
   const OID = (x) => new L.mongoose.Types.ObjectId(x);
   const o = await L.actor("owner");
@@ -31,15 +38,15 @@ async function holdSos(a) {
 
     L.sec("6. Customer emergency contacts (UI)");
     await L.goto(c, "/logistics/emergency-contacts", "form");
-    await c.page.fill('input[placeholder="e.g. Rudo Moyo"]', "Rudo E2E");
+    await c.page.fill('input[placeholder="e.g. Rudo Moyo"]', contact.name);
     await c.page.fill('input[placeholder="e.g. Spouse, brother"]', "Sister");
     const ph = c.page.locator("form input[type=tel]").first();
-    await ph.click(); await ph.press("End"); await ph.pressSequentially("772000111", { delay: 15 });
-    await c.page.fill('input[placeholder="name@example.com"]', `rudo.${st.RUN}@e2e.example.com`);
+    await L.typePhone(ph, C.CC, contact.phone);
+    await c.page.fill('input[placeholder="name@example.com"]', contact.email);
     await c.page.getByRole("button", { name: "Save contacts" }).click();
     L.check(await L.waitText(c, /saved/i), "contacts saved toast", (await L.bodyText(c)).slice(0, 200));
     const cu = await d.collection("users").findOne({ _id: OID(st.customer._id) });
-    L.check(JSON.stringify(cu).includes("Rudo E2E"), "contact stored on user");
+    L.check(JSON.stringify(cu).includes(contact.name), "contact stored on user");
 
     // v2.7.34: the other party on the job is never told about an SOS
     const sosToOther = async (otherId, since) =>
@@ -79,13 +86,14 @@ async function holdSos(a) {
     await L.goto(o, "/logistics/owner");
     await o.page.waitForTimeout(2000);
     await L.shot(o, "s6-owner-sos-banner");
-    L.check(/SOS/i.test(await L.bodyText(o)) && (await L.bodyText(o)).includes(`E2E Operator ${st.RUN}`), "owner dashboard shows operator SOS banner");
+    L.check(/SOS/i.test(await L.bodyText(o)) && (await L.bodyText(o)).includes(opName), "owner dashboard shows operator SOS banner");
     await L.goto(o, "/logistics/owner/sos");
     await o.page.waitForTimeout(1500);
-    L.check((await L.bodyText(o)).includes(`E2E Operator ${st.RUN}`), "owner SOS page lists the alert");
+    L.check((await L.bodyText(o)).includes(opName), "owner SOS page lists the alert");
     await L.shot(o, "s6-owner-sos-page");
 
     L.sec("6d. Subscription — paid plans off: details hidden, blurred coming-soon card");
+    await L.setPlan(st.owner._id, "free"); // plain Free: the free period has passed
     await L.goto(o, "/logistics/owner/subscription");
     await o.page.waitForTimeout(1500);
     const subTxt = await L.bodyText(o);
@@ -94,7 +102,9 @@ async function holdSos(a) {
     L.check(/Coming soon/i.test(subTxt) && /Paid plans will be available soon/.test(subTxt), "coming-soon note on the card");
     const blurCss = await o.page.locator(".log-sub-plan__blur").first().evaluate((e) => getComputedStyle(e).filter).catch(() => "");
     L.check(/blur/.test(blurCss), "placeholder content is blurred", blurCss);
-    L.check(!/USD 25|Unlimited operators|Upgrade to Paid/.test(subTxt), "no paid price / limits / Upgrade button on the page", subTxt.slice(0, 300));
+    // v2.7.64: one Free plan, no separate test plan; real Paid stays hidden
+    L.check(!/USD 25/.test(subTxt) && !/Upgrade to Paid/.test(subTxt) && !/free test/i.test(subTxt), "no paid price, test plan or Upgrade to Paid on the page");
+    L.check(!(await o.page.locator('[data-testid="plan-choose-test_paid"]').count()), "no second free plan");
     const subApi = await L.api("GET", "/logistics/subscription", { token: st.owner.token || L.tokenFor(st.owner._id) });
     const paidRow = (subApi.data?.plans || []).find((p) => p.id === "paid");
     L.check(paidRow && paidRow.coming_soon === true && paidRow.price === null && paidRow.limits === null && !paidRow.features.length, "API sends paid plan without price / limits / features", paidRow);
@@ -102,7 +112,7 @@ async function holdSos(a) {
     L.check(tryPaid.success === false && tryPaid.data?.code === "PLAN_UNAVAILABLE", "API still refuses to activate Paid", tryPaid.message);
     await L.goto(o, "/logistics/owner/fleet");
     await o.page.waitForTimeout(1500);
-    L.check(/Paid plans coming soon/.test(await L.bodyText(o)) && !(await o.page.locator(".log-plan-banner__cta").count()), "fleet banner: 'Paid plans coming soon', no Upgrade button");
+    L.check(!(await o.page.locator(".log-plan-banner__cta").count()), "fleet banner: no Upgrade button while paid plans are off");
     await L.goto(o, "/logistics/owner/subscription");
     await o.page.waitForTimeout(1000);
     await L.shot(o, "s6-subscription");
@@ -114,8 +124,8 @@ async function holdSos(a) {
     const spareId = new ObjectId();
     const spare2Id = new ObjectId();
     // Free allows 2 trucks: real truck + 2 plan-locked spares = 3 → over the limit
-    await d6.collection("logistics_assets").insertOne({ ...truckDoc, _id: spare2Id, name: `E2E spare2 truck ${st.RUN}`, registration: `S2${st.RUN}`.toUpperCase().slice(0, 10), plan_locked: true, is_active: 0, is_featured: false, assigned_sub_user_ids: [], createdAt: new Date(), updatedAt: new Date() });
-    await d6.collection("logistics_assets").insertOne({ ...truckDoc, _id: spareId, name: `E2E spare truck ${st.RUN}`, registration: `SP${st.RUN}`.toUpperCase().slice(0, 10), plan_locked: true, is_active: 0, is_featured: false, assigned_sub_user_ids: truckDoc.assigned_sub_user_ids || [], availability: { ...(truckDoc.availability || {}), state: "offline" }, createdAt: new Date(), updatedAt: new Date() });
+    await d6.collection("logistics_assets").insertOne({ ...truckDoc, _id: spare2Id, name: spare2.name, registration: spare2.plate, plan_locked: true, is_active: 0, is_featured: false, assigned_sub_user_ids: [], createdAt: new Date(), updatedAt: new Date() });
+    await d6.collection("logistics_assets").insertOne({ ...truckDoc, _id: spareId, name: spare.name, registration: spare.plate, plan_locked: true, is_active: 0, is_featured: false, assigned_sub_user_ids: truckDoc.assigned_sub_user_ids || [], availability: { ...(truckDoc.availability || {}), state: "offline" }, createdAt: new Date(), updatedAt: new Date() });
     try {
       await L.goto(o, "/logistics/owner/subscription");
       await o.page.waitForTimeout(1200);
@@ -125,7 +135,7 @@ async function holdSos(a) {
       await o.page.waitForFunction(() => { const m = document.querySelector(".log-plan-units"); return m && !m.querySelector(".log-sk, .log-sk-wrap") && m.querySelector(".log-plan-units__bucket, .log-plan-units__none, .log-plan-units__unit"); }, null, { timeout: 15000 });
       let mt = await o.page.locator(".log-plan-units").innerText();
       L.check(/Choose active logistic trucks/.test(mt) && !/Non-logistic equipment/i.test(mt.replace(/Pick which.*$/m, "")), "trucks row → picker with only Logistic trucks", mt.slice(0, 200));
-      L.check(mt.includes(st.truck.name) && mt.includes(`E2E spare truck ${st.RUN}`) && mt.includes(`E2E spare2 truck ${st.RUN}`), "all 3 trucks listed (3 / 2 over the limit)");
+      L.check(mt.includes(st.truck.name) && mt.includes(spare.name) && mt.includes(spare2.name), "all 3 trucks listed (3 / 2 over the limit)");
       L.check(/2 \/ 2 active/.test(mt), "shows 2 / 2 active (Free = 2 trucks)");
       const boxes = o.page.locator(".log-plan-units input[type=checkbox]");
       L.check((await boxes.count()) === 3 && !(await boxes.first().isDisabled()), "truck checkboxes can be changed");
@@ -151,7 +161,7 @@ async function holdSos(a) {
       await o.page.waitForSelector(".log-plan-units");
       await o.page.waitForFunction(() => { const m = document.querySelector(".log-plan-units"); return m && !m.querySelector(".log-sk, .log-sk-wrap") && m.querySelector(".log-plan-units__bucket, .log-plan-units__none, .log-plan-units__unit"); }, null, { timeout: 15000 });
       mt = await o.page.locator(".log-plan-units").innerText();
-      L.check(/Operator seats/.test(mt) && mt.includes(`E2E Operator ${st.RUN}`) && /2 \/ 2 used/.test(mt), "operators row → operator seats (2 / 2 used)", mt.slice(0, 300));
+      L.check(/Operator seats/.test(mt) && mt.includes(opName) && /2 \/ 2 used/.test(mt), "operators row → operator seats (2 / 2 used)", mt.slice(0, 300));
       L.check(/never switches operators off/.test(mt), "explains operators are never disabled");
       await L.shot(o, "s6-usage-operators");
       await o.page.getByRole("link", { name: "Manage operators" }).click();
@@ -174,20 +184,20 @@ async function holdSos(a) {
       L.check((await pickBtn.innerText()).includes(st.truck.name) && (await pickBtn.locator(".log-unit-pick__icon--logistic svg").count()), "a usable truck is preselected, with its truck icon");
       await pickBtn.click();
       await opv.page.waitForSelector(".log-unit-pick__list");
-      const spareOpt = opv.page.locator(".log-unit-pick__opt", { hasText: `E2E spare truck ${st.RUN}` });
+      const spareOpt = opv.page.locator(".log-unit-pick__opt", { hasText: spare.name });
       L.check(await spareOpt.count(), "spare truck listed in Using now");
       L.check((await spareOpt.getAttribute("aria-disabled")) === "true", "plan-disabled truck is not selectable (aria-disabled)");
       L.check(/Owner's plan limit/.test(await spareOpt.innerText()), "it shows an 'Owner's plan limit' chip", await spareOpt.innerText());
-      L.check(await opv.page.locator(".log-unit-pick__group--off .log-unit-pick__opt", { hasText: `E2E spare truck ${st.RUN}` }).count(), "it sits in the 'Disabled by your owner — not selectable' group");
+      L.check(await opv.page.locator(".log-unit-pick__group--off .log-unit-pick__opt", { hasText: spare.name }).count(), "it sits in the 'Disabled by your owner — not selectable' group");
       L.check(await opv.page.locator(".log-unit-pick__group-label", { hasText: "Logistic trucks" }).count(), "usable units grouped by category ('Logistic trucks')");
       L.check(await opv.page.locator(".log-unit-pick__opt .log-unit-pick__icon svg").count() >= 2, "every unit has a category icon");
       await L.shot(opv, "s6-operator-unit-picker");
       // force: Playwright won't click an aria-disabled row on its own — a user still can
       await spareOpt.click({ force: true });
-      L.check(!(await pickBtn.innerText()).includes("E2E spare truck"), "clicking the disabled truck does nothing");
+      L.check(!(await pickBtn.innerText()).includes(spare.name), "clicking the disabled truck does nothing");
       await opv.page.keyboard.press("Escape");
       const strip = await opv.page.locator(".log-plan-locked-strip--op").innerText().catch(() => "");
-      L.check(strip.includes(`E2E spare truck ${st.RUN}`) && /plan limit/.test(strip), "strip names the disabled truck", strip);
+      L.check(strip.includes(spare.name) && /plan limit/.test(strip), "strip names the disabled truck", strip);
       L.check(!opv.errors.length, "operator dashboard: no console errors", opv.errors);
       await opv.ctx.close();
     } finally {
@@ -199,11 +209,12 @@ async function holdSos(a) {
     await o.page.waitForTimeout(1500);
     L.check(await o.page.locator(".log-feature-note.is-locked").count(), "feature note shown as locked (Free plan)");
 
-    L.sec("6f. Owner adds plant equipment (UI)");
+    await L.restartFreePeriod(st.owner._id);
+     L.sec("6f. Owner adds plant equipment (UI)");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
     await o.page.locator('form.log-fleet-form button.log-cattile[aria-label="Agricultural"]').click();
-    await o.page.fill('input[placeholder="JD Compact 1"]', `E2E Tractor ${st.RUN}`);
-    await o.page.fill('input[placeholder="John Deere"]', "John Deere");
+    await o.page.fill('input[placeholder="JD Compact 1"]', tractor.name);
+    await o.page.fill('input[placeholder="John Deere"]', tractor.make);
     await o.page.locator(".log-location-btn").first().click();
     await o.page.waitForSelector(".simba-book-loc-modal");
     await o.page.waitForTimeout(2500);
@@ -228,13 +239,21 @@ async function holdSos(a) {
     await o.page.waitForSelector(".log-modal .log-subpick__opt");
     await o.page.locator(".log-modal .log-subpick__opt").first().click();
     L.check(!/Pick sub type/.test(await picks.nth(1).innerText()), "sub type picked", await picks.nth(1).innerText());
+    await L.addUnitPhotos(o.page, "form.log-fleet-form", tractor.photos);
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
     L.check(await L.waitText(o, /Equipment added/), "Equipment added toast", (await L.bodyText(o)).slice(0, 250));
     const tr = await d.collection("logistics_assets").findOne({ owner_id: OID(st.owner._id), kind: "equipment" });
     L.check(tr && tr.price_hint?.unit, "plant saved with rate unit", tr && tr.price_hint);
     await L.goto(o, "/logistics/owner/equipment");
     await o.page.waitForTimeout(1500);
-    L.check((await L.bodyText(o)).includes(`E2E Tractor ${st.RUN}`), "tractor listed on Equipment page");
+    L.check((await L.bodyText(o)).includes(tractor.name), "tractor listed on Equipment page");
+    // 29 Oct 2026: equipment needs at least one document verified by Simba before customers see it
+    {
+      const r = await L.api("GET", `/logistics/assets/search?kind=equipment&limit=100`, { token: L.tokenFor(st.customer._id) });
+      L.check(!(r?.data?.data || []).some((x) => String(x.asset_id || x._id) === String(tr?._id)), "tractor without documents is hidden from customers");
+      const own = await L.api("GET", `/logistics/asset/${tr?._id}`, { token: L.tokenFor(st.owner._id) });
+      L.check(own?.data?.document_compliance?.block?.code === "DOC_REQUIRED", "owner sees why: at least one document required", own?.data?.document_compliance?.block);
+    }
 
     L.sec("6g. Expired Road licence (ZINARA) blocks the truck");
     const tid = OID(st.truck._id);
@@ -259,17 +278,19 @@ async function holdSos(a) {
       L.check(/expired/i.test(t), "asset page explains documents expired", t.slice(0, 300));
       await L.goto(o, "/logistics/owner/fleet");
       await o.page.waitForTimeout(1500);
-      L.check(!/expired/i.test(await L.bodyText(o)), "[UX note] Fleet list does not flag expired docs (status still 'Available')");
+      // doc 12 · L36: the row shows what customers see, not "Available"
+      const row = await o.page.locator("tr", { hasText: st.truck.name }).first().innerText().catch(() => "");
+      L.check(/Not bookable — Documents expired/.test(row) && !/Available now/.test(row), "Fleet list flags expired docs ('Not bookable — Documents expired')", row.replace(/\s+/g, " ").slice(0, 160));
       await L.goto(o, `/logistics/owner/fleet/${st.truck._id}`);
       L.check(await L.waitText(o, /Hidden from customers — documents expired/), "owner unit page: 'Hidden from customers — documents expired'");
       await L.shot(o, "s6-owner-expired");
       // operator can't quote with it
-      const jid = await L.postTransportJob(c, { goods: `E2E expired ${st.RUN}`, price: "200" });
+      const jid = await L.postTransportJob(c, { goods: `Wheat bags (50 kg) – 80 nos · PO ${String(st.RUN).toUpperCase()}`, price: "200" });
       await L.goto(op, `/logistics/driver/job/${jid}`);
       await op.page.waitForTimeout(2000);
       const canQuote = await op.page.locator('input[aria-label="Quote amount"]').count();
       if (canQuote) {
-        await op.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "try");
+        await op.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "Can do this load today evening.");
         const btn = op.page.getByRole("button", { name: /Send my quote/ });
         if (await btn.isEnabled()) {
           await btn.click();
@@ -283,7 +304,7 @@ async function holdSos(a) {
       await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs } });
     }
 
-    L.sec("6h. Document rules (v2.7.49): supporting docs don't block; ZINARA required; red-plate roadworthy");
+    L.sec("6h. Document rules (v2.7.61): compulsory documents verified + in date; ZINARA + roadworthy required; optional ones warn");
     let lastSearch = null;
     const listed = async () => {
       const r = await L.api("GET", `/logistics/assets/search?kind=vehicle&q=${encodeURIComponent(st.truck.name)}&limit=50`, { token: L.tokenFor(st.customer._id) });
@@ -292,9 +313,16 @@ async function holdSos(a) {
       return rows.some((a) => String(a.asset_id || a._id) === String(st.truck._id));
     };
     try {
-      L.check(await listed(), "baseline: truck listed with valid ZINARA", lastSearch);
+      L.check(await listed(), "baseline: truck listed with all documents verified", lastSearch);
       await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs.map((x) => (x.type === "insurance" ? { ...x, expires: past } : x)) } });
-      L.check(await listed(), "expired insurance alone → truck still listed (supporting document)", lastSearch);
+      // v2.7.61 (items 1, 9): only compulsory documents block; insurance only warns
+      L.check(await listed(), "expired insurance (optional) → truck still listed", lastSearch);
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs.map((x) => (x.type === "insurance" ? { ...x, review: { status: "pending", reason: "", at: null, by: null } } : x)) } });
+      L.check(await listed(), "insurance waiting for Simba's check (optional) → truck still listed", lastSearch);
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs.map((x) => (x.type === "insurance" ? { ...x, review: { status: "rejected", reason: "Policy copy unreadable", at: new Date(), by: null } } : x)) } });
+      L.check(await listed(), "rejected insurance (optional) → truck still listed", lastSearch);
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs } });
+      L.check(await listed(), "documents verified again → truck listed", lastSearch);
       await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs.filter((x) => x.type !== "rego") } });
       L.check(!(await listed()), "no ZINARA on file → truck hidden");
       await L.goto(o, `/logistics/owner/fleet/${st.truck._id}`);
@@ -303,11 +331,16 @@ async function holdSos(a) {
       L.check(!(await listed()), "rejected ZINARA → truck hidden");
       await d.collection("logistics_assets").updateOne(
         { _id: tid },
-        { $set: { red_plate: true, documents: [...docs.filter((x) => x.type !== "roadworthy"), { type: "roadworthy", name: "rw.pdf", url: "/x.pdf", expires: past }] } }
+        { $set: { red_plate: true, documents: [...docs.filter((x) => x.type !== "roadworthy"), { type: "roadworthy", name: "fitness-certificate.pdf", url: "/x.pdf", expires: past, review: { status: "verified", reason: "", at: new Date(), by: null } }] } }
       );
       L.check(!(await listed()), "red-plate truck with expired roadworthy → hidden");
-      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { red_plate: false } });
-      L.check(await listed(), "same truck without red plate → listed (roadworthy only matters for red plates)", lastSearch);
+      const renewed = new Date(Date.now() + 200 * 86400000);
+      await d.collection("logistics_assets").updateOne(
+        { _id: tid },
+        { $set: { documents: [...docs.filter((x) => x.type !== "roadworthy"), { type: "roadworthy", name: "fitness-certificate.pdf", url: "/x.pdf", expires: renewed, review: { status: "verified", reason: "", at: new Date(), by: null } }] } }
+      );
+      L.check(await listed(), "red-plate truck with a renewed, verified roadworthy → listed", lastSearch);
+      await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { red_plate: false, documents: docs } });
       // Expiry must be after today
       const todayYmd = new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10);
       const pr = await L.api("PATCH", `/logistics/asset/${st.truck._id}`, {

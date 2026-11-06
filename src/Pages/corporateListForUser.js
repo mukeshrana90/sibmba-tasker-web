@@ -1,3 +1,4 @@
+import EmptyResults from "../CommanComponents/EmptyResults";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
@@ -58,7 +59,7 @@ export default function CorporateListForUser() {
             search: debouncedSearch.trim() || undefined,
           })
         ).unwrap();
-        setCategories(result?.data || []);
+        setCategories(Array.isArray(result?.data) ? result.data : []);
         setTotalPages(result?.pagination?.pages || 1);
       } catch (error) {
         console.error("Failed to fetch corporate categories:", error);
@@ -125,7 +126,7 @@ export default function CorporateListForUser() {
                 <Loader />
               </div>
             ) : categories.length === 0 ? (
-              <p className="corp-empty">{emptyMessage}</p>
+              <EmptyResults module="corporate" message={emptyMessage} />
             ) : (
               <>
                 <div className="cc-grid">

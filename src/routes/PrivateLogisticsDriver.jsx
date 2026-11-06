@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
-import { isLogisticsDriver } from "../utils/Roles";
+import { isLogisticsDriver, isLogisticsOwner } from "../utils/Roles";
+import { loadLogisticsAccount } from "../CommanComponents/LogisticsAccountBanner";
 
 const PrivateLogisticsDriver = () => {
   const [redirect, setRedirect] = useState(undefined);
@@ -14,11 +15,24 @@ const PrivateLogisticsDriver = () => {
       setRedirect("/login");
       return;
     }
-    if (!isLogisticsDriver(role, ownerId)) {
+    if (isLogisticsDriver(role, ownerId)) {
+      setRedirect(null);
+      return;
+    }
+    if (!isLogisticsOwner(role, ownerId)) {
       setRedirect("/logistics/owner");
       return;
     }
-    setRedirect(null);
+    // v2.7.61: an owner who may operate units (or is still holding one) gets the operator pages
+    let alive = true;
+    loadLogisticsAccount().then((account) => {
+      if (!alive) return;
+      const op = account?.owner_operator;
+      setRedirect(op?.can_operate || op?.active_asset_id ? null : "/logistics/owner");
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   if (redirect === undefined) return null;

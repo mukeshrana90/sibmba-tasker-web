@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { formatMessagePreview } from "../utils/chatUtils";
 import { formatNotificationTime } from "../utils/notificationTime";
 import {
+  logisticsNotificationDocPath,
   logisticsNotificationJobPath,
   notificationJobId,
 } from "../utils/logisticsNotificationNav";
@@ -84,14 +85,18 @@ export default function NotifyMenuList({
           const canExpand = titleNeedsExpand || bodyNeedsExpand;
           const expanded = expandedId === id;
           const canClear = Boolean(onClearOne && notification?._id);
+          const docPath =
+            typeof onOpenNotification === "function"
+              ? logisticsNotificationDocPath(notification)
+              : null;
           const jobPath =
             typeof onOpenNotification === "function"
               ? logisticsNotificationJobPath(notification, {
                   role: localStorage.getItem("role"),
-                })
+                }) || docPath
               : null;
           const canOpenJob = Boolean(
-            jobPath && notificationJobId(notification)
+            jobPath && (notificationJobId(notification) || docPath)
           );
 
           const toggle = () => {

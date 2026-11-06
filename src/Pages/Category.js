@@ -4,6 +4,7 @@ import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
+import EmptyResults from "../CommanComponents/EmptyResults";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import PaginationComponent from "../CommanComponents/PaginationComponent";
@@ -104,7 +105,7 @@ export default function Category() {
               </div>
             ) : (
               <>
-                <h1> No Data Found </h1>
+                <EmptyResults module="services" />
               </>
             )}
           </div>

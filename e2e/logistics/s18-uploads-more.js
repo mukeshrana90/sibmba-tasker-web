@@ -9,7 +9,8 @@
 const L = require("./lib");
 const fs = require("fs");
 const path = require("path");
-const { MB, diskOf, thumbOf, isJpeg, makeFixtures, toastHas, imagesLoaded, baseName } = require("./upload-helpers");
+const { MB, REAL, diskOf, thumbOf, isJpeg, makeFixtures, makeOwner, jpegToPdf, toastHas, imagesLoaded, baseName } = require("./upload-helpers");
+const DOCS = require("./docs");
 
 const OID = (x) => new L.mongoose.Types.ObjectId(String(x));
 // setInputFiles can't mix paths with in-memory files → read the path into one
@@ -28,13 +29,25 @@ async function waitJson(a, urlRe, method) {
 
 (async () => {
   const RUN = Date.now().toString(36).slice(-6);
+  // Cast of this run: a second Harare fleet (Paid plan) with a truck, a taxi, a tractor and an operator
+  const C = L.cast(L.loadState().RUN || RUN);
+  const ownerP = C.slot("owner", "s18");
+  const opP = C.slot("operator", "s18");
+  const unit = C.unit("truck", 180);
+  const cabUnit = C.unit("cab", 180);
+  const eqUnit = C.unit("tractor", 180);
+  const rx = (s) => new RegExp(s);
+  const GEN = path.join(__dirname, "fixtures", "gen");
   const d = await L.db();
   const actors = [];
   const A = async (n, opts) => { const a = await L.actor(n, opts); actors.push(a); return a; };
   try {
-    const F = await makeFixtures();
-    const owner = await L.makeCustomer(`up2.owner.${RUN}`, 4);
-    await d.collection("users").updateOne({ _id: OID(owner._id) }, { $set: { company_name: `Upload Fleet ${RUN}`, full_name: `Upload Owner2 ${RUN}` } });
+    const F = await makeFixtures({ unit, owner: ownerP.company, operator: { name: opP.name, face: DOCS.face(5) } });
+    const vInfo = (u) => ({ owner: ownerP.company, plate: u.plate, make: u.make, model: u.model, year: u.year, kind: u.kind === "cab" ? "cab" : "vehicle" });
+    // Ownership replaced later by a scanned RC (PDF); the taxi's own road-tax receipt
+    const rcPdf = jpegToPdf(await L.docFile("ownership", vInfo(unit)), path.join(GEN, "registration-certificate.pdf"));
+    const cabRoadTax = await L.docFile("rego", vInfo(cabUnit));
+    const owner = await makeOwner(ownerP);
     L.check((await L.approveOwner(owner._id))?.data?.approval?.status === "approved", "fresh owner approved");
     await L.setPlan(owner._id, "paid");
     const o = await A("up2-owner");
@@ -43,21 +56,25 @@ async function waitJson(a, urlRe, method) {
     // ───────────────────────── Truck: corrupt image, exact 10 MB, JPEG named .heic
     L.sec("18a. Add truck: corrupt photo refused by the server with a message");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
-    const plate = `UQ${RUN}`.toUpperCase();
-    const truckName = `Upload Truck2 ${RUN}`;
+    const plate = unit.plate;
+    const truckName = unit.name;
     await o.page.fill('input[placeholder="Truck 1"]', truckName);
     await o.page.fill('input[placeholder="AEB1234"]', plate);
+    await o.page.fill('input[placeholder="Isuzu"]', unit.make).catch(() => {});
+    await o.page.fill('input[placeholder="FVZ"]', unit.model).catch(() => {});
+    await o.page.fill('input[placeholder="2019"]', unit.year).catch(() => {});
     await pickBaseLocation(o);
-    const rego = o.page.locator(".log-doc-row").filter({ hasText: "Road licence" }).first();
+    const rego = L.docRow(o.page, "Road licence").first();
     await rego.locator("input[type=file]").setInputFiles(F.pdf10);
     L.check(!(await L.waitText(o, /larger than 10 MB/, 1500)), "exactly 10 MB PDF paper accepted by the picker");
     await L.pickDate(o.page, rego.locator(".log-doc-row__expiry input"), 6);
-    const ownRow = o.page.locator(".log-doc-row").filter({ hasText: "Ownership" }).first();
+    const ownRow = L.docRow(o.page, "Ownership").first();
     await ownRow.locator("input[type=file]").setInputFiles(F.docx);
-    L.check((await ownRow.innerText()).includes("permit.docx"), "Word (.docx) paper attached");
+    L.check((await ownRow.innerText()).includes(path.basename(F.docx)), "Word (.docx) paper attached");
     const photoInput = o.page.locator("form.log-fleet-form .log-photo-slot--add input[type=file]");
-    await photoInput.setInputFiles(F.corrupt);
-    L.check((await o.page.locator("form.log-fleet-form .log-photo-slot--filled").count()) === 1, "corrupt .jpg passes the browser check (it can't decode it)");
+    // doc 12 · 4.3: 2 photos needed — the corrupt one plus a good JPEG
+    await photoInput.setInputFiles([F.corrupt, F.jpg]);
+    L.check((await o.page.locator("form.log-fleet-form .log-photo-slot--filled").count()) === 2, "corrupt .jpg passes the browser check (it can't decode it)");
     let resp = waitJson(o, /\/api\/logistics\/asset$/, "POST");
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
     let body = await (await resp).json().catch(() => ({}));
@@ -66,6 +83,7 @@ async function waitJson(a, urlRe, method) {
     L.check(/\/fleet\/add/.test(o.page.url()) && !(await d.collection("logistics_assets").findOne({ registration: plate })), "form stays open, nothing saved");
 
     L.sec("18b. Same form: remove it, add exactly-10 MB photo + JPEG named .heic → saved");
+    await o.page.locator("form.log-fleet-form .log-photo-slot--filled .log-photo-slot__remove").first().click();
     await o.page.locator("form.log-fleet-form .log-photo-slot--filled .log-photo-slot__remove").first().click();
     await photoInput.setInputFiles([F.exact10Jpg, F.reallyJpeg]);
     L.check(!(await L.waitText(o, /larger than 10 MB/, 1500)), "exactly 10 MB photo accepted by the picker");
@@ -77,25 +95,25 @@ async function waitJson(a, urlRe, method) {
     const truck = await d.collection("logistics_assets").findOne({ registration: plate });
     const [tp0, tp1] = truck?.photos || [];
     let j = await isJpeg(tp0);
-    L.check(/exactly-10mb-photo\.jpg$/.test(tp0 || "") && j.ok && j.thumb && fs.statSync(diskOf(tp0)).size < MB, "10 MB photo stored as a small JPEG (resized + thumb)", `${j.why} ${tp0 && fs.existsSync(diskOf(tp0)) ? fs.statSync(diskOf(tp0)).size : "-"} bytes`);
+    L.check(rx(`${F.stem(F.exact10Jpg)}\\.jpg$`).test(tp0 || "") && j.ok && j.thumb && fs.statSync(diskOf(tp0)).size < MB, "10 MB photo stored as a small JPEG (resized + thumb)", `${j.why} ${tp0 && fs.existsSync(diskOf(tp0)) ? fs.statSync(diskOf(tp0)).size : "-"} bytes`);
     j = await isJpeg(tp1);
-    L.check(/really-jpeg\.jpg$/.test(tp1 || "") && j.ok, "JPEG named .heic → read as JPEG, stored .jpg", `${tp1} ${j.why}`);
+    L.check(rx(`${F.stem(F.reallyJpeg)}\\.jpg$`).test(tp1 || "") && j.ok, "JPEG named .heic → read as JPEG, stored .jpg", `${tp1} ${j.why}`);
     const tdoc = (t) => (truck?.documents || []).find((x) => x.type === t);
-    L.check(/exactly-10mb\.pdf$/.test(tdoc("rego")?.url || "") && fs.statSync(diskOf(tdoc("rego").url)).size === 10 * MB, "10 MB PDF stored byte-for-byte");
-    L.check(/permit\.docx$/.test(tdoc("ownership")?.url || "") && fs.readFileSync(diskOf(tdoc("ownership").url)).equals(fs.readFileSync(F.docx)), "DOCX stored unchanged");
+    L.check(rx(`${F.re(F.pdf10)}$`).test(tdoc("rego")?.url || "") && fs.statSync(diskOf(tdoc("rego").url)).size === 10 * MB, "10 MB PDF stored byte-for-byte");
+    L.check(rx(`${F.re(F.docx)}$`).test(tdoc("ownership")?.url || "") && fs.readFileSync(diskOf(tdoc("ownership").url)).equals(fs.readFileSync(F.docx)), "DOCX stored unchanged");
 
     L.sec("18c. Unit page: replace papers (HEIC insurance, oversized refused)");
     await L.goto(o, `/logistics/owner/fleet/${truck._id}`);
     await o.page.getByRole("button", { name: "Edit details" }).click();
-    const insRow = o.page.locator(".log-doc-row").filter({ hasText: "Insurance" }).first();
+    const insRow = L.docRow(o.page, "Insurance").first();
     await insRow.locator("input[type=file]").setInputFiles(F.bigPdf);
     L.check(await toastHas(o, /big-paper\.pdf is larger than 10 MB/), "edit: 11 MB paper → toast");
     await insRow.locator("input[type=file]").setInputFiles(F.zip);
     L.check(await toastHas(o, /archive\.zip: only images, PDF or Word/), "edit: .zip paper → toast");
-    await insRow.locator("input[type=file]").setInputFiles(F.heif);
+    await insRow.locator("input[type=file]").setInputFiles(F.insHeif);
     await L.pickDate(o.page, insRow.locator(".log-doc-row__expiry input"), 6);
-    const ownEdit = o.page.locator(".log-doc-row").filter({ hasText: "Ownership" }).first();
-    await ownEdit.locator("input[type=file]").setInputFiles(F.pdf);
+    const ownEdit = L.docRow(o.page, "Ownership").first();
+    await ownEdit.locator("input[type=file]").setInputFiles(rcPdf);
     resp = waitJson(o, new RegExp(`/api/logistics/asset/${truck._id}$`), "PATCH");
     await o.page.getByRole("button", { name: "Save changes" }).click();
     body = await (await resp).json().catch(() => ({}));
@@ -103,25 +121,26 @@ async function waitJson(a, urlRe, method) {
     const truck2 = await d.collection("logistics_assets").findOne({ _id: truck._id });
     const t2doc = (t) => (truck2?.documents || []).find((x) => x.type === t);
     j = await isJpeg(t2doc("insurance")?.url);
-    L.check(/iphone-photo\.jpg$/.test(t2doc("insurance")?.url || "") && j.ok, ".heif insurance paper → JPEG", `${t2doc("insurance")?.url} ${j.why}`);
-    L.check(/insurance-paper\.pdf$/.test(t2doc("ownership")?.url || ""), "ownership paper replaced by the PDF", t2doc("ownership")?.url);
-    L.check(/exactly-10mb\.pdf$/.test(t2doc("rego")?.url || ""), "untouched Road licence kept");
+    L.check(rx(`${F.stem(F.insHeif)}\\.jpg$`).test(t2doc("insurance")?.url || "") && j.ok, ".heif insurance paper → JPEG", `${t2doc("insurance")?.url} ${j.why}`);
+    L.check(rx(`${F.re(rcPdf)}$`).test(t2doc("ownership")?.url || ""), "ownership paper replaced by the PDF", t2doc("ownership")?.url);
+    L.check(rx(`${F.re(F.pdf10)}$`).test(t2doc("rego")?.url || ""), "untouched Road licence kept");
 
     // ───────────────────────── Cab + equipment
     L.sec("18d. Add cab: .heif photo, \"mif1\" HEIF permit");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
     await o.page.locator('form.log-fleet-form button.log-cattile[aria-label="Cab"]').click();
-    await o.page.fill('input[placeholder="Cab 1"]', `Upload Cab ${RUN}`);
+    await o.page.fill('input[placeholder="Cab 1"]', cabUnit.name);
     await o.page.locator("form.log-fleet-form .log-field", { hasText: "Cab type" }).locator("select").selectOption("car");
-    const cabPlate = `UC${RUN}`.toUpperCase();
+    const cabPlate = cabUnit.plate;
     await o.page.fill('input[placeholder="AEB1234"]', cabPlate);
     await pickBaseLocation(o);
-    await o.page.locator("form.log-fleet-form .log-photo-slot--add input[type=file]").setInputFiles(F.heif);
-    const permit = o.page.locator(".log-doc-row").filter({ hasText: "Taxi / PSV permit" }).first();
+    // doc 12 · 4.3: 2 photos — the .heif plus one JPEG (named .heic)
+    await o.page.locator("form.log-fleet-form .log-photo-slot--add input[type=file]").setInputFiles([F.heif, F.reallyJpegCab]);
+    const permit = L.docRow(o.page, "Taxi / PSV permit").first();
     await permit.locator("input[type=file]").setInputFiles(F.mif1);
     await L.pickDate(o.page, permit.locator(".log-doc-row__expiry input"), 3);
-    const cabRego = o.page.locator(".log-doc-row").filter({ hasText: "Road licence" }).first();
-    await cabRego.locator("input[type=file]").setInputFiles(F.pdf);
+    const cabRego = L.docRow(o.page, "Road licence").first();
+    await cabRego.locator("input[type=file]").setInputFiles(cabRoadTax);
     await L.pickDate(o.page, cabRego.locator(".log-doc-row__expiry input"), 6);
     resp = waitJson(o, /\/api\/logistics\/asset$/, "POST");
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
@@ -129,17 +148,17 @@ async function waitJson(a, urlRe, method) {
     L.check(body?.success === true, "Cab added", body?.message);
     const cab = await d.collection("logistics_assets").findOne({ registration: cabPlate });
     j = await isJpeg(cab?.photos?.[0]);
-    L.check(/iphone-photo\.jpg$/.test(cab?.photos?.[0] || "") && j.ok && j.thumb, "cab .heif photo → JPEG + thumb", `${cab?.photos?.[0]} ${j.why}`);
+    L.check(rx(`${F.stem(F.heif)}\\.jpg$`).test(cab?.photos?.[0] || "") && j.ok && j.thumb, "cab .heif photo → JPEG + thumb", `${cab?.photos?.[0]} ${j.why}`);
     const permitDoc = (cab?.documents || []).find((x) => x.type === "taxi_permit");
     j = await isJpeg(permitDoc?.url);
-    L.check(/samsung-photo\.jpg$/.test(permitDoc?.url || "") && j.ok, "\"mif1\" HEIF permit → JPEG", `${permitDoc?.url} ${j.why}`);
+    L.check(rx(`${F.stem(F.mif1)}\\.jpg$`).test(permitDoc?.url || "") && j.ok, "\"mif1\" HEIF permit → JPEG", `${permitDoc?.url} ${j.why}`);
 
     L.sec("18e. Add equipment: HEIC without extension + HEIC named .jpg");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
     await o.page.locator('form.log-fleet-form button.log-cattile[aria-label="Agricultural"]').click();
-    const eqName = `Upload Tractor ${RUN}`;
+    const eqName = eqUnit.name;
     await o.page.fill('input[placeholder="JD Compact 1"]', eqName);
-    await o.page.fill('input[placeholder="John Deere"]', "John Deere");
+    await o.page.fill('input[placeholder="John Deere"]', eqUnit.make);
     await pickBaseLocation(o);
     const priceSel = 'input[aria-label="Price per day"], input[aria-label="Price per hour"]';
     if (await o.page.locator(priceSel).count()) await L.typeMoney(o.page, priceSel, "120");
@@ -161,7 +180,7 @@ async function waitJson(a, urlRe, method) {
     j = await isJpeg(e0);
     L.check(/IMG_2001\.jpg$/.test(e0 || "") && j.ok && j.thumb, "HEIC without extension → IMG_2001.jpg (JPEG)", `${e0} ${j.why}`);
     j = await isJpeg(e1);
-    L.check(/whatsapp-photo\.jpg$/.test(e1 || "") && j.ok && j.thumb, "HEIC named .jpg → converted (real JPEG now)", `${e1} ${j.why}`);
+    L.check(rx(`${F.stem(F.disguised)}\\.jpg$`).test(e1 || "") && j.ok && j.thumb, "HEIC named .jpg → converted (real JPEG now)", `${e1} ${j.why}`);
     await L.goto(o, `/logistics/owner/fleet/${eq._id}`);
     await o.page.waitForTimeout(2000);
     const eqShown = await imagesLoaded(o, [baseName(e0), baseName(e1)]);
@@ -170,16 +189,16 @@ async function waitJson(a, urlRe, method) {
     // ───────────────────────── Operator: invite → activate → own photo → owner edits
     L.sec("18f. Invite operator (truck), activate, operator sees own photo");
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    const opEmail = `up2.op.${RUN}@e2e.example.com`;
-    const opName = `Upload Operator2 ${RUN}`;
+    const opEmail = opP.email;
+    const opName = opP.name;
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     await o.page.fill('input[placeholder="Full name"]', opName);
     const profileInput = () => o.page.locator("input[type=file]:not([multiple])[accept='image/*,.heic,.heif']").first();
     await profileInput().setInputFiles(F.pdf);
-    L.check(await toastHas(o, /insurance-paper\.pdf: photos must be images/), "PDF as profile photo → toast");
-    await profileInput().setInputFiles(F.heic);
-    const lic = o.page.locator(".log-doc-row").filter({ hasText: "Driving / plant licence" }).first();
-    await lic.locator("input[type=file]").setInputFiles(F.pdf);
+    L.check(await toastHas(o, rx(`${F.re(F.pdf)}: photos must be images`)), "PDF as profile photo → toast");
+    await profileInput().setInputFiles(F.selfieHeic);
+    const lic = L.docRow(o.page, "Driving / plant licence").first();
+    await lic.locator("input[type=file]").setInputFiles(F.dlPdf);
     await L.pickDate(o.page, lic.locator(".log-doc-row__expiry input"), 8);
     await o.page.locator(".log-asset-pick__list li").filter({ hasText: truckName }).locator('input[type="checkbox"]').check();
     resp = waitJson(o, /\/api\/logistics\/sub-user$/, "POST");
@@ -192,10 +211,10 @@ async function waitJson(a, urlRe, method) {
     await op.page.fill("#invite-password", "Passw0rd!");
     await op.page.fill("#invite-password-confirm", "Passw0rd!");
     await op.page.locator('button[type="submit"]').click();
-    await op.page.waitForURL(/\/logistics\/driver/, { timeout: 20000 });
+    await op.page.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" });
     const opUser = await d.collection("users").findOne({ email: opEmail });
     j = await isJpeg(opUser?.profile_image);
-    L.check(/iphone-photo\.jpg$/.test(opUser?.profile_image || "") && j.ok, "activated operator keeps the HEIC photo as JPEG", `${opUser?.profile_image} ${j.why}`);
+    L.check(rx(`${F.stem(F.selfieHeic)}\\.jpg$`).test(opUser?.profile_image || "") && j.ok, "activated operator keeps the HEIC photo as JPEG", `${opUser?.profile_image} ${j.why}`);
     await op.page.waitForTimeout(2000);
     let opShown = await imagesLoaded(op, [baseName(opUser?.profile_image)]);
     L.check(opShown[0] === true, "operator's own pages show their photo", opShown);
@@ -207,11 +226,11 @@ async function waitJson(a, urlRe, method) {
     await o.page.waitForSelector('input[aria-label="Pay amount"], .log-doc-row', { timeout: 10000 });
     await profileInput().setInputFiles(F.bigJpg);
     L.check(await toastHas(o, /big-photo\.jpg is larger than 10 MB/), "edit: >10 MB photo → toast");
-    await profileInput().setInputFiles(F.heif);
-    const med = o.page.locator(".log-doc-row").filter({ hasText: "Medical" }).first();
+    await profileInput().setInputFiles(F.selfieHeif);
+    const med = L.docRow(o.page, "Medical").first();
     await med.locator("input[type=file]").setInputFiles(F.bigPdf);
     L.check(await toastHas(o, /larger than 10 MB/), "edit: 11 MB medical paper → toast");
-    await med.locator("input[type=file]").setInputFiles(F.heic);
+    await med.locator("input[type=file]").setInputFiles(F.medicalHeic);
     await L.pickDate(o.page, med.locator(".log-doc-row__expiry input"), 6);
     resp = waitJson(o, new RegExp(`/api/logistics/sub-user/${opUser._id}$`), "PATCH");
     await o.page.locator('form button[type="submit"]').last().click();
@@ -219,7 +238,7 @@ async function waitJson(a, urlRe, method) {
     L.check(body?.success === true, "operator saved", body?.message);
     const opUser2 = await d.collection("users").findOne({ _id: opUser._id });
     j = await isJpeg(opUser2?.profile_image);
-    L.check(opUser2?.profile_image !== opUser.profile_image && /iphone-photo\.jpg$/.test(opUser2?.profile_image || "") && j.ok, "new .heif photo stored as JPEG", `${opUser2?.profile_image} ${j.why}`);
+    L.check(opUser2?.profile_image !== opUser.profile_image && rx(`${F.stem(F.selfieHeif)}\\.jpg$`).test(opUser2?.profile_image || "") && j.ok, "new .heif photo stored as JPEG", `${opUser2?.profile_image} ${j.why}`);
     const medDoc = (opUser2?.logistics_documents || []).find((x) => x.type === "medical");
     j = await isJpeg(medDoc?.url);
     L.check(/\.jpg$/.test(medDoc?.url || "") && j.ok, "HEIC medical paper → JPEG", `${medDoc?.url} ${j.why}`);
@@ -228,7 +247,10 @@ async function waitJson(a, urlRe, method) {
     opShown = await imagesLoaded(op, [baseName(opUser2?.profile_image)]);
     L.check(opShown[0] === true, "operator now sees the new photo", opShown);
 
-    L.sec("18h. Operator goes live → Search card shows the truck photo");
+    L.sec("18h. Simba verifies the papers → operator goes live → Search card shows the truck photo");
+    // 29 Oct 2026: customers see the truck only once its papers and the operator's licence are verified
+    await L.verifyDocs("asset", truck._id);
+    await L.verifyDocs("operator", opUser._id);
     await L.goto(op, "/logistics/driver", ".log-dash-avail-controls");
     await op.page.locator('select[aria-label="Set status"]').selectOption("available_now");
     await op.page.getByRole("button", { name: "Update status" }).click();
@@ -252,8 +274,8 @@ async function waitJson(a, urlRe, method) {
     L.sec("18i. Post job, round trip: return-trip photo picker");
     await L.goto(c, "/logistics/post", "form.log-form-card--post");
     await L.pickLocation(c, 0, null);
-    await L.pickLocation(c, 1, "Chitungwiza");
-    await c.page.fill('input[placeholder="e.g. Construction materials"]', `Round trip goods ${RUN}`);
+    await L.pickLocation(c, 1, L.PLACES.drops[2]);
+    await L.fillGoods(c.page, `OPC cement, 200 bags · PO ${RUN.toUpperCase()}`);
     await L.vehicleSelect(c.page).selectOption("4 ton");
     await c.page.fill('input[placeholder="8"]', "3");
     await c.page.locator(".log-when__opt", { hasText: "Schedule" }).click();
@@ -267,10 +289,10 @@ async function waitJson(a, urlRe, method) {
     await returnInput.setInputFiles(F.bigJpg);
     L.check(await toastHas(c, /big-photo\.jpg is larger than 10 MB/), "return photo >10 MB → toast");
     await returnInput.setInputFiles(F.docx);
-    L.check(await toastHas(c, /permit\.docx: photos must be images/), "return photo .docx → toast");
-    await returnInput.setInputFiles([F.heic, F.mif1]);
+    L.check(await toastHas(c, rx(`${F.re(F.docx)}: photos must be images`)), "return photo .docx → toast");
+    await returnInput.setInputFiles([F.goodsHeic2, F.mif1Goods]);
     L.check((await returnThumbs()) === 2, "return HEIC + HEIF added", await returnThumbs());
-    await c.page.locator(".log-upload--post input[type=file]").first().setInputFiles(F.jpg);
+    await c.page.locator(".log-upload--post input[type=file]").first().setInputFiles(path.join(REAL, "cement-bags.jpg"));
     resp = waitJson(c, /\/api\/logistics\/job$/, "POST");
     await c.page.locator('form.log-form-card--post button[type="submit"]').click();
     body = await (await resp).json().catch(() => ({}));
@@ -290,8 +312,9 @@ async function waitJson(a, urlRe, method) {
     L.sec("18j. Post job: corrupt photo refused with a message (form kept)");
     await L.goto(c, "/logistics/post", "form.log-form-card--post");
     await L.pickLocation(c, 0, null);
-    await L.pickLocation(c, 1, "Chitungwiza");
-    await c.page.fill('input[placeholder="e.g. Construction materials"]', `Corrupt photo goods ${RUN}`);
+    await L.pickLocation(c, 1, L.PLACES.drops[3]);
+    const corruptGoods = `Steel TMT bars 12 mm, 2 tonnes · PO ${RUN.toUpperCase()}`;
+    await L.fillGoods(c.page, corruptGoods);
     await L.vehicleSelect(c.page).selectOption("4 ton");
     await c.page.fill('input[placeholder="8"]', "3");
     await c.page.locator(".log-when__opt", { hasText: "Schedule" }).click();
@@ -303,7 +326,7 @@ async function waitJson(a, urlRe, method) {
     body = await (await resp).json().catch(() => ({}));
     L.check(body?.data?.code === "IMAGE_UNREADABLE", "server: IMAGE_UNREADABLE", body?.message);
     L.check(await toastHas(c, /corrupt-photo\.jpg: this image can't be read/), "customer sees \"can't be read\" toast");
-    L.check(/\/logistics\/post/.test(c.page.url()) && !(await d.collection("transport_jobs").findOne({ goods_description: new RegExp(`Corrupt photo goods ${RUN}`) })), "stays on the form, no job created");
+    L.check(/\/logistics\/post/.test(c.page.url()) && !(await d.collection("transport_jobs").findOne({ goods_description: new RegExp(`PO ${RUN.toUpperCase()}$`) })), "stays on the form, no job created");
 
     L.sec("18k. Post job: equipment hire (Agricultural) site photos");
     await L.goto(c, "/logistics/post", "form.log-form-card--post");
@@ -326,7 +349,7 @@ async function waitJson(a, urlRe, method) {
     L.check(await toastHas(c, /larger than 10 MB/), "site photo >10 MB → toast");
     await siteInput.setInputFiles(F.pdf);
     L.check(await toastHas(c, /photos must be images/), "site photo PDF → toast");
-    await siteInput.setInputFiles([mem(F.heic, "image/heic"), F.extless]);
+    await siteInput.setInputFiles([mem(path.join(REAL, "heic", "WhatsApp-Image-2026-10-14.heic"), "image/heic"), F.extless]);
     L.check((await c.page.locator(".log-upload-thumb").count()) === 2, "2 site photos added");
     resp = waitJson(c, /\/api\/logistics\/job$/, "POST");
     await c.page.locator('form.log-form-card--post button[type="submit"]').click();
@@ -343,8 +366,8 @@ async function waitJson(a, urlRe, method) {
     await L.seedAuth(m, { token: cust.token, user: cust });
     await L.goto(m, "/logistics/post", "form.log-form-card--post");
     await L.pickLocation(m, 0, null);
-    await L.pickLocation(m, 1, "Chitungwiza");
-    await m.page.fill('input[placeholder="e.g. Construction materials"]', `Phone goods ${RUN}`);
+    await L.pickLocation(m, 1, L.PLACES.drops[4]);
+    await L.fillGoods(m.page, `Household goods, 2BHK shifting · Ref ${RUN.toUpperCase()}`);
     await L.vehicleSelect(m.page).selectOption("4 ton");
     await m.page.fill('input[placeholder="8"]', "3");
     await m.page.locator(".log-when__opt", { hasText: "Schedule" }).click();
@@ -357,7 +380,7 @@ async function waitJson(a, urlRe, method) {
     const toastBox = await m.page.locator(".Toastify__toast").first().boundingBox().catch(() => null);
     L.check(toastBox && toastBox.x >= 0 && toastBox.x + toastBox.width <= 391, "phone: toast fits the screen", toastBox);
     await m.page.locator(".Toastify__close-button").first().click().catch(() => {});
-    await mInput.setInputFiles([F.heic, F.jpg]);
+    await mInput.setInputFiles([F.goodsHeic2, path.join(REAL, "zw/intl-1.jpg")]);
     L.check((await m.page.locator(".log-upload-thumb").count()) === 2, "phone: 2 previews");
     const over = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     L.check(over <= 1, "phone: no sideways scroll with previews", over);
@@ -367,7 +390,7 @@ async function waitJson(a, urlRe, method) {
     body = await (await resp).json().catch(() => ({}));
     L.check(body?.success === true, "phone: job posted", body?.message);
     const pj = body?.data?.job?._id && await d.collection("transport_jobs").findOne({ _id: OID(body.data.job._id) });
-    L.check(pj?.images?.length === 2 && (await isJpeg(pj.images[0])).ok && /iphone-photo\.jpg$/.test(pj.images[0]), "phone: HEIC stored as JPEG", pj?.images);
+    L.check(pj?.images?.length === 2 && (await isJpeg(pj.images[0])).ok && rx(`${F.stem(F.goodsHeic2)}\\.jpg$`).test(pj.images[0]), "phone: HEIC stored as JPEG", pj?.images);
     await m.page.waitForURL(/\/logistics\/jobs\/[a-f0-9]{24}/, { timeout: 20000 }).catch(() => {});
     await m.page.waitForTimeout(2000);
     const mShown = await imagesLoaded(m, (pj?.images || []).map(baseName));

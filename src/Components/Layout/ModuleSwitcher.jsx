@@ -8,6 +8,7 @@ import {
   setActiveModule,
   syncActiveModuleFromPath,
 } from "../../utils/Roles";
+import { setLastSection } from "../../utils/lastSection";
 
 /** Logistics notices use logistics_* types and / or carry a TransportJob id. */
 export const notificationModuleOf = (n) =>
@@ -66,6 +67,7 @@ export default function ModuleSwitcher({
   }, [location.pathname, activeOverride]);
 
   const select = (module) => {
+    setLastSection(module); // explicit choice (item 51); activeModule follows every page view
     setActiveModule(module);
     setActive(module);
     onChange?.(module);
@@ -201,6 +203,7 @@ export const LOGISTICS_OWNER_SIDEBAR = [
   },
   { label: "Availability", path: "/logistics/owner/availability", icon: "clock" },
   { label: "Earnings", path: "/logistics/owner/earnings", icon: "earnings" },
+  { label: "Business documents", path: "/logistics/owner/verification", icon: "briefcase" },
   { label: "Subscription", path: "/logistics/owner/subscription", icon: "subscription" },
   { label: "Analytics", path: "/logistics/owner/analytics", icon: "analytics" },
   { label: "Reports", path: "/logistics/owner/reports", icon: "support" },

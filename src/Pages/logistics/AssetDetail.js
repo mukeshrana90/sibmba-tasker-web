@@ -4,8 +4,9 @@ import Api from "../../Services/api";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import { buildPublicAssetUrl, defaultImage } from "../../utils/ImagePath";
 import { Roles } from "../../utils/Roles";
-import { assetBookState } from "../../utils/logisticsBooking";
+import { assetBookState, customerStatusDetail } from "../../utils/logisticsBooking";
 import { accountLinkTo, isLoggedIn } from "../../utils/authRedirect";
+import LogisticsWhatsappChatButton from "../../CommanComponents/LogisticsWhatsappChatButton";
 import "./logistics.css";
 import {
   LogisticsDetailSkeleton,
@@ -141,17 +142,21 @@ export default function LogisticsAssetDetail() {
     asset?.availability?.state_label ||
     AVAIL_LABEL[availState] ||
     String(availState).replace(/_/g, " ");
-  const availDetail = asset?.availability?.status_detail;
+  const availDetail = customerStatusDetail(asset?.availability?.status_detail);
   const phone = formatPhone(owner);
   // Guests never see owner contact details (the API also leaves them out)
   const guest = !isLoggedIn();
   const showPhone = Boolean(!guest && owner?.contact_phone_visible && phone);
   const showEmail = Boolean(!guest && owner?.contact_phone_visible && owner?.email);
+  // doc 12 · P1: business name first, then the owner's real name under it
   const providerName =
-    owner?.full_name ||
     owner?.company_name ||
+    owner?.full_name ||
     asset?.owner?.full_name ||
     "Fleet provider";
+  const ownerRealName =
+    owner?.owner_name && owner.owner_name !== providerName ? owner.owner_name : "";
+  const ownerPhoto = assetPhotoUrl(owner?.profile_image);
   const capacity = formatCapacity(asset?.capacity);
   const carriage = formatCarriage(asset?.carriage);
   const price = formatPrice(asset?.price_hint);
@@ -345,7 +350,19 @@ export default function LogisticsAssetDetail() {
               <h3 className="log-asset-detail-panel__title">Provider</h3>
               <div className="log-asset-detail-provider">
                 <div className="log-asset-detail-provider__head">
-                  <b>{providerName}</b>
+                  {ownerPhoto ? (
+                    <img className="log-op-avatar" src={ownerPhoto} alt="" />
+                  ) : (
+                    <span className="log-op-avatar log-op-avatar--initials" aria-hidden="true">
+                      {providerName.slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                  <span className="log-asset-detail-provider__names">
+                    <b>{providerName}</b>
+                    {ownerRealName ? (
+                      <span className="log-hint">Owner: {ownerRealName}</span>
+                    ) : null}
+                  </span>
                   {Number(owner?.is_verified) === 1 ? (
                     <span className="log-chip log-chip--active">Verified</span>
                   ) : null}
@@ -364,11 +381,12 @@ export default function LogisticsAssetDetail() {
                   </p>
                 ) : (
                   <p className="log-hint log-asset-detail-provider__privacy">
-                    Phone is hidden until this fleet has a paid plan. Use{" "}
+                    Phone is hidden for this fleet. Use{" "}
                     <strong>Book / request quote</strong> to connect through
                     Simba Tasker.
                   </p>
                 )}
+                {!guest ? <LogisticsWhatsappChatButton assetId={id} /> : null}
                 <p className="log-hint" style={{ margin: "8px 0 0" }}>
                   {(Number(rating.average) || 0).toFixed(1)} ★ average ·{" "}
                   {completed} completed job{completed === 1 ? "" : "s"}

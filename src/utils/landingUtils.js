@@ -347,6 +347,22 @@ export function formatDisplayTitle(value, fallback = "") {
     .join("");
 }
 
+/** Service names are short titles (backend enforces the same cap). */
+export const SERVICE_NAME_MAX_WORDS = 11;
+
+export function countWords(text) {
+  return String(text ?? "").trim().split(/\s+/).filter(Boolean).length;
+}
+
+/** First `maxWords` words + "…" (older services can have very long names). */
+export function limitWords(text, maxWords = SERVICE_NAME_MAX_WORDS) {
+  const full = String(text ?? "").trim().replace(/\s+/g, " ");
+  const words = full ? full.split(" ") : [];
+  if (words.length <= maxWords) return { display: full, full, truncated: false };
+  const display = words.slice(0, maxWords).join(" ").replace(/[\s,.;:&-]+$/, "");
+  return { display: `${display}…`, full, truncated: true };
+}
+
 export function shortenLocationLabel(text, maxWords = 3) {
   const full = String(text || "").trim();
   if (!full) return { display: "", full: "" };

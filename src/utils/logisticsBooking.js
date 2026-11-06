@@ -34,6 +34,10 @@ export function assetBookState(asset) {
       blockedReason = "Operator not online — booking unavailable right now";
     } else if (availability.status_detail === "Documents expired") {
       blockedReason = "This unit's documents have expired — booking unavailable until renewed";
+    } else if (availability.status_detail === "Awaiting document check") {
+      blockedReason = "Not bookable — awaiting document check";
+    } else if (/ (required|rejected)$/.test(String(availability.status_detail || ""))) {
+      blockedReason = "Not bookable — this unit's documents aren't approved yet";
     }
     return { canBook: false, blockedReason };
   }
@@ -45,4 +49,13 @@ export function assetBookState(asset) {
         ? "The operator is currently on another job — you can still book. Acceptance may take longer: the owner will confirm or assign another operator."
         : null,
   };
+}
+
+/** Customer wording for a unit's status_detail (29 Oct 2026 document check). */
+export function customerStatusDetail(detail) {
+  const d = String(detail || "");
+  if (!d) return "";
+  if (d === "Awaiting document check") return "Not bookable — awaiting document check";
+  if (/ (required|rejected)$/.test(d) || d === "Documents expired") return "Not bookable — documents not approved";
+  return d;
 }

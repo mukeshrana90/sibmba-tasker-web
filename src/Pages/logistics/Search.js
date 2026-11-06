@@ -1,3 +1,4 @@
+import { customerStatusDetail } from "../../utils/logisticsBooking";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -26,6 +27,9 @@ import {
   CAPACITY_TIER_OPTIONS,
 } from "../../utils/logisticVehicleWeight";
 import { guestLoginPath, isLoggedIn } from "../../utils/authRedirect";
+import { geocodeLocationText } from "../../utils/landingGeocode";
+import EmptyResults from "../../CommanComponents/EmptyResults";
+import UseMyLocationButton from "../../CommanComponents/UseMyLocationButton";
 import "./logistics.css";
 import {
   LogisticsSkeletonMeta,
@@ -190,10 +194,14 @@ function initialSearchState() {
   if (q != null) next.name = q.trim();
   if (locText) {
     next.location = locText;
+    // A typed city without coordinates: known Zimbabwe cities still filter by distance
+    const known = geocodeLocationText(locText);
     next.location_coords =
       params.get("lat") && params.get("lng") && Number.isFinite(lat) && Number.isFinite(lng)
         ? [lng, lat]
-        : null;
+        : known
+          ? [known.lng, known.lat]
+          : null;
   }
 
   return {
@@ -383,6 +391,12 @@ export default function LogisticsSearch() {
                     }))
                   }
                 />
+                <UseMyLocationButton
+                  active={filters.location === "Current location"}
+                  onLocated={({ lat, lng, label }) =>
+                    setFilters((f) => ({ ...f, location: label, location_coords: [lng, lat] }))
+                  }
+                />
                 <label className="log-field">
                   <span className="log-fl">Radius</span>
                   <select
@@ -501,6 +515,12 @@ export default function LogisticsSearch() {
                     }))
                   }
                 />
+                <UseMyLocationButton
+                  active={filters.location === "Current location"}
+                  onLocated={({ lat, lng, label }) =>
+                    setFilters((f) => ({ ...f, location: label, location_coords: [lng, lat] }))
+                  }
+                />
                 <label className="log-field">
                   <span className="log-fl">Radius</span>
                   <select
@@ -563,7 +583,7 @@ export default function LogisticsSearch() {
                           ? ` within ${filters.radius_km} km`
                           : " (all areas — add location to filter by distance)"
                       }${filterSummary}`
-                    : `No ${mixed ? "trucks or equipment" : plant ? "assets" : cab ? "cabs" : "trucks"} found${
+                    : `No exact matches${
                         hasLocation(filters)
                           ? ` within ${filters.radius_km} km`
                           : ""
@@ -594,7 +614,7 @@ export default function LogisticsSearch() {
                         row.availability?.state_label ||
                         AVAIL_LABEL[state] ||
                         state;
-                      const statusDetail = row.availability?.status_detail;
+                      const statusDetail = customerStatusDetail(row.availability?.status_detail);
                       const biz = ownerBusiness(row, guest);
                       const thumb =
                         assetPhotoUrl(row.photos?.[0]) || defaultImage;
@@ -713,17 +733,23 @@ export default function LogisticsSearch() {
                         </tr>
                       );
                     })}
-                    {!loading && !rows.length ? (
-                      <tr>
-                        <td colSpan={8} className="logistics-empty">
-                          No assets found within this radius — try a wider
-                          radius or another location.
-                        </td>
-                      </tr>
-                    ) : null}
                   </tbody>
                 </table>
               </div>
+
+              {!loading && !rows.length ? (
+                <EmptyResults
+                  module="logistics"
+                  query={String(filters.name || "").trim()}
+                  kind={mixed ? "all" : plant ? "equipment" : cab ? "cab" : "vehicle"}
+                  category={plant ? filters.category : undefined}
+                  coords={
+                    hasLocation(filters)
+                      ? { lat: filters.location_coords[1], lng: filters.location_coords[0] }
+                      : undefined
+                  }
+                />
+              ) : null}
 
               {showPagination ? (
                 <div

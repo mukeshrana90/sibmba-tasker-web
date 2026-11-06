@@ -48,30 +48,23 @@ import {
   docRuleHint,
   tomorrowYmd,
 } from "../../utils/docExpiry";
+import { MIN_ASSET_PHOTOS, unitStatusChip } from "../../utils/ownerUnitStatus";
 import { focusField } from "../../utils/focusField";
 import { DOC_ACCEPT, PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
+import LogisticsAddLock, { ADD_LOCKED_TITLE, useAddLocked } from "../../CommanComponents/LogisticsAddLock";
+import {
+  UnitOperateControl,
+  WhoOperatesField,
+  useOwnerOperator,
+} from "../../CommanComponents/LogisticsOwnerOperator";
+import { refreshLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
 
-const AVAIL_LABEL = {
-  available_now: "Available",
-  returning_empty: "Returning empty",
-  scheduled: "Scheduled",
-  on_job: "On job",
-  offline: "Offline",
-};
-
-const AVAIL_TONE = {
-  available_now: "active",
-  returning_empty: "pending",
-  scheduled: "active",
-  on_job: "progress",
-  offline: "closed",
-};
-
+// Required documents first: a truck can't be added without the Road licence (ZINARA)
 const LOGISTIC_DOCS = [
+  { id: "rego", label: "Road licence (ZINARA)", hint: "Road papers", required: true },
+  { id: "roadworthy", label: "Roadworthy / fitness", hint: "Tap to upload", compulsory: true },
   { id: "ownership", label: "Ownership papers", hint: "Proof you own this truck" },
   { id: "insurance", label: "Insurance", hint: "Current cover" },
-  { id: "rego", label: "Road licence (ZINARA)", hint: "Road papers" },
-  { id: "roadworthy", label: "Roadworthy / fitness", hint: "Tap to upload" },
 ];
 
 // Cab (passenger taxi) documents
@@ -108,6 +101,8 @@ const emptyForm = () => ({
   carriage_height_ft: "",
   needs_operator: "yes",
   operators_needed: "1",
+  // v2.7.61: "I operate it myself" (self) or "Invite an operator" (invite)
+  operated_by: "invite",
   // No default machine — the owner must pick (placeholders only suggest)
   equipment: "",
   subtype: "",
@@ -169,8 +164,10 @@ const FLEET_PAGE_SIZE = 10;
 
 function PhotoSlots({ files, onAdd, onRemove }) {
   return (
-    <div className="log-field log-field--full">
-      <span className="log-fl">Photos</span>
+    <div className="log-field log-field--full" data-field="photos">
+      <span className="log-fl">
+        Photos <span className="log-req">*</span>
+      </span>
       <div className="log-photo-slots">
         {files.map((f, idx) => (
           <div key={f.url} className="log-photo-slot log-photo-slot--filled">
@@ -213,6 +210,9 @@ function PhotoSlots({ files, onAdd, onRemove }) {
           </label>
         ) : null}
       </div>
+      <p className="log-hint">
+        At least {MIN_ASSET_PHOTOS} real photos of this unit (no stock or AI images).
+      </p>
     </div>
   );
 }
@@ -255,20 +255,29 @@ function DocRows({ items, docs, onPick, onExpiry, kind = "vehicle", redPlate = f
               </svg>
             </span>
             <span className="log-doc-row__body">
-              <b>{d.label}</b>
+              <b>
+                {d.label}
+                {d.required || d.compulsory ? <span className="log-req"> *</span> : null}
+              </b>
               <p>{fileLabel || d.hint}</p>
-              <small className="log-doc-row__rule">{docRuleHint(d.id, { kind, redPlate })}</small>
+              <small className="log-doc-row__rule">
+                {d.required
+                  ? "Required — add it to save this truck"
+                  : d.compulsory
+                    ? "Required before customers can see this truck"
+                    : docRuleHint(d.id, { kind, redPlate })}
+              </small>
             </span>
             <label className="log-doc-row__expiry">
               <span>
                 Expiry date
-                {ASSET_COMPLIANCE_TYPES.includes(d.id) ? <span className="log-req"> *</span> : null}
+                {ASSET_COMPLIANCE_TYPES.includes(d.id) && entry?.file ? <span className="log-req"> *</span> : null}
               </span>
               <LogisticsDateInput
                 pickerOnly
                 value={entry?.expires || ""}
                 onChange={(e) => onExpiry?.(d.id, e.target.value)}
-                required={ASSET_COMPLIANCE_TYPES.includes(d.id)}
+                required={ASSET_COMPLIANCE_TYPES.includes(d.id) && Boolean(entry?.file)}
                 min={tomorrowYmd()}
               />
               {entry?.file && !entry?.expires && ASSET_COMPLIANCE_TYPES.includes(d.id) ? (
@@ -297,6 +306,7 @@ function DocRows({ items, docs, onPick, onExpiry, kind = "vehicle", redPlate = f
 
 export default function LogisticsFleet() {
   const dispatch = useDispatch();
+  const ownerOp = useOwnerOperator();
   const navigate = useNavigate();
   const location = useLocation();
   const showAddByRoute = location.pathname.endsWith("/fleet/add");
@@ -308,6 +318,8 @@ export default function LogisticsFleet() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(showAddByRoute);
+  // 29 Oct 2026: no new equipment until Simba approves the company
+  const approvalLocked = useAddLocked();
   const [form, setForm] = useState(emptyForm);
   // Owner business base: new units start here (client review — "base
   // location asked repeatedly")
@@ -464,6 +476,7 @@ export default function LogisticsFleet() {
       value = normalizePlateInput(value);
       setIdErrors((err) => ({ ...err, [key]: "" }));
     }
+    if (key === "vin") value = normalizePlateInput(value);
     if (key === "price") {
       value = sanitizeMoneyInput(value);
     }
@@ -596,6 +609,18 @@ export default function LogisticsFleet() {
       focusField("registration");
       return;
     }
+    // v2.7.61: "I operate it myself" needs the one-time licence + face photo
+    if (!cab && form.operated_by === "self" && !ownerOp?.enabled) {
+      toast.error("Upload your licence and face photo first, or choose \"Invite an operator\"");
+      focusField("operated_by");
+      return;
+    }
+    // v2.7.59: trucks need the Road licence (ZINARA) before anything else
+    if (!plant && !cab && !form.docs?.rego?.file) {
+      toast.error("Road licence (ZINARA) is required — upload it to add this truck");
+      focusField("doc-rego");
+      return;
+    }
     // Insurance / road licence / roadworthy / taxi permit need an expiry date
     const missingExpiry = Object.entries(form.docs || {}).find(
       ([type, entry]) => entry?.file && !entry?.expires && ASSET_COMPLIANCE_TYPES.includes(type)
@@ -605,6 +630,11 @@ export default function LogisticsFleet() {
       const label = all.find((d) => d.id === missingExpiry[0])?.label || missingExpiry[0];
       toast.error(`${label}: expiry date is required`);
       focusField(`doc-${missingExpiry[0]}`);
+      return;
+    }
+    if ((form.photos || []).length < MIN_ASSET_PHOTOS) {
+      toast.error(`Add at least ${MIN_ASSET_PHOTOS} real photos of the unit`);
+      focusField("photos");
       return;
     }
     if (addLocked) {
@@ -655,7 +685,9 @@ export default function LogisticsFleet() {
         price: plant ? form.price || "" : "",
         rate_unit: plant && form.price ? form.rate_unit || "day" : "",
         direct_booking_enabled: form.direct_booking_enabled ? "true" : "false",
-        red_plate: !plant && form.red_plate ? "true" : "",
+        // Cabs only: trucks always need a roadworthy certificate (item 11)
+        red_plate: cab && form.red_plate ? "true" : "",
+        operated_by: cab ? "" : form.operated_by || "invite",
         ...(coords
           ? { lng: String(coords[0]), lat: String(coords[1]) }
           : {}),
@@ -703,6 +735,10 @@ export default function LogisticsFleet() {
             setBase(nextBase);
             toast.info("Saved as your business base — new units will start there");
           }
+        }
+        if (form.operated_by === "self" && !cab) {
+          toast.info("Saved. Use \"Use this unit myself\" when you are ready to go live on it.");
+          refreshLogisticsAccount();
         }
         closeAdd();
         await load();
@@ -759,12 +795,15 @@ export default function LogisticsFleet() {
             </div>
             <button
               type="button"
-              className="logistics-cta logistics-cta--primary"
-              onClick={openAdd}
+              className={`logistics-cta logistics-cta--primary${approvalLocked ? " is-locked" : ""}`}
+              onClick={approvalLocked ? undefined : openAdd}
+              disabled={approvalLocked}
+              title={approvalLocked ? ADD_LOCKED_TITLE : undefined}
             >
               Add equipment
             </button>
           </div>
+          {approvalLocked ? <LogisticsAddLock what="equipment" /> : null}
 
           {assets.length || hasFilters ? (
             <form className="log-jobs-toolbar log-jobs-toolbar--wrap" onSubmit={applyFilters}>
@@ -817,7 +856,8 @@ export default function LogisticsFleet() {
         </>
       ) : null}
 
-      {showForm ? (
+      {showForm && approvalLocked ? <LogisticsAddLock what="equipment" /> : null}
+      {showForm && !approvalLocked ? (
         <form className="log-form-card log-fleet-form" onSubmit={add} noValidate>
           <div className="log-fleet-form__title-row">
             <h2 className="log-sect" style={{ margin: 0 }}>
@@ -1050,6 +1090,7 @@ export default function LogisticsFleet() {
                   <span className="log-field-error">{idErrors.chassis_number}</span>
                 ) : null}
               </label>
+              {cab ? (
               <label className="log-check log-field--full" data-field="red_plate">
                 <input
                   type="checkbox"
@@ -1063,6 +1104,7 @@ export default function LogisticsFleet() {
                   </small>
                 </span>
               </label>
+              ) : null}
               <label className="log-field log-field--full">
                 <span className="log-fl">VIN</span>
                 <input
@@ -1135,10 +1177,13 @@ export default function LogisticsFleet() {
                   ))}
                 </select>
               </label>
+              <WhoOperatesField
+                value={form.operated_by}
+                onChange={(v) => setForm((f) => ({ ...f, operated_by: v }))}
+              />
               <p className="log-hint log-field--full">
-                Every unit needs at least one operator (driver) — customers
-                can't find or book it until one is assigned. Assign operators
-                after saving; they quote and run the jobs.
+                Every unit needs someone to operate it — customers can't find or
+                book it until you or an assigned operator goes live on it.
               </p>
               </>
               )}
@@ -1171,10 +1216,11 @@ export default function LogisticsFleet() {
                 <span className="log-sect__soft">(checked by Simba before you go live)</span>
               </p>
               <p className="log-hint log-field--full">
-                The road licence (ZINARA) is required
-                {form.red_plate ? " and so is the roadworthy certificate (red-plate vehicle)" : ""} — without a valid
-                one the unit is hidden from customers. The other documents support your listing.
-                Pick each expiry date from the calendar (dates marked * are required). {REMINDER_HINT}
+                {cab
+                  ? `The road licence (ZINARA) is required${form.red_plate ? "; the roadworthy certificate is also required (red-plate vehicle)" : ""}. Without a valid one the unit is hidden from customers.`
+                  : "Start with the road licence (ZINARA) — a truck can't be added without it. The roadworthy certificate is also required: without both, verified and in date, the truck is hidden from customers."}{" "}
+                The other documents support your listing; a problem with one only shows you a warning.
+                Once a file is attached, pick its expiry date from the calendar (*). {REMINDER_HINT}
               </p>
               <div className="log-field--full">
                 <DocRows
@@ -1363,6 +1409,10 @@ export default function LogisticsFleet() {
                   ))}
                 </select>
               </label>
+              <WhoOperatesField
+                value={form.operated_by}
+                onChange={(v) => setForm((f) => ({ ...f, operated_by: v }))}
+              />
 
               <div className="log-field--full">
                 <LogisticsLocationField
@@ -1438,13 +1488,12 @@ export default function LogisticsFleet() {
                   items={
                     form.motor_vehicle
                       ? [
-                          ...PLANT_DOCS.slice(0, 3),
                           {
                             id: "rego",
                             label: "Road licence (ZINARA)",
                             hint: "Required when motor vehicle is ticked",
                           },
-                          PLANT_DOCS[3],
+                          ...PLANT_DOCS,
                         ]
                       : PLANT_DOCS
                   }
@@ -1528,7 +1577,7 @@ export default function LogisticsFleet() {
               </thead>
               <tbody>
                 {pageAssets.map((a) => {
-                  const state = a.availability?.state || "offline";
+                  const chip = unitStatusChip(a);
                   const listed = Number(a.is_active) === 1;
                   const cap = formatCapacity(a.capacity);
                   const cat =
@@ -1567,7 +1616,9 @@ export default function LogisticsFleet() {
                       <td>
                         {a.assigned_sub_user_ids?.length
                           ? a.assigned_sub_user_ids.length
-                          : "None"}
+                          : a.owner_operating
+                            ? "You"
+                            : "None"}
                       </td>
                       <td>
                         {!listed ? (
@@ -1578,15 +1629,14 @@ export default function LogisticsFleet() {
                             {a.plan_locked ? "Plan limit" : "Disabled"}
                           </span>
                         ) : (
-                          <span
-                            className={`log-chip log-chip--${AVAIL_TONE[state] || "muted"}`}
-                          >
-                            {AVAIL_LABEL[state] || state}
+                          <span className={`log-chip log-chip--${chip.tone}`}>
+                            {chip.label}
                           </span>
                         )}
                       </td>
                       <td>
                         <div className="log-fleet-row-actions">
+                          <UnitOperateControl asset={a} onChanged={load} compact />
                           {a.kind === "vehicle" && listed ? (
                             <FeatureButton
                               asset={a}
@@ -1662,8 +1712,10 @@ export default function LogisticsFleet() {
           <p>Add trucks or plant so customers can search and hire from you.</p>
           <button
             type="button"
-            className="logistics-cta logistics-cta--primary"
-            onClick={openAdd}
+            className={`logistics-cta logistics-cta--primary${approvalLocked ? " is-locked" : ""}`}
+            onClick={approvalLocked ? undefined : openAdd}
+            disabled={approvalLocked}
+            title={approvalLocked ? ADD_LOCKED_TITLE : undefined}
           >
             Add your first equipment
           </button>

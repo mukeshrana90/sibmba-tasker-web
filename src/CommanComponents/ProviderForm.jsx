@@ -20,6 +20,7 @@ import ServiceActions from "../Redux/Actions/ServiceActions";
 import { useNavigate } from "react-router-dom";
 import { markProviderHasService } from "../utils/providerServiceGate";
 import CorporateCategorySelect from "./CorporateCategorySelect";
+import { countWords, SERVICE_NAME_MAX_WORDS } from "../utils/landingUtils";
 
 function hasValidLocationCoords(lat, lng) {
   const latN = parseFloat(lat);
@@ -213,7 +214,12 @@ const ProviderForm = ({
       serviceCategoryId: Yup.string().required("Service category is required"),
       serviceSubCategoryName: Yup.string()
         .trim()
-        .required("Service Name is required"),
+        .required("Service Name is required")
+        .test(
+          "max-words",
+          `Keep the service name to ${SERVICE_NAME_MAX_WORDS} words or fewer — put the details in the description`,
+          (v) => countWords(v) <= SERVICE_NAME_MAX_WORDS
+        ),
       price: Yup.number()
         .required("Price is required")
         .positive("Price must be positive"),
@@ -1594,6 +1600,15 @@ const ProviderForm = ({
                       type="text"
                       placeholder="Name"
                     />
+                    <Form.Text
+                      className={`d-block text-end fw-semibold ${
+                        countWords(values.serviceSubCategoryName) > SERVICE_NAME_MAX_WORDS
+                          ? "text-danger"
+                          : "text-muted"
+                      }`}
+                    >
+                      {countWords(values.serviceSubCategoryName)} / {SERVICE_NAME_MAX_WORDS} words
+                    </Form.Text>
                     <ErrorMessage
                       name="serviceSubCategoryName"
                       component="div"

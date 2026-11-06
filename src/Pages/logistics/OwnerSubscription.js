@@ -6,6 +6,7 @@ import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import LogisticsReasonModal from "../../CommanComponents/LogisticsReasonModal";
 import LogisticsPlanUnitsModal from "../../CommanComponents/LogisticsPlanUnitsModal";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
+import LogisticsWhatsappExtras, { WHATSAPP_PACK_TEXT } from "../../CommanComponents/LogisticsWhatsappExtras";
 import "./logistics.css";
 import {
   LogisticsStatsSkeleton,
@@ -154,13 +155,19 @@ export default function LogisticsOwnerSubscription() {
   const lowestPlan = plans[0];
   const unlimitedNow =
     sub && ["vehicles", "cabs", "equipment"].every((k) => sub.plan.limits?.[k] == null);
-  const endsIn = daysLeft(sub?.expires_at);
+  const expiresAt = sub?.expires_at || sub?.plan?.expires_at || null;
+  const endsIn = daysLeft(expiresAt);
   const pricedCurrent = Number(sub?.plan?.price?.amount) > 0;
+  // The Free plan's free period: Paid benefits, still called Free
+  const freePeriod = sub?.free_trial || null;
+  const inFreePeriod = Boolean(freePeriod?.active && sub?.plan?.free_period);
+  const freeLimits = lowestPlan?.limits || {};
 
   // Usage row click → that row's units (or operator seats) in the picker
   const openUsageRow = (r) =>
     setUnitsModal({
-      planId: current,
+      // In the free period the current limits are the Paid ones, not plain Free's
+      planId: inFreePeriod ? null : current,
       mode: "manage",
       focus: r.k,
       title: r.k === "operators" ? "Operator seats" : `Choose active ${r.label.toLowerCase()}`,
@@ -209,10 +216,26 @@ export default function LogisticsOwnerSubscription() {
                 <small>Your current plan</small>
                 <h2>{sub.plan.name}</h2>
                 <p>{planSummary(sub.plan, withCabs)}</p>
-                {sub.expires_at ? (
-                  <p className={`log-sub-expiry${endsIn <= 3 ? " is-soon" : ""}`}>
+                {inFreePeriod ? (
+                  <p className={`log-sub-expiry${freePeriod.days_left <= 14 ? " is-soon" : ""}`} data-testid="free-period-status">
+                    All Paid benefits are free for {freePeriod.days_left} more day{freePeriod.days_left === 1 ? "" : "s"}, until{" "}
+                    {new Date(freePeriod.ends_at).toLocaleDateString()}. After that you stay on Free with its normal limits, and units above them are disabled.
+                  </p>
+                ) : current === lowestPlan?.id && freePeriod?.status === "not_started" ? (
+                  <p className="log-sub-expiry" data-testid="free-period-status">
+                    All Paid benefits are free for {freePeriod.days} days, starting the day Simba approves your company.
+                  </p>
+                ) : current === lowestPlan?.id && freePeriod?.status === "ended" ? (
+                  <p className="log-sub-expiry" data-testid="free-period-status">
+                    Your {freePeriod.days}-day free period has ended. WhatsApp essentials stay free.
+                  </p>
+                ) : (
+                  <LogisticsWhatsappExtras whatsapp={sub.whatsapp} upgradeLink={false} />
+                )}
+                {expiresAt ? (
+                  <p className={`log-sub-expiry${endsIn <= 3 ? " is-soon" : ""}`} data-testid="plan-expiry">
                     {endsIn > 0
-                      ? `Ends on ${new Date(sub.expires_at).toLocaleDateString()} (${endsIn} day${endsIn === 1 ? "" : "s"} left).`
+                      ? `Ends on ${new Date(expiresAt).toLocaleDateString()} (${endsIn} day${endsIn === 1 ? "" : "s"} left).`
                       : "Ends today."}{" "}
                     When it ends you move to {lowestPlan?.name || "Free"} and units above its limits are disabled.
                     {pricedCurrent ? (
@@ -253,7 +276,7 @@ export default function LogisticsOwnerSubscription() {
                       Choose active units
                     </button>
                   </div>
-                ) : unlimitedNow && lowestPlan && lowestPlan.id !== current ? (
+                ) : unlimitedNow && lowestPlan && (lowestPlan.id !== current || inFreePeriod) ? (
                   <button
                     type="button"
                     className="log-sub-keep-link"
@@ -261,13 +284,13 @@ export default function LogisticsOwnerSubscription() {
                       setUnitsModal({
                         planId: lowestPlan.id,
                         mode: "manage",
-                        title: "If your plan ends…",
+                        title: inFreePeriod ? "When your free period ends…" : "If your plan ends…",
                         message: `Pick which units stay active if you move to ${lowestPlan.name}. Unpicked slots use best rating → most jobs → first added.`,
                         confirmLabel: "Save my choice",
                       })
                     }
                   >
-                    Choose which units stay active if your plan ends →
+                    {inFreePeriod ? "Choose which units stay active when your free period ends →" : "Choose which units stay active if your plan ends →"}
                   </button>
                 ) : !unlimitedNow ? (
                   <button
@@ -322,8 +345,12 @@ export default function LogisticsOwnerSubscription() {
             </section>
 
             <section className="log-sub-plans" aria-label="Plans">
-              {shownPlans.map((p) => {
-                const isCurrent = p.id === current;
+              {shownPlans.map((listed) => {
+                const isCurrent = listed.id === current;
+                // In the free period the Free card shows what the owner has right now
+                const p = isCurrent && inFreePeriod ? { ...listed, ...sub.plan } : listed;
+                const afterFree = (k) =>
+                  p.free_period ? <small className="log-sub-plan__after"> ({limitText(freeLimits[k])} after free period)</small> : null;
                 return (
                   <article key={p.id} className={`log-sub-plan log-sub-plan--${p.id}${isCurrent ? " is-current" : ""}`}>
                     {p.id === shownPlans[shownPlans.length - 1]?.id && shownPlans.length > 1 ? (
@@ -332,30 +359,28 @@ export default function LogisticsOwnerSubscription() {
                     <header>
                       <h3>{p.name}</h3>
                       <p className="log-sub-plan__price">
-                        <b>
-                          {p.price.currency} {p.price.amount}
-                        </b>
-                        <span> / {p.price.interval}</span>
+                        <b>{`${p.price?.currency || ""} ${p.price?.amount ?? ""}`}</b>
+                        <span> / {p.price?.interval}</span>
                       </p>
                     </header>
                     <ul className="log-sub-plan__limits">
                       <li>
                         <span>Operators</span>
-                        <b>{limitText(p.limits.operators)}</b>
+                        <b>{limitText(p.limits?.operators)}{afterFree("operators")}</b>
                       </li>
                       <li>
                         <span>Logistic trucks</span>
-                        <b>{limitText(p.limits.vehicles)}</b>
+                        <b>{limitText(p.limits?.vehicles)}{afterFree("vehicles")}</b>
                       </li>
                       {withCabs ? (
                         <li>
                           <span>Cabs</span>
-                          <b>{limitText(p.limits.cabs)}</b>
+                          <b>{limitText(p.limits?.cabs)}{afterFree("cabs")}</b>
                         </li>
                       ) : null}
                       <li>
                         <span>Non-logistic equipment</span>
-                        <b>{limitText(p.limits.equipment)}</b>
+                        <b>{limitText(p.limits?.equipment)}{afterFree("equipment")}</b>
                       </li>
                       <li>
                         <span>Hub “Top logistics providers”</span>
@@ -366,12 +391,12 @@ export default function LogisticsOwnerSubscription() {
                         {p.whatsapp_notifications ? (
                           <b className="log-sub-plan__yes" aria-label="Included">✓</b>
                         ) : (
-                          <b className="log-sub-plan__no" aria-label="Not included">✗</b>
+                          <b className="log-sub-plan__no" aria-label="Essentials">Essentials</b>
                         )}
                       </li>
                     </ul>
                     <ul className="log-sub-plan__features">
-                      {p.features.map((f) => (
+                      {(p.features || []).map((f) => (
                         <li key={f}>{f}</li>
                       ))}
                     </ul>
@@ -384,6 +409,7 @@ export default function LogisticsOwnerSubscription() {
                           (p.rank ?? 0) > currentRank ? "logistics-cta--primary" : "logistics-cta--ghost"
                         }`}
                         disabled={switching}
+                        data-testid={`plan-choose-${p.id}`}
                         onClick={() => pickPlan(p)}
                       >
                         {(p.rank ?? 0) > currentRank ? `Upgrade to ${p.name}` : `Switch to ${p.name}`}
@@ -424,7 +450,7 @@ export default function LogisticsOwnerSubscription() {
                     <h3>Paid plans</h3>
                     <p>
                       You're currently on the {lowestPlan?.name || "Free"} plan. Paid plans will be available soon,
-                      with additional features and higher limits. No action is required at this time.
+                      with additional features and higher limits. No action is required at this time. WhatsApp: {WHATSAPP_PACK_TEXT.toLowerCase()}.
                     </p>
                   </div>
                 </article>

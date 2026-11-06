@@ -9,6 +9,7 @@ import LogisticsFleetMap, {
 } from "../../CommanComponents/LogisticsFleetMap";
 import { toast } from "react-toastify";
 import { logisticsSupplyNeedsSubscription } from "../../utils/chatAccess";
+import { unitStatusChip } from "../../utils/ownerUnitStatus";
 import { getActiveModule } from "../../utils/Roles";
 import {
   messagesPath,
@@ -19,6 +20,7 @@ import {
   LogisticsStatsSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
 import { OwnerDocAlertsCard } from "../../CommanComponents/LogisticsDocAlerts";
+import LogisticsOwnerOnboarding from "../../CommanComponents/LogisticsOwnerOnboarding";
 
 function placeShort(address) {
   if (!address) return "—";
@@ -49,6 +51,7 @@ export default function LogisticsOwnerDashboard() {
     load();
   }, [load]);
 
+
   // SOS raised / updated → refresh so the red banner shows right away
   useEffect(() => {
     const onEvt = (e) => {
@@ -68,14 +71,8 @@ export default function LogisticsOwnerDashboard() {
   // Server already limits Now jobs to those within range of the owner's trucks
   const localJobCount = jobs.filter(isLocalNowJob).length;
 
-  const statusLabel = (state) => {
-    const s = String(state || "offline");
-    if (s === "available_now") return "Available now";
-    if (s === "returning_empty") return "Return empty";
-    if (s === "scheduled" || s === "available_tomorrow") return "Available tomorrow";
-    if (s === "on_job") return "On job";
-    return "Offline";
-  };
+  // doc 12 · L36: what customers see (no operator / documents → Not bookable)
+  const statusLabel = (v) => unitStatusChip(v).label;
 
   const messageOperator = async (operatorId) => {
     if (!operatorId) return;
@@ -86,11 +83,12 @@ export default function LogisticsOwnerDashboard() {
       if (
         logisticsSupplyNeedsSubscription({
           role: user.role ?? role,
-          isSubscribed: user.isSubscribed,
+          // Item 4: open during the free period too
+          isSubscribed: user.isSubscribed || user.whatsapp?.extras_active,
           activeModule: getActiveModule(),
         })
       ) {
-        toast.info("An active fleet subscription is required to message operators");
+        toast.info("Messaging operators needs the free period or the Paid plan");
         return;
       }
     } catch {
@@ -115,6 +113,7 @@ export default function LogisticsOwnerDashboard() {
       midCrumb={{ to: "/logistics/owner", label: "Owner" }}
       homeTo="/logistics/owner"
     >
+      <LogisticsOwnerOnboarding />
       {loading && !dash ? (
         <LogisticsStatsSkeleton label="Loading dashboard" />
       ) : (
@@ -238,7 +237,7 @@ export default function LogisticsOwnerDashboard() {
                       <div>
                         <b>{v.name}</b>
                         <p>
-                          {statusLabel(v.availability)}
+                          {statusLabel(v)}
                           {opName ? ` · Operator ${opName}` : " · No operator"}
                           {` · ${gpsLabel}`}
                         </p>

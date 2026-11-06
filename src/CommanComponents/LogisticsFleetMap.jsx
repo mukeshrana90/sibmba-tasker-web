@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { loadLeaflet } from "../utils/loadLeaflet";
+import { unitMapTone } from "../utils/ownerUnitStatus";
 
 /**
  * Map vehicle pin tone from availability:
@@ -19,6 +20,11 @@ export function vehicleMapPinTone(availability) {
     return "available";
   }
   return "offline";
+}
+
+/** Owner fleet pins: customer-facing status when the API sends it (doc 12 · L36). */
+function fleetVehicleTone(v) {
+  return unitMapTone(v) || vehicleMapPinTone(v.availability);
 }
 
 /** Teardrop truck pin — only the pin body colour changes (red / yellow / green). */
@@ -189,7 +195,7 @@ function buildPoints(vehicles, jobs, showVehicles, showJobs, showLocalJobs, jobH
           const pinKind =
             v.live_location?.pin_kind || v.live_location?.source || "";
           const op = v.live_location?.operator_name;
-          const tone = vehicleMapPinTone(v.availability);
+          const tone = fleetVehicleTone(v);
           let sub = "Vehicle";
           if (pinKind === "live" || pinKind === "operator") {
             sub = op ? `Live · Operator: ${op}` : "Live GPS";
@@ -251,7 +257,7 @@ export function fleetMapDataKey(vehicles, jobs, showVehicles, showJobs, showLoca
         x.live_location?.lat,
         x.live_location?.lng,
         x.name || "",
-        vehicleMapPinTone(x.availability),
+        fleetVehicleTone(x),
       ])
     : [];
   const j = showJobs || showLocalJobs

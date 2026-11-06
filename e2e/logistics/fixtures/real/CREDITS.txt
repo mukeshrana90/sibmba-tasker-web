@@ -1,0 +1,14 @@
+Vehicle photos: Wikimedia Commons (resized, EXIF removed)
+  al-tipper-1/2   "Ashok Leyland U truck - Chennai - India", "Ashok Leyland U truck" — CC BY-SA 2.0
+  bharatbenz-1/2  "BHARATBENZ Heavy Duty Truck 3128 C front", "BharatBenz 3143 Mining truck" (Spielvogel) — CC0
+  al-truck-1      "Ashok Leyland Truck (5478313829)" — CC BY-SA 2.0
+  tata-ace-1      "Tata Ace Mini Truck (1)" — CC BY-SA 4.0
+  swaraj-1        "Swaraj 735 FE" — CC BY 2.0
+  tractor-field-1 "Field ploughing by tractor" — CC BY-SA 3.0
+  jcb-1/2         "JCB - Backhoe loader", "JCB- Backhoe loader-2" — CC BY-SA 2.0
+  taxi-1/2        "AC Taxi (25 February 2024)" — CC BY 4.0 (taxi-2 is a crop)
+Operator faces (face-1..6, zw-face-7..8): AI-generated (this-person-does-not-exist.com) — not real people. Older Indian set in india-faces/.
+Documents (generated at run time into fixtures/gen/real): fictional, marked SPECIMEN · TEST DATA.
+  cement-bags     Wikimedia Commons — CC BY-SA 4.0
+  pallets         Wikimedia Commons — CC0
+HEIC/HEIF set in heic/ — see heic/README.txt. transport-permit.docx — generated, fictional.

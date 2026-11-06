@@ -1,4 +1,9 @@
 import { getFirebaseTokenWithMeta } from "./fireBaseConfig";
+import { withTimeout } from "./popupSignIn";
+
+// The browser's "Allow notifications" prompt never settles while it is ignored,
+// so login / sign-up / Google / Apple must not wait on it forever.
+export const DEVICE_TOKEN_TIMEOUT_MS = 4000;
 
 const FALLBACK_KEY = "web_device_token_fallback";
 
@@ -31,14 +36,18 @@ export function ensureWebFallbackDeviceToken() {
 export async function resolveWebDeviceTokenDetailed(fcmTokenState) {
   const tryFresh = async () => {
     try {
-      return await getFirebaseTokenWithMeta();
+      return await withTimeout(getFirebaseTokenWithMeta(), DEVICE_TOKEN_TIMEOUT_MS, {
+        token: "",
+        reason: "device_token_timeout",
+      });
     } catch (error) {
       return { token: "", reason: error?.message || "resolve_threw" };
     }
   };
 
   let meta = await tryFresh();
-  if (!normalizeWebDeviceToken(meta.token)) {
+  // Retry once for a slow service worker — not after a timeout (prompt still open)
+  if (!normalizeWebDeviceToken(meta.token) && meta.reason !== "device_token_timeout") {
     await new Promise((r) => setTimeout(r, 350));
     meta = await tryFresh();
   }

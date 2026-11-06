@@ -7,7 +7,11 @@ import CorporatePageShell from "../CommanComponents/CorporatePageShell";
 import ServiceActions from "../Redux/Actions/ServiceActions";
 import { timeSchedule } from "../utils/rawjson";
 import { useQuery } from "../utils/CommonFunction";
-import { serviceImageUrl } from "../utils/landingUtils";
+import {
+  countWords,
+  SERVICE_NAME_MAX_WORDS,
+  serviceImageUrl,
+} from "../utils/landingUtils";
 import { normalizeMongoId } from "../utils/normalizeMongoId";
 import {
   getCachedProviderHasService,
@@ -191,6 +195,8 @@ export default function AddService() {
     }
     if (!values.serviceSubCategoryName) {
       errors.serviceSubCategoryName = "Service name is required";
+    } else if (countWords(values.serviceSubCategoryName) > SERVICE_NAME_MAX_WORDS) {
+      errors.serviceSubCategoryName = `Keep the service name to ${SERVICE_NAME_MAX_WORDS} words or fewer — put the details in the description`;
     }
     if (!values.price || values.price <= 0) {
       errors.price = "Price is required and must be positive";
@@ -376,6 +382,13 @@ export default function AddService() {
                     className="control"
                     placeholder="e.g. Emergency plumbing"
                   />
+                  <span
+                    className={`field-hint sp-word-count${
+                      countWords(values.serviceSubCategoryName) > SERVICE_NAME_MAX_WORDS ? " is-over" : ""
+                    }`}
+                  >
+                    {countWords(values.serviceSubCategoryName)} / {SERVICE_NAME_MAX_WORDS} words
+                  </span>
                   <FieldError name="serviceSubCategoryName" />
                 </div>
 

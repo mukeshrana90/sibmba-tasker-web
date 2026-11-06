@@ -44,8 +44,12 @@ export function OwnerDocAlertsCard({ alerts }) {
             <Link
               to={
                 d.subject === "unit"
-                  ? `/logistics/owner/fleet/${d.asset_id}`
-                  : "/logistics/owner/operators"
+                  ? `/logistics/owner/fleet/${d.asset_id}${d.type ? `?doc=${encodeURIComponent(d.type)}` : ""}`
+                  : `/logistics/owner/operators${
+                      d.operator_id
+                        ? `?operator=${d.operator_id}${d.type ? `&doc=${encodeURIComponent(d.type)}` : ""}`
+                        : ""
+                    }`
               }
             >
               {d.status === "expired" || d.status === "no_expiry" || d.status === "required" ? "Update" : "View"}

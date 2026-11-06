@@ -61,17 +61,18 @@ export function tomorrowYmd(now = Date.now()) {
 }
 
 /**
- * v2.7.49 client rules — which documents block work:
- *  - road units (truck / cab): Road licence (ZINARA) required; roadworthy too on red-plate vehicles
- *  - equipment: none
- *  - operators: driving / plant licence (medical fitness is optional)
- * Every other document is supporting only.
+ * v2.7.61 client rules — only compulsory documents block work:
+ *  - trucks: Road licence (ZINARA) + roadworthy certificate
+ *  - equipment: at least one verified document of any type
+ *  - operators and self-operating owners: driving / plant licence
+ * A rejected, pending or expired optional document only warns the owner.
  */
 export const OPERATOR_BLOCKING_TYPES = ["licence"];
 
 export function assetBlockingTypes(kind, redPlate) {
   if (kind === "equipment" || kind === "plant") return [];
-  return ["rego", ...(redPlate ? ["roadworthy"] : [])];
+  if (kind === "cab") return ["rego", ...(redPlate ? ["roadworthy"] : [])];
+  return ["rego", "roadworthy"];
 }
 
 /** Short role of a document under the rules above (shown next to its label). */
@@ -82,10 +83,16 @@ export function docRuleHint(type, { kind = "vehicle", redPlate = false, operator
     return "Supporting document";
   }
   if (assetBlockingTypes(kind, redPlate).includes(type)) {
-    return type === "rego" ? "Required to take work" : "Required for red-plate vehicles";
+    return "Required to take work";
   }
-  if (type === "roadworthy") return "Needed for red-plate vehicles";
-  return "Supporting document";
+  if (kind === "equipment" || kind === "plant") return "At least one verified document is required";
+  return "Optional — supporting document";
+}
+
+/** Item 18: a document on file that has to be replaced (rejected or past its expiry). */
+export function docNeedsReplace(doc) {
+  if (!doc) return false;
+  return doc.review?.status === "rejected" || docExpiryStatus(doc.expires).status === "expired";
 }
 
 /** Chip for the Simba document check (review), or null when not checked yet / old upload. */

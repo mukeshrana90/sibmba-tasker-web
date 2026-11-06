@@ -25,6 +25,7 @@ const NAV_ANCHORS = [
   { label: "Providers", href: "/#providers" },
   { label: "How it works", href: "/#how" },
   { label: "Why us", href: "/#about" },
+  { label: "Corporates", href: "/corporate-list" },
 ];
 
 export default function LandingGuestHeader() {
@@ -34,6 +35,10 @@ export default function LandingGuestHeader() {
   const signInPath = location.pathname.startsWith("/logistics")
     ? guestLoginPath(`${location.pathname}${location.search}`)
     : "/login";
+  // These two pages have the Services | Logistics cards in the hero instead
+  const heroHasSwitch = ["/", "/logistics"].includes(location.pathname.replace(/(.)\/$/, "$1"));
+  // In Logistics, Post a Task opens the logistics job form
+  const postTaskPath = location.pathname.startsWith("/logistics") ? "/logistics/post" : "/post-task";
   const [joinOpen, setJoinOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const joinRef = useRef(null);
@@ -103,21 +108,24 @@ export default function LandingGuestHeader() {
           <img src={require("../../Assets/Images/dark-logo.png")} alt="Simba Tasker" />
         </Link>
 
-        <ModuleSwitcher
-          className="landing-nav__module"
-          taskerLabel="Services"
-          logisticsLabel="Logistics"
-        />
+        {heroHasSwitch ? null : (
+          <ModuleSwitcher
+            className="landing-nav__module"
+            taskerLabel="Services"
+            logisticsLabel="Logistics"
+          />
+        )}
 
         <nav className="landing-nav__links">
           <a href="/#categories">Categories</a>
           <a href="/#providers">Providers</a>
           <a href="/#how">How it works</a>
           <a href="/#about">Why us</a>
+          <Link to="/corporate-list" data-testid="nav-corporates">Corporates</Link>
         </nav>
 
         <div className="landing-nav__cta">
-          <Link to="/post-task" className="landing-nav__post-task">
+          <Link to={postTaskPath} className="landing-nav__post-task">
             Post a Task
           </Link>
           <button
@@ -265,7 +273,7 @@ export default function LandingGuestHeader() {
 
           <div className="landing-nav-mobile__actions">
             <Link
-              to="/post-task"
+              to={postTaskPath}
               className="landing-nav__post-task landing-nav-mobile__post-task"
               onClick={() => setMobileOpen(false)}
             >

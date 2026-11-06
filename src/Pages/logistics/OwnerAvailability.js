@@ -4,36 +4,18 @@ import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
+import { ADD_LOCKED_TITLE, useAddLocked } from "../../CommanComponents/LogisticsAddLock";
 import LogisticsLocationField from "../../CommanComponents/LogisticsLocationField";
 import "./logistics.css";
 import {
   LogisticsGridSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
-import { notBookableReason } from "../../utils/ownerUnitStatus";
+import { UNIT_STATUS_FILTERS, ownerStatusControl, unitStatusChip, unitStatusKey } from "../../utils/ownerUnitStatus";
+import { apiErrorMessage, isApiFailure } from "../../utils/ownerOperator";
+import { refreshLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
+import { OwnerOperatorCard, UnitOperateControl, useOwnerOperator } from "../../CommanComponents/LogisticsOwnerOperator";
 
 const PAGE_SIZE = 10;
-
-const AVAIL_LABEL = {
-  available_now: "Available",
-  returning_empty: "Returning empty",
-  scheduled: "Scheduled",
-  on_job: "On job",
-  offline: "Offline",
-};
-
-const AVAIL_TONE = {
-  available_now: "active",
-  returning_empty: "pending",
-  scheduled: "active",
-  on_job: "progress",
-  offline: "closed",
-};
-
-const STATE_OPTIONS = [
-  { value: "available_now", label: "Available now" },
-  { value: "returning_empty", label: "Returning empty" },
-  { value: "offline", label: "Offline" },
-];
 
 function capabilityLine(asset) {
   const caps = (asset.capabilities || []).filter(Boolean);
@@ -105,7 +87,10 @@ function gpsHint(asset) {
  * Status + map pin (for when operator only has phone / no data).
  */
 export default function OwnerAvailability() {
+  // 29 Oct 2026: no new units until Simba approves the company
+  const addLocked = useAddLocked();
   const dispatch = useDispatch();
+  const ownerOp = useOwnerOperator();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -115,8 +100,8 @@ export default function OwnerAvailability() {
   const [savingId, setSavingId] = useState("");
   const [draftLoc, setDraftLoc] = useState({});
 
-  const load = async () => {
-    setLoading(true);
+  const load = async ({ soft = false } = {}) => {
+    if (!soft) setLoading(true);
     try {
       // Trucks + cabs: unit status and base pin (operators go live themselves)
       const res = await dispatch(LogisticsActions.listAssets({}));
@@ -133,7 +118,7 @@ export default function OwnerAvailability() {
       });
       setDraftLoc(next);
     } finally {
-      setLoading(false);
+      if (!soft) setLoading(false);
     }
   };
 
@@ -157,8 +142,7 @@ export default function OwnerAvailability() {
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return assets.filter((a) => {
-      const st = a.availability?.state || "offline";
-      if (status !== "all" && st !== status) return false;
+      if (status !== "all" && unitStatusKey(a) !== status) return false;
       if (operator !== "all") {
         const ids = (a.assigned_operators || []).map((o) => String(o._id));
         if (!ids.includes(operator)) return false;
@@ -192,20 +176,30 @@ export default function OwnerAvailability() {
     pageSafe * PAGE_SIZE
   );
 
-  const setStatusFor = async (assetId, state) => {
-    setSavingId(assetId);
+  const setStatusFor = async (asset, control, state) => {
+    if (state === control.value) return;
+    setSavingId(asset._id);
     try {
-      const res = await dispatch(
-        LogisticsActions.patchAssetAvailability({ id: assetId, state })
-      );
+      let res;
+      if (control.holder === "owner") {
+        // The owner's own unit: status follows the owner's live state
+        res = await dispatch(
+          state === "offline"
+            ? LogisticsActions.releaseSelf(asset._id)
+            : LogisticsActions.operateSelf({ id: asset._id, state })
+        );
+      } else {
+        res = await dispatch(LogisticsActions.patchAssetAvailability({ id: asset._id, state }));
+      }
       // The API answers 200 with success:false for refusals (e.g. no
       // operator live on the unit) — treat that as an error too
-      if (res?.meta?.requestStatus === "rejected" || res?.payload?.success === false) {
-        toast.error(res?.payload?.message || "Could not update status");
+      if (isApiFailure(res)) {
+        toast.error(apiErrorMessage(res?.payload, "Could not update status"), { autoClose: 8000 });
         return;
       }
       toast.success("Vehicle status updated");
-      await load();
+      if (control.holder === "owner") await refreshLogisticsAccount();
+      await load({ soft: true });
     } finally {
       setSavingId("");
     }
@@ -223,23 +217,19 @@ export default function OwnerAvailability() {
       toast.error("Pick a location on the map first");
       return;
     }
-    const state = asset.availability?.state || "offline";
-    const safeState = STATE_OPTIONS.some((o) => o.value === state)
-      ? state
-      : "offline";
     setSavingId(asset._id);
     try {
       const res = await dispatch(
         LogisticsActions.patchAssetAvailability({
+          // Item 6: the pin only — never resend the stored status with it
           id: asset._id,
-          state: safeState,
           lat: Number(coords[1]),
           lng: Number(coords[0]),
           location_label: String(draft.address || "").trim() || "Owner-set location",
         })
       );
-      if (res?.meta?.requestStatus === "rejected") {
-        toast.error(res?.payload?.message || "Could not save location");
+      if (isApiFailure(res)) {
+        toast.error(apiErrorMessage(res?.payload, "Could not save location"));
         return;
       }
       toast.success("Location saved — truck can get nearby jobs from this pin");
@@ -264,6 +254,7 @@ export default function OwnerAvailability() {
       homeTo="/logistics/owner"
     >
       <div className="log-owner-avail">
+        <OwnerOperatorCard />
         {/* <p className="log-op-lead">
           Logistic trucks only — set status here. If an operator only has phone
           (no data), get their area by call and{" "}
@@ -286,11 +277,11 @@ export default function OwnerAvailability() {
             <span className="log-fl">Status</span>
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="all">All</option>
-              <option value="available_now">Available</option>
-              <option value="returning_empty">Returning empty</option>
-              <option value="on_job">On job</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="offline">Offline</option>
+              {UNIT_STATUS_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
             </select>
           </label>
           <label>
@@ -315,12 +306,18 @@ export default function OwnerAvailability() {
             >
               Reset
             </button>
-            <Link
-              className="logistics-cta logistics-cta--primary"
-              to="/logistics/owner/fleet/add"
-            >
-              Add vehicle
-            </Link>
+            {addLocked ? (
+              <button type="button" className="logistics-cta logistics-cta--primary is-locked" disabled title={ADD_LOCKED_TITLE}>
+                Add vehicle
+              </button>
+            ) : (
+              <Link
+                className="logistics-cta logistics-cta--primary"
+                to="/logistics/owner/fleet/add"
+              >
+                Add vehicle
+              </Link>
+            )}
           </div>
         </div>
 
@@ -341,7 +338,10 @@ export default function OwnerAvailability() {
                 </thead>
                 <tbody>
                   {pageRows.map((asset) => {
-                    const state = asset.availability?.state || "offline";
+                    const control = ownerStatusControl(asset, {
+                      ownerActiveAssetId: ownerOp?.active_asset_id,
+                    });
+                    const chip = unitStatusChip(asset);
                     const ops = operatorNames(asset).join(", ");
                     const draft = draftLoc[asset._id] || {
                       address: "",
@@ -356,36 +356,28 @@ export default function OwnerAvailability() {
                         </td>
                         <td>{ops || "—"}</td>
                         <td>
-                          <span
-                            className={`log-chip log-chip--${
-                              AVAIL_TONE[state] || "closed"
-                            }`}
-                          >
-                            {AVAIL_LABEL[state] || state}
+                          <span className={`log-chip log-chip--${chip.tone}`}>
+                            {chip.label}
                           </span>
-                          {notBookableReason(asset) ? (
-                            <span className="log-unit-notbookable">{notBookableReason(asset)}</span>
-                          ) : null}
                           <label className="log-owner-avail__status">
                             <span className="visually-hidden">Set status</span>
                             <select
-                              value={
-                                STATE_OPTIONS.some((o) => o.value === state)
-                                  ? state
-                                  : "offline"
-                              }
-                              disabled={busy}
+                              data-testid="unit-status-select"
+                              value={control.value}
+                              disabled={busy || control.disabled}
                               onChange={(e) =>
-                                setStatusFor(asset._id, e.target.value)
+                                setStatusFor(asset, control, e.target.value)
                               }
                             >
-                              {STATE_OPTIONS.map((o) => (
+                              {control.options.map((o) => (
                                 <option key={o.value} value={o.value}>
                                   {o.label}
                                 </option>
                               ))}
                             </select>
                           </label>
+                          {control.hint ? <div className="log-hint">{control.hint}</div> : null}
+                          <UnitOperateControl asset={asset} onChanged={() => load({ soft: true })} />
                         </td>
                         <td>
                           <div className="log-hint">{gpsHint(asset)}</div>

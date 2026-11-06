@@ -79,6 +79,7 @@ import LogisticsSupplyPlaceholder from "../Pages/logistics/SupplyPlaceholder";
 import LogisticsSupport from "../Pages/logistics/LogisticsSupport";
 import OwnerAvailability from "../Pages/logistics/OwnerAvailability";
 import OwnerEquipment from "../Pages/logistics/OwnerEquipment";
+import OwnerVerification from "../Pages/logistics/OwnerVerification";
 import LogisticsQuotesList from "../Pages/logistics/QuotesList";
 import MultiTransitMode from "../Pages/logistics/MultiTransitMode";
 import {
@@ -226,10 +227,11 @@ const RoutesPage = () => {
             <Route index element={<LogisticsHubHome />} />
             <Route path="search" element={<LogisticsSearch />} />
             <Route path="asset/:id" element={<LogisticsAssetDetail />} />
+            {/* Guests fill in the job, then sign in to send it */}
+            <Route path="post" element={<LogisticsPostJob />} />
           </Route>
 
           <Route path="/logistics" element={<PrivateLogisticsHub />}>
-            <Route path="post" element={<LogisticsPostJob />} />
             <Route path="jobs" element={<LogisticsMyJobs />} />
             <Route path="jobs/:id" element={<LogisticsJobDetail />} />
             <Route path="jobs/:id/quotes" element={<LogisticsJobDetail />} />
@@ -253,6 +255,7 @@ const RoutesPage = () => {
             <Route path="jobs" element={<LogisticsOwnerMyJobs />} />
             <Route path="earnings" element={<LogisticsOwnerEarnings />} />
             <Route path="equipment" element={<OwnerEquipment />} />
+            <Route path="verification" element={<OwnerVerification />} />
             <Route path="availability" element={<OwnerAvailability />} />
             <Route path="analytics" element={<LogisticsOwnerAnalytics />} />
             <Route path="reports" element={<OwnerReports />} />
@@ -300,6 +303,13 @@ const RoutesPage = () => {
             />
           </Route>
 
+          {/* Item 52: guests browse corporates; Chat, Call and Buy ask for login */}
+          <Route path="/corporate-list" element={<CorporateListSection />} />
+          <Route path="/corporate-category-detail/:categoryId" element={<CorporateCategoryDetail />} />
+          <Route path="/get-corporate/:id" element={<SuggestedCorporatePage />} />
+          <Route path="/product-detail/:id" element={<CorporateProductDetailPage />} />
+          <Route path="/product-details/:id" element={<ProductDetail />} />
+
           {/* Private Routes */}
           <Route element={<PrivateRoute />}>
             {/* User Routes */}
@@ -326,14 +336,6 @@ const RoutesPage = () => {
               path="/customer-category-detail"
               element={<CustomerCategoryDetail />}
             />
-            <Route
-              path="/corporate-category-detail/:categoryId"
-              element={<CorporateCategoryDetail />}
-            />
-             <Route
-              path="/product-details/:id"
-              element={<ProductDetail/>}
-            />
             <Route path="/service-details/:id" element={<ServiceDetails />} />
 
             <Route path="/service-detail" element={<ServiceDetail />} />
@@ -350,9 +352,6 @@ const RoutesPage = () => {
               path="/quotations-detail/:id"
               element={<QuotationsDetail />}
             />
-            <Route path="/get-corporate/:id" element={<SuggestedCorporatePage/>} />
-            <Route path="/corporate-list" element={<CorporateListSection/>} />
-            <Route path="/product-detail/:id" element={<CorporateProductDetailPage/>} />
             
             <Route path="/messages" element={<Messages />} />
             <Route path="/community" element={<Community />} />

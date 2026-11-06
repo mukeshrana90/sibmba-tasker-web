@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import Api from "../Services/api";
+import LogisticsWhatsappExtras, { WHATSAPP_PACK_TEXT } from "./LogisticsWhatsappExtras";
 
 /**
  * Profile → "WhatsApp notifications" (v2.7.50). On by default; off → job alerts,
  * document reminders and account notices come in-app / push / email (and SMS
- * where a flow already sends one) — never WhatsApp. Fleet owners and operators
- * get WhatsApp only on a paid fleet plan (`/me` notifications.whatsapp_available).
+ * where a flow already sends one) — never WhatsApp. v2.7.61: essentials stay free,
+ * the full pack is free for 60 days from sign-up, then on the Paid plan.
  */
 export default function LogisticsWhatsappNotifyCard() {
   const [prefs, setPrefs] = useState(null);
+  const [whatsapp, setWhatsapp] = useState(null);
   const [saving, setSaving] = useState(false);
   const role = localStorage.getItem("role");
   const isOwner = role === "4" && !localStorage.getItem("owner_id");
@@ -22,6 +24,7 @@ export default function LogisticsWhatsappNotifyCard() {
       .then((r) => {
         const n = r?.data?.data?.user?.notifications;
         if (live && n) setPrefs(n);
+        if (live) setWhatsapp(r?.data?.data?.user?.whatsapp || null);
       })
       .catch(() => {});
     return () => {
@@ -55,18 +58,19 @@ export default function LogisticsWhatsappNotifyCard() {
         <p className="mb-0">
           {available ? (
             prefs.whatsapp ? (
-              "Job updates, codes and reminders also come on WhatsApp. Turn off to get them only in the app, by push and email."
+              `Job updates, codes and reminders also come on WhatsApp. ${WHATSAPP_PACK_TEXT}. Turn off to get them only in the app, by push and email.`
             ) : (
               "Off — you get job updates in the app, by push and email (and SMS where needed), not on WhatsApp."
             )
           ) : (
             <>
-              WhatsApp notifications are on paid fleet plans. On the Free plan you and your operators get updates in the app, by push and
-              email.{" "}
-              {isOwner ? <Link to="/logistics/owner/subscription">See plans</Link> : "Ask your fleet owner about a paid plan."}
+              {WHATSAPP_PACK_TEXT}. After that, the full pack needs the Paid plan; essentials still come on WhatsApp, and
+              everything else comes in the app, by push and email.{" "}
+              {isOwner ? <Link to="/logistics/owner/subscription">See plans</Link> : "Ask your fleet owner about the Paid plan."}
             </>
           )}
         </p>
+        <LogisticsWhatsappExtras whatsapp={whatsapp} upgradeLink={isOwner} />
       </div>
       {/* Own switch (not a checkbox): the site-wide input[type=checkbox] styles draw a tick into Bootstrap switches */}
       <div className="log-switch-wrap">

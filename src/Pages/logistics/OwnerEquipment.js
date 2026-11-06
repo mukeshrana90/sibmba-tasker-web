@@ -3,29 +3,20 @@ import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
+import { ADD_LOCKED_TITLE, useAddLocked } from "../../CommanComponents/LogisticsAddLock";
+import { UnitOperateControl } from "../../CommanComponents/LogisticsOwnerOperator";
 import "./logistics.css";
 import {
   LogisticsGridSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
-import { notBookableReason } from "../../utils/ownerUnitStatus";
+import {
+  photosMissingNote,
+  UNIT_STATUS_FILTERS,
+  unitStatusChip,
+  unitStatusKey,
+} from "../../utils/ownerUnitStatus";
 
 const PAGE_SIZE = 8;
-
-const AVAIL_LABEL = {
-  available_now: "Available",
-  returning_empty: "Returning empty",
-  scheduled: "Scheduled",
-  on_job: "On job",
-  offline: "Offline",
-};
-
-const AVAIL_TONE = {
-  available_now: "active",
-  returning_empty: "pending",
-  scheduled: "active",
-  on_job: "progress",
-  offline: "closed",
-};
 
 const CAP_PREFIXES = ["subtype:", "mobility:", "engine:", "vin:"];
 
@@ -77,6 +68,8 @@ function assetOperators(asset) {
  * Owner non-logistic equipment — list, search, filter (kind=equipment).
  */
 export default function OwnerEquipment() {
+  // 29 Oct 2026: no new units until Simba approves the company
+  const addLocked = useAddLocked();
   const dispatch = useDispatch();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,18 +78,19 @@ export default function OwnerEquipment() {
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(1);
 
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await dispatch(LogisticsActions.listAssets({ kind: "equipment" }));
+      setAssets(res?.payload?.data?.assets || []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await dispatch(
-          LogisticsActions.listAssets({ kind: "equipment" })
-        );
-        setAssets(res?.payload?.data?.assets || []);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   const categories = useMemo(() => {
@@ -111,7 +105,7 @@ export default function OwnerEquipment() {
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return assets.filter((a) => {
-      if (status !== "all" && (a.availability?.state || "offline") !== status) {
+      if (status !== "all" && unitStatusKey(a) !== status) {
         return false;
       }
       if (category !== "all") {
@@ -174,10 +168,11 @@ export default function OwnerEquipment() {
             <span className="log-fl">Status</span>
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="all">All</option>
-              <option value="available_now">Available</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="on_job">On job</option>
-              <option value="offline">Offline</option>
+              {UNIT_STATUS_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
             </select>
           </label>
           <label>
@@ -195,12 +190,18 @@ export default function OwnerEquipment() {
             </select>
           </label>
           <div className="log-jobs-toolbar__actions">
-            <Link
-              className="logistics-cta logistics-cta--primary"
-              to="/logistics/owner/fleet/add"
-            >
-              Add equipment
-            </Link>
+            {addLocked ? (
+              <button type="button" className="logistics-cta logistics-cta--primary is-locked" disabled title={ADD_LOCKED_TITLE}>
+                Add equipment
+              </button>
+            ) : (
+              <Link
+                className="logistics-cta logistics-cta--primary"
+                to="/logistics/owner/fleet/add"
+              >
+                Add equipment
+              </Link>
+            )}
           </div>
         </div>
 
@@ -223,7 +224,7 @@ export default function OwnerEquipment() {
                 </thead>
                 <tbody>
                   {pageRows.map((asset) => {
-                    const st = asset.availability?.state || "offline";
+                    const chip = unitStatusChip(asset);
                     const meta = equipmentMeta(asset);
                     const ops = assetOperators(asset);
                     return (
@@ -263,14 +264,13 @@ export default function OwnerEquipment() {
                           )}
                         </td>
                         <td>
-                          <span
-                            className={`log-chip log-chip--${AVAIL_TONE[st] || "closed"}`}
-                          >
-                            {AVAIL_LABEL[st] || st}
+                          <span className={`log-chip log-chip--${chip.tone}`}>
+                            {chip.label}
                           </span>
-                          {notBookableReason(asset) ? (
-                            <span className="log-unit-notbookable">{notBookableReason(asset)}</span>
+                          {photosMissingNote(asset) ? (
+                            <span className="log-unit-notbookable">{photosMissingNote(asset)}</span>
                           ) : null}
+                          <UnitOperateControl asset={asset} onChanged={load} compact />
                         </td>
                         <td>
                           <Link

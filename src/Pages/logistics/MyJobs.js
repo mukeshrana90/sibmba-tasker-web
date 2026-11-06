@@ -23,6 +23,7 @@ import {
   JobCategorySelect,
 } from "../../CommanComponents/LogisticsJobCategory";
 import QuoteChatIconButton from "../../Components/QuoteChatIconButton";
+import LogisticsWhatsappChatButton from "../../CommanComponents/LogisticsWhatsappChatButton";
 import { openLogisticsJobChat, telHref } from "../../utils/beginQuoteChat";
 import { buildPublicAssetUrl, defaultImage } from "../../utils/ImagePath";
 import { jobPriceLines, withPriorityFee } from "../../utils/jobPrice";
@@ -1367,6 +1368,7 @@ export function LogisticsJobDetail() {
               </div>
             </div>
             <div className="log-jd-party__actions">
+              <LogisticsWhatsappChatButton jobId={job._id} compact />
               <QuoteChatIconButton
                 title={`Chat with ${assignedPeer.full_name || "operator"}`}
                 onClick={() => chatWithQuoter(assignedPeer)}

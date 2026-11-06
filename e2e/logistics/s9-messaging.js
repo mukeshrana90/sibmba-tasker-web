@@ -3,6 +3,7 @@
    outbox.jsonl (validated against scripts/logistics-wa-templates.json). OTPs and links are
    read from the captured messages — never from the DB — exactly as a real user would. */
 const L = require("./lib");
+const CC = L.cast("x").CC;
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
@@ -37,17 +38,28 @@ async function typeOtp(a, otp) {
   await a.page.locator('button[type="submit"]').click();
 }
 
-async function signupOwner(a, { email, phone, channel }) {
+/** Copy a generated document into the API's public docs folder → stored url (for rows inserted straight into the DB). */
+function seedDocFile(src) {
+  const dir = path.join(BACKEND, "public/logistics/assets/docs");
+  fs.mkdirSync(dir, { recursive: true });
+  const name = `${Date.now()}--${path.basename(src)}`;
+  fs.copyFileSync(src, path.join(dir, name));
+  return `/logistics/assets/docs/${name}`;
+}
+
+async function signupOwner(a, { name, company, email, phone, channel }) {
   const p = a.page;
   await L.goto(a, "/sign-up?role=logistics", "form");
   await p.getByRole("button", { name: "Equipment Owner" }).click();
+  await p.fill("#full_name", name);
+  await p.fill("#company_name", company);
   await p.fill("#email", email);
-  await p.locator("#phone").click();
-  await p.locator("#phone").press("End");
-  await p.locator("#phone").pressSequentially(phone, { delay: 15 });
+  await L.typePhone(p.locator("#phone"), CC, phone);
   await p.fill('input[name="password"]', "Passw0rd!");
   await p.fill('input[name="confirmPassword"]', "Passw0rd!");
   await p.check('input[name="terms"]');
+  // 29 Oct 2026: business documents (registration certificate + owner ID) go with the sign-up
+  await L.fillSignupBusinessDocs(p, { name, company });
   await p.locator('form button[type="submit"]').click();
   await p.locator(".modal").getByText(channel === "whatsapp" ? "Phone Number" : "Email", { exact: true }).first().click({ timeout: 10000 });
   await p.locator(".modal button", { hasText: /next|continue|send/i }).last().click();
@@ -56,21 +68,29 @@ async function signupOwner(a, { email, phone, channel }) {
 (async () => {
   const RUN = Date.now().toString(36).slice(-6);
   const st = { RUN };
+  // People come from the main run's cast (s9 slots), so names never clash with other stages
+  const C = L.cast(L.loadState().RUN || RUN);
+  // CC lives at module scope (used by helpers above)
+  const own = [0, 1, 2].map((k) => C.slot("owner", "s9", k));
+  const ops = [0, 1, 2].map((k) => C.slot("operator", "s9", k));
+  const extra = [0, 1, 2, 3].map((k) => C.slot("operator", "misc", k));
+  const failNo = (k) => `71999${String(Date.now() + k).slice(-4)}`; // +263 71999… → MOCK_FAIL_TO
+  const waFailNo = () => `71888${String(Date.now()).slice(-4)}`;    // +263 71888… → MOCK_FAIL_WA_TO
   const START = now();
   const d = await L.db();
   const actors = [];
   const A = async (n) => { const a = await L.actor(n); actors.push(a); return a; };
-  const SENDER = process.env.E2E_SEND_GRID_SENDER || "simba-e2e@e2e.example.com";
+  const SENDER = process.env.E2E_SEND_GRID_SENDER || "simbatasker.noreply@yopmail.com";
   try {
     L.check(fs.existsSync(OUTBOX) || true, `outbox: ${OUTBOX}`);
 
     // ── 1. Email OTP
     L.sec("9. Owner sign-up with EMAIL OTP — code read from the captured email");
     const o = await A("owner-email");
-    const ownerEmail = `mail.owner.${RUN}@e2e.example.com`;
-    const ownerPhone = `77${String(Date.now()).slice(-7)}`;
+    const ownerEmail = own[0].email;
+    const ownerPhone = own[0].phone;
     let t0 = now();
-    await signupOwner(o, { email: ownerEmail, phone: ownerPhone, channel: "email" });
+    await signupOwner(o, { name: own[0].name, company: own[0].company, email: ownerEmail, phone: ownerPhone, channel: "email" });
     await o.page.waitForURL(/otp/i, { timeout: 15000 });
     let [mail] = await waitMsg(t0, (r) => r.channel === "email" && r.to === ownerEmail);
     L.check(mail && mail.ok, "OTP email handed to SendGrid", mail);
@@ -91,39 +111,47 @@ async function signupOwner(a, { email, phone, channel }) {
     // ── 2. WhatsApp OTP
     L.sec("9b. Owner sign-up with WHATSAPP OTP — code read from the captured template message");
     const w = await A("owner-wa");
-    const waEmail = `wa.owner.${RUN}@e2e.example.com`;
-    const waPhone = `77${String(Date.now() + 7).slice(-7)}`;
+    const waEmail = own[1].email;
+    const waPhone = own[1].phone;
     t0 = now();
-    await signupOwner(w, { email: waEmail, phone: waPhone, channel: "whatsapp" });
+    await signupOwner(w, { name: own[1].name, company: own[1].company, email: waEmail, phone: waPhone, channel: "whatsapp" });
     await w.page.waitForURL(/otp/i, { timeout: 15000 });
-    let [wa] = await waitMsg(t0, (r) => r.channel === "whatsapp" && r.to === `+263${waPhone}`);
+    let [wa] = await waitMsg(t0, (r) => r.channel === "whatsapp" && r.to === `${CC}${waPhone}`);
     L.check(wa && wa.ok, "WhatsApp OTP accepted by Twilio mock (template + variables valid)", wa);
     L.check(wa && wa.template === "otp" && wa.contentSid === (process.env.LOGISTICS_WA_OTP_TEMPLATE_SID || "HX4dd070aecb3df506b7945b907dd874fe"), "uses the approved OTP template SID", wa && wa.contentSid);
+    // Simba's own WhatsApp sender number (Zimbabwe) — same country as the test cast
     L.check(wa && /^whatsapp:\+263/.test(wa.from || ""), `sent from the WhatsApp sender (${wa && wa.from})`);
     await typeOtp(w, String(wa.variables["1"]));
     await w.page.waitForURL(/\/logistics\/owner/, { timeout: 20000 }).then(() => L.check(true, "code from WhatsApp verifies → owner dashboard")).catch(async () => L.check(false, "code from WhatsApp verifies → owner dashboard", (await L.bodyText(w)).slice(0, 200)));
+    // 29 Oct 2026: the second company must be approved before it can invite operators (9d2)
+    {
+      const wUser = await d.collection("users").findOne({ email: waEmail }, { projection: { logistics_business_documents: 1 } });
+      L.check((wUser?.logistics_business_documents || []).length >= 2, "sign-up stored the business documents", (wUser?.logistics_business_documents || []).map((x) => x.type));
+      L.check((await L.approveOwner(String(wUser?._id)))?.data?.approval?.status === "approved", "admin approves the second company");
+    }
 
     L.sec("9c. WhatsApp OTP failure shows a clear error");
     const wf = await A("owner-wa-fail");
     t0 = now();
-    await signupOwner(wf, { email: `wa.fail.${RUN}@e2e.example.com`, phone: `71999${String(Date.now()).slice(-4)}`, channel: "whatsapp" });
+    await signupOwner(wf, { name: own[2].name, company: own[2].company, email: own[2].email, phone: failNo(0), channel: "whatsapp" });
     L.check(await L.waitText(wf, /Couldn't send the WhatsApp code/i), "UI: 'Couldn't send the WhatsApp code — check the number or choose Email'", (await L.bodyText(wf)).slice(0, 200));
     [wa] = await waitMsg(t0, (r) => r.channel === "whatsapp" && /^\+26371999/.test(r.to));
     L.check(wa && !wa.ok, "failed send recorded (provider error surfaced)", wa && wa.error);
 
     // ── 3. Operator invite: owner picks the channels (default email + WhatsApp)
     L.sec("9d. Owner invites operator — default Email + WhatsApp captured, link from email activates");
-    const opEmail = `mail.op.${RUN}@e2e.example.com`;
-    const opPhone = `78${String(Date.now()).slice(-7)}`;
+    const opEmail = ops[0].email;
+    const opPhone = ops[0].phone;
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    await o.page.fill('input[placeholder="Full name"]', `Mail Operator ${RUN}`);
+    await o.page.fill('input[placeholder="Full name"]', ops[0].name);
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     const ph = o.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
-    await ph.click(); await ph.press("End"); await ph.pressSequentially(opPhone, { delay: 15 });
+    await L.typePhone(ph, CC, opPhone);
+    await L.addFacePhoto(o.page, 2);
     t0 = now();
     await o.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /Invite sent by email and WhatsApp\./), "UI toast: 'Invite sent by email and WhatsApp'", (await L.bodyText(o)).match(/Invite[^.]*\./)?.[0]);
-    const msgs = await waitMsg(t0, (r) => r.to === opEmail || r.to === `+263${opPhone}`, 8000);
+    const msgs = await waitMsg(t0, (r) => r.to === opEmail || r.to === `${CC}${opPhone}`, 8000);
     const im = msgs.find((r) => r.channel === "email"), is = msgs.find((r) => r.channel === "sms"), iw = msgs.find((r) => r.channel === "whatsapp");
     L.check(im?.ok && /invited you/i.test(im.subject), `invite email (${im?.subject})`);
     L.check(!is, "no SMS — WhatsApp delivered, owner didn't pick SMS", is?.body);
@@ -138,13 +166,13 @@ async function signupOwner(a, { email, phone, channel }) {
     await op.page.fill("#invite-password", "Passw0rd!");
     await op.page.fill("#invite-password-confirm", "Passw0rd!");
     await op.page.locator('button[type="submit"]').click();
-    await op.page.waitForURL(/\/logistics\/driver/, { timeout: 20000 }).then(() => L.check(true, "link from email activates operator → /logistics/driver")).catch(async () => L.check(false, "link from email activates operator", (await L.bodyText(op)).slice(0, 200)));
+    await op.page.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" }).then(() => L.check(true, "link from email activates operator → /logistics/driver")).catch(async () => L.check(false, "link from email activates operator", (await L.bodyText(op)).slice(0, 200)));
     const opUser = await d.collection("users").findOne({ email: opEmail });
     st.operator = { _id: String(opUser?._id), email: opEmail, phone: opPhone };
 
     L.sec("9d2. Invite channel checks + WhatsApp → SMS fallback");
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    await o.page.fill('input[placeholder="name@example.com"]', `nophone.${RUN}@e2e.example.com`);
+    await o.page.fill('input[placeholder="name@example.com"]', extra[0].email);
     const waBox = o.page.locator(".log-invite-via__opt", { hasText: "WhatsApp" });
     L.check((await waBox.locator("input").isDisabled()) && /Add a phone number first/.test(await waBox.innerText()), "no phone → WhatsApp unavailable ('Add a phone number first')");
     await L.setInviteVia(o.page, []);
@@ -155,27 +183,30 @@ async function signupOwner(a, { email, phone, channel }) {
     // second owner (free seats): API check + WhatsApp only, number not on WhatsApp → same link by SMS
     const wToken = await w.page.evaluate(() => localStorage.getItem("token"));
     await L.setPlan((await d.collection("users").findOne({ email: waEmail }))._id, "paid");
-    const apiNoVia = await L.api("POST", "/logistics/sub-user", { token: wToken, body: { email: `bad.via.${RUN}@e2e.example.com`, send_via: ["whatsapp"] } });
+    const apiNoVia = await L.api("POST", "/logistics/sub-user", { token: wToken, body: { email: extra[1].email, send_via: ["whatsapp"] } });
     L.check(apiNoVia.success === false && apiNoVia.data?.code === "INVITE_CHANNEL", "API refuses WhatsApp-only invite without a phone (INVITE_CHANNEL)", apiNoVia.message);
-    const waOnlyEmail = `waonly.${RUN}@e2e.example.com`;
-    const waOnlyPhone = `71888${String(Date.now()).slice(-4)}`;
+    const waOnlyEmail = ops[1].email;
+    const waOnlyPhone = waFailNo();
     await L.goto(w, "/logistics/owner/operators/add", "form");
+    await w.page.fill('input[placeholder="Full name"]', ops[1].name);
     await w.page.fill('input[placeholder="name@example.com"]', waOnlyEmail);
     const ph3 = w.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
-    await ph3.click(); await ph3.press("End"); await ph3.pressSequentially(waOnlyPhone, { delay: 15 });
+    await L.typePhone(ph3, CC, waOnlyPhone);
     await L.setInviteVia(w.page, ["whatsapp"]);
+    await L.addFacePhoto(w.page, 3);
     t0 = now();
     await w.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(w, /Invite sent by SMS \(WhatsApp wasn't available, so the link went by SMS\)/), "UI toast: WhatsApp unavailable → sent by SMS", (await L.bodyText(w)).match(/Invite[^.]*\./)?.[0]);
-    const fb = await waitMsg(t0, (r) => r.to === waOnlyEmail || r.to === `+263${waOnlyPhone}`, 8000);
+    const fb = await waitMsg(t0, (r) => r.to === waOnlyEmail || r.to === `${CC}${waOnlyPhone}`, 8000);
     L.check(fb.some((r) => r.channel === "whatsapp" && !r.ok) && fb.some((r) => r.channel === "sms" && r.ok && /invite\?token=/.test(r.body)), "WhatsApp failed, SMS fallback carries the link");
     L.check(!fb.some((r) => r.channel === "email"), "no email — owner picked WhatsApp only");
 
     L.sec("9e. Resend invite — new link sent, old link no longer works");
-    const op2Email = `mail.op2.${RUN}@e2e.example.com`;
+    const op2Email = ops[2].email;
     await L.goto(o, "/logistics/owner/operators/add", "form");
     await o.page.fill('input[placeholder="name@example.com"]', op2Email);
     await L.setInviteVia(o.page, ["email"]);
+    await L.addFacePhoto(o.page, 4);
     t0 = now();
     await o.page.locator('form button[type="submit"]').last().click();
     let [first] = await waitMsg(t0, (r) => r.channel === "email" && r.to === op2Email);
@@ -198,9 +229,11 @@ async function signupOwner(a, { email, phone, channel }) {
 
     L.sec("9f. Invite with every channel failing → owner told to copy the link");
     await L.goto(w, "/logistics/owner/operators/add", "form");
-    await w.page.fill('input[placeholder="name@example.com"]', `fail.${RUN}@e2e.example.com`);
+    await w.page.fill('input[placeholder="Full name"]', extra[2].name);
+    await w.page.fill('input[placeholder="name@example.com"]', `fail.${extra[2].email}`); // fail.* → MOCK_FAIL_TO (email)
     const ph2 = w.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
-    await ph2.click(); await ph2.press("End"); await ph2.pressSequentially(`71999${String(Date.now()).slice(-4)}`, { delay: 15 });
+    await L.typePhone(ph2, CC, failNo(1));
+    await L.addFacePhoto(w.page, 5);
     await w.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(w, /couldn't be sent — copy the link/), "UI: 'Invite created, but it couldn't be sent — copy the link'");
 
@@ -210,12 +243,14 @@ async function signupOwner(a, { email, phone, channel }) {
     const c = await A("customer-mail");
     await L.seedAuth(c, { token: cust.token, user: cust });
     await L.goto(c, "/logistics/emergency-contacts", "form");
-    const contactEmail = `contact.${RUN}@e2e.example.com`;
-    const contactPhone = `77${String(Date.now() + 99).slice(-7)}`;
-    await c.page.fill('input[placeholder="e.g. Rudo Moyo"]', "Rudo Contact");
+    // Emergency contact: the customer's sister
+    const sister = { name: `Chiedza ${cust.name.split(" ").slice(-1)[0]}`, email: `chiedza.${cust.email.split("@")[0].split(".").slice(-1)[0]}@yopmail.com` };
+    const contactEmail = sister.email;
+    const contactPhone = C.phone("s9.sos.contact");
+    await c.page.fill('input[placeholder="e.g. Rudo Moyo"]', sister.name);
     await c.page.fill('input[placeholder="e.g. Spouse, brother"]', "Sister");
     const cph = c.page.locator("form input[type=tel]").first();
-    await cph.click(); await cph.press("End"); await cph.pressSequentially(contactPhone, { delay: 15 });
+    await L.typePhone(cph, CC, contactPhone);
     await c.page.fill('input[placeholder="name@example.com"]', contactEmail);
     await c.page.getByRole("button", { name: "Save contacts" }).click();
     await L.waitText(c, /saved/i);
@@ -227,9 +262,9 @@ async function signupOwner(a, { email, phone, channel }) {
     const box = await c.page.locator(".log-sos-hold").boundingBox();
     await c.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await c.page.mouse.down(); await c.page.waitForTimeout(3600); await c.page.mouse.up();
-    const sos = await waitMsg(t0, (r) => [contactEmail, `+263${contactPhone}`, process.env.E2E_ADMIN_EMAIL || "sos-admin@e2e.example.com"].includes(r.to), 10000);
+    const sos = await waitMsg(t0, (r) => [contactEmail, `${CC}${contactPhone}`, process.env.E2E_ADMIN_EMAIL || "simba.sosdesk@yopmail.com"].includes(r.to), 10000);
     await new Promise((r) => setTimeout(r, 1500));
-    const all = outbox(t0).filter((r) => [contactEmail, `+263${contactPhone}`, process.env.E2E_ADMIN_EMAIL || "sos-admin@e2e.example.com"].includes(r.to));
+    const all = outbox(t0).filter((r) => [contactEmail, `${CC}${contactPhone}`, process.env.E2E_ADMIN_EMAIL || "simba.sosdesk@yopmail.com"].includes(r.to));
     const se = all.find((r) => r.channel === "email" && r.to === contactEmail);
     const ss = all.find((r) => r.channel === "sms");
     const sw = all.find((r) => r.channel === "whatsapp");
@@ -246,20 +281,24 @@ async function signupOwner(a, { email, phone, channel }) {
     L.sec("9h. Document expiry reminder → WhatsApp template to owner + operator");
     const { ObjectId } = L.mongoose.Types;
     const inDays = (n) => new Date(Date.now() + n * 86400000);
+    const tipper = C.unit("truck", 90);
+    const insFile = await L.docFile("insurance", { owner: own[0].company, plate: tipper.plate, make: tipper.make, model: tipper.model, year: tipper.year, expires: inDays(7) });
     await d.collection("logistics_assets").insertOne({
-      owner_id: new ObjectId(st.owner._id), kind: "vehicle", category: "logistic", name: `Mail Truck ${RUN}`, registration: `ML${RUN}`.toUpperCase(),
+      owner_id: new ObjectId(st.owner._id), kind: "vehicle", category: "logistic", name: tipper.name, registration: tipper.plate,
+      make: tipper.make, model: tipper.model, year: tipper.year,
       is_active: 1, is_deleted: 0, assigned_sub_user_ids: [new ObjectId(st.operator._id)],
-      documents: [{ type: "insurance", name: "ins.pdf", url: "/x.pdf", expires: inDays(7) }], createdAt: new Date(), updatedAt: new Date(),
+      photos: (await L.photoFixtures(tipper)).map(seedDocFile),
+      documents: [{ type: "insurance", name: path.basename(insFile), url: seedDocFile(insFile), expires: inDays(7) }], createdAt: new Date(), updatedAt: new Date(),
     });
     t0 = now();
     execFileSync(process.execPath, ["-r", path.join(BACKEND, "scripts/e2e/mock-providers.js"), "-e",
       `require("dotenv").config();const m=require("mongoose");m.connect(process.env.DB_URL).then(async()=>{const s=require("./src/utils/logistics/documentExpiryScheduler");console.log(JSON.stringify(await s.processLogisticsDocumentExpiry({ownerIds:[${JSON.stringify(st.owner._id)}]})));await m.disconnect()})`],
       { cwd: BACKEND, env: { ...process.env }, stdio: "pipe" });
     const de = outbox(t0).filter((r) => r.channel === "whatsapp" && r.template === "doc_expiry");
-    L.check(de.some((r) => r.ok && r.to === `+263${ownerPhone}`), "owner got doc-expiry WhatsApp", de.map((r) => r.to + " " + (r.error || "")));
-    L.check(de.some((r) => r.ok && r.to === `+263${opPhone}`), "operator got doc-expiry WhatsApp");
+    L.check(de.some((r) => r.ok && r.to === `${CC}${ownerPhone}`), "owner got doc-expiry WhatsApp", de.map((r) => r.to + " " + (r.error || "")));
+    L.check(de.some((r) => r.ok && r.to === `${CC}${opPhone}`), "operator got doc-expiry WhatsApp");
     L.check(de.every((r) => r.ok && /^expires in \d+ days?$|^expires today$|^expired$/.test(r.variables["3"])), "vars valid (status text matches template check)", de[0]?.body);
-    const strangers = de.filter((r) => ![`+263${ownerPhone}`, `+263${opPhone}`].includes(r.to));
+    const strangers = de.filter((r) => ![`${CC}${ownerPhone}`, `${CC}${opPhone}`].includes(r.to));
     L.check(strangers.length === 0, "scoped run (ownerIds) messages ONLY this owner's team", strangers.map((r) => `${r.to}: ${r.variables["1"]}`));
   } catch (e) {
     L.check(false, "stage crashed", e.message.split("\n")[0]);

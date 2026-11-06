@@ -16,8 +16,28 @@ function load(force = false) {
   if (inflight) return inflight;
   inflight = Api.get("/logistics/me")
     .then((r) => {
-      cache = r?.data?.data?.user?.account || null;
+      const user = r?.data?.data?.user;
+      // 30 Oct 2026: required business documents still missing (owners only)
+      cache = user?.account
+        ? {
+            ...user.account,
+            business_docs_missing: user.business_docs?.missing || [],
+            // owner onboarding popup (30 Oct 2026)
+            company_name: user.company_name || "",
+            logistics_base: user.logistics_base || null,
+            // v2.7.61: owner-operator state and the WhatsApp trial countdown
+            owner_operator: user.owner_operator || null,
+            logistics_self_operator: Boolean(user.logistics_self_operator),
+            whatsapp: user.whatsapp || null,
+          }
+        : null;
       cacheAt = Date.now();
+      // Item 4: chat is open in the trial or on Paid, without touching isSubscribed
+      try {
+        localStorage.setItem("logisticsChatExtras", user?.whatsapp?.extras_active ? "1" : "0");
+      } catch {
+        /* storage unavailable */
+      }
       listeners.forEach((fn) => fn(cache));
       return cache;
     })
@@ -26,6 +46,23 @@ function load(force = false) {
       inflight = null;
     });
   return inflight;
+}
+
+/** Reload the account state (e.g. after business documents were uploaded). */
+export function refreshLogisticsAccount() {
+  return load(true);
+}
+
+/** Current account state; loads it when needed (route guards). */
+export function loadLogisticsAccount() {
+  return load();
+}
+
+/** Approval status of the signed-in owner's company: "approved" | "pending" | "rejected" | null (loading). */
+export function useCompanyApproval() {
+  const account = useLogisticsAccount();
+  if (!account) return null;
+  return account.approval?.status || "approved";
 }
 
 export function useLogisticsAccount() {
@@ -89,11 +126,16 @@ export default function LogisticsAccountBanner({ isDriver }) {
           {approval === "pending"
             ? fleet
               ? "You can't go live or take jobs until Simba approves it."
-              : "Upload your vehicle and operator documents — Simba checks each one. Your units stay hidden from customers until your company is approved, then we'll email you."
+              : "Simba is checking your business documents. You can add equipment and invite operators once your company is approved — we'll email you."
             : fleet
               ? "You can't go live or take jobs until it's approved."
-              : `${account.approval.reason ? `Reason: ${account.approval.reason}. ` : ""}Fix your documents and contact Simba admin.`}
+              : `${account.approval.reason ? `Reason: ${account.approval.reason}. ` : ""}Upload corrected business documents — Simba will check them again.`}
         </p>
+        {!fleet ? (
+          <Link className="logistics-cta logistics-cta--ghost log-approval-banner__docs" to="/logistics/owner/verification">
+            {approval === "rejected" ? "Upload corrected documents" : "Business documents"}
+          </Link>
+        ) : null}
         {approval === "rejected" ? (
           <Link className="logistics-cta logistics-cta--ghost" to={support}>
             Contact Simba admin

@@ -65,6 +65,13 @@ import {
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 import { PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
+import { guestLoginPath, isLoggedIn, setAuthReturnUrl } from "../../utils/authRedirect";
+import {
+  clearLogisticsJobDraft,
+  hasLogisticsJobDraft,
+  loadLogisticsJobDraft,
+  saveLogisticsJobDraft,
+} from "../../utils/logisticsJobDraft";
 
 const KG_PER_TON = 1000;
 
@@ -352,6 +359,8 @@ export default function LogisticsPostJob() {
   // Priority fee from backend .env (LOGISTICS_PRIORITY_FEE); amount 0 = priority is free
   const [priorityFee, setPriorityFee] = useState(null);
   useEffect(() => {
+    // /logistics/session needs login: guests keep the defaults
+    if (!isLoggedIn()) return undefined;
     let alive = true;
     dispatch(LogisticsActions.getSession()).then((res) => {
       const cfg = res?.payload?.data?.config || {};
@@ -383,6 +392,9 @@ export default function LogisticsPostJob() {
     Boolean(targetAssetId) && !editId
   );
   const [targetAsset, setTargetAsset] = useState(null);
+  const [loadingDraft, setLoadingDraft] = useState(
+    () => !editId && !targetAssetId && hasLogisticsJobDraft()
+  );
   const [equipOpen, setEquipOpen] = useState(false);
   const [subtypeOpen, setSubtypeOpen] = useState(false);
   const [imageFiles, setImageFiles] = useState([]);
@@ -545,6 +557,33 @@ export default function LogisticsPostJob() {
       ),
     }));
   }, [plant, categoryLocked, vehicleOptions, form.vehicle_needed]);
+
+  // Bring back the job a guest filled in before signing in
+  useEffect(() => {
+    if (!loadingDraft) return undefined;
+    let alive = true;
+    loadLogisticsJobDraft().then((draft) => {
+      if (!alive) return;
+      if (draft) {
+        setForm({ ...defaultForm, ...draft.form });
+        setImageFiles(draft.images);
+        setReturnImageFiles(draft.returnImages);
+        if (isLoggedIn()) {
+          // Only one toast shows at a time: replace the "Sign in" and login messages
+          toast.clearWaitingQueue();
+          toast.dismiss();
+          toast.info("Your job details are saved. Check them and post your job.", {
+            toastId: "logistics-draft-restored",
+          });
+        }
+      }
+      setLoadingDraft(false);
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const goodsRef = useRef(null);
   const goodsInputRef = useRef(null);
@@ -776,6 +815,21 @@ export default function LogisticsPostJob() {
     if (!plant && !validateLogistic()) return;
     if (plant && !validatePlant()) return;
 
+    if (!isLoggedIn()) {
+      setSaving(true);
+      try {
+        await saveLogisticsJobDraft(form, imageFiles, form.return_trip ? returnImageFiles : []);
+        setAuthReturnUrl("/logistics/post");
+        toast.info("Sign in to post your job. Your details are saved.");
+        navigate(guestLoginPath("/logistics/post"));
+      } catch {
+        toast.error("Could not save your job. Please try again.");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     setSaving(true);
     try {
       const pickupCoords = plant ? form.site_coords : form.pickup_coords;
@@ -893,6 +947,7 @@ export default function LogisticsPostJob() {
 
       const res = await dispatch(LogisticsActions.createJob(fd));
       if (res?.payload?.success) {
+        await clearLogisticsJobDraft();
         toast.success("Job posted");
         navigate(`/logistics/jobs/${res.payload.data.job._id}`);
       } else {
@@ -903,7 +958,7 @@ export default function LogisticsPostJob() {
     }
   };
 
-  if (loadingEdit || loadingTarget) {
+  if (loadingEdit || loadingTarget || loadingDraft) {
     return (
       <LogisticsPageShell
         title={editId ? "Edit job" : "Post a job"}
@@ -1668,6 +1723,11 @@ export default function LogisticsPostJob() {
         {!plant && form.priority && priorityFee ? (
           <p className="log-hint log-post-priority-note">
             Priority job: {priorityFee} will be added to the agreed price.
+          </p>
+        ) : null}
+        {!isLoggedIn() ? (
+          <p className="log-hint" data-testid="guest-post-note">
+            You&apos;ll sign in to post. Your job details stay saved.
           </p>
         ) : null}
         <div className="log-form-actions">

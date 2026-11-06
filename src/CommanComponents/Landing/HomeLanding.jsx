@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import UnifiedSearch from "./UnifiedSearch";
+import GuestMarketplaceSwitch from "./GuestMarketplaceSwitch";
+import { isLoggedIn } from "../../utils/authRedirect";
 import TopProviders from "./TopProviders";
 import { useLanding } from "../../context/LandingContext";
 import { categoryImageUrl, defaultImage, formatDisplayTitle } from "../../utils/landingUtils";
@@ -126,6 +128,7 @@ export default function HomeLanding() {
   const location = useLocation();
   const { selectCategory, setSearchQuery } = useLanding();
   const categories = useSelector((s) => s.UserSlice.categories);
+  const guest = !isLoggedIn();
 
   useEffect(() => {
     dispatch(CustomerActions.getCategories({ limit: 12 }));
@@ -161,8 +164,9 @@ export default function HomeLanding() {
         </div>
 
         <div className="landing-wrap landing-hero__inner">
+          {guest ? <GuestMarketplaceSwitch active="tasker" /> : null}
           <span className="landing-eyebrow">
-            🦁 Zimbabwe&apos;s trusted services marketplace
+            {guest ? null : "🦁 "}Zimbabwe&apos;s trusted services marketplace
           </span>
           <h1>
             Find <span className="landing-hl">trusted pros</span>

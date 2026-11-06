@@ -19,11 +19,16 @@ import { handleUserImageError } from "../utils/landingUtils";
 import { sanitizeProfileValue } from "../utils/customerProfileUtils";
 import LogisticsSosProfileCard from "../CommanComponents/LogisticsSosProfileCard";
 import LogisticsWhatsappNotifyCard from "../CommanComponents/LogisticsWhatsappNotifyCard";
+import LogisticsBusinessDocsCard from "../CommanComponents/LogisticsBusinessDocs";
+import LogisticsLocationField from "../CommanComponents/LogisticsLocationField";
 import LogisticsActions from "../Redux/Actions/LogisticsActions";
 
 // Logistics fleet / equipment owner (role 4 without an owner above them)
 const isFleetOwner = () =>
   localStorage.getItem("role") === "4" && !localStorage.getItem("owner_id");
+
+// Logistics accounts get the wider, sectioned layout (Tasker accounts keep theirs)
+const isLogisticsUser = () => localStorage.getItem("role") === "4";
 
 export default function EditProfileUser() {
   const token = localStorage.getItem("token");
@@ -31,6 +36,8 @@ export default function EditProfileUser() {
   const navigate = useNavigate();
   const { customerDetails } = useSelector((state) => state.login);
   const [isLoader, setIsLoading] = useState(false);
+  // Fleet owner business location (User.logistics_base); sent only when changed
+  const [base, setBase] = useState({ address: "", coords: null, changed: false });
   const profileInputRef = useRef(null);
   const [previews, setPreviews] = useState({
     profile_image: "",
@@ -113,7 +120,16 @@ export default function EditProfileUser() {
       const apiRes = await dispatch(CustomerActions.createProfile(formData));
       if (apiRes?.payload?.success && isFleetOwner()) {
         const companyRes = await dispatch(
-          LogisticsActions.patchMe({ company_name: (values.company_name || "").trim() })
+          LogisticsActions.patchMe({
+            company_name: (values.company_name || "").trim(),
+            ...(base.changed
+              ? {
+                  logistics_base: base.coords
+                    ? { address: base.address, lat: Number(base.coords[1]), lng: Number(base.coords[0]) }
+                    : null,
+                }
+              : {}),
+          })
         );
         if (companyRes?.payload?.success === false) {
           toast.error(companyRes?.payload?.message || "Could not save the company name");
@@ -196,6 +212,14 @@ export default function EditProfileUser() {
   }, [token, getProfileApiCall]);
 
   useEffect(() => {
+    if (!token || !isFleetOwner()) return;
+    dispatch(LogisticsActions.getMe()).then((res) => {
+      const b = res?.payload?.data?.user?.logistics_base;
+      if (b) setBase({ address: b.address || "", coords: [Number(b.lng), Number(b.lat)], changed: false });
+    });
+  }, [token, dispatch]);
+
+  useEffect(() => {
     if (customerDetails) {
       setInitialValues({
         full_name: sanitizeProfileValue(customerDetails.full_name),
@@ -218,8 +242,8 @@ export default function EditProfileUser() {
       <div className="p-2 p-md-5 mt-5">
         <Container fluid className="">
           <div className="row">
-            <Col lg={6} className="mx-auto">
-              <div className="complete-profile-box mt-5">
+            <Col lg={isLogisticsUser() ? 10 : 6} xl={isLogisticsUser() ? 9 : undefined} className="mx-auto">
+              <div className={`complete-profile-box mt-5${isLogisticsUser() ? " edit-profile--logistics" : ""}`}>
                 <div className="login-box-inner-wrap py-4 px-3">
                   <h2>Edit your Profile</h2>
                   <p className="mb-0">Enter Your Details Clearly!</p>
@@ -460,6 +484,31 @@ export default function EditProfileUser() {
                           </Form.Text>
                         </Form.Group>
                       ) : null}
+                      {isFleetOwner() ? (
+                        <Form.Group className="mb-3 profile-business-base" controlId="profileBusinessBase">
+                          <Form.Label>Business location</Form.Label>
+                          <LogisticsLocationField
+                            address={base.address}
+                            coords={base.coords}
+                            title="Business location"
+                            hint="Where your trucks / equipment are usually based. Search or pin it on the map."
+                            chooseLabel="Choose your business location"
+                            onChange={({ address, coords }) => setBase({ address: address || "", coords: coords || null, changed: true })}
+                          />
+                          <Form.Text className="text-muted">
+                            Optional. New equipment starts here.{" "}
+                            {base.coords ? (
+                              <button
+                                type="button"
+                                className="btn btn-link p-0 align-baseline profile-business-base__clear"
+                                onClick={() => setBase({ address: "", coords: null, changed: true })}
+                              >
+                                Clear
+                              </button>
+                            ) : null}
+                          </Form.Text>
+                        </Form.Group>
+                      ) : null}
                           <Form.Group className="mb-3" controlId="formBasicEmail">
                         <Form.Label>Email*</Form.Label>
                         <Form.Control readOnly className="text-muted"
@@ -632,6 +681,7 @@ export default function EditProfileUser() {
                     </button>
                   </Form>
 
+                  <LogisticsBusinessDocsCard />
                   <LogisticsWhatsappNotifyCard />
                   <LogisticsSosProfileCard />
                 </div>

@@ -61,7 +61,8 @@ const L = require("./lib");
     L.check(expect.test(url), `${who} → ${path} lands on ${url}`, url);
     await a.ctx.close();
   };
-  await guard("anon", null, "/logistics/post", /^\/login/);
+  // v2.7.62: a guest may fill the form; signing in comes when they post
+  await guard("anon", null, "/logistics/post", /^\/logistics\/post/);
   await guard("anon", null, "/logistics/owner", /^\/login/);
   await guard("customer", st.customer, "/logistics/owner", /^\/(login|logistics$|$)/);
   await guard("customer", st.customer, "/logistics/driver", /^\/(login|logistics$|$)/);

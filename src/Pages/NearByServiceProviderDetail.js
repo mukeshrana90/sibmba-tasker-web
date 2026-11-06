@@ -1,3 +1,4 @@
+import EmptyResults from "../CommanComponents/EmptyResults";
 import { useEffect, useMemo, useState } from "react";
 import Modal from "react-bootstrap/Modal";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -384,12 +385,16 @@ export default function NearByServiceProviderDetail() {
                 <Loader />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="svc-empty">
-                <p>{emptyMessage}</p>
+              <EmptyResults
+                module="services"
+                message={emptyMessage}
+                categoryId={categoryId || undefined}
+                coords={lat && long ? { lat: Number(lat), lng: Number(long) } : undefined}
+              >
                 <Link to="/near-by-services" className="btn btn-primary nearby-loc-btn">
                   Back to categories
                 </Link>
-              </div>
+              </EmptyResults>
             ) : (
               <>
                 <div className="prov-grid">

@@ -13,6 +13,7 @@ async function setOperatorStatus(op, state) {
   const st = L.loadState();
   const d = await L.db();
   const OID = (x) => new L.mongoose.Types.ObjectId(x);
+  let goodsDirect = "";
   const op = await L.actor("operator");
   const c = await L.actor("customer");
   for (const x of [op, c]) x.page.on("dialog", (dl) => dl.accept());
@@ -22,7 +23,9 @@ async function setOperatorStatus(op, state) {
     await setOperatorStatus(op, "available_now"); // fresh GPS for local quote rule
 
     L.sec("4. Now job inside radius (UI)");
-    const goodsNow = `E2E now ${st.RUN}`;
+    const ref = String(st.RUN).toUpperCase();
+    goodsDirect = `Kinnow boxes – 150 crates · PO ${ref}`;
+    const goodsNow = `Bricks – 3000 nos · PO ${ref}`;
     const nowId = await L.postTransportJob(c, { goods: goodsNow, mode: "now", price: "150" });
     let job = await d.collection("transport_jobs").findOne({ _id: OID(nowId) });
     const mins = (new Date(job.expires_at) - new Date(job.createdAt)) / 60000;
@@ -32,25 +35,31 @@ async function setOperatorStatus(op, state) {
     L.check(await L.waitText(c, /Now — open until/), "customer job page shows 'Now — open until'");
     await L.shot(c, "s4-now-job");
 
-    L.sec("4b. Now job outside radius is hidden (Bulawayo pickup)");
-    // pickup in Bulawayo: set customer geolocation there so the picker's default is Bulawayo
-    const goodsFar = `E2E far ${st.RUN}`;
-    const farId = await L.postTransportJob(c, { goods: goodsFar, mode: "now", price: "150", pickup: "Bulawayo City Hall", drop: "Gwanda" });
+    L.sec("4b. Now job outside radius is hidden (Marondera pickup)");
+    // pickup in Marondera (~70 km from Harare, outside the 50 km local radius)
+    const goodsFar = `Tobacco bale wraps – 40 boxes · PO ${ref}`;
+    const farId = await L.postTransportJob(c, { goods: goodsFar, mode: "now", price: "150", pickup: L.PLACES.far.pickup, drop: L.PLACES.far.drop });
     job = await d.collection("transport_jobs").findOne({ _id: OID(farId) });
-    L.check(job.pickup?.coordinates?.[1] < -19.5, "far job pickup is in Bulawayo", job.pickup);
+    {
+      const [lng, lat] = job.pickup?.coordinates || [0, 0];
+      const [hLng, hLat] = L.PLACES.coords.harare;
+      const rad = (x) => (x * Math.PI) / 180;
+      const km = 2 * 6371 * Math.asin(Math.sqrt(Math.sin(rad(lat - hLat) / 2) ** 2 + Math.cos(rad(lat)) * Math.cos(rad(hLat)) * Math.sin(rad(lng - hLng) / 2) ** 2));
+      L.check(km > L.PLACES.far.minKm, `far job pickup is in Marondera (${Math.round(km)} km from Harare)`, job.pickup);
+    }
 
     await L.goto(op, "/logistics/driver/work");
     await op.page.waitForTimeout(2500);
     await L.shot(op, "s4-work");
     const wt = await L.bodyText(op);
     L.check(wt.includes(goodsNow), "operator sees Now job within 50 km");
-    L.check(!wt.includes(goodsFar), "operator does NOT see Now job 440 km away");
+    L.check(!wt.includes(goodsFar), "operator does NOT see Now job ~70 km away (Marondera)");
 
     L.sec("4c. Local quote → accept → customer cancels before collect");
     await L.goto(op, `/logistics/driver/job/${nowId}`);
     await op.page.waitForSelector('input[aria-label="Quote amount"]', { timeout: 15000 });
     await L.typeMoney(op.page, 'input[aria-label="Quote amount"]', "140");
-    await op.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "Close by, 10 min");
+    await op.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "I'm in Avondale, can reach in 15 minutes.");
     await op.page.getByRole("button", { name: /Send my quote/ }).click();
     L.check(await L.waitText(op, /Quote (sent|submitted)/i), "local quote accepted by API (fresh GPS within radius)", (await L.bodyText(op)).slice(0, 200));
     await L.goto(c, `/logistics/jobs/${nowId}`);
@@ -83,8 +92,8 @@ async function setOperatorStatus(op, state) {
     await c.page.waitForSelector(".log-target-banner", { timeout: 15000 });
     L.check((await c.page.locator(".log-when__opt").count()) === 0, "Now/Schedule chooser hidden for direct booking");
     await L.pickLocation(c, 0, null);
-    await L.pickLocation(c, 1, "Ruwa");
-    await c.page.fill('input[placeholder="e.g. Construction materials"]', `E2E direct ${st.RUN}`);
+    await L.pickLocation(c, 1, L.PLACES.drops[1]);
+    await L.fillGoods(c.page, goodsDirect);
     await c.page.fill('input[placeholder="8"]', "4");
     const di = c.page.locator(".log-field").filter({ hasText: "When" }).locator(".log-dp-field input").first();
     await di.click();
@@ -100,7 +109,7 @@ async function setOperatorStatus(op, state) {
     L.check(String(job.targeted_asset_id) === st.truck._id && job.job_class === "corridor", "direct job targets the truck, corridor", { t: job.targeted_asset_id, c: job.job_class });
     await L.goto(op, "/logistics/driver/work");
     await op.page.waitForTimeout(2000);
-    L.check((await L.bodyText(op)).includes(`E2E direct ${st.RUN}`), "operator sees direct booking");
+    L.check((await L.bodyText(op)).includes(goodsDirect), "operator sees direct booking");
     st.directJob = dId;
 
     L.sec("4f. Offline operator blocks booking");

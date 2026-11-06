@@ -113,7 +113,7 @@ export function openLogisticsJobChat({
   if (supply) {
     if (!(status >= 1 && status <= 5)) {
       toast.info(
-        "Customers start the conversation until a quote is accepted. After accept you can open chat here — your fleet owner's paid plan is required to reply."
+        "Customers start the conversation until a quote is accepted. After accept you can open chat here. Replying is free for the first 60 days, then needs the Paid plan."
       );
       return false;
     }
@@ -130,6 +130,7 @@ export function openLogisticsJobChat({
   // (MainChat re-checks with the fresh /logistics/me flag before sending).
   const supplyPaid =
     !supply ||
+    localStorage.getItem("logisticsChatExtras") === "1" ||
     (job?.fleet_is_subscribed != null
       ? Number(job.fleet_is_subscribed) === 1
       : Number(localStorage.getItem("isSubscribed")) === 1);

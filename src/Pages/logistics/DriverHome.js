@@ -27,6 +27,8 @@ import LogisticsUnitPicker, { unitDisabled } from "../../CommanComponents/Logist
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 import LogisticsSosContactsPrompt from "../../CommanComponents/LogisticsSosContactsPrompt";
 import { OperatorDocBanner } from "../../CommanComponents/LogisticsDocAlerts";
+import { refreshLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
+import { apiErrorMessage, isFleetOwnerUser, unitHeldByOther } from "../../utils/ownerOperator";
 
 const PLACEHOLDER_LABELS = new Set([
   "current location",
@@ -111,6 +113,8 @@ function OperatorSection({ section }) {
 
 function OperatorDashboard() {
   const dispatch = useDispatch();
+  const myUserId = localStorage.getItem("userId") || "";
+  const ownerOperating = isFleetOwnerUser();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -133,12 +137,14 @@ function OperatorDashboard() {
       const preferredLocked =
         lockedIds.find((id) => assigned.some((a) => String(a._id) === id)) ||
         "";
-      // Units the owner disabled (plan limit / by hand) can't be picked
+      // Units the owner disabled (plan limit / by hand) or someone else is
+      // using can't be picked
+      const pickable = (a) => !unitDisabled(a) && !unitHeldByOther(a, myUserId);
       const usable = (id) =>
-        assigned.some((a) => String(a._id) === String(id) && !unitDisabled(a));
+        assigned.some((a) => String(a._id) === String(id) && pickable(a));
       const nextAssetId = String(
         [active?._id, av.active_asset_id].find((id) => id && usable(id)) ||
-          assigned.find((a) => !unitDisabled(a))?._id ||
+          assigned.find(pickable)?._id ||
           ""
       );
       // Keep the operator's selected truck when going offline (active_asset_id cleared)
@@ -325,10 +331,10 @@ function OperatorDashboard() {
         setSelectedState(prevSelectedState);
         setSelectedAssetId(prevSelectedAssetId);
         const detail = res?.payload?.data;
-        const msg =
-          res?.payload?.message ||
-          detail?.message ||
-          "Could not update status — try again after finishing any active job";
+        const msg = apiErrorMessage(
+          res?.payload,
+          detail?.message || "Could not update status — try again after finishing any active job"
+        );
         toast.error(msg, { autoClose: 8000 });
         await reload({ soft: true });
         return;
@@ -371,6 +377,7 @@ function OperatorDashboard() {
             ? "You are offline — other assigned assets set offline"
             : "Status updated"
       );
+      if (ownerOperating) refreshLogisticsAccount();
       await reload({ soft: true });
     } finally {
       setSaving(false);
@@ -379,7 +386,7 @@ function OperatorDashboard() {
 
   const saveStatus = async () => {
     if (!assigned.length) {
-      toast.error("No vehicle assigned yet — ask your owner");
+      toast.error(ownerOperating ? "Add a unit to your fleet first" : "No vehicle assigned yet — ask your owner");
       return;
     }
     if (selectedState !== "offline" && !selectedAssetId) {
@@ -490,7 +497,7 @@ function OperatorDashboard() {
   return (
     <div className="log-dash">
       <LogisticsSosContactsPrompt />
-      <OperatorDocBanner compliance={data?.document_compliance} />
+      {ownerOperating ? null : <OperatorDocBanner compliance={data?.document_compliance} />}
       {/* <p className="log-dash__intro">
         Drive one vehicle at a time. Change truck, status, and verify GPS here —
         other assigned assets go offline when you go live.
@@ -543,8 +550,9 @@ function OperatorDashboard() {
         <div className="log-dash-avail-controls">
           {!assigned.length ? (
             <p className="log-hint" style={{ margin: 0 }}>
-              No truck or equipment is assigned to you yet. Ask your owner to
-              assign one from Operators / Fleet.
+              {ownerOperating
+                ? "You have no unit free to use yet. Add one from My Vehicles or Equipment."
+                : "No truck or equipment is assigned to you yet. Ask your owner to assign one from Operators / Fleet."}
             </p>
           ) : (
             <>
@@ -556,6 +564,7 @@ function OperatorDashboard() {
                     value={selectedAssetId}
                     onChange={onUsingNowChange}
                     disabled={busy}
+                    myUserId={myUserId}
                   />
                 </div>
                 <label className="log-field">

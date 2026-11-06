@@ -5,6 +5,10 @@ const L = require("./lib");
 
 (async () => {
   const st = L.loadState();
+  const C = L.cast(st.RUN);
+  // realistic load; the PO number keeps this job unique in lists
+  const goods = `OPC cement – 100 bags · PO ${String(st.RUN).toUpperCase()}`;
+  const bigUnit = C.unit("truck", 31);
   const d = await L.db();
   const { ObjectId } = L.mongoose.Types;
   const OUTBOX = require("path").join(__dirname, "outbox.jsonl");
@@ -70,7 +74,7 @@ const L = require("./lib");
     L.check(!smaller.includes("4 ton") && !smaller.includes("below 2 ton"), "sizes too small for 8 t are not offered", smaller);
     await L.shot(c, "s3-weight-cap");
     // server enforces the same rule (kg converted to tons first)
-    const base = { job_type: "transport", job_class: "corridor", load_type: "E2E cap", pickup: { address: "Harare", coordinates: [31.0522, -17.8292] }, dropoff: { address: "Ruwa", coordinates: [31.2447, -17.8897] }, when_needed: new Date(Date.now() + 20 * 86400000).toISOString(), budget: { amount: 300, currency: "USD" }, special_notes: "Vehicle: 4 ton" };
+    const base = { job_type: "transport", job_class: "corridor", load_type: "Steel reinforcing bars (Y12) bundles", pickup: { address: L.PLACES.base, coordinates: L.PLACES.coords.harare }, dropoff: { address: L.PLACES.drops[0], coordinates: L.PLACES.coords.chitungwiza }, when_needed: new Date(Date.now() + 20 * 86400000).toISOString(), budget: { amount: 300, currency: "USD" }, special_notes: "Vehicle: 4 ton" };
     const over = await L.api("POST", "/logistics/job", { token: st.customer.token, body: { ...base, load_weight: { value: 5000, unit: "kg" } } });
     L.check(over.success === false && /exceeds 4 ton capacity \(max 4 tons\)/.test(over.message || ""), "API rejects 5000 kg on a 4 ton vehicle", over.message || over);
 
@@ -95,8 +99,8 @@ const L = require("./lib");
     const tToday = await L.api("POST", "/logistics/job", { token: st.customer.token, body: { ...base, special_notes: "Vehicle: 6 ton", load_weight: { value: 5, unit: "tons" }, when_needed: todayUtc } });
     L.check(tToday.success === false && /tomorrow or later — choose Now for today/.test(tToday.message || ""), "API rejects a Schedule post dated today", tToday.message || tToday);
 
-    const jobId = await L.postTransportJob(c, { goods: `E2E cement ${st.RUN}` });
-    st.job = { _id: jobId };
+    const jobId = await L.postTransportJob(c, { goods });
+    st.job = { _id: jobId, goods };
     let job = await d.collection("transport_jobs").findOne({ _id: new ObjectId(jobId) });
     L.check(job && job.job_class === "corridor", "Schedule job saved as corridor", job && job.job_class);
     L.check(job && job.pickup?.address && job.dropoff?.address && job.pickup.address !== job.dropoff.address, "distinct pickup/dropoff addresses saved", { p: job?.pickup?.address, d: job?.dropoff?.address });
@@ -121,11 +125,11 @@ const L = require("./lib");
         let r = await L.api("POST", `/logistics/job/${jobId}/quote`, { token: L.tokenFor(st.operator._id), body: { asset_id: st.truck._id, amount: 280, message: "x" } });
         L.check(r.success === false && r.data?.code === "TRUCK_TOO_SMALL" && r.data?.need_tons === 5 && r.data?.capacity_tons === 2 && !r.data?.better_assets?.length, "API refuses: TRUCK_TOO_SMALL, no bigger truck", r.message);
         // a bigger truck assigned to the same operator → told to switch to it
-        await assets.insertOne({ ...truck0, _id: bigId, name: `E2E Big truck ${st.RUN}`, registration: `BG${st.RUN}`.toUpperCase().slice(0, 10), capacity: { value: 16, unit: "tons" }, is_featured: false, createdAt: new Date(), updatedAt: new Date() });
+        await assets.insertOne({ ...truck0, _id: bigId, name: bigUnit.name, registration: bigUnit.plate, capacity: { value: 16, unit: "tons" }, is_featured: false, createdAt: new Date(), updatedAt: new Date() });
         await L.goto(op, `/logistics/driver/job/${jobId}`);
         await op.page.waitForFunction(() => /Switch Using now/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
         t = await L.bodyText(op);
-        L.check(new RegExp(`Switch Using now to E2E Big truck ${st.RUN} .* up to 16 t`).test(t), "bigger truck assigned: told to switch to it", t.slice(0, 300));
+        L.check(new RegExp(`Switch Using now to ${bigUnit.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} .* up to 16 t`).test(t), "bigger truck assigned: told to switch to it", t.slice(0, 300));
         L.check(await op.page.getByRole("link", { name: "Open dashboard" }).count(), "Open dashboard button shown (to switch Using now)");
         r = await L.api("POST", `/logistics/job/${jobId}/quote`, { token: L.tokenFor(st.operator._id), body: { asset_id: st.truck._id, amount: 280, message: "x" } });
         L.check(r.success === false && r.data?.better_assets?.[0]?._id === String(bigId), "API names the bigger truck (better_assets)", r.data);
@@ -141,12 +145,12 @@ const L = require("./lib");
     await L.goto(op, "/logistics/driver/work");
     await op.page.waitForTimeout(2500);
     await L.shot(op, "s3-work");
-    L.check((await L.bodyText(op)).includes(`E2E cement ${st.RUN}`), "job listed in operator Opportunities");
+    L.check((await L.bodyText(op)).includes(goods), "job listed in operator Opportunities");
     await L.goto(op, `/logistics/driver/job/${jobId}`);
     await op.page.waitForSelector('input[aria-label="Quote amount"]', { timeout: 15000 });
     const shown = await L.typeMoney(op.page, 'input[aria-label="Quote amount"]', "280");
     L.check(shown === "280.00", "quote field shows 280.00", shown);
-    await op.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "E2E quote");
+    await op.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "Can load from Industrial Area by 9 am tomorrow. Tarpaulin cover included.");
     await L.shot(op, "s3-quote-form");
     await op.page.getByRole("button", { name: /Send my quote|Send new quote|Update quote/ }).last().click();
     L.check(await L.waitText(op, /Quote (sent|submitted)|quoted/i), "quote sent");
@@ -213,9 +217,11 @@ const L = require("./lib");
     const wa = outboxSince(WA0).filter((m) => m.channel === "whatsapp");
     const steps = wa.filter((m) => m.template === "job_status" && m.ok).map((m) => m.variables["2"]);
     L.check(steps.some((t) => /accepted/i.test(t)) && steps.some((t) => /in transit/i.test(t)) && steps.some((t) => /delivered/i.test(t)), "customer got trip-step WhatsApps (accepted … in transit … delivered)", steps);
-    L.check(wa.some((m) => m.template === "job_status" && m.ok && /confirmation code is ready/.test(m.variables["2"]) && !m.variables["2"].includes(otp)), "code-ready alert sent to the customer's WhatsApp (code itself stays in the app)", wa.filter((m) => m.template === "job_status").map((m) => m.variables));
-    // v2.7.50: WhatsApp to owners / operators is paid-only — this fleet is on Free
-    L.check(!wa.some((m) => m.template === "job_status" && /owner\/job/.test(m.variables["3"] || "")), "Free-plan owner gets NO accepted / completed WhatsApp (paid-only)");
+    // v2.7.61 (item 34): the code goes through the OTP template, then a job update explains it (without the code)
+    L.check(wa.some((m) => m.template === "otp" && m.ok && String(m.variables["1"]) === otp), "delivery code sent through the approved OTP template", wa.map((m) => m.template));
+    L.check(wa.some((m) => m.template === "job_status" && m.ok && /your confirmation code/.test(m.variables["2"]) && !m.variables["2"].includes(otp)), "then a job update explains it (no code in that message)", wa.map((m) => m.variables?.["2"]));
+    // v2.7.61 (item 36): a new owner is in his WhatsApp trial, so he gets the trip updates (Free plan)
+    L.check(wa.some((m) => m.template === "job_status" && m.ok && /owner\/job/.test(m.variables["3"] || "")), "owner in trial gets accepted / completed WhatsApp");
     const ownerNotes2 = await d.collection(" notifications").find({ receiver_id: new ObjectId(st.owner._id), type: "logistics_owner_job_update", job_id: new ObjectId(jobId) }).toArray().catch(() => []);
     L.check(ownerNotes2.length >= 3, "owner in-app notices for start / pickup / transit / completed", ownerNotes2.length);
 
@@ -226,19 +232,19 @@ const L = require("./lib");
     await c.page.waitForSelector(".log-rate-modal", { timeout: 15000 });
     L.check(await c.page.locator(".log-rate-modal__submit").isDisabled(), "rating Submit disabled before a star");
     await c.page.locator(".log-rate-modal__stars button").nth(3).click();
-    await c.page.fill('.log-rate-modal textarea', "Great e2e delivery");
+    await c.page.fill('.log-rate-modal textarea', "Driver was on time and handled the cement bags carefully. Recommended!");
     await c.page.locator(".log-rate-modal__submit").click();
     L.check(await L.waitText(c, /Thanks for your review/), "review submitted");
     await L.goto(c, "/logistics/jobs");
     await c.page.waitForTimeout(1500);
     await L.shot(c, "s3-my-jobs");
-    L.check((await L.bodyText(c)).includes(`E2E cement ${st.RUN}`), "job in customer My jobs");
+    L.check((await L.bodyText(c)).includes(goods), "job in customer My jobs");
 
     // ── owner side visibility
     L.sec("3h. Owner sees job + earnings");
     await L.goto(o, "/logistics/owner/jobs");
     await o.page.waitForTimeout(1500);
-    L.check((await L.bodyText(o)).includes(`E2E cement ${st.RUN}`), "job in owner Jobs");
+    L.check((await L.bodyText(o)).includes(goods), "job in owner Jobs");
     await L.goto(o, "/logistics/owner/earnings");
     await o.page.waitForTimeout(1500);
     await L.shot(o, "s3-owner-earnings");
@@ -246,7 +252,7 @@ const L = require("./lib");
     L.check(/USD 280\b/.test(et) && /USD 224\b/.test(et) && /USD 56\b/.test(et), "owner earnings: total 280, owner 224, operator 20% = 56", et.slice(0, 300));
     await L.goto(op, "/logistics/driver/jobs");
     await op.page.waitForTimeout(1500);
-    L.check((await L.bodyText(op)).includes(`E2E cement ${st.RUN}`), "job in operator My jobs");
+    L.check((await L.bodyText(op)).includes(goods), "job in operator My jobs");
   } catch (e) {
     L.check(false, "stage crashed", e.message.split("\n")[0]);
     for (const x of [op, o, c].filter(Boolean)) await L.shot(x, "s3-crash");

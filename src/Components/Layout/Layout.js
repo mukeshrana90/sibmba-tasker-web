@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import Header from "./Header";
 import Footer from "./Footer";
 import LandingGuestHeader from "../../CommanComponents/Landing/LandingGuestHeader";
+import GuestBottomNav from "../../CommanComponents/Landing/GuestBottomNav";
 import SimbaMarketingFooter from "./SimbaMarketingFooter";
 import { LandingProvider } from "../../context/LandingContext";
 import {
@@ -67,7 +68,10 @@ export default function Layout({
     (isHomeLanding && footerVariant !== "app");
   const useMarketingShell = useLandingHeader || useMarketingFooter;
 
-  const isDriver = Boolean(localStorage.getItem("owner_id"));
+  // An owner on the operator pages (v2.7.61) gets the operator menu there
+  const isDriver =
+    Boolean(localStorage.getItem("owner_id")) ||
+    location.pathname.startsWith("/logistics/driver");
   const { customerDetails } = useSelector((state) => state.login);
   const showSupplySidebar = useMemo(() => {
     if (Number(role) !== Roles.LOGISTICS || !token) return false;
@@ -115,6 +119,7 @@ export default function Layout({
               )}
               {children}
               {useMarketingFooter ? <SimbaMarketingFooter /> : <Footer />}
+              {isGuest ? <GuestBottomNav /> : null}
             </>
           )}
         </div>

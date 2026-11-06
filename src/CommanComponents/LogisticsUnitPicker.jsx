@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CategoryGlyph } from "./LogisticsFormIcons";
+import { occupancyLabel, unitHeldByOther } from "../utils/ownerOperator";
 
 const PLANT_KEYS = ["agricultural", "construction", "industrial"];
 
@@ -49,13 +50,15 @@ function unitMeta(a) {
  * "Disabled by your owner — not selectable" and can't be picked.
  * Replaces a native <select> (options there can't show icons).
  */
-export default function LogisticsUnitPicker({ units = [], value, onChange, disabled = false, id }) {
+export default function LogisticsUnitPicker({ units = [], value, onChange, disabled = false, id, myUserId }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const wrapRef = useRef(null);
   const listRef = useRef(null);
 
+  // v2.7.61: a unit someone else is using can't be picked; the chip says who
   const usable = useMemo(() => units.filter((a) => !unitDisabled(a)), [units]);
+  const held = (a) => unitHeldByOther(a, myUserId);
   const off = useMemo(() => units.filter(unitDisabled), [units]);
   const groups = useMemo(
     () =>
@@ -65,7 +68,10 @@ export default function LogisticsUnitPicker({ units = [], value, onChange, disab
     [usable]
   );
   // Keyboard order = usable units in group order
-  const flat = useMemo(() => groups.flatMap((g) => g.items), [groups]);
+  const flat = useMemo(
+    () => groups.flatMap((g) => g.items).filter((a) => !unitHeldByOther(a, myUserId)),
+    [groups, myUserId]
+  );
   const selected = units.find((a) => String(a._id) === String(value)) || null;
 
   useEffect(() => {
@@ -92,7 +98,7 @@ export default function LogisticsUnitPicker({ units = [], value, onChange, disab
   }, [open, active, flat]);
 
   const pick = (a) => {
-    if (!a || unitDisabled(a)) return;
+    if (!a || unitDisabled(a) || held(a)) return;
     onChange?.(String(a._id));
     setOpen(false);
   };
@@ -120,7 +126,9 @@ export default function LogisticsUnitPicker({ units = [], value, onChange, disab
     }
   };
 
-  const row = (a, { off: isOff = false } = {}) => {
+  const row = (a, { off: isOffRow = false } = {}) => {
+    const inUse = !isOffRow && held(a);
+    const isOff = isOffRow || inUse;
     const sel = String(a._id) === String(value);
     const hot = !isOff && flat[active] && String(flat[active]._id) === String(a._id);
     return (
@@ -142,7 +150,9 @@ export default function LogisticsUnitPicker({ units = [], value, onChange, disab
           <b>{a.name || "Unit"}</b>
           <small>{unitMeta(a)}</small>
         </span>
-        {isOff ? (
+        {inUse ? (
+          <span className="log-unit-pick__chip" data-testid="unit-pick-in-use">{occupancyLabel(a)}</span>
+        ) : isOff ? (
           <span className="log-unit-pick__chip">{a.plan_locked ? "Owner's plan limit" : "Disabled by owner"}</span>
         ) : sel ? (
           <span className="log-unit-pick__check" aria-hidden="true">✓</span>

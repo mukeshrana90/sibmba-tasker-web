@@ -151,9 +151,28 @@ export default function LogisticsSupplySidebar({
   const [oppCount, setOppCount] = useState(0);
 
   const { cabEnabled } = useLogisticsConfig();
-  const items = (isDriver ? LOGISTICS_OPERATOR_SIDEBAR : LOGISTICS_OWNER_SIDEBAR).filter(
-    (item) => !item.cabOnly || cabEnabled
-  );
+  // v2.7.61 owner-operator: a way between the two dashboards
+  const ownerAccount = useLogisticsAccount();
+  const isOwnerUser = !localStorage.getItem("owner_id");
+  const ownerCanOperate = isOwnerUser && Boolean(ownerAccount?.owner_operator?.can_operate);
+  const items = useMemo(() => {
+    const base = (isDriver ? LOGISTICS_OPERATOR_SIDEBAR : LOGISTICS_OWNER_SIDEBAR).filter(
+      (item) => !item.cabOnly || cabEnabled
+    );
+    if (isDriver && isOwnerUser) {
+      return [
+        { label: "Owner dashboard", path: "/logistics/owner", exact: true, icon: "users" },
+        ...base,
+      ];
+    }
+    if (!isDriver && ownerCanOperate) {
+      const at = base.findIndex((i) => i.label === "Availability");
+      const next = [...base];
+      next.splice(at + 1, 0, { label: "Operate a unit", path: "/logistics/driver", icon: "vehicle" });
+      return next;
+    }
+    return base;
+  }, [isDriver, isOwnerUser, ownerCanOperate, cabEnabled]);
 
   const unreadMessages = useMemo(
     () =>
@@ -274,18 +293,17 @@ export default function LogisticsSupplySidebar({
   }, [dispatch, path]);
 
   const name = customerDisplayName(customerDetails) || "User";
-  const roleLabel = isDriver ? "Operator" : "Equipment owner";
+  const roleLabel = isOwnerUser ? (isDriver ? "Owner operating" : "Equipment owner") : "Operator";
   const company =
     customerDetails?.company_name ||
     customerDetails?.business_name ||
-    (isDriver ? "Assigned fleet" : "Your fleet");
+    (!isOwnerUser ? "Assigned fleet" : "Your fleet");
   const profileImage = customerDetails?.profile_image
     ? ImagePathCustomer(customerDetails.profile_image)
     : null;
   const initials = getInitials(name);
   // Operators show their fleet owner's Verified badge (set by Simba admin)
-  const account = useLogisticsAccount();
-  const verified = Number(customerDetails?.is_verified) === 1 || Boolean(account?.fleet_verified);
+  const verified = Number(customerDetails?.is_verified) === 1 || Boolean(ownerAccount?.fleet_verified);
 
   return (
     <>

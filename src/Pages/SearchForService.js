@@ -1,3 +1,4 @@
+import EmptyResults from "../CommanComponents/EmptyResults";
 import React, { useEffect, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
@@ -194,7 +195,7 @@ export default function SearchForService() {
                         </>
                       ) : (
                         <>
-                          <h2> No Data Found </h2>
+                          <EmptyResults module="services" />
                         </>
                       )}
                     </ul>

@@ -12,7 +12,6 @@ import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
-import { buildPublicAssetUrl } from "../../utils/ImagePath";
 import { logisticsSupplyNeedsSubscription } from "../../utils/chatAccess";
 import { getActiveModule } from "../../utils/Roles";
 import {
@@ -23,19 +22,19 @@ import "./logistics.css";
 import {
   LogisticsListSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
-import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
+import LogisticsOperatorDocRows, { publicUrl } from "../../CommanComponents/LogisticsOperatorDocRows";
+import LogisticsFacePhotoField from "../../CommanComponents/LogisticsFacePhotoField";
 import {
   OPERATOR_COMPLIANCE_TYPES,
-  docExpiryChip,
-  docReviewChip,
-  docRuleHint,
-  fmtExpiry,
   REMINDER_HINT,
-  tomorrowYmd,
 } from "../../utils/docExpiry";
 import { LICENCE_CLASSES } from "../../utils/logisticsLicence";
-import { DOC_ACCEPT, PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
+import { DOC_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
+import LogisticsAddLock, { ADD_LOCKED_TITLE, useAddLocked } from "../../CommanComponents/LogisticsAddLock";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
+import { focusField } from "../../utils/focusField";
+import { apiErrorMessage, isApiFailure } from "../../utils/ownerOperator";
+import useDocDeepLink from "../../Hooks/useDocDeepLink";
 
 const OPERATOR_DOCS = [
   {
@@ -81,6 +80,9 @@ const INVITE_CHANNEL_OPTIONS = [
   { id: "whatsapp", label: "WhatsApp", hint: "Link to their phone (SMS if WhatsApp isn't available)" },
 ];
 
+// "Copy link" is a local testing aid; `npm run build` sets NODE_ENV to production
+const SHOW_COPY_INVITE_LINK = process.env.NODE_ENV !== "production";
+
 async function copyText(text) {
   if (!text) return false;
   try {
@@ -102,31 +104,14 @@ const emptyInvite = () => ({
   pay_value: "20",
   profile_photo: null,
   profile_preview: null,
+  // Photo already on the operator (edit) — the × only undoes a new pick
+  profile_saved: null,
   docs: {},
   asset_ids: [],
   extra_docs: [],
   // v2.7.34: where the invite link goes
   send_via: ["email", "whatsapp"],
 });
-
-function publicUrl(path) {
-  if (!path) return null;
-  let normalized = String(path).replace(/\\/g, "/").trim();
-  if (!normalized || normalized === "undefined" || normalized === "null") {
-    return null;
-  }
-  if (normalized.startsWith("http") || normalized.startsWith("blob:")) {
-    return normalized;
-  }
-  const absPublic = normalized.indexOf("/public/");
-  if (absPublic !== -1) {
-    normalized = normalized.slice(absPublic + "/public".length);
-  } else if (normalized.startsWith("public/")) {
-    normalized = normalized.slice("public".length);
-  }
-  if (!normalized.startsWith("/")) normalized = `/${normalized}`;
-  return buildPublicAssetUrl(normalized);
-}
 
 /** "Driving / plant licence: expiry date is required" when a licence / medical has no expiry. */
 function missingDocExpiry(docs) {
@@ -151,6 +136,19 @@ function OperatorDocStatus({ compliance }) {
     })),
     ...(compliance.missing_expiry || []).map((d) => ({ key: `m-${d.type}`, tone: "muted", text: `${d.label}: no expiry set` })),
   ];
+  // 29 Oct 2026: a verified licence (and every document checked) before going live
+  const block = compliance.block;
+  if (block?.code === "DOC_REQUIRED" && block.type === "licence") {
+    chips.unshift({ key: "b-licence", tone: "closed", text: "No licence — can't go live" });
+  } else if (block?.code === "DOC_PENDING_CHECK") {
+    chips.unshift({
+      key: "b-pending",
+      tone: "progress",
+      text: block.type === "licence" ? "Licence awaiting check" : `${block.label || "Document"} awaiting check`,
+    });
+  } else if (block?.code === "DOC_REJECTED") {
+    chips.unshift({ key: "b-rejected", tone: "closed", text: `${block.label || "Document"} rejected` });
+  }
   if (!chips.length) return null;
   return (
     <span className="log-doc-status">
@@ -165,102 +163,6 @@ function OperatorDocStatus({ compliance }) {
         </span>
       ) : null}
     </span>
-  );
-}
-
-function OperatorDocRows({ items, docs, onPick, onExpiry }) {
-  return (
-    <ul className="log-doc-list">
-      {items.map((d) => {
-        const entry = docs[d.id];
-        const fileLabel =
-          entry?.name || entry?.file?.name || (entry?.url ? "On file" : null);
-        const existingHref = entry?.url ? publicUrl(entry.url) : null;
-        return (
-          <li key={d.id} className="log-doc-row">
-            <span className="log-doc-row__icon" aria-hidden="true">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path d="M7 3h7l5 5v13H7V3Z" />
-                <path d="M14 3v5h5" />
-              </svg>
-            </span>
-            <span className="log-doc-row__body">
-              <b>{d.label}</b>
-              {d.id === "licence" || d.id === "medical" ? (
-                <small className="log-doc-row__rule">{docRuleHint(d.id, { operator: true })}</small>
-              ) : null}
-              <p>
-                {fileLabel
-                  ? `${fileLabel}${
-                      entry?.expires ? ` · expires ${fmtExpiry(entry.expires)}` : ""
-                    }`
-                  : d.hint}
-                {existingHref && !entry?.file ? (
-                  <>
-                    {" · "}
-                    <a href={existingHref} target="_blank" rel="noreferrer">
-                      View
-                    </a>
-                  </>
-                ) : null}
-              </p>
-            </span>
-            {entry?.url || entry?.file ? (
-              <span className={`log-chip log-chip--${docExpiryChip(entry?.expires).tone}`}>
-                {docExpiryChip(entry?.expires).label}
-              </span>
-            ) : null}
-            {entry?.url && !entry?.file && docReviewChip(entry.review) ? (
-              <span
-                className={`log-chip log-chip--${docReviewChip(entry.review).tone} log-doc-review`}
-                data-review={entry.review?.status}
-              >
-                {docReviewChip(entry.review).label}
-              </span>
-            ) : null}
-            <label className="log-doc-row__expiry">
-              <span>
-                Expiry date
-                {OPERATOR_COMPLIANCE_TYPES.includes(d.id) ? <span className="log-req"> *</span> : null}
-              </span>
-              <LogisticsDateInput
-                pickerOnly
-                value={entry?.expires || ""}
-                onChange={(e) => onExpiry?.(d.id, e.target.value)}
-                required={OPERATOR_COMPLIANCE_TYPES.includes(d.id) && Boolean(entry?.file || entry?.url)}
-                min={tomorrowYmd()}
-              />
-              {(entry?.file || entry?.url) && !entry?.expires && OPERATOR_COMPLIANCE_TYPES.includes(d.id) ? (
-                <span className="log-field-error">Expiry date is required</span>
-              ) : null}
-            </label>
-            <label
-              className="log-doc-row__add"
-              title={fileLabel ? "Replace file" : "Upload"}
-            >
-              <input
-                type="file"
-                accept={DOC_ACCEPT}
-                hidden
-                onChange={(e) => {
-                  const [f] = keepAllowedFiles(e.target.files);
-                  if (f) onPick(d.id, f);
-                  e.target.value = "";
-                }}
-              />
-              {fileLabel ? "↻" : "+"}
-            </label>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 
@@ -292,6 +194,8 @@ export default function LogisticsOperators() {
     };
   }, [dispatch]);
   const [showForm, setShowForm] = useState(showAddByRoute);
+  // 29 Oct 2026: no new operators until Simba approves the company
+  const addLocked = useAddLocked();
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyInvite);
   // Plan + usage from the banner; operators bucket full → add form is locked
@@ -362,6 +266,7 @@ export default function LogisticsOperators() {
           ? new Date(doc.expires).toISOString().slice(0, 10)
           : "",
         review: doc.review || null,
+        warning: doc.warning || null,
       };
       docs[id].orig_expires = docs[id].expires;
     });
@@ -378,6 +283,7 @@ export default function LogisticsOperators() {
       pay_value:
         op.invite_pay_value != null ? String(op.invite_pay_value) : "0",
       profile_preview: publicUrl(op.profile_image),
+      profile_saved: publicUrl(op.profile_image),
       docs,
       extra_docs,
     });
@@ -409,7 +315,7 @@ export default function LogisticsOperators() {
     e.target.value = "";
     if (!file) return;
     setForm((f) => {
-      if (f.profile_preview) URL.revokeObjectURL(f.profile_preview);
+      if (f.profile_preview && f.profile_photo) URL.revokeObjectURL(f.profile_preview);
       return {
         ...f,
         profile_photo: file,
@@ -510,6 +416,12 @@ export default function LogisticsOperators() {
       );
       return;
     }
+    // doc 12 · 4.2: every new operator needs a face photo
+    if (!form.profile_photo) {
+      toast.error("Add the operator's face photo");
+      focusField("profile_photo");
+      return;
+    }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -564,8 +476,10 @@ export default function LogisticsOperators() {
         const sentBy = inviteDeliverySummary(res?.payload?.data?.invite?.delivery);
         toast.success(
           sentBy
-            ? `Invite sent by ${sentBy}. You can also copy the link from Pending invites.`
-            : "Invite created, but it couldn't be sent — copy the link from Pending invites and share it."
+            ? `Invite sent by ${sentBy}.${SHOW_COPY_INVITE_LINK ? " You can also copy the link from Pending invites." : ""}`
+            : SHOW_COPY_INVITE_LINK
+              ? "Invite created, but it couldn't be sent — copy the link from Pending invites and share it."
+              : "Invite created, but it couldn't be sent — use Resend in Pending invites to try again."
         );
         closeForm();
         await load();
@@ -645,7 +559,9 @@ export default function LogisticsOperators() {
         toast.success(
           sentBy
             ? `Invite resent by ${sentBy} — valid for 7 more days`
-            : "New link created, but it couldn't be sent — use Copy link and share it"
+            : SHOW_COPY_INVITE_LINK
+              ? "New link created, but it couldn't be sent — use Copy link and share it"
+              : "New link created, but it couldn't be sent — try Resend again."
         );
         await load();
       } else {
@@ -678,6 +594,38 @@ export default function LogisticsOperators() {
     }
   };
 
+  // Item 18: one file only, back to Pending check; nothing else on the operator changes
+  const replaceOperatorDoc = async (docId, file, expires) => {
+    const fd = new FormData();
+    fd.append("documents", file);
+    fd.append("document_types", JSON.stringify([docId.startsWith("other_") ? "other" : docId]));
+    fd.append("document_expires", JSON.stringify([expires || ""]));
+    fd.append("document_names", JSON.stringify([file.name]));
+    const res = await dispatch(LogisticsActions.patchSubUser({ id: editingId, formData: fd }));
+    if (isApiFailure(res)) {
+      toast.error(apiErrorMessage(res?.payload, "Could not replace the document"));
+      return false;
+    }
+    toast.success("Document replaced — Simba will check it");
+    setForm((f) => ({
+      ...f,
+      docs: {
+        ...f.docs,
+        [docId]: {
+          ...(f.docs?.[docId] || {}),
+          name: file.name,
+          expires: expires || "",
+          orig_expires: expires || "",
+          file: null,
+          review: { status: "pending" },
+          warning: null,
+        },
+      },
+    }));
+    await load();
+    return true;
+  };
+
   const remove = async (id, name) => {
     if (
       !window.confirm(
@@ -693,12 +641,22 @@ export default function LogisticsOperators() {
         toast.success("Operator removed");
         await load();
       } else {
-        toast.error(res?.payload?.message || "Could not remove");
+        toast.error(apiErrorMessage(res?.payload, "Could not remove"));
       }
     } finally {
       setSaving(false);
     }
   };
+
+  // Item 19: a notification opens this operator's form at the right document
+  useDocDeepLink();
+  const deepLinkedOperator = new URLSearchParams(location.search).get("operator");
+  useEffect(() => {
+    if (!deepLinkedOperator || !operators.length || editingId === deepLinkedOperator) return;
+    const op = operators.find((o) => String(o._id) === String(deepLinkedOperator));
+    if (op) openEdit(op);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkedOperator, operators]);
 
   const empty = !loading && !operators.length && !invites.length;
   const isEditing = Boolean(editingId);
@@ -778,12 +736,13 @@ export default function LogisticsOperators() {
       if (
         logisticsSupplyNeedsSubscription({
           role: user.role,
-          isSubscribed: user.isSubscribed,
+          // Item 4: open during the free period too
+          isSubscribed: user.isSubscribed || user.whatsapp?.extras_active,
           activeModule: getActiveModule(),
         })
       ) {
         toast.info(
-          "An active fleet subscription is required to message operators"
+          "Messaging operators needs the free period or the Paid plan"
         );
         return;
       }
@@ -830,7 +789,8 @@ export default function LogisticsOperators() {
         refreshKey={operators.length + invites.length}
         onLoaded={setPlanSub}
       />
-      {showForm ? (
+      {addLocked && !(showForm && isEditing) ? <LogisticsAddLock what="operators" /> : null}
+      {showForm && !(addLocked && !isEditing) ? (
         <form
           className="log-form-card"
           onSubmit={isEditing ? saveOperatorEdit : sendInvite}
@@ -860,47 +820,24 @@ export default function LogisticsOperators() {
               : "We send the invite by email and SMS with a link. The operator opens it, sets a password and lands on their dashboard. Assign units now or later — they become active when the invite is accepted."}
           </p>
 
-          <div className="log-field log-field--full">
-            <span className="log-fl">Profile photo</span>
-            <div className="log-photo-slots">
-              {form.profile_preview ? (
-                <div className="log-photo-slot log-photo-slot--filled">
-                  <img src={form.profile_preview} alt="Operator" />
-                  <button
-                    type="button"
-                    className="log-photo-slot__remove"
-                    aria-label="Remove photo"
-                    onClick={() =>
-                      setForm((f) => {
-                        if (f.profile_preview && f.profile_photo) {
-                          URL.revokeObjectURL(f.profile_preview);
-                        }
-                        return {
-                          ...f,
-                          profile_photo: null,
-                          profile_preview: null,
-                        };
-                      })
-                    }
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : null}
-              <label className="log-photo-slot log-photo-slot--add">
-                <input
-                  type="file"
-                  accept={PHOTO_ACCEPT}
-                  hidden
-                  onChange={onPickPhoto}
-                />
-                <span className="log-photo-slot__plus">+</span>
-                <span className="log-photo-slot__label">
-                  {form.profile_preview ? "Replace" : "Add"}
-                </span>
-              </label>
-            </div>
-          </div>
+          <LogisticsFacePhotoField
+            preview={form.profile_preview}
+            canRemove={Boolean(form.profile_photo)}
+            onPick={onPickPhoto}
+            onRemove={() =>
+              setForm((f) => {
+                if (f.profile_preview && f.profile_photo) {
+                  URL.revokeObjectURL(f.profile_preview);
+                }
+                return {
+                  ...f,
+                  profile_photo: null,
+                  profile_preview: f.profile_saved,
+                };
+              })
+            }
+            hint="A clear photo of the operator's face — customers see who is coming once a job is accepted."
+          />
 
           <div className="log-form-grid">
             <label className="log-field">
@@ -1006,16 +943,18 @@ export default function LogisticsOperators() {
           </p>
           <p className="log-hint log-field--full">
             Licence scan, medical fitness and any other papers for this
-            operator. Pick each expiry date from the calendar — licence and medical need one (*).{" "}
+            operator. Once a file is attached, pick its expiry date from the calendar (*).{" "}
             {REMINDER_HINT} The driving / plant licence is required: with an expired one the
-            operator can&apos;t go live or quote. Medical fitness is optional.
+            operator can&apos;t go live or quote. Medical fitness is optional: a problem with it only
+            shows you a warning.
           </p>
           <div className="log-field--full">
-            <OperatorDocRows
+            <LogisticsOperatorDocRows
               items={docItems}
               docs={form.docs}
               onPick={onPickDoc}
               onExpiry={onDocExpiry}
+              onReplace={isEditing ? replaceOperatorDoc : undefined}
             />
             <label
               className="log-photo-slot log-photo-slot--add"
@@ -1168,7 +1107,7 @@ export default function LogisticsOperators() {
                         <small>
                           {paidOnly ? (
                             <>
-                              Paid plans only — <Link to="/logistics/owner/subscription">see plans</Link>
+                              Essentials free, full pack free for 60 days — <Link to="/logistics/owner/subscription">see plans</Link>
                             </>
                           ) : noPhone ? (
                             "Add a phone number first"
@@ -1276,8 +1215,10 @@ export default function LogisticsOperators() {
               ) : null}
               <button
                 type="button"
-                className="logistics-cta logistics-cta--primary"
-                onClick={openAdd}
+                className={`logistics-cta logistics-cta--primary${addLocked ? " is-locked" : ""}`}
+                onClick={addLocked ? undefined : openAdd}
+                disabled={addLocked}
+                title={addLocked ? ADD_LOCKED_TITLE : undefined}
               >
                 Add operator
               </button>
@@ -1296,8 +1237,10 @@ export default function LogisticsOperators() {
               </p>
               <button
                 type="button"
-                className="logistics-cta logistics-cta--primary"
-                onClick={openAdd}
+                className={`logistics-cta logistics-cta--primary${addLocked ? " is-locked" : ""}`}
+                onClick={addLocked ? undefined : openAdd}
+                disabled={addLocked}
+                title={addLocked ? ADD_LOCKED_TITLE : undefined}
               >
                 Add your first operator
               </button>
@@ -1375,6 +1318,11 @@ export default function LogisticsOperators() {
                                 Active
                               </span>
                               <OperatorDocStatus compliance={op.document_compliance} />
+                              {!photo ? (
+                                <span className="log-unit-notbookable">
+                                  No face photo — Edit to add one
+                                </span>
+                              ) : null}
                             </td>
                             <td>
                               <div className="log-op-contact">
@@ -1538,7 +1486,7 @@ export default function LogisticsOperators() {
                             </td>
                             <td>
                               <div className="log-op-table-actions">
-                                {link ? (
+                                {SHOW_COPY_INVITE_LINK && link ? (
                                   <button
                                     type="button"
                                     className="logistics-cta logistics-cta--ghost"

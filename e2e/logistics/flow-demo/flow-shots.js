@@ -122,6 +122,8 @@ const PHASES = {
     const phone = `77${String(Date.now()).slice(-7)}`;
     await L.goto(o, "/sign-up?role=logistics", "form");
     await o.page.getByRole("button", { name: "Equipment Owner" }).click();
+    await o.page.fill("#full_name", "Tendai Moyo");
+    await o.page.fill("#company_name", "Moyo Haulage & Plant");
     await o.page.fill("#email", email);
     await o.page.locator("#phone").click();
     await o.page.locator("#phone").press("End");
@@ -163,6 +165,7 @@ const PHASES = {
       await o.page.locator(".simba-book-loc-modal .btn-primary").click();
       await wait(o, 500);
       await docs(o, ["Road licence", "Insurance"]);
+      await L.addUnitPhotos(o.page);
       if (shotName) {
         await o.page.evaluate(() => window.scrollTo(0, 0));
         await snap(o, shotName);
@@ -202,6 +205,7 @@ const PHASES = {
     const priceSel = 'input[aria-label="Price per day"], input[aria-label="Price per hour"]';
     if (await o.page.locator(priceSel).count()) await L.typeMoney(o.page, priceSel, "150");
     await o.page.evaluate(() => window.scrollTo(0, 0));
+    await L.addUnitPhotos(o.page);
     await snap(o, "owner-05-add-equipment");
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
     await L.waitText(o, /Equipment added/);
@@ -223,6 +227,7 @@ const PHASES = {
       await o.page.fill('input[placeholder="Licence number"]', `ZW-${Math.floor(Math.random() * 900000 + 100000)}`);
       for (const u of units) await o.page.locator(".log-asset-pick__list li").filter({ hasText: u }).locator('input[type="checkbox"]').check();
       await docs(o, ["Driving / plant licence"]).catch(() => {});
+      await L.addFacePhoto(o.page);
       if (shotName) {
         await o.page.evaluate(() => window.scrollTo(0, 0));
         await snap(o, shotName);

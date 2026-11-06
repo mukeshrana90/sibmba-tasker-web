@@ -574,6 +574,8 @@ function SupplyMyJobsTable({
           page,
           limit: PAGE_SIZE,
         };
+        // Operator pages list the user's own jobs, also for an owner running a unit
+        if (enableMultiTransit) params.mine = 1;
         if (applied.q) params.q = applied.q;
         if (applied.from) params.from = applied.from;
         if (applied.to) params.to = applied.to;

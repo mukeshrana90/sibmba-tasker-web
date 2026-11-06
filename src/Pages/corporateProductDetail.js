@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import Slider from "react-slick";
 import Layout from "../Components/Layout/Layout";
+import { guestLoginPath } from "../utils/authRedirect";
 import ChatIcon from "../Assets/Images/chat.svg";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -281,6 +282,11 @@ export default function CorporateProductDetailPage() {
                 <button
                   className="view-more-btn"
                   onClick={() => {
+                    // Item 52: guests browse freely; Chat asks for login
+                    if (!localStorage.getItem("token")) {
+                      navigate(guestLoginPath());
+                      return;
+                    }
                     const product = {
                       image: productDetails?.images?.[0]
                         ? productImageUrl(productDetails.images[0])
@@ -308,6 +314,10 @@ export default function CorporateProductDetailPage() {
                     <button
                       className="primaryBtn"
                       onClick={() => {
+                        if (!localStorage.getItem("token")) {
+                          navigate(guestLoginPath());
+                          return;
+                        }
                         handlePaymentOpen(productDetails?._id);
                         setSelectedBoooking(productDetails);
                       }}

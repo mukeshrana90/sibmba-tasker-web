@@ -55,7 +55,8 @@ export async function handleAuthSuccess({
     persistTaskerSession();
   }
 
-  if (Number(data?.email_verified) === 0) {
+  // Verified by either channel: WhatsApp verification sets only phone_verified (item 29)
+  if (Number(data?.email_verified) === 0 && Number(data?.phone_verified) !== 1) {
     navigate(otpVerificationPath(userId), { replace: true });
     toast.success(payload?.message);
     return true;

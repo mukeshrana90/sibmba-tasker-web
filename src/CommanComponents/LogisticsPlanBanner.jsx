@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import LogisticsWhatsappExtras from "./LogisticsWhatsappExtras";
 import { useDispatch } from "react-redux";
 import LogisticsActions from "../Redux/Actions/LogisticsActions";
 import { isPlanBucketFull } from "../utils/logisticsPlan";
@@ -56,6 +57,7 @@ export default function LogisticsPlanBanner({
           {unlimited ? "Unlimited fleet" : "Limits apply"}
           {sub.expires_at ? ` · ends ${new Date(sub.expires_at).toLocaleDateString()}` : ""}
         </small>
+        <LogisticsWhatsappExtras whatsapp={sub.whatsapp} upgradeLink={false} />
       </span>
       <span className="log-plan-banner__meters">
         {buckets.map((k) => {

@@ -1,3 +1,4 @@
+import EmptyResults from "../CommanComponents/EmptyResults";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
@@ -227,11 +228,11 @@ export default function CorporateCategoryDetail() {
     if (search.trim()) {
       return `No corporates match "${search.trim()}" in this category.`;
     }
-    return "No corporate suppliers found in this category yet.";
+    return "No corporate suppliers in this category yet, so here is who's closest.";
   }, [search]);
 
   const resultLabel = useMemo(() => {
-    if (totalCount === 0) return "No corporates found";
+    if (totalCount === 0) return "Nearest suppliers";
     if (totalCount === 1) return "1 corporate found";
     return `${totalCount} corporates found`;
   }, [totalCount]);
@@ -296,20 +297,7 @@ export default function CorporateCategoryDetail() {
                 <Loader />
               </div>
             ) : corporates.length === 0 ? (
-              <div className="empty">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path d="M3 7h18M3 12h18M3 17h18" strokeLinecap="round" />
-                </svg>
-                <h3>No corporates yet</h3>
-                <p>{emptyMessage}</p>
-              </div>
+              <EmptyResults module="corporate" message={emptyMessage} />
             ) : (
               <>
                 <div className="prov-grid">

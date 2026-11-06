@@ -32,6 +32,11 @@ import {
 } from "../../utils/docExpiry";
 import { DEFAULT_COUNTRY_CODE } from "../../utils/logisticsPhone";
 import { focusField } from "../../utils/focusField";
+import { MIN_ASSET_PHOTOS, photosMissingNote, unitStatusChip } from "../../utils/ownerUnitStatus";
+import { apiErrorMessage, isApiFailure } from "../../utils/ownerOperator";
+import LogisticsDocReplace, { DocWarning } from "../../CommanComponents/LogisticsDocReplace";
+import { UnitOperateControl } from "../../CommanComponents/LogisticsOwnerOperator";
+import useDocDeepLink from "../../Hooks/useDocDeepLink";
 import { formatRate, rateUnitOf } from "../../utils/assetRate";
 import LogisticsMoneyInput from "../../CommanComponents/LogisticsMoneyInput";
 import { DOC_ACCEPT, PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
@@ -54,14 +59,6 @@ function firstCapabilityLabel(asset) {
   );
 }
 
-const AVAIL_LABEL = {
-  available_now: "Available now",
-  returning_empty: "Returning empty",
-  scheduled: "Scheduled",
-  on_job: "On job",
-  offline: "Offline",
-};
-
 const DOC_LABELS = {
   ownership: "Ownership papers",
   insurance: "Insurance",
@@ -73,11 +70,12 @@ const DOC_LABELS = {
   other: "Document",
 };
 
+// Required documents first
 const VEHICLE_DOC_DEFS = [
-  { id: "ownership", label: "Ownership papers", hint: "Proof you own this truck" },
-  { id: "insurance", label: "Insurance", hint: "Current cover" },
   { id: "rego", label: "Road licence (ZINARA)", hint: "Road papers" },
   { id: "roadworthy", label: "Roadworthy / fitness", hint: "Tap to upload" },
+  { id: "ownership", label: "Ownership papers", hint: "Proof you own this truck" },
+  { id: "insurance", label: "Insurance", hint: "Current cover" },
 ];
 
 const CAB_DOC_DEFS = [
@@ -125,7 +123,7 @@ function assetVin(asset) {
   const hit = (asset?.capabilities || []).find((c) =>
     String(c).toLowerCase().startsWith("vin:")
   );
-  return hit ? String(hit).slice(4) : "";
+  return hit ? normalizePlateInput(String(hit).slice(4)) : "";
 }
 
 function operatorId(op) {
@@ -293,6 +291,8 @@ export default function LogisticsOwnerAsset() {
     setLoading(false);
   };
 
+  useDocDeepLink();
+
   useEffect(() => {
     load();
     return () => {
@@ -313,6 +313,7 @@ export default function LogisticsOwnerAsset() {
       value = normalizePlateInput(value);
       setIdErrors((err) => ({ ...err, [key]: "" }));
     }
+    if (key === "vin") value = normalizePlateInput(value);
     setForm((f) => ({ ...f, [key]: value }));
   };
 
@@ -431,6 +432,14 @@ export default function LogisticsOwnerAsset() {
       focusField("name");
       return;
     }
+    // doc 12 · 4.3: an edit can't take a unit below 2 photos (older units under 2 can't lose more)
+    const photoCount = keptPhotos.length + newPhotos.length;
+    const minPhotos = Math.min(MIN_ASSET_PHOTOS, (asset?.photos || []).length);
+    if (photoCount < minPhotos) {
+      toast.error(`Keep at least ${MIN_ASSET_PHOTOS} real photos of the unit`);
+      focusField("photos");
+      return;
+    }
     if ((asset?.kind === "vehicle" || asset?.kind === "cab") && !String(form.registration || "").trim()) {
       toast.error("Registration plate is required");
       focusField("registration");
@@ -469,7 +478,8 @@ export default function LogisticsOwnerAsset() {
         carriage_width_ft: form.carriage_width_ft || "",
         carriage_height_ft: form.carriage_height_ft || "",
         direct_booking_enabled: form.direct_booking_enabled ? "true" : "false",
-        ...(asset?.kind !== "equipment" ? { red_plate: form.red_plate ? "true" : "false" } : {}),
+        // Cabs only: trucks always need a roadworthy certificate (item 11)
+        ...(asset?.kind === "cab" ? { red_plate: form.red_plate ? "true" : "false" } : {}),
         ...(asset?.kind === "equipment"
           ? { price: form.price || "", rate_unit: form.price ? form.rate_unit || "day" : "" }
           : {}),
@@ -589,6 +599,23 @@ export default function LogisticsOwnerAsset() {
     }
   };
 
+  // Item 18: uploads this one file; the other documents stay as they are
+  const replaceDoc = async (type, file, expires) => {
+    const fd = new FormData();
+    fd.append("documents", file);
+    fd.append("document_types", JSON.stringify([type]));
+    fd.append("document_expires", JSON.stringify([expires || ""]));
+    fd.append("document_names", JSON.stringify([file.name]));
+    const res = await dispatch(LogisticsActions.patchAsset({ id, payload: fd }));
+    if (isApiFailure(res)) {
+      toast.error(apiErrorMessage(res?.payload, "Could not replace the document"));
+      return false;
+    }
+    toast.success("Document replaced — Simba will check it");
+    await load();
+    return true;
+  };
+
   const removeInvite = async (inviteId) => {
     setSaving(true);
     try {
@@ -626,7 +653,7 @@ export default function LogisticsOwnerAsset() {
         toast.success("Operator removed");
         await load();
       } else {
-        toast.error(res?.payload?.message || "Could not remove");
+        toast.error(apiErrorMessage(res?.payload, "Could not remove"), { autoClose: 8000 });
       }
     } finally {
       setSaving(false);
@@ -637,6 +664,7 @@ export default function LogisticsOwnerAsset() {
     .map(assetPhotoUrl)
     .filter(Boolean);
   const documents = Array.isArray(asset?.documents) ? asset.documents : [];
+  const rejectedPhotos = (asset?.photo_reviews || []).filter((r) => r?.status === "rejected");
   const active = Number(asset?.is_active) === 1;
   const vin = assetVin(asset);
   const isTruck = asset?.kind !== "equipment";
@@ -682,10 +710,8 @@ export default function LogisticsOwnerAsset() {
       toTons(asset.capacity.value, asset.capacity.unit || "tons")
     );
   })();
-  const avail =
-    AVAIL_LABEL[asset?.availability?.state] ||
-    asset?.availability?.state ||
-    "—";
+  // doc 12 · L36: what customers see — never "Available now" on a unit they can't book
+  const avail = asset ? unitStatusChip({ ...asset, customer_view: customerView }).label : "—";
 
   return (
     <LogisticsPageShell
@@ -784,8 +810,30 @@ export default function LogisticsOwnerAsset() {
             {docCompliance?.block?.code === "DOC_REQUIRED" ? (
               <div className="log-callout log-callout--danger log-doc-required" style={{ marginBottom: 16 }}>
                 <p>
-                  <strong>Hidden from customers — road licence (ZINARA) required.</strong>{" "}
+                  <strong>
+                    Hidden from customers —{" "}
+                    {docCompliance.block.type === "rego"
+                      ? "road licence (ZINARA) required"
+                      : docCompliance.block.type === "other"
+                        ? "a document is required"
+                        : `${String(docCompliance.block.label || "document").toLowerCase()} required`}
+                    .
+                  </strong>{" "}
                   {docCompliance.block.message} Add it under Edit details → Documents.
+                </p>
+              </div>
+            ) : docCompliance?.block?.code === "DOC_REJECTED" ? (
+              <div className="log-callout log-callout--danger log-doc-rejected" style={{ marginBottom: 16 }}>
+                <p>
+                  <strong>Hidden from customers — {String(docCompliance.block.label || "document").toLowerCase()} rejected.</strong>{" "}
+                  {docCompliance.block.message} Use Replace document below.
+                </p>
+              </div>
+            ) : docCompliance?.block?.code === "DOC_PENDING_CHECK" ? (
+              <div className="log-callout log-callout--warn log-doc-pending" style={{ marginBottom: 16 }}>
+                <p>
+                  <strong>Awaiting Simba&apos;s document check — the unit is shown to customers once verified.</strong>{" "}
+                  {docCompliance.block.message}
                 </p>
               </div>
             ) : docCompliance?.expired?.some((d) => d.blocking !== false) ? (
@@ -797,7 +845,7 @@ export default function LogisticsOwnerAsset() {
                     .map((d) => `${d.label} expired on ${fmtExpiry(d.expires)}`)
                     .join("; ")}
                   . Nobody can book or quote with this unit until you upload the
-                  renewed document (Edit details → Documents).
+                  renewed document (Replace document, below).
                 </p>
               </div>
             ) : docCompliance?.expiring?.length ? (
@@ -816,25 +864,34 @@ export default function LogisticsOwnerAsset() {
               </div>
             ) : null}
 
+            {asset && photosMissingNote(asset) ? (
+              <div className="log-callout log-callout--warn" style={{ marginBottom: 16 }}>
+                <p>
+                  <strong>{photosMissingNote(asset)}.</strong> Customers trust units with
+                  real photos — use Edit to add them.
+                </p>
+              </div>
+            ) : null}
+
             {active &&
             customerView &&
             !customerView.bookable &&
             customerView.status_detail !== "Documents expired" &&
-            !/ required$| rejected$/.test(String(customerView.status_detail || "")) ? (
+            !/ required$| rejected$|^Awaiting document check$/.test(String(customerView.status_detail || "")) ? (
               <div className="log-callout log-callout--warn" style={{ marginBottom: 16 }}>
                 <p>
-                  {!operators.length ? (
+                  {!operators.length && !asset?.owner_operating ? (
                     <>
                       <strong>Not bookable — no operator assigned.</strong> Customers can't
                       find or book this unit until an operator is assigned and accepts
-                      their invite. Assign one under Operators below.
+                      their invite, or you use it yourself. Assign one under Operators below.
                     </>
                   ) : customerView.status_detail === "Operator not online on this unit" ? (
                     <>
-                      <strong>Not bookable — no operator is live on this unit.</strong>{" "}
-                      Customers can book it only while one of its operators has it as
-                      their current vehicle and is available (they go live from their
-                      dashboard). You can't make it available for them.
+                      <strong>Not bookable — nobody is live on this unit.</strong>{" "}
+                      Customers can book it only while its operator, or you, are live on
+                      it. Operators go live from their dashboard; you can use the unit
+                      yourself while no operator is on it.
                     </>
                   ) : (
                     <>
@@ -879,7 +936,7 @@ export default function LogisticsOwnerAsset() {
                     </span>
                   ) : null}
                 </label>
-                {asset?.kind !== "equipment" ? (
+                {asset?.kind === "cab" ? (
                   <label className="log-check log-field--full" data-field="red_plate">
                     <input
                       type="checkbox"
@@ -1008,8 +1065,10 @@ export default function LogisticsOwnerAsset() {
                   />
                 </label>
 
-                <div className="log-field log-field--full">
-                  <span className="log-fl">Photos</span>
+                <div className="log-field log-field--full" data-field="photos">
+                  <span className="log-fl">
+                    Photos <span className="log-req">*</span>
+                  </span>
                   <div className="log-photo-slots">
                     {keptPhotos.map((item, idx) => (
                       <div
@@ -1065,7 +1124,7 @@ export default function LogisticsOwnerAsset() {
                     ) : null}
                   </div>
                   <span className="log-weight-hint">
-                    Remove photos with ×, or add new ones before saving.
+                    At least {MIN_ASSET_PHOTOS} real photos. Remove photos with ×, or add new ones before saving.
                   </span>
                 </div>
 
@@ -1113,7 +1172,7 @@ export default function LogisticsOwnerAsset() {
                           <label className="log-doc-row__expiry">
                             <span>
                               Expiry date
-                              {ASSET_COMPLIANCE_TYPES.includes(d.id) ? (
+                              {ASSET_COMPLIANCE_TYPES.includes(d.id) && (entry.file || entry.url) ? (
                                 <span className="log-req"> *</span>
                               ) : null}
                             </span>
@@ -1276,15 +1335,7 @@ export default function LogisticsOwnerAsset() {
                   </div>
                   <div className="log-detail-item">
                     <span className="log-fl">Availability</span>
-                    <strong>
-                      {customerView && !customerView.bookable
-                        ? !operators.length
-                          ? "Not bookable — no operator"
-                          : customerView.status_detail === "Operator not online on this unit"
-                            ? "Not bookable — operator not live"
-                            : avail
-                        : avail}
-                    </strong>
+                    <strong>{avail}</strong>
                   </div>
                   <div className="log-detail-item">
                     <span className="log-fl">Carriage (L × W × H)</span>
@@ -1313,8 +1364,19 @@ export default function LogisticsOwnerAsset() {
                 </div>
 
                 <p className="log-sect">Photos</p>
+                {rejectedPhotos.length ? (
+                  <div className="log-callout log-callout--warn" data-testid="photos-rejected" style={{ marginBottom: 12 }}>
+                    <p>
+                      <strong>
+                        Simba rejected {rejectedPhotos.length} photo{rejectedPhotos.length === 1 ? "" : "s"}.
+                      </strong>{" "}
+                      {rejectedPhotos[0].reason ? `${rejectedPhotos[0].reason}. ` : ""}
+                      Customers don&apos;t see rejected photos. Use Edit to add a new one.
+                    </p>
+                  </div>
+                ) : null}
                 {photos.length ? (
-                  <div className="log-job-gallery">
+                  <div className="log-job-gallery" data-doc-anchor="photo">
                     <div className="log-job-gallery__grid">
                       {photos.map((src, idx) => (
                         <a
@@ -1357,6 +1419,7 @@ export default function LogisticsOwnerAsset() {
                         // type + url: two documents can share one uploaded file path
                         key={`${doc.type || "doc"}-${doc.url || ""}-${idx}`}
                         className="log-doc-row"
+                        data-doc-anchor={doc.type || undefined}
                       >
                         <span className="log-doc-row__icon" aria-hidden="true">
                           <svg
@@ -1381,6 +1444,7 @@ export default function LogisticsOwnerAsset() {
                               : "Uploaded"}
                             {doc.expires ? ` · expires ${fmtExpiry(doc.expires)}` : ""}
                           </p>
+                          <DocWarning doc={doc} />
                         </span>
                         {showChip ? (
                           <span className={`log-chip log-chip--${chip.tone}`}>{chip.label}</span>
@@ -1405,6 +1469,13 @@ export default function LogisticsOwnerAsset() {
                         ) : (
                           <span className="log-chip log-chip--active">Added</span>
                         )}
+                        <LogisticsDocReplace
+                          doc={doc}
+                          type={doc.type}
+                          label={DOC_LABELS[doc.type] || doc.type}
+                          needsExpiry={ASSET_COMPLIANCE_TYPES.includes(doc.type)}
+                          onUpload={(file, expires) => replaceDoc(doc.type, file, expires)}
+                        />
                       </li>
                       );
                     })}
@@ -1426,10 +1497,12 @@ export default function LogisticsOwnerAsset() {
                   Operators
                 </h2>
                 <p className="log-hint" style={{ margin: "6px 0 0" }}>
-                  Every unit needs an operator to be bookable — operators quote
-                  and run the jobs. One operator can cover several units. You
-                  can pick someone whose invite is still pending.
+                  Every unit needs someone to operate it to be bookable. One
+                  operator can cover several units, and you can use a unit
+                  yourself while no operator is on it. You can pick someone
+                  whose invite is still pending.
                 </p>
+                <UnitOperateControl asset={asset} onChanged={load} />
               </div>
               <Link
                 className="logistics-cta logistics-cta--ghost"

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import ButtonLoader from "./ButtonLoader";
+import { isPopupCancel, watchPopupAbandoned } from "../utils/popupSignIn";
 import { getGoogleIdToken } from "../utils/googleAuth";
 import { resolveWebDeviceTokenDetailed } from "../utils/webDeviceToken";
 import { isGoogleLoginDisabled } from "../utils/featureFlags";
@@ -41,6 +42,8 @@ export default function GoogleSignInButton({
 }) {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  // Only the latest click drives the spinner (a closed popup can be retried)
+  const attemptRef = useRef(0);
 
   if (isGoogleLoginDisabled()) {
     return null;
@@ -49,9 +52,22 @@ export default function GoogleSignInButton({
   const handleClick = async () => {
     if (loading || disabled) return;
 
+    const attempt = ++attemptRef.current;
+    const isLatest = () => attemptRef.current === attempt;
     setLoading(true);
     try {
-      const socialToken = await getGoogleIdToken();
+      // User closed the popup → stop loading as soon as they're back on the page
+      const stopWatch = watchPopupAbandoned(() => {
+        if (isLatest()) setLoading(false);
+      });
+      let socialToken;
+      try {
+        socialToken = await getGoogleIdToken();
+      } finally {
+        stopWatch();
+      }
+      if (!isLatest()) return;
+      setLoading(true);
       const { token: deviceToken, isFcm } = await resolveWebDeviceTokenDetailed();
       if (isFcm && deviceToken) localStorage.setItem("device_token", deviceToken);
 
@@ -79,17 +95,15 @@ export default function GoogleSignInButton({
         await onSuccess(payload);
       }
     } catch (error) {
+      if (isPopupCancel(error)) return;
       const code = error?.code;
-      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
-        return;
-      }
       const message =
         code === "auth/unauthorized-domain"
           ? "Google sign-in isn't enabled for this domain yet."
           : error?.message || "Google sign-in failed. Please try again.";
       toast.error(message);
     } finally {
-      setLoading(false);
+      if (isLatest()) setLoading(false);
     }
   };
 

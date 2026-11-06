@@ -1,3 +1,4 @@
+import EmptyResults from "../../CommanComponents/EmptyResults";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -368,7 +369,7 @@ function HubAssetSection({ title, lead, rows, badge, empty, seeAllTo }) {
           <span className="log-hub-section__empty-icon" aria-hidden="true">
             <IconStar />
           </span>
-          <p>{empty}</p>
+          {typeof empty === "string" ? <p>{empty}</p> : empty}
         </div>
       )}
     </section>
@@ -523,21 +524,21 @@ export default function LogisticsHubHome() {
               lead="Explore the most popular trucks from top fleet owners — trusted by customers and ready to book."
               rows={spotlight.featured_logistics}
               badge="Featured"
-              empty="No Paid-plan fleet trucks yet."
+              empty={<EmptyResults compact module="logistics" kind="vehicle" />}
               seeAllTo="/logistics/search?category=logistic&scope=category"
             />
             <HubAssetSection
               title="Top rated logistics"
               lead="Best-reviewed trucks and transporters on Simba Logistics."
               rows={spotlight.top_rated_logistics}
-              empty="No logistics assets rated yet — try Book / Search."
+              empty={<EmptyResults compact module="logistics" kind="vehicle" />}
               seeAllTo="/logistics/search?category=logistic&scope=category"
             />
             <HubAssetSection
               title="Top rated equipment"
               lead="Non-logistics plant hire — agricultural, construction and industrial equipment."
               rows={spotlight.top_rated_equipment}
-              empty="No equipment assets rated yet — switch to a plant category in Search."
+              empty={<EmptyResults compact module="logistics" kind="equipment" />}
               seeAllTo="/logistics/search?kind=equipment&scope=category"
             />
           </>

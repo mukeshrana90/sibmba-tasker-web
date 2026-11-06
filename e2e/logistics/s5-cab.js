@@ -7,7 +7,11 @@ const path = require("path");
   const st = L.loadState();
   const d = await L.db();
   const OID = (x) => new L.mongoose.Types.ObjectId(x);
-  const pdf = path.join(__dirname, "doc.pdf");
+  const C = L.cast(st.RUN);
+  const D = require("./docs");
+  const cabU = C.unit("cab", 50);
+  const op2P = C.slot("operator", "s5");
+  const cabDoc = (months) => ({ owner: st.ownerCompany, holder: st.ownerName, plate: cabU.plate, make: cabU.make, model: cabU.model, year: cabU.year, kind: "cab", expires: D.addMonths(months) });
   const o = await L.actor("owner");
   const c = await L.actor("customer");
   let op2;
@@ -18,34 +22,37 @@ const path = require("path");
     L.sec("5. Owner adds a cab (UI)");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
     await o.page.locator('form.log-fleet-form button.log-cattile[aria-label="Cab"]').click();
-    await o.page.fill('input[placeholder="Cab 1"]', `E2E Cab ${st.RUN}`);
+    await o.page.fill('input[placeholder="Cab 1"]', cabU.name);
     await o.page.locator("form.log-fleet-form .log-field", { hasText: "Cab type" }).locator("select").selectOption("car");
-    const plate = `CAB${st.RUN}`.toUpperCase().slice(0, 9);
+    const plate = cabU.plate;
     await o.page.fill('input[placeholder="AEB1234"]', plate);
     await o.page.locator(".log-location-btn").first().click();
     await o.page.waitForSelector(".simba-book-loc-modal");
     await o.page.waitForTimeout(2500);
     await o.page.locator(".simba-book-loc-modal .btn-primary").click();
-    const ins = o.page.locator(".log-doc-row").filter({ hasText: "Taxi / PSV permit" }).first();
-    await ins.locator('input[type="file"]').setInputFiles(pdf);
+    const ins = L.docRow(o.page, "Taxi / PSV permit").first();
+    await ins.locator('input[type="file"]').setInputFiles(await L.docFile("taxi_permit", cabDoc(3)));
     await L.pickDate(o.page, ins.locator(".log-doc-row__expiry input"), 3);
     // v2.7.49: Road licence (ZINARA) is required for cabs too
-    const cabRego = o.page.locator(".log-doc-row").filter({ hasText: "Road licence" }).first();
-    await cabRego.locator('input[type="file"]').setInputFiles(pdf);
+    const cabRego = L.docRow(o.page, "Road licence").first();
+    await cabRego.locator('input[type="file"]').setInputFiles(await L.docFile("rego", cabDoc(6)));
     await L.pickDate(o.page, cabRego.locator(".log-doc-row__expiry input"), 6);
+    await L.addUnitPhotos(o.page, "form.log-fleet-form", cabU.photos);
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
     L.check(await L.waitText(o, /Cab added/), "Cab added toast", (await L.bodyText(o)).slice(0, 200));
     await o.page.waitForTimeout(1000);
     const cab = await d.collection("logistics_assets").findOne({ registration: plate });
     L.check(cab && cab.kind === "cab" && cab.cab_class === "car", "cab saved (kind cab, class car)", cab && { k: cab.kind, c: cab.cab_class, s: cab.seats });
-    st.cab = { _id: String(cab._id), name: cab.name };
+    st.cab = { _id: String(cab._id), name: cab.name, plate };
+    st.operator2Name = op2P.name;
 
     L.sec("5b. Invite + activate 2nd operator for the cab");
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    const email = `operator2.${st.RUN}@e2e.example.com`;
-    await o.page.fill('input[placeholder="Full name"]', `E2E Driver2 ${st.RUN}`);
+    const email = op2P.email;
+    await o.page.fill('input[placeholder="Full name"]', op2P.name);
     await o.page.fill('input[placeholder="name@example.com"]', email);
-    await o.page.locator(".log-asset-pick__list li").filter({ hasText: `E2E Cab ${st.RUN}` }).locator('input[type="checkbox"]').check();
+    await o.page.locator(".log-asset-pick__list li").filter({ hasText: cabU.name }).locator('input[type="checkbox"]').check();
+    await L.addFacePhoto(o.page, 2);
     await o.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /Invite (sent|created)/), "invite #2 sent");
     await o.page.waitForTimeout(1000);
@@ -55,12 +62,22 @@ const path = require("path");
     await op2.page.fill("#invite-password", "Passw0rd!");
     await op2.page.fill("#invite-password-confirm", "Passw0rd!");
     await op2.page.locator('button[type="submit"]').click();
-    await op2.page.waitForURL(/\/logistics\/driver/, { timeout: 20000 });
+    await op2.page.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" });
     const u2 = await d.collection("users").findOne({ email });
-    st.operator2 = { _id: String(u2._id), email, role: 4, owner_id: st.owner._id, token: await op2.page.evaluate(() => localStorage.getItem("token")) };
+    st.operator2 = { _id: String(u2._id), email, name: op2P.name, role: 4, owner_id: st.owner._id, token: await op2.page.evaluate(() => localStorage.getItem("token")) };
     L.check(true, "operator #2 activated");
+    // 29 Oct 2026: the cab and its operator go live only after Simba verifies their documents
+    {
+      const before = await L.api("PATCH", "/logistics/me/availability", { token: st.operator2.token, body: { state: "available_now", asset_id: st.cab._id, lat: L.PLACES.coords.harare[1], lng: L.PLACES.coords.harare[0] } });
+      L.check(before?.success === false && before?.data?.code === "DOC_REQUIRED", "operator #2 can't go live before a verified licence", before?.message);
+      await L.makeFleetReady(st.owner.token, { units: [st.cab._id], operators: [{ _id: st.operator2._id, name: op2P.name, face: 2 }] });
+      const cabNow = await d.collection("logistics_assets").findOne({ _id: OID(st.cab._id) });
+      L.check((cabNow?.documents || []).every((x) => x.review?.status === "verified"), "cab documents verified by Simba");
+      await L.api("PATCH", "/logistics/me/availability", { token: st.operator2.token, body: { state: "offline" } });
+    }
 
     L.sec("5c. Free plan limits (operators 2/2, cab 1/1, trucks 2)");
+    await L.setPlan(st.owner._id, "free"); // plain Free: the free period has passed
     await L.goto(o, "/logistics/owner/operators/add");
     await o.page.waitForTimeout(1500);
     L.check(/limit/i.test(await L.bodyText(o)), "invite form shows operator limit reached");
@@ -77,20 +94,32 @@ const path = require("path");
       const { ObjectId: OID5 } = L.mongoose.Types;
       const t0 = await dd.collection("logistics_assets").findOne({ _id: new OID5(st.truck._id) });
       const secondId = new OID5();
-      await dd.collection("logistics_assets").insertOne({ ...t0, _id: secondId, name: `E2E 2nd truck ${st.RUN}`, registration: `T2${st.RUN}`.toUpperCase().slice(0, 10), assigned_sub_user_ids: [], is_featured: false, createdAt: new Date(), updatedAt: new Date() });
+      await dd.collection("logistics_assets").insertOne({ ...t0, _id: secondId, name: C.unit("truck", 51).name, registration: C.unit("truck", 51).plate, assigned_sub_user_ids: [], is_featured: false, createdAt: new Date(), updatedAt: new Date() });
       try {
         await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
         await o.page.locator('form.log-fleet-form button.log-cattile').first().click();
         await o.page.waitForTimeout(800);
         L.check(await o.page.locator(".log-plan-limit-lock").count() && /\(2 \/ 2\)/.test(await L.bodyText(o)), "3rd truck locked on Free plan (2 / 2)");
         await L.shot(o, "s5-plan-lock");
-        const r = await L.api("POST", "/logistics/asset", { token: L.tokenFor(st.owner._id), body: { kind: "vehicle", name: "E2E 3rd truck", registration: `T3${st.RUN}`.toUpperCase().slice(0, 10) } });
+        const r = await L.apiForm("POST", "/logistics/asset", {
+          token: L.tokenFor(st.owner._id),
+          body: {
+            kind: "vehicle",
+            name: C.unit("truck", 52).name,
+            registration: C.unit("truck", 52).plate,
+            // v2.7.59: trucks need the Road licence (ZINARA)
+            document_types: ["rego"],
+            document_expires: [new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10)],
+          },
+          files: [...(await L.photoFixtures(C.unit("truck", 52))).map((f) => ["photos", f]), ["documents", await L.docFile("rego", { owner: st.ownerCompany, plate: C.unit("truck", 52).plate, make: C.unit("truck", 52).make, model: C.unit("truck", 52).model, kind: "vehicle" })]],
+        });
         L.check(r.success === false && r.data?.code === "PLAN_LIMIT" && r.data?.limit === 2, "API refuses a 3rd truck (PLAN_LIMIT, limit 2)", r.message);
       } finally {
         await dd.collection("logistics_assets").deleteOne({ _id: secondId });
       }
     }
 
+    await L.restartFreePeriod(st.owner._id);
     L.sec("5d. Operator #2 goes live on cab");
     await L.goto(op2, "/logistics/driver", ".log-dash-avail-controls");
     await op2.page.waitForSelector(".log-dash-avail-controls select");
@@ -103,7 +132,7 @@ const path = require("path");
     await c.page.locator('button.log-cattile[aria-label="Cab"]').click();
     await c.page.locator('.log-when--cab .log-when__opt', { hasText: "Car" }).click();
     await L.pickLocation(c, 0, null);
-    await L.pickLocation(c, 1, "Avondale Shopping Centre Harare");
+    await L.pickLocation(c, 1, L.PLACES.ride);
     await c.page.waitForTimeout(1000);
     const fareShown = await c.page.inputValue('input[aria-label="Fare"]');
     L.check(Number(fareShown) >= 3, "fare auto-estimated ≥ car floor $3", fareShown);
@@ -118,16 +147,16 @@ const path = require("path");
     L.sec("5f. Cab operator quotes; truck operator does not see the ride");
     await L.goto(op2, "/logistics/driver/work");
     await op2.page.waitForTimeout(2000);
-    L.check((await L.bodyText(op2)).includes("Avondale") || (await op2.page.locator(`a[href*="${rideId}"]`).count()) > 0, "cab operator sees ride request");
+    L.check((await L.bodyText(op2)).includes("Sam Levy") || (await op2.page.locator(`a[href*="${rideId}"]`).count()) > 0, "cab operator sees ride request");
     const op1 = await L.actor("operator");
     await L.seedAuth(op1, { token: st.operator.token, user: st.operator });
     await L.goto(op1, "/logistics/driver/work");
     await op1.page.waitForTimeout(2000);
-    L.check((await op1.page.locator(`a[href*="${rideId}"]`).count()) === 0 && !(await L.bodyText(op1)).includes("Avondale"), "truck operator does not see the ride");
+    L.check((await op1.page.locator(`a[href*="${rideId}"]`).count()) === 0 && !(await L.bodyText(op1)).includes("Sam Levy"), "truck operator does not see the ride");
     await L.goto(op2, `/logistics/driver/job/${rideId}`);
     await op2.page.waitForSelector('input[aria-label="Quote amount"]', { timeout: 15000 });
     const q = await op2.page.inputValue('input[aria-label="Quote amount"]');
-    await op2.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "5 min away");
+    await op2.page.fill('textarea[placeholder="e.g. Can collect from 7am…"]', "Near Tribune Chowk, 5 minutes away.");
     await op2.page.getByRole("button", { name: /Send my quote/ }).click();
     L.check(await L.waitText(op2, /Quote (sent|submitted)/i), "ride quote sent", q);
 

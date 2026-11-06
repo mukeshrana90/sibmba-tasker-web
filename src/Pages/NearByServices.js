@@ -1,3 +1,4 @@
+import EmptyResults from "../CommanComponents/EmptyResults";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
@@ -149,8 +150,11 @@ export default function NearByServices() {
                 <Loader />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="svc-empty">
-                <p>{emptyMessage}</p>
+              <EmptyResults
+                module="services"
+                message={emptyMessage}
+                coords={lat && long ? { lat: Number(lat), lng: Number(long) } : undefined}
+              >
                 {(!lat || !long) && (
                   <button
                     type="button"
@@ -160,7 +164,7 @@ export default function NearByServices() {
                     Retry location
                   </button>
                 )}
-              </div>
+              </EmptyResults>
             ) : (
               <>
                 <div className="cat-grid">
@@ -206,7 +210,7 @@ export default function NearByServices() {
                         </div>
                         <div className="cat-name">{name}</div>
                         <div className="cat-meta">
-                          {count > 0 ? `${count} providers near you` : "No providers nearby"}
+                          {count > 0 ? `${count} providers near you` : "See nearest providers"}
                         </div>
                       </button>
                     );

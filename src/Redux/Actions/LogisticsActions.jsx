@@ -24,7 +24,8 @@ const LogisticsActions = {
   /** plan id, or { plan, keep_asset_ids } to pick which units stay active on a smaller plan */
   choosePlan: createAsyncThunk("/logistics/subscription/plan", async (arg, { rejectWithValue }) => {
     try {
-      const body = typeof arg === "string" ? { plan: arg } : arg;
+      // plan_id: the v2.7.61 field name for the same value
+      const body = typeof arg === "string" ? { plan: arg, plan_id: arg } : { plan_id: arg.plan, ...arg };
       const response = await Api.post("/logistics/subscription/plan", body);
       return response.data;
     } catch (err) {
@@ -57,6 +58,54 @@ const LogisticsActions = {
     }
   ),
 
+  // v2.7.61 owner-operator: one-time licence + face photo (either can be replaced alone)
+  enableOwnerOperator: createAsyncThunk("/logistics/owner-operator/enable", async (formData, { rejectWithValue }) => {
+    try {
+      const response = await Api.post("/logistics/owner-operator/enable", formData);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  /** Owner claims a unit and goes live: { id, state, available_from?, lat?, lng?, location_label? } */
+  operateSelf: createAsyncThunk("/logistics/asset/operate-self", async ({ id, ...body }, { rejectWithValue }) => {
+    try {
+      const response = await Api.post(`/logistics/asset/${id}/operate-self`, body);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  releaseSelf: createAsyncThunk("/logistics/asset/release-self", async (id, { rejectWithValue }) => {
+    try {
+      const response = await Api.post(`/logistics/asset/${id}/release-self`);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  // v2.7.61 "Chat on WhatsApp": { job_id } or { asset_id }
+  whatsappChatCan: createAsyncThunk("/logistics/whatsapp-chat/can", async (params, { rejectWithValue }) => {
+    try {
+      const response = await Api.get("/logistics/whatsapp-chat/can", { params });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  whatsappChatStart: createAsyncThunk("/logistics/whatsapp-chat/start", async (body, { rejectWithValue }) => {
+    try {
+      const response = await Api.post("/logistics/whatsapp-chat/start", body);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
   setActiveModule: createAsyncThunk(
     "/logistics/session/active-module",
     async (activeModule, { rejectWithValue }) => {
@@ -76,6 +125,26 @@ const LogisticsActions = {
       const response = await Api.post("/logistics/auth/register", payload, {
         skipAuth: true,
       });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  // Company documents for the Simba approval (owner)
+  getBusinessDocs: createAsyncThunk("/logistics/business-docs", async (_, { rejectWithValue }) => {
+    try {
+      const response = await Api.get("/logistics/business-docs");
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err?.response?.data || { message: err.message });
+    }
+  }),
+
+  /** FormData with fields named by type (business_registration, owner_id, tax, address_proof) + <type>_kind */
+  uploadBusinessDocs: createAsyncThunk("/logistics/business-docs/upload", async (formData, { rejectWithValue }) => {
+    try {
+      const response = await Api.post("/logistics/business-docs", formData);
       return response.data;
     } catch (err) {
       return rejectWithValue(err?.response?.data || { message: err.message });
@@ -847,7 +916,8 @@ const LogisticsActions = {
     "/logistics/job/reassign",
     async ({ id, sub_user_id, asset_id }, { rejectWithValue }) => {
       try {
-        const response = await Api.post(`/logistics/job/${id}/reassign`, { sub_user_id, asset_id });
+        // driver_id: v2.7.61 name; the owner's own id takes the job over
+        const response = await Api.post(`/logistics/job/${id}/reassign`, { sub_user_id, driver_id: sub_user_id, asset_id });
         return response.data;
       } catch (err) {
         return rejectWithValue(err?.response?.data || { message: err.message });

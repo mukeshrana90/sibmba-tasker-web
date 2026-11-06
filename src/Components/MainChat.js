@@ -50,6 +50,7 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
   chatModuleRef.current = chatModule;
   // Server said this sender may not reply here (fleet paid-plan gate)
   const [serverBlocked, setServerBlocked] = useState(false);
+  const [serverAllowed, setServerAllowed] = useState(false);
   const [message, setMessage] = useState("");
   const [messageHistory, setMessageHistory] = useState([]);
   const [receiverDetail, setReceiverDetail] = useState(null);
@@ -110,18 +111,21 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
     Number(localStorage.getItem("isSubscribed")) === 1;
   const activeModule =
     getActiveModule() || packageDetails?.user?.activeModule || "tasker";
+  // Item 4: the server's answer also opens replies during the free period
   const canReply =
     !serverBlocked &&
-    canInitiateLogisticsOrTaskerChat({
-      role: userRole,
-      isSubscribed,
-      activeModule,
-    });
+    (serverAllowed ||
+      canInitiateLogisticsOrTaskerChat({
+        role: userRole,
+        isSubscribed,
+        activeModule,
+      }));
 
   // Fleet users (role 4): ask the server whether this thread may be answered —
   // a fleet ↔ logistics-customer thread is gated in every module.
   useEffect(() => {
     setServerBlocked(false);
+    setServerAllowed(false);
     if (userRole !== 4 || !receiver_id || !token) return undefined;
     let cancelled = false;
     Api.get("/logistics/chat/can-reply", {
@@ -129,7 +133,9 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
     })
       .then((res) => {
         const data = res?.data?.data || res?.data || {};
-        if (!cancelled && data.can_reply === false) setServerBlocked(true);
+        if (cancelled) return;
+        if (data.can_reply === false) setServerBlocked(true);
+        else if (data.can_reply === true) setServerAllowed(true);
       })
       .catch(() => {});
     return () => {
@@ -277,6 +283,14 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
         window.dispatchEvent(new CustomEvent(CHAT_REFRESH_EVENT));
         return;
       }
+
+      // This thread is open, so the message is read: get_message marks it read on the
+      // server, otherwise the unread count comes back after leaving the thread.
+      realtimeSocket.emit("get_message", {
+        userId: senderId,
+        receiverId: activeReceiverId,
+        module: chatModuleRef.current,
+      });
 
       const [normalizedMessage] = normalizeChatMessages([incoming]);
       setNewchat((prev) => !prev);
@@ -794,8 +808,8 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
               {Number(userRole) === 4
                 ? logisticsSubscriptionHeldByOwner() ||
                   localStorage.getItem("owner_id")
-                  ? "Your fleet owner needs an active paid subscription for you to reply. You can still read messages."
-                  : "Logistics fleet owners need an active paid subscription to reply. Operators inherit the owner's plan. You can still read messages."
+                  ? "Replying is free for the first 60 days, then your fleet owner needs the Paid plan. You can still read messages."
+                  : "Replying is free for the first 60 days, then needs the Paid plan. Operators follow the owner's plan. You can still read messages."
                 : "You can read customer messages. Subscribe to a plan to reply."}
             </p>
           )}
@@ -806,8 +820,8 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
                   ? Number(userRole) === 4
                     ? logisticsSubscriptionHeldByOwner() ||
                       localStorage.getItem("owner_id")
-                      ? "Ask your fleet owner to subscribe"
-                      : "Subscribe (fleet owner plan) to reply"
+                      ? "Ask your fleet owner to upgrade"
+                      : "Upgrade your plan to reply"
                     : "Subscribe to reply to customers"
                   : "Write message here..."
               }

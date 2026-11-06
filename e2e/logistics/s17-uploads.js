@@ -7,17 +7,23 @@ const L = require("./lib");
 const fs = require("fs");
 const path = require("path");
 
-const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoaded } = require("./upload-helpers");
+const { MB, REAL, diskOf, thumbOf, isJpeg, makeFixtures, makeOwner, upload, toastHas, imagesLoaded } = require("./upload-helpers");
+const DOCS = require("./docs");
 
 (async () => {
   const RUN = Date.now().toString(36).slice(-6);
+  // Cast of this run: a Harare fleet owner + operator, a real truck with a Zimbabwe plate
+  const C = L.cast(L.loadState().RUN || RUN);
+  const ownerP = C.slot("owner", "s17");
+  const opP = C.slot("operator", "s17");
+  const unit = C.unit("truck", 170);
+  const rx = (s) => new RegExp(s);
   const d = await L.db();
   const actors = [];
   const A = async (n, opts) => { const a = await L.actor(n, opts); actors.push(a); return a; };
   try {
-    const F = await makeFixtures();
-    const owner = await L.makeCustomer(`up.owner.${RUN}`, 4);
-    await d.collection("users").updateOne({ _id: new L.mongoose.Types.ObjectId(owner._id) }, { $set: { company_name: `Upload Freight ${RUN}`, full_name: `Upload Owner ${RUN}` } });
+    const F = await makeFixtures({ unit, owner: ownerP.company, operator: { name: opP.name, face: DOCS.face(5) } });
+    const owner = await makeOwner(ownerP);
     L.check((await L.approveOwner(owner._id))?.data?.approval?.status === "approved", "fresh owner approved");
     const o = await A("up-owner");
     await L.seedAuth(o, { token: owner.token, user: owner });
@@ -25,9 +31,12 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     // ───────────────────────── Fleet add form
     L.sec("17a. Add truck: photo + paper pickers refuse >10 MB and other types");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
-    const plate = `UP${RUN}`.toUpperCase();
-    await o.page.fill('input[placeholder="Truck 1"]', `Upload Truck ${RUN}`);
+    const plate = unit.plate;
+    await o.page.fill('input[placeholder="Truck 1"]', unit.name);
     await o.page.fill('input[placeholder="AEB1234"]', plate);
+    await o.page.fill('input[placeholder="Isuzu"]', unit.make).catch(() => {});
+    await o.page.fill('input[placeholder="FVZ"]', unit.model).catch(() => {});
+    await o.page.fill('input[placeholder="2019"]', unit.year).catch(() => {});
     await o.page.locator(".log-location-btn").first().click();
     await o.page.waitForSelector(".simba-book-loc-modal");
     await o.page.waitForTimeout(2500);
@@ -43,21 +52,21 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     L.check(await toastHas(o, /archive\.zip: photos must be images/), ".zip photo → toast");
     L.check((await filled()) === 0, ".zip not added");
     await photoInput.setInputFiles(F.pdf);
-    L.check(await toastHas(o, /insurance-paper\.pdf: photos must be images/), "PDF in the photo picker → toast");
+    L.check(await toastHas(o, rx(`${F.re(F.pdf)}: photos must be images`)), "PDF in the photo picker → toast");
     L.check((await filled()) === 0, "PDF not added as a photo");
     await photoInput.setInputFiles([F.heic, F.jpg, F.bigJpg]);
     L.check(await toastHas(o, /big-photo\.jpg is larger/), "mixed pick: the big one refused…");
     L.check((await filled()) === 2, "…the HEIC + JPG are kept (2 slots)", await filled());
 
-    const rego = o.page.locator(".log-doc-row").filter({ hasText: "Road licence" }).first();
+    const rego = L.docRow(o.page, "Road licence").first();
     L.check((await rego.locator("input[type=file]").getAttribute("accept")) === ".pdf,image/*,.heic,.heif", "paper picker: PDF + images + HEIC");
     await rego.locator("input[type=file]").setInputFiles(F.bigPdf);
     L.check(await toastHas(o, /big-paper\.pdf is larger than 10 MB/), "11 MB PDF paper → toast");
     L.check(!(await rego.innerText()).includes("big-paper"), "oversized paper not attached");
-    await rego.locator("input[type=file]").setInputFiles(F.pdf);
+    await rego.locator("input[type=file]").setInputFiles(F.roadTax);
     await L.pickDate(o.page, rego.locator(".log-doc-row__expiry input"), 6);
-    const ins = o.page.locator(".log-doc-row").filter({ hasText: "Insurance" }).first();
-    await ins.locator("input[type=file]").setInputFiles(F.heic);
+    const ins = L.docRow(o.page, "Insurance").first();
+    await ins.locator("input[type=file]").setInputFiles(F.insHeic);
     await L.pickDate(o.page, ins.locator(".log-doc-row__expiry input"), 6);
     const createResp = o.page.waitForResponse((r) => /\/api\/logistics\/asset$/.test(r.url()) && r.request().method() === "POST", { timeout: 30000 });
     await o.page.locator('form.log-fleet-form button[type="submit"]').click();
@@ -68,15 +77,15 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     const asset = await d.collection("logistics_assets").findOne({ registration: plate });
     L.check(asset?.photos?.length === 2, "2 photos stored", asset?.photos);
     const [p0, p1] = asset?.photos || [];
-    L.check(/iphone-photo\.jpg$/i.test(p0 || ""), "iPhone photo stored as .jpg", p0);
+    L.check(rx(`${F.stem(F.heic)}\\.jpg$`).test(p0 || ""), "iPhone photo stored as .jpg", p0);
     const j0 = await isJpeg(p0);
     L.check(j0.ok && j0.thumb, "HEIC photo → real JPEG ≤1920px + thumb_", j0.why);
     const j1 = await isJpeg(p1);
     L.check(j1.ok && /1920x/.test(j1.why) && j1.thumb, "2400px JPG resized to 1920 + thumb_", j1.why);
     const docOf = (t) => (asset?.documents || []).find((x) => x.type === t);
     const regoDoc = docOf("rego");
-    L.check(/insurance-paper\.pdf$/.test(regoDoc?.url || ""), "PDF paper keeps .pdf", regoDoc?.url);
-    L.check(fs.existsSync(diskOf(regoDoc?.url)) && fs.readFileSync(diskOf(regoDoc.url)).equals(fs.readFileSync(F.pdf)), "PDF bytes identical (not optimised)");
+    L.check(rx(`${F.re(F.roadTax)}$`).test(regoDoc?.url || ""), "PDF paper keeps .pdf", regoDoc?.url);
+    L.check(fs.existsSync(diskOf(regoDoc?.url)) && fs.readFileSync(diskOf(regoDoc.url)).equals(fs.readFileSync(F.roadTax)), "PDF bytes identical (not optimised)");
     L.check(!fs.existsSync(thumbOf(diskOf(regoDoc?.url))), "no thumb_ for a PDF");
     const insDoc = docOf("insurance");
     const ji = await isJpeg(insDoc?.url);
@@ -92,7 +101,7 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     await editInput.setInputFiles(F.bigJpg);
     L.check(await toastHas(o, /larger than 10 MB/), "edit: oversized photo → toast");
     const before = await o.page.locator(".log-photo-slot--filled").count();
-    await editInput.setInputFiles(F.heic);
+    await editInput.setInputFiles(F.heic2);
     L.check((await o.page.locator(".log-photo-slot--filled").count()) === before + 1, "edit: HEIC added");
     const patchResp = o.page.waitForResponse((r) => r.url().includes(`/logistics/asset/${asset._id}`) && r.request().method() === "PATCH", { timeout: 30000 });
     await o.page.getByRole("button", { name: "Save changes" }).click();
@@ -109,8 +118,8 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     await L.seedAuth(c, { token: cust.token, user: cust });
     await L.goto(c, "/logistics/post", "form.log-form-card--post");
     await L.pickLocation(c, 0, null);
-    await L.pickLocation(c, 1, "Chitungwiza");
-    await c.page.fill('input[placeholder="e.g. Construction materials"]', `Upload goods ${RUN}`);
+    await L.pickLocation(c, 1, L.PLACES.drops[1]);
+    await L.fillGoods(c.page, `OPC 53 grade cement, 120 bags · PO ${RUN.toUpperCase()}`);
     await L.vehicleSelect(c.page).selectOption("4 ton");
     await c.page.fill('input[placeholder="8"]', "3");
     await c.page.locator(".log-when__opt", { hasText: "Schedule" }).click();
@@ -123,7 +132,7 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     await jobInput.setInputFiles(F.zip);
     L.check(await toastHas(c, /archive\.zip: photos must be images/), "job photo .zip → toast");
     L.check((await thumbs()) === 0, "nothing added");
-    await jobInput.setInputFiles([F.heic, F.jpg]);
+    await jobInput.setInputFiles([F.goodsHeic, path.join(REAL, "cement-bags.jpg")]);
     L.check((await thumbs()) === 2, "HEIC + JPG added", await thumbs());
     await c.page.locator('form.log-form-card--post button[type="submit"]').click();
     await c.page.waitForURL(/\/logistics\/jobs\/[a-f0-9]{24}/, { timeout: 30000 });
@@ -132,14 +141,14 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     const job = await d.collection("transport_jobs").findOne({ _id: new L.mongoose.Types.ObjectId(jobId) })
       || await d.collection("transportjobs").findOne({ _id: new L.mongoose.Types.ObjectId(jobId) });
     const ji0 = await isJpeg(job?.images?.[0]);
-    L.check(job?.images?.length === 2 && /iphone-photo\.jpg$/.test(job.images[0]) && ji0.ok && ji0.thumb, "job HEIC photo stored as JPEG + thumb", `${job?.images} ${ji0.why}`);
+    L.check(job?.images?.length === 2 && rx(`${F.stem(F.goodsHeic)}\\.jpg$`).test(job.images[0]) && ji0.ok && ji0.thumb, "job HEIC photo stored as JPEG + thumb", `${job?.images} ${ji0.why}`);
     await c.page.waitForTimeout(1500);
     const jobShown = await imagesLoaded(c, [path.basename(job?.images?.[0] || "x").replace(/\.jpg$/, "")]);
     L.check(jobShown[0] === true, "job page shows the converted photo", jobShown);
 
     L.sec("17d2. Edit job: add another iPhone photo");
     await L.goto(c, `/logistics/post?edit=${jobId}`, "form.log-form-card--post");
-    await c.page.locator(".log-upload--post input[type=file]").first().setInputFiles(F.heic);
+    await c.page.locator(".log-upload--post input[type=file]").first().setInputFiles(F.goodsHeic2);
     await c.page.locator('form.log-form-card--post button[type="submit"]').click();
     L.check(await L.waitText(c, /Job updated/), "Job updated (photo upload succeeded)");
     const jobEdited = await d.collection("transport_jobs").findOne({ _id: job._id });
@@ -148,22 +157,22 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     // ───────────────────────── Operator invite
     L.sec("17e. Operator invite: HEIC profile photo + licence, extra doc rules");
     await L.goto(o, "/logistics/owner/operators/add", "form");
-    const opEmail = `up.op.${RUN}@e2e.example.com`;
+    const opEmail = opP.email;
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
-    await o.page.fill('input[placeholder="Full name"]', `Upload Operator ${RUN}`);
+    await o.page.fill('input[placeholder="Full name"]', opP.name);
     const profileInput = o.page.locator("input[type=file]:not([multiple])[accept='image/*,.heic,.heif']").first();
     await profileInput.setInputFiles(F.bigJpg);
     L.check(await toastHas(o, /larger than 10 MB/), "profile photo >10 MB → toast");
-    await profileInput.setInputFiles(F.heic);
-    const lic = o.page.locator(".log-doc-row").filter({ hasText: "Driving / plant licence" }).first();
+    await profileInput.setInputFiles(F.selfieHeic);
+    const lic = L.docRow(o.page, "Driving / plant licence").first();
     await lic.locator("input[type=file]").setInputFiles(F.bigPdf);
     L.check(await toastHas(o, /larger than 10 MB/), "licence >10 MB → toast");
-    await lic.locator("input[type=file]").setInputFiles(F.heic);
+    await lic.locator("input[type=file]").setInputFiles(F.licenceHeic);
     await L.pickDate(o.page, lic.locator(".log-doc-row__expiry input"), 6);
     const extra = o.page.locator("label", { hasText: "Add doc" }).locator("input[type=file]");
     await extra.setInputFiles(F.zip);
     L.check(await toastHas(o, /only images, PDF or Word/), "extra doc .zip → toast");
-    await extra.setInputFiles(F.pdf);
+    await extra.setInputFiles(F.competency);
     const inviteResp = o.page.waitForResponse((r) => /\/api\/logistics\/sub-user$/.test(r.url()) && r.request().method() === "POST", { timeout: 30000 });
     await o.page.locator('form button[type="submit"]').last().click();
     const invited = await (await inviteResp).json().catch((e) => ({ message: e.message }));
@@ -174,9 +183,9 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     const opStr = JSON.stringify(op || {});
     const opJpgs = [...opStr.matchAll(/"(\/logistics\/operators[^"]+\.(jpg|pdf|heic))"/gi)].map((m) => m[1]);
     L.check(!!op, "invite record created");
-    L.check(/iphone-photo\.jpg$/.test(op?.profile_image || "") && (await isJpeg(op.profile_image)).ok, "operator HEIC profile photo → JPEG", op?.profile_image);
-    L.check(opJpgs.some((u) => /docs\/.*iphone-photo\.jpg$/.test(u)), "HEIC licence scan → JPEG", opJpgs);
-    L.check(opJpgs.some((u) => /insurance-paper\.pdf$/.test(u)), "extra PDF doc stored as .pdf", opJpgs);
+    L.check(rx(`${F.stem(F.selfieHeic)}\\.jpg$`).test(op?.profile_image || "") && (await isJpeg(op.profile_image)).ok, "operator HEIC profile photo → JPEG", op?.profile_image);
+    L.check(opJpgs.some((u) => rx(`docs/.*${F.stem(F.licenceHeic)}\\.jpg$`).test(u)), "HEIC licence scan → JPEG", opJpgs);
+    L.check(opJpgs.some((u) => rx(`${F.re(F.competency)}$`).test(u)), "extra PDF doc stored as .pdf", opJpgs);
     L.check(!opJpgs.some((u) => /\.heic$/i.test(u)), "no raw .heic stored");
 
     // ───────────────────────── API without the web checks
@@ -190,7 +199,7 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     L.check(r.success === false && r.data?.code === "FILE_TOO_LARGE" && /10 MB/.test(r.message), "10 MB + 1 → FILE_TOO_LARGE (JSON, not an HTML 500)", r.message || r.raw);
     r = await upload("POST", `/logistics/job/${jobId}/images`, cust.token, [["images", { file: F.zip, name: "tool.exe" }]]);
     L.check(r.success === false && r.data?.code === "FILE_TYPE_NOT_ALLOWED", ".exe → FILE_TYPE_NOT_ALLOWED", r.message);
-    r = await upload("POST", `/logistics/job/${jobId}/images`, cust.token, [["images", { file: F.heic, name: "IMG_7781", type: "image/heic" }]]);
+    r = await upload("POST", `/logistics/job/${jobId}/images`, cust.token, [["images", { file: F.goodsHeic2, name: "IMG_7781", type: "image/heic" }]]);
     const jobAfter = await d.collection("transport_jobs").findOne({ _id: job._id });
     const added = (jobAfter?.images || []).slice(before17f || 0);
     L.check(r.success !== false && added.length === 1 && /IMG_7781\.jpg$/.test(added[0]) && (await isJpeg(added[0])).ok, "HEIC without extension (detected by bytes) → JPEG", `${r.message} ${added}`);
@@ -204,9 +213,9 @@ const { MB, diskOf, thumbOf, isJpeg, makeFixtures, upload, toastHas, imagesLoade
     ]);
     const asset3 = await d.collection("logistics_assets").findOne({ _id: asset._id });
     const docs3 = (asset3?.documents || []).map((x) => x.url);
-    const pdf10 = docs3.find((u) => /exactly-10mb\.pdf$/.test(u));
+    const pdf10 = docs3.find((u) => rx(`${F.re(F.pdf10)}$`).test(u));
     L.check(r.success !== false && pdf10 && fs.statSync(diskOf(pdf10)).size === 10 * MB, "exactly 10 MB PDF accepted, stored byte-for-byte", r.message);
-    L.check(docs3.some((u) => /permit\.docx$/.test(u)), "DOCX paper accepted, kept as .docx", docs3);
+    L.check(docs3.some((u) => rx(`${F.re(F.docx)}$`).test(u)), "DOCX paper accepted, kept as .docx", docs3);
     r = await upload("PATCH", `/logistics/asset/${asset._id}`, owner.token, [["documents", { file: F.bigPdf, type: "application/pdf" }], ["document_types", JSON.stringify(["other"])]]);
     L.check(r.data?.code === "FILE_TOO_LARGE", "11 MB paper → FILE_TOO_LARGE", r.message);
     r = await upload("PATCH", `/logistics/asset/${asset._id}`, owner.token, [["photos", { file: F.docx }]]);

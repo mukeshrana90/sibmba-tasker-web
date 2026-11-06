@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useFormik } from "formik";
@@ -31,6 +31,34 @@ import {
 } from "../utils/featureFlags";
 import { Roles } from "../utils/Roles";
 import { EMAIL_PATTERN, checkEmailRemote } from "../utils/emailCheck";
+import { DOC_ACCEPT, keepAllowedFiles } from "../utils/uploadLimits";
+import LogisticsLocationField from "../CommanComponents/LogisticsLocationField";
+import "./logistics/logistics.css";
+
+// Company documents for the Simba approval (Equipment Owner sign-up only).
+// Files live in formik values but never in localStorage.
+const BUSINESS_DOCS = [
+  { name: "business_registration", label: "Business registration certificate", required: true },
+  { name: "owner_id", label: "Owner ID", required: true, expiry: true, hint: "National ID, passport or driving licence" },
+  { name: "tax", label: "Tax certificate", required: false, expiry: true },
+  { name: "address_proof", label: "Proof of address", required: false },
+];
+const OWNER_ID_KINDS = [
+  { value: "national_id", label: "National ID" },
+  { value: "passport", label: "Passport" },
+  { value: "driving_licence", label: "Driving licence" },
+];
+const BUSINESS_DOC_NAMES = BUSINESS_DOCS.map((d) => d.name);
+// As-you-type casing: names Title Case ("ravi KUMAR" → "Ravi Kumar"); business
+// names only get a capital first letter per word so "ABC Logistics" keeps its
+// acronym; emails are always lower case.
+const titleCaseName = (v) => String(v || "").toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
+const capitalizeWords = (v) => String(v || "").replace(/(^|[\s'-])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
+// 30 Oct 2026: owner sign-up in two steps — 1 account details, 2 business documents
+// (skippable; skipped owners upload them on /logistics/owner/verification)
+const STEP1_FIELDS = ["full_name", "company_name", "email", "phone", "password", "confirmPassword"];
+const withoutFiles = (values) =>
+  Object.fromEntries(Object.entries(values).filter(([k]) => !BUSINESS_DOC_NAMES.includes(k)));
 
 const ROLE_COPY = {
   [Roles.LOGISTICS]: {
@@ -125,12 +153,18 @@ function buildPhoneInputValue(countryCode, phone) {
 }
 
 const SIGNUP_DEFAULT_VALUES = {
+  full_name: "",
+  company_name: "",
   email: "",
   phone: "",
   password: "",
   confirmPassword: "",
   terms: false,
   country_code: "+263",
+  owner_id_kind: "national_id",
+  // 30 Oct 2026: optional owner business location → User.logistics_base
+  business_base_address: "",
+  business_base_coords: null,
 };
 
 function getSignupInitialValues() {
@@ -159,13 +193,23 @@ export default function SignUp() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
   const [emailSuggestion, setEmailSuggestion] = useState("");
+  const [ownerStep, setOwnerStep] = useState(1);
+  const skipDocsRef = useRef(false);
 
   const roleCopy = ROLE_COPY[selectedRole] || ROLE_COPY[1];
+  // doc 12 · 4.1: equipment owners give their real name and business name
+  const isLogisticsSignup = Number(selectedRole) === Roles.LOGISTICS;
   const returnUrl = resolvePostAuthPath(query.get("returnUrl"));
 
   const formik = useFormik({
     initialValues: getSignupInitialValues(),
     validationSchema: Yup.object({
+      full_name: isLogisticsSignup
+        ? Yup.string().trim().max(80, "Keep it under 80 characters").required("Full name is required")
+        : Yup.string(),
+      company_name: isLogisticsSignup
+        ? Yup.string().trim().max(80, "Keep it under 80 characters").required("Business name is required")
+        : Yup.string(),
       email: Yup.string()
         .trim()
         .matches(EMAIL_PATTERN, "Enter a valid email address (e.g. name@gmail.com)")
@@ -183,6 +227,29 @@ export default function SignUp() {
       terms: Yup.boolean().oneOf([true], "You must accept the terms"),
     }),
     onSubmit: async (values) => {
+      // Step 2 is optional, but once a document is chosen the required ones must all be there
+      const skipped = skipDocsRef.current;
+      skipDocsRef.current = false;
+      if (isLogisticsSignup && !skipped && BUSINESS_DOC_NAMES.some((n) => values[n])) {
+        const noDate = BUSINESS_DOCS.filter((d) => d.expiry && values[d.name] && !values[`${d.name}_expires`]);
+        if (noDate.length) {
+          setOwnerStep(2);
+          noDate.forEach((d) => {
+            formik.setFieldTouched(d.name, true, false);
+            formik.setFieldError(d.name, `${d.label}: pick the expiry date`);
+          });
+          return;
+        }
+        const missing = BUSINESS_DOCS.filter((d) => d.required && !values[d.name]);
+        if (missing.length) {
+          setOwnerStep(2);
+          missing.forEach((d) => {
+            formik.setFieldTouched(d.name, true, false);
+            formik.setFieldError(d.name, `${d.label} is required — or remove the files and skip this step`);
+          });
+          return;
+        }
+      }
       // Genuine email (deliverable domain, no gmail.comcom-style typo) before
       // we offer to send an OTP to it
       setEmailSuggestion("");
@@ -193,10 +260,34 @@ export default function SignUp() {
         setEmailSuggestion(check.suggestion || "");
         return;
       }
-      localStorage.setItem("signupFormData", JSON.stringify(values));
+      localStorage.setItem("signupFormData", JSON.stringify(withoutFiles(values)));
       setShowOtpModal(true);
     },
   });
+
+  // Sign Up pressed on step 2 with a step-1 mistake → show step 1
+  useEffect(() => {
+    if (!isLogisticsSignup || ownerStep !== 2 || !formik.submitCount) return;
+    if (STEP1_FIELDS.some((n) => formik.errors[n])) setOwnerStep(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formik.submitCount]);
+
+  const goToDocsStep = async () => {
+    const errors = await formik.validateForm();
+    const bad = STEP1_FIELDS.filter((n) => errors[n]);
+    if (bad.length) {
+      bad.forEach((n) => formik.setFieldTouched(n, true, false));
+      return;
+    }
+    setOwnerStep(2);
+  };
+
+  const skipDocsStep = () => {
+    skipDocsRef.current = true;
+    BUSINESS_DOC_NAMES.forEach((n) => formik.setFieldValue(n, undefined, false));
+    formik.setErrors({});
+    formik.submitForm();
+  };
 
   const defaultPhoneCountry = useMemo(
     () => countryCodeToIso(formik.values.country_code),
@@ -265,49 +356,78 @@ export default function SignUp() {
 
   const handleOtpTypeSelection = async (otpType) => {
     setSignupLoading(true);
-    const deviceToken = await resolveWebDeviceToken(fcmToken);
-    if (deviceToken) {
-      localStorage.setItem("device_token", deviceToken);
-      setFcmToken(deviceToken);
-    }
-
-    const payload = {
-      email: formik.values.email,
-      country_code: formik.values.country_code || "+263",
-      phone_number: formik.values.phone,
-      password: formik.values.password,
-      role: selectedRole,
-      type: otpType,
-      device_type: "web",
-      device_token: deviceToken,
-    };
-
-    const isLogistics = Number(selectedRole) === Roles.LOGISTICS;
-    const response = isLogistics
-      ? await dispatch(
-          LogisticsActions.register({
-            ...payload,
-            vertical: "both",
-          })
-        )
-      : await dispatch(CustomerActions.createCustomer(payload));
-
-    if (response?.payload?.status_code === 200) {
-      toast.success(response?.payload?.message || "Registration successful");
-      setShowOtpModal(false);
-      navigate(
-        otpVerificationPath(response?.payload?.data?._id, {
-          role: selectedRole,
-          otpType,
-        })
-      );
-    } else {
-      toast.error(response?.payload?.message || "Registration failed");
-      if (response?.payload?.status_code === 400) {
-        setShowOtpModal(false);
+    try {
+      const deviceToken = await resolveWebDeviceToken(fcmToken);
+      if (deviceToken) {
+        localStorage.setItem("device_token", deviceToken);
+        setFcmToken(deviceToken);
       }
+
+      const payload = {
+        email: String(formik.values.email || "").trim().toLowerCase(),
+        country_code: formik.values.country_code || "+263",
+        phone_number: formik.values.phone,
+        password: formik.values.password,
+        role: selectedRole,
+        type: otpType,
+        device_type: "web",
+        device_token: deviceToken,
+      };
+
+      let logisticsBody = null;
+      if (isLogisticsSignup) {
+        // Multipart: the business documents go with the sign-up
+        logisticsBody = new FormData();
+        const fields = {
+          ...payload,
+          full_name: String(formik.values.full_name || "").trim(),
+          company_name: String(formik.values.company_name || "").trim(),
+          vertical: "both",
+          owner_id_kind: formik.values.owner_id_kind || "national_id",
+          // "0" = step 2 skipped: documents are uploaded after sign-up
+          business_docs: BUSINESS_DOC_NAMES.some((n) => formik.values[n]) ? "1" : "0",
+        };
+        const baseCoords = formik.values.business_base_coords;
+        if (Array.isArray(baseCoords) && baseCoords.length === 2) {
+          fields.logistics_base = JSON.stringify({
+            address: String(formik.values.business_base_address || "").trim(),
+            lat: Number(baseCoords[1]),
+            lng: Number(baseCoords[0]),
+          });
+        }
+        Object.entries(fields).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) logisticsBody.append(k, v);
+        });
+        BUSINESS_DOCS.forEach((d) => {
+          if (!formik.values[d.name]) return;
+          logisticsBody.append(d.name, formik.values[d.name]);
+          if (formik.values[`${d.name}_expires`]) logisticsBody.append(`${d.name}_expires`, formik.values[`${d.name}_expires`]);
+        });
+      }
+      const response = isLogisticsSignup
+        ? await dispatch(LogisticsActions.register(logisticsBody))
+        : await dispatch(CustomerActions.createCustomer(payload));
+
+      if (response?.payload?.status_code === 200) {
+        toast.success(response?.payload?.message || "Registration successful");
+        setShowOtpModal(false);
+        navigate(
+          otpVerificationPath(response?.payload?.data?._id, {
+            role: selectedRole,
+            otpType,
+          })
+        );
+      } else {
+        toast.error(response?.payload?.message || "Registration failed");
+        if (response?.payload?.status_code === 400) {
+          setShowOtpModal(false);
+        }
+      }
+    } catch (error) {
+      toast.error(error?.message || "Registration failed. Please try again.");
+    } finally {
+      setSignupLoading(false);
     }
-    setSignupLoading(false);
   };
 
   const fieldError = (name) =>
@@ -358,9 +478,9 @@ export default function SignUp() {
                   src={require("../Assets/Images/dark-logo.png")}
                   alt="Simba Tasker"
                 />
-                {Number(selectedRole) === Roles.LOGISTICS && (
+                {/* {Number(selectedRole) === Roles.LOGISTICS && (
                   <span className="brand-module">| Equipment/Logistic</span>
-                )}
+                )} */}
               </Link>
 
               <div
@@ -386,6 +506,89 @@ export default function SignUp() {
               </div>
 
               <form onSubmit={formik.handleSubmit} noValidate>
+                {isLogisticsSignup ? (
+                  <ol className="signup-steps" aria-label="Sign-up steps">
+                    <li className={ownerStep === 1 ? "is-active" : "is-done"}>
+                      <button type="button" onClick={() => setOwnerStep(1)} aria-current={ownerStep === 1 ? "step" : undefined}>
+                        <span className="signup-steps__num">1</span>
+                        Account details
+                      </button>
+                    </li>
+                    <li className={ownerStep === 2 ? "is-active" : ""}>
+                      <button type="button" onClick={goToDocsStep} aria-current={ownerStep === 2 ? "step" : undefined}>
+                        <span className="signup-steps__num">2</span>
+                        Business documents
+                      </button>
+                    </li>
+                  </ol>
+                ) : null}
+
+                <div className="signup-step" data-step="1" hidden={isLogisticsSignup && ownerStep !== 1}>
+                {isLogisticsSignup ? (
+                  <div className="field-row">
+                    <div className="field">
+                      <label htmlFor="full_name">Full name</label>
+                      <div className="input-shell">
+                        <svg
+                          width="19"
+                          height="19"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="12" cy="8" r="4" />
+                          <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+                        </svg>
+                        <input
+                          type="text"
+                          id="full_name"
+                          name="full_name"
+                          autoComplete="name"
+                          placeholder="Your real name"
+                          value={formik.values.full_name}
+                          onChange={(e) => formik.setFieldValue("full_name", titleCaseName(e.target.value))}
+                          onBlur={formik.handleBlur}
+                        />
+                      </div>
+                      {fieldError("full_name")}
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="company_name">Business name</label>
+                      <div className="input-shell">
+                        <svg
+                          width="19"
+                          height="19"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="3" y="7" width="18" height="14" rx="2" />
+                          <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        <input
+                          type="text"
+                          id="company_name"
+                          name="company_name"
+                          autoComplete="organization"
+                          placeholder="Company or trading name"
+                          value={formik.values.company_name}
+                          onChange={(e) => formik.setFieldValue("company_name", capitalizeWords(e.target.value))}
+                          onBlur={formik.handleBlur}
+                        />
+                      </div>
+                      {fieldError("company_name")}
+                    </div>
+                  </div>
+                ) : null}
+
+
                 <div className="field">
                   <label htmlFor="email">Email ID</label>
                   <div className="input-shell">
@@ -407,8 +610,9 @@ export default function SignUp() {
                       id="email"
                       name="email"
                       placeholder="Enter your email"
+                      autoCapitalize="none"
                       value={formik.values.email}
-                      onChange={formik.handleChange}
+                      onChange={(e) => formik.setFieldValue("email", e.target.value.toLowerCase())}
                       onBlur={formik.handleBlur}
                     />
                   </div>
@@ -418,7 +622,7 @@ export default function SignUp() {
                       type="button"
                       className="email-suggestion"
                       onClick={() => {
-                        formik.setFieldValue("email", emailSuggestion);
+                        formik.setFieldValue("email", emailSuggestion.toLowerCase());
                         formik.setFieldError("email", undefined);
                         setEmailSuggestion("");
                       }}
@@ -523,6 +727,122 @@ export default function SignUp() {
                     {fieldError("confirmPassword")}
                   </div>
                 </div>
+
+                {isLogisticsSignup ? (
+                  <button type="button" className="btn btn-ghost btn-block signup-step-next" onClick={goToDocsStep}>
+                    Next: business documents
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                ) : null}
+                </div>
+
+                {isLogisticsSignup ? (
+                  <div className="field log-signup-docs signup-step" data-step="2" hidden={ownerStep !== 2}>
+                    <div className="signup-step-head">
+                      <label>Business documents</label>
+                      <button type="button" className="signup-step-skip" onClick={skipDocsStep} disabled={signupLoading}>
+                        Skip for now
+                      </button>
+                    </div>
+                    <div className="field signup-base-field">
+                      <label>
+                        Business location <span className="signup-optional">(optional)</span>
+                      </label>
+                      <LogisticsLocationField
+                        address={formik.values.business_base_address}
+                        coords={formik.values.business_base_coords}
+                        title="Business location"
+                        hint="Where your trucks / equipment are usually based. Search or pin it on the map."
+                        chooseLabel="Choose your business location"
+                        onChange={({ address, coords }) => {
+                          formik.setFieldValue("business_base_address", address || "");
+                          formik.setFieldValue("business_base_coords", coords || null);
+                        }}
+                      />
+                      <p className="signup-field-hint">Where your trucks / equipment are usually based — new equipment starts here. You can change it later in your profile.</p>
+                  </div>
+                    <p className="log-signup-docs__note">
+                      Simba checks these before approving your company. You can add equipment and operators once it&apos;s
+                      approved. PDF, JPG, PNG or Word. You can skip this step and upload them after sign-up.
+                    </p>
+                    {BUSINESS_DOCS.map((d) => {
+                      const file = formik.values[d.name];
+                      return (
+                        <div key={d.name} className="log-signup-doc" data-doc={d.name}>
+                          <div className="log-signup-doc__head">
+                            <span className="log-signup-doc__label">
+                              {d.label}
+                              {d.required ? <span className="log-signup-doc__req"> *</span> : <span className="log-signup-doc__opt"> (optional)</span>}
+                            </span>
+                            {d.name === "owner_id" ? (
+                              <select
+                                className="log-signup-doc__kind"
+                                name="owner_id_kind"
+                                aria-label="Type of ID"
+                                value={formik.values.owner_id_kind || "national_id"}
+                                onChange={formik.handleChange}
+                              >
+                                {OWNER_ID_KINDS.map((k) => (
+                                  <option key={k.value} value={k.value}>
+                                    {k.label}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : null}
+                          </div>
+                          <label className={`log-signup-doc__pick${file ? " has-file" : ""}`}>
+                            <input
+                              type="file"
+                              id={`biz-${d.name}`}
+                              name={d.name}
+                              accept={`${DOC_ACCEPT},.doc,.docx`}
+                              hidden
+                              onChange={(e) => {
+                                const [f] = keepAllowedFiles(e.target.files);
+                                if (f) {
+                                  skipDocsRef.current = false;
+                                  formik.setFieldValue(d.name, f);
+                                  formik.setFieldTouched(d.name, true, false);
+                                }
+                                e.target.value = "";
+                              }}
+                            />
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              {file ? <path d="M20 6 9 17l-5-5" /> : <><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M4 20h16" /></>}
+                            </svg>
+                            <span className="log-signup-doc__file">{file ? file.name : d.hint ? `Upload — ${d.hint}` : "Upload file"}</span>
+                            {file ? <span className="log-signup-doc__change">Change</span> : null}
+                          </label>
+                          {file ? (
+                            <label className="log-signup-doc__expiry">
+                              <span>{d.expiry ? "Expiry date *" : "Expiry date (optional)"}</span>
+                              <input
+                                type="date"
+                                name={`${d.name}_expires`}
+                                min={new Date(Date.now() + 864e5).toISOString().slice(0, 10)}
+                                value={formik.values[`${d.name}_expires`] || ""}
+                                onChange={formik.handleChange}
+                              />
+                            </label>
+                          ) : null}
+                          {file && !d.required ? (
+                            <button type="button" className="log-signup-doc__remove" onClick={() => formik.setFieldValue(d.name, undefined)}>
+                              Remove
+                            </button>
+                          ) : null}
+                          {(formik.touched[d.name] || formik.submitCount > 0) && formik.errors[d.name] ? (
+                            <div className="field-error">{formik.errors[d.name]}</div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                    <button type="button" className="signup-step-back" onClick={() => setOwnerStep(1)}>
+                      ← Back to account details
+                    </button>
+                  </div>
+                ) : null}
 
                 <div className="consent">
                   <input

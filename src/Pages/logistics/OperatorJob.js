@@ -33,6 +33,7 @@ import {
   parseLogisticsMoney,
 } from "../../utils/logisticsMoney";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
+import { unitStatusChip } from "../../utils/ownerUnitStatus";
 import "./logistics.css";
 import {
   LogisticsDetailSkeleton,
@@ -41,6 +42,9 @@ import { readDeviceGps } from "../../utils/deviceGps";
 import { haversineKm } from "../../utils/multiTransitRoute";
 import { truckTooSmallForJob } from "../../utils/logisticVehicleWeight";
 import { LogisticsSosJobBar } from "../../CommanComponents/LogisticsSosButton";
+import { useLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
+import LogisticsWhatsappChatButton from "../../CommanComponents/LogisticsWhatsappChatButton";
+import { apiErrorMessage } from "../../utils/ownerOperator";
 
 // Cab rides: passenger wording for the same status numbers
 const RIDE_STATUS_LABEL = {
@@ -220,9 +224,10 @@ function hasAssignedOperator(asset) {
  * only quote with a free truck (owner-driven, full earnings to the owner).
  */
 function isTruckBusyForOwner(asset) {
-  if (asset?.kind === "equipment") return false;
   return (
-    isOperatorLiveOnAsset(asset) || asset?.availability?.state === "on_job"
+    Boolean(asset?.occupancy?.busy && asset.occupancy.by !== "owner") ||
+    isOperatorLiveOnAsset(asset) ||
+    asset?.availability?.state === "on_job"
   );
 }
 
@@ -230,10 +235,8 @@ function ownerAssetSelectLabel(asset) {
   const base = assetOptionLabel(asset);
   if (isOperatorLiveOnAsset(asset)) return `${base} · live`;
   if (!hasAssignedOperator(asset)) return `${base} · no operator`;
-  if ((asset.availability?.state || "offline") === "offline") {
-    return `${base} · offline`;
-  }
-  return `${base} · ${String(asset.availability.state).replace(/_/g, " ")}`;
+  // Item 7: what customers see, never the raw stored state
+  return `${base} · ${unitStatusChip(asset).label}`;
 }
 
 function pickPreferredOwnerAsset(rows) {
@@ -254,6 +257,12 @@ export default function LogisticsOperatorJob() {
   const navigate = useNavigate();
   const location = useLocation();
   const isOwnerShell = location.pathname.startsWith("/logistics/owner");
+  // v2.7.61: an owner who holds a unit quotes and runs jobs on it from either
+  // shell. `fleetView` is the owner overseeing the fleet, without quoting.
+  const ownerOp = useLogisticsAccount()?.owner_operator || null;
+  const ownerOperating =
+    !localStorage.getItem("owner_id") && Boolean(ownerOp?.active_asset_id);
+  const fleetView = isOwnerShell && !ownerOperating;
   const homeTo = isOwnerShell ? "/logistics/owner" : "/logistics/driver";
   const midLabel = isOwnerShell ? "Owner" : "Operator";
   const [job, setJob] = useState(null);
@@ -288,7 +297,7 @@ export default function LogisticsOperatorJob() {
   const [resolvingReportId, setResolvingReportId] = useState(null);
 
   const myUserId = localStorage.getItem("userId") || "";
-  const isOperator = Boolean(localStorage.getItem("owner_id")) && !isOwnerShell;
+  const isOperator = !fleetView;
 
   const reload = async () => {
     const res = await dispatch(LogisticsActions.getJob(id));
@@ -302,7 +311,7 @@ export default function LogisticsOperatorJob() {
       await reload();
 
       let activeId = "";
-      if (!isOwnerShell) {
+      if (!fleetView) {
         const dash = await dispatch(LogisticsActions.getOperatorDashboard());
         activeId = String(
           dash?.payload?.data?.active_asset?._id ||
@@ -329,11 +338,11 @@ export default function LogisticsOperatorJob() {
         setTeamOperators(subs?.payload?.data?.drivers || []);
       }
       if (activeId) setAssetId(activeId);
-      else if (isOwnerShell) setAssetId(pickPreferredOwnerAsset(pool));
+      else if (fleetView) setAssetId(pickPreferredOwnerAsset(pool));
       else if (pool[0]?._id) setAssetId(String(pool[0]._id));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, id]);
+  }, [dispatch, id, fleetView]);
 
   useEffect(() => {
     const onFocus = () => {
@@ -491,10 +500,10 @@ export default function LogisticsOperatorJob() {
 
   // v2.7.34: live truck must carry the job's goods (server: TRUCK_TOO_SMALL)
   const truckTooSmall = useMemo(() => {
-    if (isOwnerShell || needKind !== "vehicle" || !activeAssetId || !job) return null;
+    if (fleetView || needKind !== "vehicle" || !activeAssetId || !job) return null;
     const active = kindAssets.find((a) => String(a._id) === String(activeAssetId));
     return active ? truckTooSmallForJob(job, active, kindAssets) : null;
-  }, [isOwnerShell, needKind, activeAssetId, job, kindAssets]);
+  }, [fleetView, needKind, activeAssetId, job, kindAssets]);
 
   const quoteEligibleAssets = useMemo(() => {
     const free = kindAssets.filter((a) => {
@@ -504,7 +513,7 @@ export default function LogisticsOperatorJob() {
     });
 
     // Owner: free trucks only (no live operator, not on another job)
-    if (isOwnerShell || !isOperator) {
+    if (fleetView) {
       return free.filter((a) => !isTruckBusyForOwner(a));
     }
     if (!activeAssetId || truckTooSmall) return [];
@@ -519,8 +528,7 @@ export default function LogisticsOperatorJob() {
     assetsQuotedByOthers,
     editingPending,
     myQuote,
-    isOwnerShell,
-    isOperator,
+    fleetView,
     activeAssetId,
     job?.job_class,
     truckTooSmall,
@@ -536,16 +544,16 @@ export default function LogisticsOperatorJob() {
     );
     if (!stillOk) {
       setAssetId(
-        isOwnerShell
+        fleetView
           ? pickPreferredOwnerAsset(quoteEligibleAssets)
           : String(quoteEligibleAssets[0]._id)
       );
     }
-  }, [quoteEligibleAssets, assetId, isOwnerShell]);
+  }, [quoteEligibleAssets, assetId, fleetView]);
 
-  // Only the assigned operator runs a job (v2.7.30). The fleet owner sees
-  // progress, can reassign or reject, but can't advance status / OTP / PIN —
-  // except an older owner-driven job (driver_id = owner) already in flight.
+  // Only whoever drives a job runs it. The fleet owner sees progress on an
+  // operator's job and can reassign or reject it, but can't advance status /
+  // OTP / PIN. On a job the owner drives (v2.7.61) they are just the operator.
   const { isRunner, isFleetOwnerView } = useMemo(() => {
     if (!job?.assigned) return { isRunner: false, isFleetOwnerView: false };
     const driverRaw = job.assigned.driver_id;
@@ -556,9 +564,10 @@ export default function LogisticsOperatorJob() {
     const ownerId = String(
       (typeof ownerRaw === "object" && ownerRaw?._id) || ownerRaw || ""
     );
+    const runner = Boolean(driverId && driverId === myUserId);
     return {
-      isRunner: Boolean(driverId && driverId === myUserId),
-      isFleetOwnerView: Boolean(isOwnerShell && ownerId && ownerId === myUserId),
+      isRunner: runner,
+      isFleetOwnerView: Boolean(isOwnerShell && !runner && ownerId && ownerId === myUserId),
     };
   }, [job, myUserId, isOwnerShell]);
   const isAssignedToMe = isRunner || isFleetOwnerView;
@@ -571,7 +580,7 @@ export default function LogisticsOperatorJob() {
   const rejectOtpPending = Boolean(job?.reject_otp_pending);
   const canRejectImmediate = canTrack && status === 1 && !rejectOtpPending;
   const canOwnerStartRejectOtp =
-    isOwnerShell &&
+    isFleetOwnerView &&
     canTrack &&
     !rejectOtpPending &&
     (plantJobEarly ? status === 4 : status >= 2 && status <= 4);
@@ -625,30 +634,32 @@ export default function LogisticsOperatorJob() {
     (a) => !assetsQuotedByOthers.has(String(a._id))
   ).length;
   const ownerBlockedAllQuoted =
-    isOwnerShell &&
+    fleetView &&
     kindAssets.length > 0 &&
     ownerUnquotedCount === 0 &&
     !editingPending;
   const ownerAllTrucksBusy =
-    isOwnerShell &&
+    fleetView &&
     !ownerBlockedAllQuoted &&
     kindAssets.length > 0 &&
     quoteEligibleAssets.length === 0;
 
-  // Owners don't quote — their operators do
+  // Owners quote only with a unit they are operating
   const canQuoteForm =
     status === 0 &&
     !quoteAccepted &&
-    !isOwnerShell &&
+    !fleetView &&
     operatorCanQuote &&
     (!myQuoteStatus || editingPending || canReQuoteAfterReject);
 
   const quoteBlockedReason = useMemo(() => {
     if (status !== 0) return null;
     if (quoteAccepted) return "Your quote was accepted for this job.";
-    if (isOwnerShell) {
+    if (fleetView) {
       if (kindAssets.length) {
-        return "Your operators quote and run jobs. Operators live on a matching unit can quote this one — you'll see their quotes under Quotes.";
+        return ownerOp?.can_operate
+          ? "To quote this yourself, use a free matching unit (Availability → Use this unit myself). Otherwise operators live on a matching unit quote it, and you'll see their quotes under Quotes."
+          : "Your operators quote and run jobs. Operators live on a matching unit can quote this one — you'll see their quotes under Quotes.";
       }
       if (!kindAssets.length) {
         return needKind === "vehicle"
@@ -689,7 +700,8 @@ export default function LogisticsOperatorJob() {
   }, [
     status,
     quoteAccepted,
-    isOwnerShell,
+    fleetView,
+    ownerOp?.can_operate,
     kindAssets.length,
     needKind,
     ownerBlockedAllQuoted,
@@ -832,10 +844,14 @@ export default function LogisticsOperatorJob() {
     );
     const driverRaw = job?.assigned?.driver_id;
     const current = String((typeof driverRaw === "object" && driverRaw?._id) || driverRaw || "");
-    return teamOperators.filter(
+    const others = teamOperators.filter(
       (op) => onUnit.has(String(op._id)) && String(op._id) !== current
     );
-  }, [isFleetOwnerView, job, assets, teamOperators]);
+    // v2.7.61: the owner can take the job over
+    return ownerOp?.can_operate && current !== String(myUserId)
+      ? [{ _id: myUserId, full_name: "Myself" }, ...others]
+      : others;
+  }, [isFleetOwnerView, job, assets, teamOperators, ownerOp?.can_operate, myUserId]);
 
   const reassignJob = async () => {
     if (!reassignTo) return;
@@ -845,11 +861,15 @@ export default function LogisticsOperatorJob() {
         LogisticsActions.reassignJob({ id, sub_user_id: reassignTo })
       );
       if (res?.meta?.requestStatus === "fulfilled" && res?.payload?.success) {
-        toast.success("Job reassigned — the operator and customer were notified");
+        toast.success(
+          reassignTo === myUserId
+            ? "You now run this job — the customer was notified"
+            : "Job reassigned — the operator and customer were notified"
+        );
         setReassignTo("");
         await reload();
       } else {
-        toast.error(res?.payload?.message || "Could not reassign");
+        toast.error(apiErrorMessage(res?.payload, "Could not reassign"), { autoClose: 8000 });
       }
     } finally {
       setReassigning(false);
@@ -963,10 +983,10 @@ export default function LogisticsOperatorJob() {
   };
 
   const rejectPromptText = plantJobEarly
-    ? status === 4 && isOwnerShell
+    ? status === 4 && isFleetOwnerView
       ? "Rejecting while on site sends the customer an OTP to confirm."
       : "You can reject this hire only before Transit."
-    : status >= 2 && isOwnerShell
+    : status >= 2 && isFleetOwnerView
       ? "Rejecting after Collect sends the customer an OTP to confirm."
       : "You can reject this job only before Collect.";
 
@@ -1314,6 +1334,7 @@ export default function LogisticsOperatorJob() {
             </div>
             {customerPeer.no_longer_active ? null : (
             <div className="log-jd-party__actions">
+              <LogisticsWhatsappChatButton jobId={job._id} compact />
               <QuoteChatIconButton
                 title={`Chat with ${customerPeer.full_name}`}
                 onClick={chatWithCustomer}
@@ -1451,7 +1472,7 @@ export default function LogisticsOperatorJob() {
                   </div>
                 </form>
               ) : null}
-              {rejectOtpPending && isOwnerShell ? (
+              {rejectOtpPending && isFleetOwnerView ? (
                 <form className="log-delivery-otp" onSubmit={submitRejectOtp}>
                   <p className="log-delivery-otp__lead">
                     Customer has a rejection OTP
@@ -1869,7 +1890,7 @@ export default function LogisticsOperatorJob() {
                           ? "Cab"
                           : "Equipment"}
                     </span>
-                    {isOwnerShell && quoteEligibleAssets.length > 1 ? (
+                    {fleetView && quoteEligibleAssets.length > 1 ? (
                       <select
                         className="log-op-quote-vehicle__select"
                         value={assetId}
@@ -1928,7 +1949,7 @@ export default function LogisticsOperatorJob() {
                     {priorityFee} priority fee.
                   </p>
                 ) : null}
-                {isOwnerShell ? (
+                {fleetView ? (
                   (() => {
                     const selected =
                       quoteEligibleAssets.find(
@@ -2113,11 +2134,11 @@ export default function LogisticsOperatorJob() {
             <p className="log-hint" style={{ margin: 0 }}>
               {quoteBlockedReason}
             </p>
-            {!isOwnerShell ? (
+            {!fleetView ? (
               <Link
                 className="logistics-cta logistics-cta--ghost"
                 style={{ marginTop: 12, display: "inline-flex" }}
-                to="/logistics/driver"
+                to={homeTo === "/logistics/owner" ? "/logistics/owner/availability" : "/logistics/driver"}
               >
                 Open dashboard
               </Link>

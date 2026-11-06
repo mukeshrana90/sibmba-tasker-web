@@ -1,3 +1,4 @@
+import EmptyResults from "../CommanComponents/EmptyResults";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../Components/Layout/Layout";
@@ -109,7 +110,7 @@ export default function Services() {
                 <Loader />
               </div>
             ) : categories.length === 0 ? (
-              <p className="svc-empty">{emptyMessage}</p>
+              <EmptyResults module="services" message={emptyMessage} />
             ) : (
               <>
                 <div className="cat-grid">

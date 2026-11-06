@@ -3,6 +3,7 @@ import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import { useNavigate, useParams } from "react-router-dom";
+import { guestLoginPath } from "../utils/authRedirect";
 import Layout from "../Components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../Redux/Actions/CustomerActions";
@@ -296,6 +297,11 @@ export default function ProductDetail() {
                   <button
                     className="primaryBtn"
                     onClick={() => {
+                      // Item 52: guests browse freely; Buy asks for login
+                      if (!localStorage.getItem("token")) {
+                        navigate(guestLoginPath());
+                        return;
+                      }
                       handlePaymentOpen(productDetail?.id);
                       setSelectedBoooking(productDetail);
                     }}

@@ -648,7 +648,10 @@ export default function UnifiedSearch({ defaultMode = "services", showModeSwitch
                 </div>
               )}
               {!searching && lgSuggest.q && !hasLogisticsResults && (
-                <p className="landing-search__empty">No trucks or equipment match “{lgSuggest.q}” yet — try another word.</p>
+                <p className="landing-search__empty">
+                  No trucks or equipment match “{lgSuggest.q}” yet. Try another word, or{" "}
+                  <Link to="/logistics/post" data-testid="post-request">post a request</Link>.
+                </p>
               )}
               {searchQuery.trim().length >= 2 && (
                 <button
@@ -787,8 +790,9 @@ export default function UnifiedSearch({ defaultMode = "services", showModeSwitch
                 (searchQuery.trim() || locationText.trim()) && (
                   <p className="landing-search__empty">
                     {nearbyEnabled
-                      ? "No nearby matches. Try another service or enable location."
-                      : "No results yet. Try another search or location."}
+                      ? "No nearby matches yet. Try another service, or "
+                      : "No results yet. Try another search or location, or "}
+                    <Link to="/post-task" data-testid="post-request">post a request</Link>.
                   </p>
                 )}
               {!searching && nearbyEnabled && !searchQuery.trim() && (

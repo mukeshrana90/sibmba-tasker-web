@@ -70,10 +70,12 @@ async function passwordIs(User, id, pass) {
     const corp = await L.makeCustomer(`fp.corp.${RUN}`, 3);
     const cust = await L.makeCustomer(`fp.cust.${RUN}`, 1);
     made.push(corp._id, cust._id);
-    const corpPhone = `48${String(Date.now()).slice(-7)}`;
-    const custPhone = `77${String(Date.now() + 3).slice(-7)}`;
-    await d.collection("users").updateOne({ _id: new L.mongoose.Types.ObjectId(corp._id) }, { $set: { phone_number: corpPhone, country_code: "+263", status: 1 } });
-    await d.collection("users").updateOne({ _id: new L.mongoose.Types.ObjectId(cust._id) }, { $set: { phone_number: custPhone, country_code: "+263", status: 1 } });
+    // Zimbabwe mobiles from the cast (+263)
+    const CC = L.cast(L.loadState().RUN || RUN).CC;
+    const corpPhone = corp.phone;
+    const custPhone = cust.phone;
+    await d.collection("users").updateOne({ _id: new L.mongoose.Types.ObjectId(corp._id) }, { $set: { phone_number: corpPhone, country_code: CC, status: 1 } });
+    await d.collection("users").updateOne({ _id: new L.mongoose.Types.ObjectId(cust._id) }, { $set: { phone_number: custPhone, country_code: CC, status: 1 } });
 
     // ── 1. Channel picker
     L.sec("16a. Forgot password → channel picker shows a masked phone, sends nothing");
@@ -126,7 +128,7 @@ async function passwordIs(User, id, pass) {
     await b.page.getByRole("button", { name: "Next" }).click();
     await b.page.waitForURL(/otp-varification/, { timeout: 15000 });
     const [wa] = await waitMsg(t0, (r) => r.channel === "whatsapp");
-    L.check(wa?.ok && wa.to === `+263${custPhone}` && wa.template === "otp", `WhatsApp OTP template to the stored number (${wa?.to})`);
+    L.check(wa?.ok && wa.to === `${CC}${custPhone}` && wa.template === "otp", `WhatsApp OTP template to the stored number (${wa?.to})`);
     await typeOtp(b, String(wa?.variables?.["1"] || ""));
     await resetInUi(b, NEW_PASS);
     L.check(await passwordIs(User, cust._id, NEW_PASS), "customer password changed via the WhatsApp code");
@@ -137,9 +139,9 @@ async function passwordIs(User, id, pass) {
     await b.page.waitForURL((u) => !/\/login/.test(String(u)), { timeout: 15000 }).then(() => L.check(true, "customer logs in with the new password")).catch(async () => L.check(false, "customer logs in with the new password", (await L.bodyText(b)).slice(0, 200)));
     await L.shot(b, "s16-customer-logged-in");
     t0 = now();
-    const spoof = await forgot({ email: cust.email, type: 3, country_code: "+263", phone_number: "719990001" });
+    const spoof = await forgot({ email: cust.email, type: 3, country_code: CC, phone_number: "9999000001" });
     const spoofMsgs = await waitMsg(t0, (r) => r.channel === "whatsapp", 6000);
-    L.check(spoof.success !== false && spoofMsgs.length === 1 && spoofMsgs[0].to === `+263${custPhone}`, "request naming another number → still sent to the stored number", spoofMsgs.map((m) => m.to));
+    L.check(spoof.success !== false && spoofMsgs.length === 1 && spoofMsgs[0].to === `${CC}${custPhone}`, "request naming another number → still sent to the stored number", spoofMsgs.map((m) => m.to));
     L.check(!JSON.stringify(spoof).includes(custPhone), "full phone not in that response either");
 
     // ── 4. API edge cases
@@ -164,7 +166,7 @@ async function passwordIs(User, id, pass) {
     L.check(false, "stage crashed", e.message.split("\n")[0]);
     for (const x of actors) await L.shot(x, "s16-crash");
   } finally {
-    if (made.length) await d.collection("users").deleteMany({ _id: { $in: made.map((x) => new L.mongoose.Types.ObjectId(x)) }, email: /@e2e\.example\.com$/ }).catch(() => {});
+    if (made.length) await d.collection("users").deleteMany({ _id: { $in: made.map((x) => new L.mongoose.Types.ObjectId(x)) }, email: /@(e2e\.example|yopmail)\.com$/ }).catch(() => {});
   }
   for (const x of actors) {
     L.check(x.errors.length === 0, `${x.name}: no page/console errors`, x.errors.slice(0, 4));

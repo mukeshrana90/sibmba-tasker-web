@@ -1,3 +1,4 @@
+import EmptyResults from "../CommanComponents/EmptyResults";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -669,14 +670,10 @@ function SearchProvidersContent({ variant = "visitor" }) {
                   <p>Searching…</p>
                 </div>
               ) : items.length === 0 ? (
-                <div className="empty">
-                  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m21 21-4-4" strokeLinecap="round" />
-                  </svg>
-                  <h3>No providers match your filters</h3>
-                  <p>Try widening your search or clearing some filters.</p>
-                </div>
+                <EmptyResults
+                  module="services"
+                  message="No exact match for your filters, so here is who's closest."
+                />
               ) : (
                 items.map((item) => (
                   <ProviderCard

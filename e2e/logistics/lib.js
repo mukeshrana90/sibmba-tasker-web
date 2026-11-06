@@ -12,7 +12,11 @@ const WEB = process.env.E2E_WEB || "https://localhost:3001";
 const API = process.env.E2E_API || "http://127.0.0.1:4099";
 const SHOTS = path.join(__dirname, "shots");
 const STATE = path.join(__dirname, "state.json");
-const HARARE = { latitude: -17.8292, longitude: 31.0522 };
+// Realistic cast (cast.js): Zimbabwean names, Harare, +263, @yopmail.com, real photos / documents (docs.js)
+const castFor = require("./cast");
+const DOCS = require("./docs");
+const HOME = { latitude: castFor.PLACES.home.latitude, longitude: castFor.PLACES.home.longitude }; // Harare CBD
+const HARARE = HOME; // old name kept for stages that still import it
 
 const results = [];
 let section = "";
@@ -120,11 +124,12 @@ async function getBrowser() {
 }
 
 /** New isolated browser context for one actor; /api + /public go to the safe 4099 API. */
-async function actor(name, { geo = HARARE, mobile = false } = {}) {
+async function actor(name, { geo = HOME, mobile = false, viewport = null, scale = 1 } = {}) {
   const b = await getBrowser();
   const ctx = await b.newContext({
     ignoreHTTPSErrors: true,
-    viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 },
+    viewport: viewport || (mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 }),
+    deviceScaleFactor: scale,
     geolocation: geo,
     permissions: ["geolocation", "notifications"],
     // E2E_VIDEO=<dir>: record each actor's session as .webm
@@ -166,6 +171,21 @@ async function actor(name, { geo = HARARE, mobile = false } = {}) {
       };
       const again = () => window.__e2eLast && window.__e2eBanner(window.__e2eLast);
       document.addEventListener("DOMContentLoaded", again);
+      // Visible cursor: a red dot follows Playwright's mouse and pulses on each click
+      let dot;
+      const ensureDot = () => {
+        if (dot && dot.isConnected) return dot;
+        const h = document.createElement("e2e-cursor");
+        const r = h.attachShadow({ mode: "closed" });
+        dot = document.createElement("div");
+        dot.style.cssText = "position:fixed;left:-50px;top:-50px;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(220,38,38,.55);border:2px solid #fff;box-shadow:0 0 0 2px rgba(220,38,38,.8);z-index:2147483647;pointer-events:none;transition:transform .15s";
+        r.appendChild(dot);
+        (document.documentElement || document).appendChild(h);
+        return dot;
+      };
+      const move = (e) => { if (!document.documentElement) return; const d = ensureDot(); d.style.left = `${e.clientX}px`; d.style.top = `${e.clientY}px`; };
+      window.addEventListener("mousemove", move, true);
+      window.addEventListener("mousedown", (e) => { move(e); const d = ensureDot(); d.style.transform = "scale(1.8)"; setTimeout(() => { d.style.transform = "scale(1)"; }, 220); }, true);
     });
   }
   const page = await ctx.newPage();
@@ -224,6 +244,88 @@ async function api(method, p, { token, body } = {}) {
   try { return JSON.parse(t); } catch { return { raw: t, http: res.status }; }
 }
 
+// doc 12 (v2.7.58): new units need 2 photos and new operators a face photo — real photos (fixtures/real)
+const UNIT_PHOTOS = {
+  truck: ["zw/hino-1.jpg", "zw/hino-2.jpg"],
+  truck2: ["zw/seddon-1.jpg", "zw/seddon-2.jpg"],
+  truck3: ["zw/tipper-1.jpg", "zw/tipper-2.jpg"],
+  tractor: ["zw/mf-tractor-1.jpg", "zw/mf-tractor-2.jpg"],
+  equipment: ["zw/cat-1.jpg", "zw/cat-2.jpg"],
+  jcb: ["zw/jcb3cx-1.jpg", "zw/jcb3cx-2.jpg"],
+  cab: ["zw/fit-taxi-1.jpg", "zw/fit-taxi-2.jpg"],
+};
+/** Two real photos for a unit kind (truck | truck2 | truck3 | tractor | jcb | cab). */
+async function photoFixtures(kind = "truck") {
+  if (Array.isArray(kind)) return DOCS.photos(kind); // a cast unit's own photos: C.unit(...).photos
+  if (kind && typeof kind === "object" && kind.photos) return DOCS.photos(kind.photos);
+  return DOCS.photos(UNIT_PHOTOS[kind] || UNIT_PHOTOS.truck);
+}
+
+/** Add-unit / edit-unit form: attach the 2 required photos (kind name, photo list or a cast unit). */
+async function addUnitPhotos(page, form = "form.log-fleet-form", kind = "truck") {
+  await page.locator(`${form} .log-photo-slot--add input[type=file]`).first().setInputFiles(await photoFixtures(kind));
+}
+
+/** Operator invite form: attach the required face photo (AI face #i). */
+async function addFacePhoto(page, i = 1) {
+  await page.locator('[data-field="profile_photo"] input[type=file]').first().setInputFiles(DOCS.face(i));
+}
+
+/** Cast for the current run (state.json RUN). */
+function cast(RUN) {
+  return castFor(RUN || loadState().RUN || "run");
+}
+
+/**
+ * Real-looking document file for an app document type (rego | insurance | ownership | roadworthy |
+ * taxi_permit | pollution | licence | medical | competency). `info` = { holder, owner, plate, make,
+ * model, year, kind, face, expires }.
+ */
+async function docFile(type, info = {}) {
+  return DOCS.docFor(type, info);
+}
+
+/**
+ * Type a phone number into a react-international-phone field: picks the country
+ * from the field's own dropdown (default is Zimbabwe), then types the national
+ * number, e.g. typePhone(loc, "+263", "772415836").
+ */
+const CC_ISO = { "+91": "in", "+263": "zw", "+27": "za", "+44": "gb", "+1": "us" };
+async function typePhone(locator, cc, number) {
+  const iso = CC_ISO[cc];
+  const box = locator.locator("xpath=ancestor::*[contains(@class,'react-international-phone-input-container')][1]");
+  if (iso && (await box.count())) {
+    await box.locator(".react-international-phone-country-selector-button").first().click();
+    const item = box.page().locator(`.react-international-phone-country-selector-dropdown li[data-country="${iso}"]`).first();
+    await item.scrollIntoViewIfNeeded().catch(() => {});
+    await item.click();
+  }
+  await locator.click();
+  await locator.press("End");
+  // drop anything typed after the dial code, then the national number
+  const v = await locator.inputValue();
+  const keep = (v.match(/^\+\d+\s?/) || [""])[0];
+  for (let i = v.length; i > keep.length; i--) await locator.press("Backspace");
+  await locator.pressSequentially(String(number), { delay: 15 });
+}
+
+/** Multipart API call; `files` = [[field, path], …]. Arrays/objects in `body` are sent as JSON strings. */
+async function apiForm(method, p, { token, body = {}, files = [] } = {}) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(body)) {
+    if (v === undefined || v === null) continue;
+    fd.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
+  }
+  for (const [field, file] of files) {
+    const ext = path.extname(file).toLowerCase();
+    const type = { ".pdf": "application/pdf", ".png": "image/png", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".heic": "image/heic" }[ext] || "image/jpeg";
+    fd.append(field, new Blob([fs.readFileSync(file)], { type }), path.basename(file));
+  }
+  const res = await fetch(`${API}/api${p}`, { method, headers: token ? { authorization: token } : {}, body: fd });
+  const t = await res.text();
+  try { return JSON.parse(t); } catch { return { raw: t, http: res.status }; }
+}
+
 async function db() {
   if (mongoose.connection.readyState !== 1) await mongoose.connect(process.env.DB_URL);
   return mongoose.connection.db;
@@ -243,7 +345,22 @@ async function adminToken() {
  * company. Stages that need a working fleet approve their fresh owner through
  * the admin API (same path as the admin panel button).
  */
-async function approveOwner(ownerId, status = "approved", reason = "") {
+async function approveOwner(ownerId, status = "approved", reason = "", { withDocs = true } = {}) {
+  // 29 Oct 2026: approval needs business documents — owners created straight in the DB
+  // (or signed up without them) upload real-looking ones first, as the owner would
+  if (status === "approved" && withDocs) {
+    const d = await db();
+    const o = await d.collection("users").findOne({ _id: new mongoose.Types.ObjectId(String(ownerId)) }, { projection: { full_name: 1, company_name: 1, logistics_business_documents: 1 } });
+    const have = new Set((o?.logistics_business_documents || []).filter((x) => x.review?.status !== "rejected").map((x) => x.type));
+    if (o && !(have.has("business_registration") && have.has("owner_id"))) {
+      const f = await businessDocFiles({ name: o.full_name || o.company_name || "Owner", company: o.company_name || o.full_name });
+      await apiForm("POST", "/logistics/business-docs", {
+        token: tokenFor(ownerId),
+        body: { owner_id_kind: "national_id", owner_id_expires: docExpiryYmd() },
+        files: [["business_registration", f.business_registration], ["owner_id", f.owner_id]],
+      });
+    }
+  }
   return api("POST", `/admin/logistics/owners/${ownerId}/approval`, {
     token: await adminToken(),
     body: { status, ...(reason ? { reason } : {}) },
@@ -251,16 +368,135 @@ async function approveOwner(ownerId, status = "approved", reason = "") {
 }
 
 /**
+ * 29 Oct 2026 approval flow: real-looking business documents for an owner sign-up.
+ * Returns { business_registration, owner_id, tax } file paths (owner_id = driving licence card).
+ */
+async function businessDocFiles(person, face = 5) {
+  const info = { holder: person.name, owner: person.name, company: person.company || person.name, face: DOCS.face(face) };
+  return {
+    business_registration: await DOCS.docFor("business_registration", info),
+    owner_id: await DOCS.docFor("owner_id", info),
+    tax: await DOCS.docFor("tax", info),
+  };
+}
+
+/** Sign-up form (Equipment Owner): attach the business documents (required two + tax). */
+/** 30 Oct 2026: owner ID + tax certificate need an expiry date — ~3 years ahead. */
+function docExpiryYmd(years = 3) {
+  return new Date(Date.now() + years * 365 * 864e5).toISOString().slice(0, 10);
+}
+
+async function fillSignupBusinessDocs(page, person, { tax = true, face = 5 } = {}) {
+  const f = await businessDocFiles(person, face);
+  // 30 Oct 2026: documents live on sign-up step 2 — open it (step 1 must be filled)
+  const next = page.locator(".signup-step-next");
+  if (await next.isVisible().catch(() => false)) await next.click();
+  await page.locator("#biz-business_registration").setInputFiles(f.business_registration);
+  await page.locator("#biz-owner_id").setInputFiles(f.owner_id);
+  await page.locator('input[name="owner_id_expires"]').fill(docExpiryYmd());
+  await page.locator('select[name="owner_id_kind"]').selectOption("national_id").catch(() => {});
+  if (tax) {
+    await page.locator("#biz-tax").setInputFiles(f.tax).catch(() => {});
+    await page.locator('input[name="tax_expires"]').fill(docExpiryYmd(1)).catch(() => {});
+  }
+  return f;
+}
+
+/**
+ * Make a fleet ready for customers (29 Oct 2026 rules): verify every unit document and give
+ * each operator a verified licence. units = asset ids; operators = [{ _id, name, face }].
+ */
+async function makeFleetReady(ownerToken, { units = [], operators = [] } = {}) {
+  for (const id of units) await verifyDocs("asset", id);
+  for (const op of operators) {
+    const d = await db();
+    const u = await d.collection("users").findOne({ _id: new mongoose.Types.ObjectId(String(op._id)) }, { projection: { logistics_documents: 1 } });
+    const hasLicence = (u?.logistics_documents || []).some((x) => x.type === "licence");
+    if (!hasLicence) await giveOperatorLicence(ownerToken, op._id, { holder: op.name || "Operator", face: op.face || 1, verify: false });
+    await verifyDocs("operator", op._id);
+  }
+}
+
+/**
+ * Admin check of documents through the admin API (same path as the Verify / Reject buttons).
+ * subject: "asset" | "operator" | "business"; status "verified" | "rejected"; only = doc types (default all waiting).
+ */
+async function reviewDocs(subject, id, { status = "verified", reason = "", only = null } = {}) {
+  const d = await db();
+  const oid = new mongoose.Types.ObjectId(String(id));
+  const holder =
+    subject === "asset"
+      ? await d.collection("logistics_assets").findOne({ _id: oid }, { projection: { documents: 1 } })
+      : await d.collection("users").findOne({ _id: oid }, { projection: { logistics_documents: 1, logistics_business_documents: 1 } });
+  const docs = subject === "asset" ? holder?.documents : subject === "business" ? holder?.logistics_business_documents : holder?.logistics_documents;
+  const token = await adminToken();
+  const out = [];
+  for (const doc of docs || []) {
+    if (only && !only.includes(doc.type)) continue;
+    if (!only && doc.review?.status === status) continue;
+    out.push(await api("POST", "/admin/logistics/documents/review", {
+      token,
+      body: { subject, id: String(id), doc_id: String(doc._id), status, ...(status === "rejected" ? { reason: reason || "Not readable — please upload a clear copy" } : {}) },
+    }));
+  }
+  return out;
+}
+const verifyDocs = async (subject, id, { roadworthy = true, ...opts } = {}) => {
+  if (subject === "asset" && roadworthy && !opts.only) await ensureRoadworthy(id);
+  return reviewDocs(subject, id, { ...opts, status: "verified" });
+};
+
+/**
+ * v2.7.61: every truck needs a roadworthy certificate. Tests that make a truck ready upload one
+ * (as the owner, same path as Add / Edit unit); pass { roadworthy: false } to verifyDocs to keep one out.
+ */
+async function ensureRoadworthy(assetId) {
+  const d = await db();
+  const a = await d.collection("logistics_assets").findOne({ _id: new mongoose.Types.ObjectId(String(assetId)) });
+  if (!a || a.kind === "equipment" || a.kind === "cab") return null;
+  if ((a.documents || []).some((x) => x.type === "roadworthy" && x.review?.status !== "rejected")) return null;
+  const expires = DOCS.addMonths(8);
+  const file = await DOCS.docFor("roadworthy", { owner: a.name || "Owner", plate: a.plate_number || a.plate || "", kind: "vehicle", expires });
+  return apiForm("PATCH", `/logistics/asset/${assetId}`, {
+    token: tokenFor(a.owner_id),
+    body: { document_types: ["roadworthy"], document_expires: [expires.toISOString().slice(0, 10)] },
+    files: [["documents", file]],
+  });
+}
+
+/**
+ * Give an operator a real-looking driving licence (owner uploads it via PATCH /logistics/sub-user/:id)
+ * and, unless verify:false, verify it as Simba admin so the operator can go live.
+ */
+async function giveOperatorLicence(ownerToken, opId, { holder = "Operator", face = 1, months = 8, verify = true, kind = "vehicle" } = {}) {
+  const expires = DOCS.addMonths(months);
+  const file = await DOCS.docFor("licence", { holder, face: DOCS.face(face), expires, kind });
+  const res = await apiForm("PATCH", `/logistics/sub-user/${opId}`, {
+    token: ownerToken,
+    body: { doc_licence_expires: expires.toISOString().slice(0, 10) },
+    files: [["doc_licence", file]],
+  });
+  if (verify) await verifyDocs("operator", opId);
+  return res;
+}
+
+/**
  * v2.7.50: put a fleet owner on "paid" (WhatsApp notifications on) or back on "free".
  * Writes the plan directly — paid plans can't be bought while LOGISTICS_PAID_PLANS_ENABLED is off.
  */
+async function restartFreePeriod(ownerId) {
+  const d = await db();
+  await d.collection("users").updateOne({ _id: new mongoose.Types.ObjectId(String(ownerId)) }, { $set: { "logistics_plan.trial_started_at": new Date(), "logistics_plan.trial_ends_at": new Date(Date.now() + 60 * 86400000), "logistics_plan.trial_ended_at": null, isSubscribed: 1 } });
+}
+
 async function setPlan(ownerId, plan = "paid") {
   const d = await db();
   const { ObjectId } = mongoose.Types;
   const now = new Date();
   const logistics_plan = plan === "paid"
     ? { id: "paid", started_at: now, changed_at: now, expires_at: new Date(Date.now() + 30 * 86400000), source: "e2e" }
-    : { id: "free", changed_at: now, expires_at: null, source: "e2e" };
+    // Plain Free: the free period has already passed (v2.7.64)
+    : { id: "free", changed_at: now, expires_at: null, source: "e2e", trial_started_at: new Date(Date.now() - 90 * 86400000), trial_ends_at: new Date(Date.now() - 30 * 86400000), trial_ended_at: now };
   await d.collection("users").updateOne({ _id: new ObjectId(String(ownerId)) }, { $set: { logistics_plan, isSubscribed: plan === "paid" ? 1 : 0 } });
 }
 
@@ -288,19 +524,40 @@ async function pickDate(page, input, monthsAhead = 6, day = 15) {
   await page.waitForTimeout(200);
 }
 
-/** Hub customer straight in DB (Tasker sign-up is frozen / not logistics). */
+/**
+ * Hub customer straight in DB (Tasker sign-up is frozen / not logistics).
+ * The person comes from the cast: role 1 → customer, 2 → service provider, 3 → corporate.
+ * `tag` keeps the account stable across stages (cast-state.json maps tag → person).
+ */
+const CAST_STATE = path.join(__dirname, "cast-state.json");
+function castPersonFor(tag, role) {
+  let cs = {};
+  try { cs = JSON.parse(fs.readFileSync(CAST_STATE, "utf8")); } catch {}
+  const RUN = loadState().RUN || "run";
+  if (cs.RUN !== RUN) cs = { RUN, tags: {}, next: {} };
+  const kind = role === 2 ? "provider" : role === 3 ? "corporate" : "customer";
+  if (!cs.tags[tag]) {
+    const i = cs.next[kind] || 0;
+    cs.next[kind] = i + 1;
+    cs.tags[tag] = { kind, i };
+    fs.writeFileSync(CAST_STATE, JSON.stringify(cs, null, 2));
+  }
+  const { kind: k, i } = cs.tags[tag];
+  return cast(RUN).person(k, i);
+}
 async function makeCustomer(tag, role = 1) {
   await db();
   const { User } = require(path.join(BACKEND, "src/models"));
-  const email = `${tag}@e2e.example.com`;
+  const person = castPersonFor(tag, role);
+  const email = person.email;
   const ex = await User.findOne({ email });
-  if (ex) return { _id: String(ex._id), email, role, token: tokenFor(ex._id) };
+  if (ex) return { _id: String(ex._id), email, role, token: tokenFor(ex._id), name: person.name, phone: ex.phone_number, cc: ex.country_code };
   const u = await User.create({
-    email, full_name: `E2E ${tag}`, role, country_code: "+263",
-    phone_number: `71${String(Date.now()).slice(-7)}`,
+    email, full_name: person.name, ...(person.company && role !== 1 ? { company_name: person.company } : {}), role,
+    country_code: person.cc, phone_number: person.phone,
     email_verified: 1, account_verified: 1, is_completeProfile: 1, password: "Passw0rd!",
   });
-  return { _id: String(u._id), email, role, token: tokenFor(u._id) };
+  return { _id: String(u._id), email, role, token: tokenFor(u._id), name: person.name, phone: person.phone, cc: person.cc };
 }
 
 async function pickLocation(a, fieldIndex, search) {
@@ -338,11 +595,24 @@ function vehicleForTons(tons) {
 const vehicleSelect = (page) => page.locator("label.log-field").filter({ hasText: "Vehicle needed" }).locator("select");
 
 /** Post a transport job via the UI. mode: "date" | "now". Returns job id. */
-async function postTransportJob(a, { goods, mode = "date", price = "300", drop = "Chitungwiza", pickup = null, weight = "5", vehicle = vehicleForTons(Number(weight)) }) {
+/** Document row by its title (not by any text inside — a file named "insurance-paper.pdf" sits in other rows). */
+function docRow(page, label) {
+  const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return page.locator(".log-doc-row").filter({ has: page.locator(".log-doc-row__body > b", { hasText: new RegExp(`^${esc}`) }) });
+}
+
+/** Post job goods: cards since 26 Oct — free text only behind "Describe it yourself". */
+async function fillGoods(page, goods) {
+  const input = page.locator('input[placeholder="e.g. Construction materials"]');
+  if (!(await input.isVisible().catch(() => false))) await page.locator(".log-goods__opt--custom").click();
+  await input.fill(goods);
+}
+
+async function postTransportJob(a, { goods, mode = "date", price = "300", drop = castFor.PLACES.drops[0], pickup = null, weight = "5", vehicle = vehicleForTons(Number(weight)) }) {
   await goto(a, "/logistics/post", "form.log-form-card--post");
   await pickLocation(a, 0, pickup);
   await pickLocation(a, 1, drop);
-  await a.page.fill('input[placeholder="e.g. Construction materials"]', goods);
+  await fillGoods(a.page, goods);
   await vehicleSelect(a.page).selectOption(vehicle);
   await a.page.fill('input[placeholder="8"]', weight);
   if (mode === "now") {
@@ -369,6 +639,7 @@ async function setInviteVia(page, channels) {
 
 async function done() {
   if (browser) await browser.close();
+  await DOCS.close();
   if (mongoose.connection.readyState === 1) await mongoose.disconnect();
   const fail = results.filter((r) => !r.ok);
   console.log(`\n${results.length - fail.length}/${results.length} passed`);
@@ -376,4 +647,4 @@ async function done() {
   if (fail.length) process.exitCode = 1;
 }
 
-module.exports = { setPlan, adminToken, approveOwner, WEB, API, HARARE, sec, check, actor, shot, seedAuth, goto, tokenFor, api, db, bodyText, waitText, done, pickDate, pickLocation, typeMoney, postTransportJob, vehicleSelect, setInviteVia, makeCustomer, loadState, saveState, mongoose, results };
+module.exports = { ensureRoadworthy, docExpiryYmd, fillSignupBusinessDocs, makeFleetReady, businessDocFiles, reviewDocs, verifyDocs, giveOperatorLicence, HOME, PLACES: castFor.PLACES, cast, docFile, typePhone, castPersonFor, closeDocs: DOCS.close, docRow, fillGoods, photoFixtures, addUnitPhotos, addFacePhoto, apiForm, setPlan, restartFreePeriod, adminToken, approveOwner, WEB, API, HARARE, sec, check, actor, shot, seedAuth, goto, tokenFor, api, db, bodyText, waitText, done, pickDate, pickLocation, typeMoney, postTransportJob, vehicleSelect, setInviteVia, makeCustomer, loadState, saveState, mongoose, results };
