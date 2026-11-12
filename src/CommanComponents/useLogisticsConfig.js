@@ -16,6 +16,8 @@ export const DEFAULT_CAB_CLASSES = [
 const DEFAULT_CONFIG = {
   now_job_expiry_minutes: 30,
   local_job_radius_km: 50,
+  // Backend .env LOGISTICS_DEFAULT_OPERATING_RANGE_KM
+  default_operating_range_km: 100,
   cab_service_enabled: false,
   cab_now_job_expiry_minutes: 30,
   cab_classes: DEFAULT_CAB_CLASSES,

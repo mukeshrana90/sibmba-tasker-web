@@ -1,4 +1,4 @@
-import { reverseGeocodeCoords } from "./landingPlaces";
+import { reverseGeocodeCoords, streetSuburbLabel, stripPlusCode } from "./landingPlaces";
 import { requestDeviceLocation } from "./landingGeocode";
 
 export const DEFAULT_BOOKING_MAP_CENTER = { lat: -17.8292, lng: 31.0522 };
@@ -104,7 +104,7 @@ export function draftFromPlace(place) {
   const lng = typeof loc.lng === "function" ? loc.lng() : loc.lng;
   if (!hasValidCoords({ lat, lng })) return null;
   return {
-    address: place.formatted_address || place.name || "",
+    address: streetSuburbLabel(place) || stripPlusCode(place.name),
     lat: Number(lat),
     lng: Number(lng),
   };

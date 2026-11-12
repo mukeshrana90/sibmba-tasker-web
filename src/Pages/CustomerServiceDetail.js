@@ -7,6 +7,7 @@ import Layout from "../Components/Layout/Layout";
 import CustomerActions from "../Redux/Actions/CustomerActions";
 import CustomerBookServiceModal from "../CommanComponents/Modals/CustomerBookServiceModal";
 import StarRating from "../CommanComponents/StarRating";
+import { ratingLabel } from "../utils/ratingLabel";
 import MapComponent from "../CommanComponents/MapComponent";
 import Loader from "../CommanComponents/Loader";
 import ProviderAvatar, {
@@ -383,14 +384,12 @@ export default function CustomerServiceDetail() {
                     {serviceDetail.desc && serviceDetail.desc !== "N/A" && (
                       <p className="svc-detail-desc">{serviceDetail.desc}</p>
                     )}
-                    {serviceDetail.averageRating > 0 && (
-                      <div className="svc-detail-rating">
-                        <StarRating
-                          averageRating={serviceDetail.averageRating}
-                          reviewCount={feedbacks.length}
-                        />
-                      </div>
-                    )}
+                    <div className="svc-detail-rating">
+                      <StarRating
+                        averageRating={serviceDetail.averageRating}
+                        reviewCount={feedbacks.length}
+                      />
+                    </div>
                     {providerLoc && (
                       <div className="meta-row">
                         <span className="mi">
@@ -615,12 +614,10 @@ export default function CustomerServiceDetail() {
                       <span>Price</span>
                       <b>{displayPrice}</b>
                     </div>
-                    {serviceDetail.averageRating > 0 && (
-                      <div className="sum-row">
-                        <span>Rating</span>
-                        <b>{Number(serviceDetail.averageRating).toFixed(1)} ★</b>
-                      </div>
-                    )}
+                    <div className="sum-row">
+                      <span>Rating</span>
+                      <b>{ratingLabel(serviceDetail.averageRating, feedbacks.length, " ★")}</b>
+                    </div>
                     <div className="sum-row">
                       <span>Category</span>
                       <b>{categoryName}</b>

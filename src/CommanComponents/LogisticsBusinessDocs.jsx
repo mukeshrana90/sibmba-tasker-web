@@ -16,7 +16,7 @@ import "../Pages/logistics/logistics.css";
 const FALLBACK_TYPES = [
   { type: "business_registration", label: "Business registration certificate", required: true },
   { type: "owner_id", label: "Owner ID", required: true, expiry_required: true },
-  { type: "tax", label: "Tax certificate", required: false, expiry_required: true },
+  { type: "tax", label: "Tax certificate", required: false, expiry_required: false },
   { type: "address_proof", label: "Proof of address", required: false },
 ];
 

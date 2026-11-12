@@ -1785,19 +1785,14 @@ export function LogisticsJobDetail() {
                       : driver.full_name || driver.company_name || owner.full_name || owner.company_name) ||
                     "Operator";
                   const opPhoto = jobImageUrl(
-                    (q.owner_driven
-                      ? owner.profile_image || driver.profile_image || driver.profile_photo
-                      : driver.profile_image || driver.profile_photo || owner.profile_image) || null
+                    driver.profile_image || driver.profile_photo || owner.profile_image || null
                   );
                   const chatPeer = {
                     _id: driver._id || owner._id,
                     full_name: displayName,
                     company_name: owner.company_name || driver.company_name,
                     email: driver.email || owner.email,
-                    profile_image:
-                      (q.owner_driven
-                        ? owner.profile_image || driver.profile_image
-                        : driver.profile_image || owner.profile_image) || undefined,
+                    profile_image: driver.profile_image || owner.profile_image || undefined,
                   };
                   const asset = q.asset || {};
                   const vehiclePhoto = (asset.photos || []).map(jobImageUrl).filter(Boolean)[0];

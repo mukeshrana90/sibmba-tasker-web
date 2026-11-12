@@ -1,5 +1,6 @@
 /* Stage 1 — owner sign-up through the UI, OTP read from DB, lands on owner dashboard. */
 const L = require("./lib");
+const F = require("./fleet-helpers");
 
 (async () => {
   const RUN = Date.now().toString(36).slice(-6);
@@ -108,20 +109,18 @@ const L = require("./lib");
       L.check(me?.data?.user?.account?.approval?.status === "pending", "/me account.approval = pending", me?.data?.user?.account);
       const live = await L.api("POST", "/logistics/job/000000000000000000000000/quote", { token: st.owner.token, body: {} });
       L.check(live?.success === false, "pending owner can't take work", live?.message);
-      // 29 Oct 2026: no equipment / operators before the company is approved
-      const truck0 = C.unit("truck", 20);
-      const addTry = await L.apiForm("POST", "/logistics/asset", {
-        token: st.owner.token,
-        body: { kind: "vehicle", name: truck0.name, registration: truck0.plate },
-        files: (await L.photoFixtures(truck0)).map((f) => ["photos", f]),
-      });
-      L.check(addTry?.success === false && addTry?.data?.code === "OWNER_PENDING_APPROVAL", "API: pending owner can't add equipment", addTry?.message);
+      // v2.7.66: adding is open while the company is pending; units stay hidden until it's approved
+      const truck0 = C.unit("truck", 40);
+      const added = await F.makeUnit({ token: st.owner.token, company: st.ownerCompany, name: st.ownerName }, truck0, { docs: { rego: 8 }, verify: false });
+      const row0 = await d.collection("logistics_assets").findOne({ _id: F.OID(added._id) }, { projection: { owner_unapproved: 1 } });
+      L.check(row0?.owner_unapproved === true, "API: a pending owner can add a truck, and it is held back (owner_unapproved)", row0);
       const invTry = await L.api("POST", "/logistics/sub-user", { token: st.owner.token, body: { email: `op.${RUN}@yopmail.com`, send_via: ["email"] } });
-      L.check(invTry?.success === false && invTry?.data?.code === "OWNER_PENDING_APPROVAL", "API: pending owner can't invite operators", invTry?.message);
+      L.check(invTry?.data?.code !== "OWNER_PENDING_APPROVAL", "API: pending owner isn't locked out of inviting operators", invTry?.data);
+      await d.collection("logistics_assets").deleteOne({ _id: F.OID(added._id) }); // trial unit only: s5 counts this fleet's plan limits
       await L.goto(o, "/logistics/owner/fleet/add");
-      const locked = await p.locator('.log-locked-add[data-locked="equipment"]').first().waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
-      L.check(locked, "Add equipment page is locked until approval");
-      await L.shot(o, "s1-add-locked");
+      const openForm = await p.locator("form.log-fleet-form").first().waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
+      L.check(openForm && !(await p.locator(".log-locked-add").count()), "Add equipment form is open while the company is pending");
+      await L.shot(o, "s1-add-open");
       await L.goto(o, "/logistics/owner/verification");
       const regRow = p.locator('.log-bizdoc[data-type="business_registration"]').first();
       const shown = await regRow.waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
@@ -134,9 +133,6 @@ const L = require("./lib");
       L.check(me2?.data?.user?.account?.approval?.status === "approved", "/me account.approval = approved");
       const bd2 = (await d.collection("users").findOne({ email }, { projection: { logistics_business_documents: 1 } }))?.logistics_business_documents || [];
       L.check(bd2.length && bd2.every((x) => x.review?.status === "verified"), "approving the company verified its business documents");
-      await L.goto(o, "/logistics/owner/fleet/add");
-      const formOk = await p.locator("form.log-fleet-form").first().waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
-      L.check(formOk && !(await p.locator(".log-locked-add").count()), "after approval the Add equipment form is unlocked");
       await L.goto(o, "/logistics/owner");
       const mail = require("fs").existsSync(require("path").join(__dirname, "outbox.jsonl"))
         ? require("fs").readFileSync(require("path").join(__dirname, "outbox.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)

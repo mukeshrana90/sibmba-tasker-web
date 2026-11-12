@@ -4,6 +4,8 @@ import { useSelector } from "react-redux";
 import { ChatContext } from "../../context/ChatProvider";
 import {
   getActiveModule,
+  hasMarketplaceChoice,
+  homeRouteForRole,
   resolveActiveModule,
   setActiveModule,
   syncActiveModuleFromPath,
@@ -111,6 +113,15 @@ export default function ModuleSwitcher({
     hasNew[module] ? (
       <span className="module-switcher__dot" aria-label="New activity" />
     ) : null;
+
+  // v2.7.66: landing pages show the large Services | Logistics choice, so no toggle here
+  if (loggedIn) {
+    const role = localStorage.getItem("role");
+    const path = location.pathname.replace(/(.)\/$/, "$1");
+    if (hasMarketplaceChoice(role) && ["/", "/logistics", homeRouteForRole(role)].includes(path)) {
+      return null;
+    }
+  }
 
   return (
     <div

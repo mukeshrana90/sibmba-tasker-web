@@ -6,7 +6,8 @@
 
 .landing-layout,
 .landing-page,
-.landing-nav {
+.landing-nav,
+.landing-market {
   --landing-bg: #faf6ee;
   --landing-surface: #ffffff;
   --landing-primary: #0f5c4c;
@@ -1979,6 +1980,33 @@ button.landing-prov-service:focus-visible {
   margin: 0 0 10px;
   font-size: 1.1rem;
 }
+/* Logistics fallback: one notice style for every explanation */
+.empty-results__lead--notice {
+  padding: 10px 12px;
+  border-left: 3px solid #c8962e;
+  border-radius: 8px;
+  background: #fbf3e2;
+  color: #5a4520;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+/* Logistics search: gap between "No exact matches…" and the fallback box */
+.log-jobs-meta + .empty-results {
+  margin-top: 14px;
+}
+.empty-results__tag {
+  display: inline-block;
+  margin-bottom: 3px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #e6f0e9;
+  color: #1f6b3a;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
 .empty-results__list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
@@ -2099,21 +2127,27 @@ button.landing-prov-service:focus-visible {
 }
 
 
-/* ============ VISITOR HERO: MARKETPLACE SWITCH ============ */
+/* ============ MARKETPLACE SWITCH (home, Hub, provider and corporate dashboards) ============ */
 .landing-market {
+  box-sizing: border-box;
+  width: 100%;
   max-width: 470px;
   margin: 0 auto 22px;
+  text-align: center;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-.landing-hero .landing-market__title {
+.landing-market .landing-market__title {
   margin: 0 0 4px;
+  font-family: "Bricolage Grotesque", sans-serif;
   font-size: 1rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.3;
   color: var(--landing-ink);
 }
 
-.landing-market__lead {
+.landing-market .landing-market__lead {
   margin: 0 0 12px;
   font-size: 0.82rem;
   color: var(--landing-muted);
@@ -2121,7 +2155,7 @@ button.landing-prov-service:focus-visible {
 
 .landing-market__options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 6px;
   padding: 5px;
   background: #f0ebe2;
@@ -2130,11 +2164,13 @@ button.landing-prov-service:focus-visible {
   box-shadow: 0 10px 24px -16px rgba(10, 67, 56, 0.35);
 }
 
-.landing-page .landing-market__option {
+.landing-market .landing-market__option {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   min-width: 0;
+  margin: 0;
   padding: 11px 12px;
   border: 0;
   border-radius: 14px;
@@ -2145,16 +2181,16 @@ button.landing-prov-service:focus-visible {
   transition: background-color 0.18s ease, color 0.18s ease;
 }
 
-.landing-page .landing-market__option:hover {
+.landing-market .landing-market__option:hover {
   background: rgba(255, 255, 255, 0.55);
 }
 
-.landing-page .landing-market__option:focus-visible {
+.landing-market .landing-market__option:focus-visible {
   outline: 2px solid var(--landing-primary);
   outline-offset: 2px;
 }
 
-.landing-page .landing-market__option.is-active {
+.landing-market .landing-market__option.is-active {
   background: var(--landing-primary);
   color: #fff;
   cursor: default;
@@ -2181,6 +2217,7 @@ button.landing-prov-service:focus-visible {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .landing-market__text b {
@@ -2196,7 +2233,7 @@ button.landing-prov-service:focus-visible {
 }
 
 @media (max-width: 480px) {
-  .landing-page .landing-market__option {
+  .landing-market .landing-market__option {
     gap: 8px;
     padding: 9px 8px;
   }

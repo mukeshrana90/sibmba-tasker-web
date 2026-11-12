@@ -107,21 +107,64 @@ export function placesCountries() {
 
 const PLUS_CODE_RE = /^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b,?\s*/i;
 
-/** Drop a leading Google plus code ("PPF2+82Q, Sahibzada…" → "Sahibzada…"). */
+const UNNAMED_ROAD_RE = /^unnamed road\b/i;
+
+/** Drop a leading Google plus code ("PPF2+82Q, Sahibzada…" → "Sahibzada…"); a bare code gives "". */
 export function stripPlusCode(label) {
-  const s = String(label || "").trim();
-  const out = s.replace(PLUS_CODE_RE, "").trim();
-  return out || s;
+  return String(label || "").trim().replace(PLUS_CODE_RE, "").trim();
+}
+
+function isPlusCodeResult(result) {
+  return PLUS_CODE_RE.test(String(result?.formatted_address || "").trim()) || (result?.types || []).includes("plus_code");
+}
+
+function addressPart(result, ...types) {
+  const parts = Array.isArray(result?.address_components) ? result.address_components : [];
+  for (const type of types) {
+    const name = String(parts.find((c) => (c.types || []).includes(type))?.long_name || "").trim();
+    if (name && !PLUS_CODE_RE.test(name)) return name;
+  }
+  return "";
+}
+
+function joinDistinct(parts) {
+  const seen = new Set();
+  return parts
+    .filter((part) => {
+      const key = part.toLowerCase();
+      if (!part || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join(", ");
+}
+
+/**
+ * "12 Samora Machel Ave, Avondale, Harare" from one Google result. With no named street:
+ * the result's own address when readable, else suburb and city. Never a plus code.
+ */
+export function streetSuburbLabel(result) {
+  const route = addressPart(result, "route");
+  const street = route && !UNNAMED_ROAD_RE.test(route) ? [addressPart(result, "street_number"), route].filter(Boolean).join(" ") : "";
+  const suburb = addressPart(result, "sublocality_level_1", "sublocality", "neighborhood");
+  const city = addressPart(result, "locality", "postal_town", "administrative_area_level_2", "administrative_area_level_1");
+  if (street) return joinDistinct([street, suburb, city]);
+
+  const text = String(result?.formatted_address || "").trim();
+  if (text && !isPlusCodeResult(result) && !UNNAMED_ROAD_RE.test(text)) return text;
+  return joinDistinct([suburb, city]) || stripPlusCode(text);
 }
 
 /** Best human-readable label from Google geocoder results (skips plus-code-only results). */
 export function readableGeocodeLabel(results) {
-  const list = Array.isArray(results) ? results : [];
-  const clean = list.find(
-    (r) => r?.formatted_address && !PLUS_CODE_RE.test(r.formatted_address) && !(r.types || []).includes("plus_code")
-  );
-  if (clean) return clean.formatted_address;
-  return list[0]?.formatted_address ? stripPlusCode(list[0].formatted_address) : "";
+  const list = (Array.isArray(results) ? results : []).filter(Boolean);
+  const clean = list.find((r) => r.formatted_address && !isPlusCodeResult(r));
+  if (clean) return streetSuburbLabel(clean);
+  for (const result of list) {
+    const label = streetSuburbLabel(result);
+    if (label) return label;
+  }
+  return "";
 }
 
 const PLACE_TYPES = new Set([
@@ -340,7 +383,7 @@ export async function fetchPlaceDetails(placeId) {
       service.getDetails(
         {
           placeId,
-          fields: ["formatted_address", "geometry", "name"],
+          fields: ["formatted_address", "address_components", "types", "geometry", "name"],
         },
         (place, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && place) {
@@ -423,15 +466,9 @@ export async function reverseGeocodeCoords(lat, lng) {
       const reversed = await new Promise((resolve) => {
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } }, (results, status) => {
-          if (status === "OK" && results?.[0]) {
-            resolve({
-              lat: Number(lat),
-              lng: Number(lng),
-              label: readableGeocodeLabel(results),
-            });
-          } else {
-            resolve(null);
-          }
+          const label = status === "OK" ? readableGeocodeLabel(results) : "";
+          // No readable label: the Photon lookup below gets a turn
+          resolve(label ? { lat: Number(lat), lng: Number(lng), label } : null);
         });
       });
       if (reversed) return reversed;

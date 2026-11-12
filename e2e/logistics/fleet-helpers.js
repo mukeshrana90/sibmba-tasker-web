@@ -85,7 +85,7 @@ async function makeUnit(owner, unit, { kind = "vehicle", docs = kind === "vehicl
 }
 
 /** Active operator straight in the DB; verified licence; assigned to `assets` (ids). */
-async function makeOperator(owner, p, { assets = [], verify = true, face = 2 } = {}) {
+async function makeOperator(owner, p, { assets = [], verify = true, face = 2, licence = true } = {}) {
   const d = await L.db();
   let u = await d.collection("users").findOne({ email: p.email });
   if (!u) {
@@ -97,7 +97,8 @@ async function makeOperator(owner, p, { assets = [], verify = true, face = 2 } =
     u = { _id };
   }
   const id = String(u._id);
-  await L.giveOperatorLicence(owner.token, id, { holder: p.name, face, verify });
+  if (licence) await L.giveOperatorLicence(owner.token, id, { holder: p.name, face, verify });
+  else if (verify) await L.verifyFace(id, { face });
   for (const a of assets) {
     const r = await L.api("POST", `/logistics/asset/${a}/assign`, { token: owner.token, body: { sub_user_id: id } });
     if (r?.success === false) throw new Error(`assign: ${r.message}`);

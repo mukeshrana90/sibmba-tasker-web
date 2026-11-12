@@ -103,25 +103,36 @@ async function accept(c, jobId, amt) {
       L.check(s.some((x) => Number(x.status) === 2), "a stop advanced to Collect from multi-transit", s.map((x) => x.status));
     } else L.check(false, "Start collect button present");
 
-    L.sec("8e. Expired operator licence blocks going live");
+    L.sec("8e. v2.7.66: expired licence only warns; a rejected face photo blocks going live");
     const u = await d.collection("users").findOne({ _id: OID(st.operator._id) });
     const prevDocs = u.logistics_documents || [];
+    const prevFace = u.logistics_face_review;
     await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: [...prevDocs.filter((x) => x.type !== "licence"), { type: "licence", name: "driving-licence.jpg", url: "/x.jpg", expires: new Date(Date.now() - 5 * 86400000) }] } });
-    try {
+    const setStatusUi = async (v) => {
       await L.goto(op, "/logistics/driver", ".log-dash-avail-controls");
       await op.page.waitForSelector(".log-dash-avail-controls select");
-      await op.page.locator('select[aria-label="Set status"]').selectOption("offline");
+      await op.page.locator('select[aria-label="Set status"]').selectOption(v);
       await op.page.getByRole("button", { name: "Update status" }).click();
       await op.page.waitForTimeout(2000);
+    };
+    const state = async () => (await d.collection("users").findOne({ _id: u._id }, { projection: { logistics_availability: 1 } }))?.logistics_availability?.state;
+    try {
+      await setStatusUi("offline");
+      await setStatusUi("available_now");
+      L.check((await state()) === "available_now", "expired licence: operator still goes live (optional document)", await state());
+      await L.shot(op, "s8-licence-expired");
+      await setStatusUi("offline");
+      await d.collection("users").updateOne({ _id: u._id }, { $set: { "logistics_face_review.status": "rejected", "logistics_face_review.reason": "Blurry photo" } });
+      await L.goto(op, "/logistics/driver", ".log-dash-avail-controls");
+      await op.page.waitForSelector(".log-dash-avail-controls select");
       await op.page.locator('select[aria-label="Set status"]').selectOption("available_now");
       await op.page.getByRole("button", { name: "Update status" }).click();
-      const blocked = await L.waitText(op, /licen[cs]e[^.]*expired|expired[^.]*licen[cs]e/i, 8000);
-      L.check(blocked, "going live blocked with licence-expired message", (await L.bodyText(op)).match(/[^.]*expired[^.]*/i)?.[0]);
-      const a = await d.collection("logistics_assets").findOne({ _id: OID(st.truck._id) });
-      L.check(!JSON.stringify(a.availability || a.availability_state || "").includes("available_now"), "truck not live while licence expired", a.availability_state || a.availability);
-      await L.shot(op, "s8-licence-expired");
+      const blocked = await L.waitText(op, /face photo/i, 8000);
+      L.check(blocked, "rejected face photo: going live blocked with a face-photo message", (await L.bodyText(op)).match(/[^.]*face[^.]*/i)?.[0]);
+      L.check((await state()) !== "available_now", "operator isn't live while the face photo is rejected", await state());
+      await L.shot(op, "s8-face-rejected");
     } finally {
-      await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: prevDocs } });
+      await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: prevDocs, logistics_face_review: prevFace } });
     }
 
     L.sec("8f. Operator signs in through /login");

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import CorporatePageShell from "../CommanComponents/CorporatePageShell";
+import { AccountMarketplaceSwitch } from "../CommanComponents/Landing/GuestMarketplaceSwitch";
 import Tab from "react-bootstrap/Tab";
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
@@ -287,6 +288,7 @@ export default function Requests() {
         pageClass="p-corporate-portal p-bookings p-sp-requests"
         showBanner={false}
       >
+        <AccountMarketplaceSwitch active="tasker" />
         <div className="tabs">
           {requestTabs.map(({ key, label }) => (
             <button

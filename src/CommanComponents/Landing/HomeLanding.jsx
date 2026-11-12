@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import CustomerActions from "../../Redux/Actions/CustomerActions";
 import UnifiedSearch from "./UnifiedSearch";
-import GuestMarketplaceSwitch from "./GuestMarketplaceSwitch";
+import GuestMarketplaceSwitch, { AccountMarketplaceSwitch } from "./GuestMarketplaceSwitch";
 import { isLoggedIn } from "../../utils/authRedirect";
 import TopProviders from "./TopProviders";
 import { useLanding } from "../../context/LandingContext";
@@ -164,7 +164,7 @@ export default function HomeLanding() {
         </div>
 
         <div className="landing-wrap landing-hero__inner">
-          {guest ? <GuestMarketplaceSwitch active="tasker" /> : null}
+          {guest ? <GuestMarketplaceSwitch active="tasker" /> : <AccountMarketplaceSwitch active="tasker" />}
           <span className="landing-eyebrow">
             {guest ? null : "🦁 "}Zimbabwe&apos;s trusted services marketplace
           </span>

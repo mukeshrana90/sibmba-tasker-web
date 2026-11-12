@@ -64,12 +64,12 @@ const code = (r) => r?.data?.code;
     await unitRow(po, plainTruck._id).locator('[data-testid="use-unit-myself"]').click();
     await po.page.waitForSelector('[data-testid="owner-operator-setup"]', { timeout: 8000 }).catch(() => {});
     L.check(await po.page.locator('[data-testid="owner-operator-setup"]').isVisible(), "'Use this unit myself' opens the one-time set-up, not go-live");
-    L.check(/Add your licence and face photo/i.test(await po.page.locator('[data-testid="owner-operator-blocks"]').innerText().catch(() => "")), "set-up lists what is missing");
+    L.check(/Add your face photo/i.test(await po.page.locator('[data-testid="owner-operator-blocks"]').innerText().catch(() => "")), "set-up lists what is missing");
     L.check((await unitDoc(plainTruck._id)).owner_operating !== true, "unit not claimed");
     await L.shot(po, "s20-plain-setup");
 
     // ── Add unit: "Who operates this?"
-    L.sec("20b. Add unit: 'I operate it myself' + one-time licence and face photo (UI)");
+    L.sec("20b. Add unit: 'I operate it myself' + one-time face photo (UI); licence optional");
     const owner = await F.makeOwner(pOwner);
     const o = await A("owner", owner);
     const truck1 = C.unit("truck", 201);
@@ -88,30 +88,30 @@ const code = (r) => r?.data?.code;
     await p.locator(".simba-book-loc-modal .btn-primary").click();
     await p.waitForTimeout(400);
     L.check(await p.locator(".log-who-operates").count(), "'Who operates this?' shown on Add unit");
-    L.check(await p.locator('[data-testid="operated-by-invite"] input').isChecked().catch(() => false) || await p.locator('[data-testid="operated-by-self"] input').isChecked().catch(() => false), "one option is selected by default");
+    L.check(await p.locator('[data-testid="operated-by-invite"] input').isChecked().catch(() => false), "'Invite a new operator' is the default");
     await p.locator('[data-testid="operated-by-self"]').click();
     await p.waitForSelector('[data-testid="owner-operator-setup"]', { timeout: 8000 });
     L.check(await p.locator('[data-testid="owner-operator-setup"]').isVisible(), "picking 'I operate it myself' shows licence and face photo");
     await L.shot(o, "s20-add-unit-self");
     const setup = p.locator('[data-testid="owner-operator-setup"]').first();
     L.check(await setup.locator('[data-testid="owner-operator-save"]').isDisabled(), "Save disabled until a file is chosen");
-    await setup.locator('input[type=file][accept*="image"]').first().setInputFiles(DOCS.face(3));
+    await L.addFacePhoto(p, 3);
     const licRow = L.docRow(p, "Driving / plant licence").first();
     await licRow.locator('input[type="file"]').setInputFiles(await L.docFile("licence", { holder: owner.name, face: DOCS.face(3), expires: DOCS.addMonths(6), kind: "vehicle" }));
     await L.pickDate(p, licRow.locator(".log-doc-row__expiry input"), 6);
     await setup.locator('[data-testid="owner-operator-save"]').click();
-    L.check(await L.waitText(o, /Simba will check your licence and face photo/), "toast: Simba will check");
+    L.check(await L.waitText(o, /Simba will check your documents/), "toast: Simba will check");
     await p.waitForSelector('[data-testid="owner-face-status"]', { timeout: 8000 }).catch(() => {});
     L.check(/Pending|check/i.test(await p.locator('[data-testid="owner-face-status"]').first().innerText().catch(() => "")), "face photo shows pending", await p.locator('[data-testid="owner-face-status"]').first().innerText().catch(() => "missing"));
     let ou = await userDoc(owner._id);
     L.check(ou.logistics_self_operator === true, "DB: logistics_self_operator=true");
-    L.check(ou.logistics_face_review?.status === "pending" && (ou.logistics_documents || []).some((x) => x.type === "licence" && x.review?.status === "pending"), "DB: licence and face photo Pending");
+    L.check(ou.logistics_face_review?.status === "pending" && (ou.logistics_documents || []).some((x) => x.type === "licence" && x.review?.status === "pending"), "DB: face photo Pending; licence added too (optional), Pending");
     // Documents for the unit itself
     const rego = L.docRow(p, "Road licence").first();
     await rego.locator('input[type="file"]').setInputFiles(await L.docFile("rego", docInfo));
     await L.pickDate(p, rego.locator(".log-doc-row__expiry input"), 6);
     const rw = L.docRow(p, "Roadworthy").first();
-    L.check(/\*/.test(await rw.innerText().catch(() => "")), "Roadworthy row marked * (required)", await rw.innerText().catch(() => "missing"));
+    L.check(!/\*/.test(await rw.locator(".log-doc-row__body > b").innerText().catch(() => "")), "Roadworthy row not marked * (optional)", await rw.innerText().catch(() => "missing"));
     await rw.locator('input[type="file"]').setInputFiles(await L.docFile("roadworthy", docInfo));
     await L.pickDate(p, rw.locator(".log-doc-row__expiry input"), 6);
     await L.addUnitPhotos(p, "form.log-fleet-form", truck1.photos);
@@ -130,13 +130,16 @@ const code = (r) => r?.data?.code;
     L.check(Number(opSeat) === 0, "self-operating uses no operator seat", usage);
 
     // ── Stricter check
-    L.sec("20c. Blocked until licence, face photo and owner ID are all Verified");
+    L.sec("20c. Blocked until face photo and owner ID are Verified; licence no longer blocks");
     const expectBlocked = async (label, want) => {
       const r = await L.api("POST", `/logistics/asset/${T1._id}/operate-self`, { token: owner.token, body: { state: "available_now", lat: F.LAT, lng: F.LNG } });
       L.check(r?.success === false && code(r) === "OWNER_NOT_ELIGIBLE" && (r?.data?.blocks || []).some((b) => b.code === want), `${label}: refused, block ${want}`, r?.data || r);
     };
-    await expectBlocked("both Pending", "LICENCE_PENDING");
-    await expectBlocked("both Pending", "FACE_PHOTO_PENDING");
+    await expectBlocked("face Pending", "FACE_PHOTO_PENDING");
+    {
+      const m = (await L.api("GET", "/logistics/me", { token: owner.token }))?.data?.owner_operator;
+      L.check(m?.licence?.required === false && !(m?.blocks || []).some((b) => /^LICENCE/.test(b.code)), "/me: licence required=false and no LICENCE_ block codes", m);
+    }
     const qBlocked = await F.postJob(customer, { goods: `Blocked quote ${RUN}` });
     let r = await F.quote(owner, qBlocked, T1._id);
     L.check(r?.success === false, "quote refused while not eligible", r?.message);
@@ -165,12 +168,13 @@ const code = (r) => r?.data?.code;
     }
     await L.api("POST", "/admin/logistics/documents/review", { token: admin, body: { subject: "business", id: owner._id, doc_id: String(idDoc._id), status: "verified" } });
     await L.approveOwner(owner._id, "approved", "", { withDocs: false });
-    // Expired licence blocks too
+    // v2.7.66: an expired licence only warns
     {
       const u = await userDoc(owner._id);
       const docs = u.logistics_documents.map((x) => (x.type === "licence" ? { ...x, expires: new Date(Date.now() - 3 * F.DAY) } : x));
       await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: docs } });
-      await expectBlocked("licence expired", "LICENCE_EXPIRED");
+      const m = (await L.api("GET", "/logistics/me", { token: owner.token }))?.data?.owner_operator;
+      L.check(m?.can_operate === true, "licence expired: still can_operate", m);
       await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: u.logistics_documents } });
     }
     me = (await L.api("GET", "/logistics/me", { token: owner.token }))?.data;

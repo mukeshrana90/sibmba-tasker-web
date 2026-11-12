@@ -63,9 +63,9 @@ describe("availability dropdown (item 6)", () => {
 });
 
 describe("documents", () => {
-  test("trucks always need roadworthy; the red plate only matters on cabs (item 11)", () => {
-    expect(assetBlockingTypes("vehicle", false)).toEqual(["rego", "roadworthy"]);
-    expect(assetBlockingTypes("cab", false)).toEqual(["rego"]);
+  test("road units need only the ZINARA road licence (v2.7.66)", () => {
+    expect(assetBlockingTypes("vehicle", false)).toEqual(["rego"]);
+    expect(assetBlockingTypes("cab", true)).toEqual(["rego"]);
     expect(assetBlockingTypes("equipment", true)).toEqual([]);
   });
 

@@ -242,3 +242,20 @@ export function normalizeVehicleNeededLabel(raw) {
   const max = vehicleMaxTons(v);
   return capacityToTier(max) || "below 2 ton";
 }
+
+/**
+ * Carriage size for display — only the filled sides, named:
+ * { length_m: 24 } → "Length 24 ft"; nothing filled → null.
+ * (Stored in feet despite the _m field names.)
+ */
+export function formatCarriageSize(carriage) {
+  if (!carriage) return null;
+  const parts = [
+    ["Length", carriage.length_m],
+    ["Width", carriage.width_m],
+    ["Height", carriage.height_m],
+  ]
+    .filter(([, v]) => v != null && String(v).trim() !== "")
+    .map(([label, v]) => `${label} ${v} ft`);
+  return parts.length ? parts.join(" · ") : null;
+}

@@ -298,9 +298,11 @@ export default function LogisticsOperatorJob() {
 
   const myUserId = localStorage.getItem("userId") || "";
   const isOperator = !fleetView;
+  const [notVisible, setNotVisible] = useState(false);
 
   const reload = async () => {
     const res = await dispatch(LogisticsActions.getJob(id));
+    setNotVisible(res?.payload?.code === "JOB_NOT_VISIBLE" || res?.payload?.data?.code === "JOB_NOT_VISIBLE");
     setJob(res?.payload?.data?.job || null);
     setQuotations(res?.payload?.data?.quotations || []);
     setQuotePrefillDone(false);
@@ -1072,6 +1074,19 @@ export default function LogisticsOperatorJob() {
       setResolvingReportId(null);
     }
   };
+
+  if (notVisible) {
+    return (
+      <LogisticsPageShell title="Job" crumbLabel="Job" midCrumb={{ to: homeTo, label: midLabel }} homeTo={homeTo}>
+        <div className="log-callout log-callout--warn" data-testid="job-not-visible">
+          <p>
+            <strong>This job isn't available to your fleet.</strong> It's outside your operating area, or your units
+            can't carry the load.
+          </p>
+        </div>
+      </LogisticsPageShell>
+    );
+  }
 
   if (!job) {
     return (

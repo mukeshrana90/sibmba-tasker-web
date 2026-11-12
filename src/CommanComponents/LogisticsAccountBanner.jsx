@@ -126,7 +126,7 @@ export default function LogisticsAccountBanner({ isDriver }) {
           {approval === "pending"
             ? fleet
               ? "You can't go live or take jobs until Simba approves it."
-              : "Simba is checking your business documents. You can add equipment and invite operators once your company is approved — we'll email you."
+              : "Add your business documents, units and operators so Simba can check everything at once."
             : fleet
               ? "You can't go live or take jobs until it's approved."
               : `${account.approval.reason ? `Reason: ${account.approval.reason}. ` : ""}Upload corrected business documents — Simba will check them again.`}

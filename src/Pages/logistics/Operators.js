@@ -24,6 +24,7 @@ import {
 } from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsOperatorDocRows, { publicUrl } from "../../CommanComponents/LogisticsOperatorDocRows";
 import LogisticsFacePhotoField from "../../CommanComponents/LogisticsFacePhotoField";
+import LogisticsInviteFixes from "../../CommanComponents/LogisticsInviteFixes";
 import {
   OPERATOR_COMPLIANCE_TYPES,
   REMINDER_HINT,
@@ -136,15 +137,15 @@ function OperatorDocStatus({ compliance }) {
     })),
     ...(compliance.missing_expiry || []).map((d) => ({ key: `m-${d.type}`, tone: "muted", text: `${d.label}: no expiry set` })),
   ];
-  // 29 Oct 2026: a verified licence (and every document checked) before going live
+  // v2.7.66: a verified face photo is what lets an operator go live
   const block = compliance.block;
-  if (block?.code === "DOC_REQUIRED" && block.type === "licence") {
-    chips.unshift({ key: "b-licence", tone: "closed", text: "No licence — can't go live" });
+  if (block?.code === "DOC_REQUIRED" && block.type === "face_photo") {
+    chips.unshift({ key: "b-face", tone: "closed", text: "No face photo — can't go live" });
   } else if (block?.code === "DOC_PENDING_CHECK") {
     chips.unshift({
       key: "b-pending",
       tone: "progress",
-      text: block.type === "licence" ? "Licence awaiting check" : `${block.label || "Document"} awaiting check`,
+      text: `${block.label || "Document"} awaiting check`,
     });
   } else if (block?.code === "DOC_REJECTED") {
     chips.unshift({ key: "b-rejected", tone: "closed", text: `${block.label || "Document"} rejected` });
@@ -310,10 +311,7 @@ export default function LogisticsOperators() {
     setForm((f) => ({ ...f, [key]: e.target.value }));
   };
 
-  const onPickPhoto = (e) => {
-    const [file] = keepAllowedFiles(e.target.files, { imagesOnly: true });
-    e.target.value = "";
-    if (!file) return;
+  const onCapturePhoto = (file) => {
     setForm((f) => {
       if (f.profile_preview && f.profile_photo) URL.revokeObjectURL(f.profile_preview);
       return {
@@ -823,7 +821,10 @@ export default function LogisticsOperators() {
           <LogisticsFacePhotoField
             preview={form.profile_preview}
             canRemove={Boolean(form.profile_photo)}
-            onPick={onPickPhoto}
+            onCapture={onCapturePhoto}
+            locked={isEditing && Boolean(form.profile_saved)}
+            lockedNote="Only the operator can update this photo, from their app."
+
             onRemove={() =>
               setForm((f) => {
                 if (f.profile_preview && f.profile_photo) {
@@ -944,9 +945,8 @@ export default function LogisticsOperators() {
           <p className="log-hint log-field--full">
             Licence scan, medical fitness and any other papers for this
             operator. Once a file is attached, pick its expiry date from the calendar (*).{" "}
-            {REMINDER_HINT} The driving / plant licence is required: with an expired one the
-            operator can&apos;t go live or quote. Medical fitness is optional: a problem with it only
-            shows you a warning.
+            {REMINDER_HINT} The driving / plant licence and medical fitness are optional: a problem
+            with one only shows you a warning. The operator needs a verified face photo to go live.
           </p>
           <div className="log-field--full">
             <LogisticsOperatorDocRows
@@ -1468,6 +1468,7 @@ export default function LogisticsOperators() {
                               <span className={`log-chip ${state.chip}`}>
                                 {state.label}
                               </span>
+                              <LogisticsInviteFixes invite={inv} onSaved={load} />
                               {inv.last_sent_at ? (
                                 <p className="log-hint" style={{ margin: "4px 0 0" }}>
                                   Sent {new Date(inv.last_sent_at).toLocaleDateString()}

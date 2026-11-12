@@ -60,6 +60,12 @@ export function homeRouteForRole(role, ownerId) {
     return "/";
 }
 
+/** Customers, providers and corporates choose between Services and Logistics; owners and operators don't. */
+export function hasMarketplaceChoice(role) {
+    const r = normalizeRole(role);
+    return r === Roles.CUSTOMER || r === Roles.SERVICE_PROVIDER || r === Roles.CORPORATE;
+}
+
 export const ACTIVE_MODULE_KEY = "activeModule";
 
 export function getActiveModule() {

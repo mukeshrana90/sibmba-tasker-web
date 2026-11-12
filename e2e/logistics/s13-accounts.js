@@ -60,7 +60,7 @@ const BACKEND = path.resolve(__dirname, "../../../sibmba-tasker-backend");
     requester_id: cust2._id, requester_role: 1, job_type: "transport", hub_category: "logistic", load_type: "Wheat bags, 60 quintals",
     pickup: pt, dropoff: { address: L.PLACES.drops[0], coordinates: L.PLACES.coords.chitungwiza }, when_needed: new Date(Date.now() + 864e5), budget: { amount: 50, currency: "USD" }, status: 0,
   });
-  // 29 Oct 2026: an operator needs a Simba-verified licence to be live (the owner uploads it, admin verifies)
+  // v2.7.66: the helper also verifies the operator's face photo, which is what lets him go live
   const lic = await L.giveOperatorLicence(owner.token, op._id, { holder: opP.name, face: 3 });
   L.check(lic?.success !== false, "operator's driving licence uploaded + verified", lic?.message);
   L.check(true, `owner ${owner.email}, operator, unit, running job #${running.job_number}`);

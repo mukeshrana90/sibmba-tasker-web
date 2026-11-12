@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { setActiveModule } from "../../utils/Roles";
+import { hasMarketplaceChoice, homeRouteForRole, setActiveModule } from "../../utils/Roles";
 import { setLastSection } from "../../utils/lastSection";
+import { isLoggedIn } from "../../utils/authRedirect";
 import "../../Assets/css/landing.css";
 
 const Svg = ({ children }) => (
@@ -12,7 +13,6 @@ const Svg = ({ children }) => (
 const OPTIONS = [
   {
     module: "tasker",
-    to: "/",
     title: "Services",
     sub: "Find skilled professionals",
     testId: "market-services",
@@ -24,7 +24,6 @@ const OPTIONS = [
   },
   {
     module: "logistics",
-    to: "/logistics",
     title: "Logistics",
     sub: "Find trucks & equipment",
     testId: "market-logistics",
@@ -38,16 +37,17 @@ const OPTIONS = [
   },
 ];
 
-/** Visitor hero: choose the Services or Logistics marketplace. */
-export default function GuestMarketplaceSwitch({ active }) {
+/** Choose the Services or Logistics marketplace. */
+export default function GuestMarketplaceSwitch({ active, taskerHome = "/", logisticsHome = "/logistics" }) {
   const navigate = useNavigate();
+  const homes = { tasker: taskerHome, logistics: logisticsHome };
 
   const pick = (option) => {
     if (option.module === active) return;
     // Same bookkeeping as the header switch, so "/" doesn't bounce back to the last section
     setLastSection(option.module);
     setActiveModule(option.module);
-    navigate(option.to);
+    navigate(homes[option.module]);
   };
 
   return (
@@ -77,4 +77,11 @@ export default function GuestMarketplaceSwitch({ active }) {
       </div>
     </div>
   );
+}
+
+/** The same choice for logged-in customers, providers and corporates; nothing for anyone else. */
+export function AccountMarketplaceSwitch({ active }) {
+  const role = localStorage.getItem("role");
+  if (!isLoggedIn() || !hasMarketplaceChoice(role)) return null;
+  return <GuestMarketplaceSwitch active={active} taskerHome={homeRouteForRole(role)} />;
 }

@@ -26,6 +26,7 @@ import {
 import LogisticsUnitPicker, { unitDisabled } from "../../CommanComponents/LogisticsUnitPicker";
 import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 import LogisticsSosContactsPrompt from "../../CommanComponents/LogisticsSosContactsPrompt";
+import LogisticsOperatorFaceCard from "../../CommanComponents/LogisticsOperatorFaceCard";
 import { OperatorDocBanner } from "../../CommanComponents/LogisticsDocAlerts";
 import { refreshLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
 import { apiErrorMessage, isFleetOwnerUser, unitHeldByOther } from "../../utils/ownerOperator";
@@ -498,6 +499,7 @@ function OperatorDashboard() {
     <div className="log-dash">
       <LogisticsSosContactsPrompt />
       {ownerOperating ? null : <OperatorDocBanner compliance={data?.document_compliance} />}
+      {ownerOperating ? null : <LogisticsOperatorFaceCard />}
       {/* <p className="log-dash__intro">
         Drive one vehicle at a time. Change truck, status, and verify GPS here —
         other assigned assets go offline when you go live.

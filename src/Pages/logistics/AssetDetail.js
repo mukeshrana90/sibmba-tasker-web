@@ -12,6 +12,8 @@ import {
   LogisticsDetailSkeleton,
 } from "../../CommanComponents/LogisticsSkeleton";
 import { formatRate } from "../../utils/assetRate";
+import { hasReviews, ratingLabel } from "../../utils/ratingLabel";
+import { formatCarriageSize } from "../../utils/logisticVehicleWeight";
 
 const AVAIL_LABEL = {
   available_now: "Available now",
@@ -61,17 +63,6 @@ function currentUserId() {
 function formatCapacity(capacity) {
   if (capacity?.value == null || capacity?.value === "") return null;
   return `${capacity.value} ${capacity.unit || "tons"}`;
-}
-
-function formatCarriage(carriage) {
-  if (!carriage) return null;
-  const L = carriage.length_m;
-  const W = carriage.width_m;
-  const H = carriage.height_m;
-  if (L == null && W == null && H == null) return null;
-  return [L, W, H]
-    .map((n) => (n != null && n !== "" ? String(n) : "—"))
-    .join(" × ") + " ft";
 }
 
 function formatPrice(hint) {
@@ -147,24 +138,22 @@ export default function LogisticsAssetDetail() {
   // Guests never see owner contact details (the API also leaves them out)
   const guest = !isLoggedIn();
   const showPhone = Boolean(!guest && owner?.contact_phone_visible && phone);
-  const showEmail = Boolean(!guest && owner?.contact_phone_visible && owner?.email);
-  // doc 12 · P1: business name first, then the owner's real name under it
+  // 12 Nov: customers see the business name, phone and WhatsApp only —
+  // never the owner's own name or email
   const providerName =
-    owner?.company_name ||
-    owner?.full_name ||
-    asset?.owner?.full_name ||
-    "Fleet provider";
-  const ownerRealName =
-    owner?.owner_name && owner.owner_name !== providerName ? owner.owner_name : "";
+    owner?.company_name || owner?.full_name || "Fleet provider";
   const ownerPhoto = assetPhotoUrl(owner?.profile_image);
   const capacity = formatCapacity(asset?.capacity);
-  const carriage = formatCarriage(asset?.carriage);
+  const carriage = formatCarriageSize(asset?.carriage);
   const price = formatPrice(asset?.price_hint);
   const makeModel = [asset?.make, asset?.model].filter(Boolean).join(" ");
   const categoryName =
     asset?.category_id?.name || asset?.category?.name || null;
   const tags = [
-    ...(asset?.capabilities || []),
+    // the VIN is stored as "vin:XXXX" — never shown
+    ...(asset?.capabilities || []).filter(
+      (c) => !String(c).toLowerCase().startsWith("vin:")
+    ),
     ...(asset?.services || []).filter(
       (s) =>
         !["agricultural", "construction", "industrial", "logistic"].includes(
@@ -238,9 +227,9 @@ export default function LogisticsAssetDetail() {
 
               <h2 className="log-asset-detail-summary__title">{asset.name}</h2>
               <p className="log-asset-detail-summary__meta">
-                {(Number(rating.average) || 0).toFixed(1)} ★ ·{" "}
-                {Number(rating.count) || 0} review
-                {Number(rating.count) === 1 ? "" : "s"}
+                {hasReviews(rating.average, rating.count)
+                  ? `${ratingLabel(rating.average, rating.count, " ★")} · ${Number(rating.count) || 0} review${Number(rating.count) === 1 ? "" : "s"}`
+                  : ratingLabel(rating.average, rating.count)}
                 {completed ? ` · ${completed} jobs completed` : ""}
               </p>
 
@@ -307,7 +296,7 @@ export default function LogisticsAssetDetail() {
                 <SpecRow label="Model" value={asset.model} />
                 <SpecRow label="Year" value={asset.year} />
                 <SpecRow label="Capacity" value={capacity} />
-                <SpecRow label="Carriage (L×W×H)" value={carriage} />
+                <SpecRow label="Carriage" value={carriage} />
                 <SpecRow label="Availability" value={availLabel} />
                 {availDetail ? (
                   <SpecRow label="Status detail" value={availDetail} />
@@ -359,17 +348,11 @@ export default function LogisticsAssetDetail() {
                   )}
                   <span className="log-asset-detail-provider__names">
                     <b>{providerName}</b>
-                    {ownerRealName ? (
-                      <span className="log-hint">Owner: {ownerRealName}</span>
-                    ) : null}
                   </span>
                   {Number(owner?.is_verified) === 1 ? (
                     <span className="log-chip log-chip--active">Verified</span>
                   ) : null}
                 </div>
-                {showEmail ? (
-                  <p className="log-asset-detail-provider__row">{owner.email}</p>
-                ) : null}
                 {showPhone ? (
                   <p className="log-asset-detail-provider__row">
                     <a href={`tel:${phone}`}>{phone}</a>
@@ -388,8 +371,10 @@ export default function LogisticsAssetDetail() {
                 )}
                 {!guest ? <LogisticsWhatsappChatButton assetId={id} /> : null}
                 <p className="log-hint" style={{ margin: "8px 0 0" }}>
-                  {(Number(rating.average) || 0).toFixed(1)} ★ average ·{" "}
-                  {completed} completed job{completed === 1 ? "" : "s"}
+                  {hasReviews(rating.average, rating.count)
+                    ? ratingLabel(rating.average, rating.count, " ★ average")
+                    : ratingLabel(rating.average, rating.count)}{" "}
+                  · {completed} completed job{completed === 1 ? "" : "s"}
                 </p>
               </div>
             </section>

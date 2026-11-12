@@ -20,6 +20,7 @@ import {
   serviceProviderPath,
 } from "../utils/normalizeMongoId";
 import ProviderAvatar from "../CommanComponents/ProviderAvatar";
+import { ratingLabel } from "../utils/ratingLabel";
 
 export default function CustomerCategoryDetail() {
   const dispatch = useDispatch();
@@ -233,11 +234,9 @@ export default function CustomerCategoryDetail() {
                           {service.desc && service.desc !== "N/A" && (
                             <div className="svc-desc">{service.desc}</div>
                           )}
-                          {service.averageRating > 0 && (
-                            <div className="svc-rating">
-                              {Number(service.averageRating).toFixed(1)} ★
-                            </div>
-                          )}
+                          <div className="svc-rating">
+                            {ratingLabel(service.averageRating, service.reviewCount, " ★")}
+                          </div>
                         </div>
                       </div>
                     );

@@ -71,7 +71,7 @@ export default function Footer({ isActive, setIsActive, setShow, show }) {
           <div>
             <h2>Download our app </h2>
             <div className="store d-flex">
-              <a href="https://apps.apple.com/in/app/simbatasker/id6736746247" target="_blank" rel="noopener noreferrer">
+              <a href="https://apps.apple.com/zw/app/simbatasker/id6736746247" target="_blank" rel="noopener noreferrer">
                 <img src={require("../../Assets/Images/App Store.png")} alt="App Store" />
               </a>
               <a href="https://play.google.com/store/apps/details?id=com.simbatasker.app&pcampaignid=web_share" target="_blank" rel="noopener noreferrer">

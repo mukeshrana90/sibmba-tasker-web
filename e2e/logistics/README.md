@@ -83,3 +83,17 @@ v2.7.49 notes: fresh owners in s1 / s9 / s10 are approved through the admin API 
 | s25-app-gap-checks | v2.7.63 keep-alive, licence label, unread after leaving a thread, `mine=1` |
 | s26-one-free-plan | v2.7.64 one Free plan: 60 days of Paid benefits from approval, still Free, limits and locks when over, never restarts |
 | s27-owner-ids | v2.7.65 one Owner ID per kind, admin checks each, driving licence ID not asked twice, rejections, phone width |
+
+## v2.7.66 stages
+
+| Stage | Covers |
+|---|---|
+| s29-compulsory-docs | ZINARA + face compulsory; licence and roadworthy optional |
+| s30-one-verification | One-form onboarding, Approve all, later units |
+| s31-job-visibility | Operating area, return loads, can't-carry, env default |
+| s32-job-email | New-job emails to fleets and customer |
+| s33-market-switch | Services/Logistics choice for logged-in roles |
+| s34-client-fixes | "New" ratings, payment text, plus codes, tax expiry |
+| s35-face-camera | Live camera, its errors, who can change a face photo |
+
+The page's camera is mocked in `lib.js` (`mockCameraScript`): `L.addFacePhoto` feeds it a test face, `window.__e2eCameraError` makes it fail, and `window.__e2eRealCamera` uses Chrome's fake device.

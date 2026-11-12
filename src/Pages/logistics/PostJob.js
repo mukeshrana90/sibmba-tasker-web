@@ -187,6 +187,7 @@ const defaultForm = {
   budget_negotiable: true,
   priority: false,
   return_trip: false,
+  open_to_return_loads: false,
   return_goods: "",
   return_weight: "",
   return_weight_unit: "tons",
@@ -271,6 +272,7 @@ function jobToForm(job) {
     budget_negotiable: job.budget?.negotiable !== false,
     priority: !!job.priority,
     return_trip: !!job.return_trip,
+    open_to_return_loads: !!job.open_to_return_loads,
     return_goods: job.return_trip?.goods || "",
     return_weight:
       job.return_trip?.weight?.value != null
@@ -646,11 +648,43 @@ export default function LogisticsPostJob() {
 
   const onWeightUnitChange = (e) => applyWeight(form.weight, e.target.value);
 
+  // 12 Nov: the return load rides the same truck — same cap as Weight
+  const applyReturnWeight = (weight, unit) => {
+    const max = weightCapFor(form);
+    if (max == null || !weightExceedsMax(toTons(weight, unit), max)) {
+      setForm((f) => ({ ...f, return_weight: weight, return_weight_unit: unit }));
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      return_weight: String(unit === "kg" ? max * 1000 : max),
+      return_weight_unit: unit,
+    }));
+    toast.error(
+      categoryLocked
+        ? `This unit can take up to ${max} tons — lower the return weight.`
+        : `Vehicle needed “${form.vehicle_needed}” takes up to ${max} tons. Pick a larger vehicle to carry more on the return trip.`,
+      { toastId: "post-return-weight-cap" }
+    );
+  };
+
+  const onReturnWeightChange = (e) =>
+    applyReturnWeight(e.target.value, form.return_weight_unit);
+
+  const onReturnWeightUnitChange = (e) =>
+    applyReturnWeight(form.return_weight, e.target.value);
+
   const onVehicleNeededChange = (e) => {
     const nextVehicle = e.target.value;
-    const tons = toTons(form.weight, form.weight_unit);
+    const returnLoad = form.return_trip
+      ? toTons(form.return_weight, form.return_weight_unit)
+      : null;
+    const tons = Math.max(
+      toTons(form.weight, form.weight_unit) ?? 0,
+      returnLoad ?? 0
+    );
     const max = vehicleMaxTons(nextVehicle);
-    if (tons != null && tons > max) {
+    if (tons > max) {
       toast.error(
         `Weight exceeds ${nextVehicle} capacity (max ${max} tons). Lower the weight or pick a larger vehicle.`
       );
@@ -734,6 +768,18 @@ export default function LogisticsPostJob() {
     }
     if (!categoryLocked && weightTons > 50) {
       toast.error("Maximum package weight for posted jobs is 50 tons");
+      return false;
+    }
+    if (
+      form.return_trip &&
+      returnTons != null &&
+      weightExceedsMax(returnTons, weightCapTons ?? 50)
+    ) {
+      toast.error(
+        categoryLocked
+          ? `This unit can take up to ${weightCapTons} tons — lower the return weight.`
+          : `Return weight exceeds ${form.vehicle_needed} (max ${weightCapTons ?? 50} tons). Choose a larger vehicle or lower the return weight.`
+      );
       return false;
     }
     if (!nowMode) {
@@ -905,6 +951,7 @@ export default function LogisticsPostJob() {
         ...(categoryLocked && targetAssetId
           ? { targeted_asset_id: targetAssetId }
           : {}),
+        ...(!plant && !categoryLocked ? { open_to_return_loads: Boolean(form.open_to_return_loads) } : {}),
       };
 
       if (editId) {
@@ -1427,6 +1474,17 @@ export default function LogisticsPostJob() {
                 />
                 Return trip
               </label>
+              <label className="log-check log-check--row" data-testid="open-to-return-loads">
+                <input
+                  type="checkbox"
+                  checked={form.open_to_return_loads}
+                  onChange={set("open_to_return_loads")}
+                />
+                <span>
+                  Open to return loads
+                  <small>Also show this job to fleets outside the pickup area, such as trucks heading back empty.</small>
+                </span>
+              </label>
             </div>
             {form.return_trip && (
               <div className="log-return-panel log-field--full">
@@ -1451,12 +1509,12 @@ export default function LogisticsPostJob() {
                         min="0"
                         step="any"
                         value={form.return_weight}
-                        onChange={set("return_weight")}
+                        onChange={onReturnWeightChange}
                         placeholder="2"
                       />
                       <select
                         value={form.return_weight_unit}
-                        onChange={set("return_weight_unit")}
+                        onChange={onReturnWeightUnitChange}
                         aria-label="Return weight unit"
                       >
                         <option value="tons">tons</option>

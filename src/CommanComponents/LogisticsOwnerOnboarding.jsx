@@ -76,7 +76,7 @@ export default function LogisticsOwnerOnboarding() {
       </Modal.Header>
       <Modal.Body>
         <p className="log-hint mb-3">
-          Simba approves your company after checking these. You can add equipment and invite operators once it&apos;s approved.
+          Add these, your units and your operators. Simba checks everything at once.
         </p>
         <div className="log-onboard-grid">
           <label className="log-onboard-field">

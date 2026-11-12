@@ -18,6 +18,7 @@ import {
   renderStars,
 } from "../utils/landingUtils";
 import { serviceProviderPath } from "../utils/normalizeMongoId";
+import { hasReviews, ratingLabel } from "../utils/ratingLabel";
 
 const PAGE_LIMIT = 9;
 
@@ -129,9 +130,15 @@ function NearbyProviderCard({ item, onMap, onMessage, onProfileClick }) {
 
       <div className="prov-meta">
         <div className="rating">
-          <span className="stars">{renderStars(item.averageRating)}</span>
-          {item.averageRating.toFixed(1)}
-          <span className="rev">({item.reviewCount})</span>
+          {hasReviews(item.averageRating, item.reviewCount) ? (
+            <>
+              <span className="stars">{renderStars(item.averageRating)}</span>
+              {ratingLabel(item.averageRating, item.reviewCount)}
+              <span className="rev">({item.reviewCount})</span>
+            </>
+          ) : (
+            ratingLabel(item.averageRating, item.reviewCount)
+          )}
         </div>
         <span className="chip-rate">{formatPrice(item.rate)}</span>
       </div>

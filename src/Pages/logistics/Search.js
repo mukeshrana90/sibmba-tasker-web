@@ -31,6 +31,7 @@ import { geocodeLocationText } from "../../utils/landingGeocode";
 import EmptyResults from "../../CommanComponents/EmptyResults";
 import UseMyLocationButton from "../../CommanComponents/UseMyLocationButton";
 import "./logistics.css";
+import { hasReviews, NEW_RATING_LABEL } from "../../utils/ratingLabel";
 import {
   LogisticsSkeletonMeta,
   LogisticsTableSkeletonRows,
@@ -112,9 +113,8 @@ function ownerBusiness(row, guest = false) {
       Number(o.is_subscribed) === 1 ||
       o.is_subscribed === true);
   return {
-    company: o.company_name || o.display_name || o.full_name || "Fleet",
-    contact: o.full_name && o.company_name ? o.full_name : "",
-    email: phoneVisible ? o.email || "" : "",
+    // 12 Nov: business name only — never the owner's own name or email
+    company: o.company_name || o.display_name || "Fleet",
     phone:
       phoneVisible && o.phone_number
         ? `${o.country_code || ""}${o.phone_number}`.trim()
@@ -128,7 +128,7 @@ function ownerBusiness(row, guest = false) {
 function formatRating(rating) {
   const avg = Number(rating?.average) || 0;
   const count = Number(rating?.count) || 0;
-  if (!count && !avg) return "—";
+  if (!hasReviews(rating?.average, rating?.count)) return NEW_RATING_LABEL;
   return `${avg.toFixed(1)}${count ? ` (${count})` : ""}`;
 }
 
@@ -590,6 +590,8 @@ export default function LogisticsSearch() {
                       }${filterSummary}`}
               </div>
 
+              {/* No rows: skip the empty header, the fallback below explains */}
+              {loading || rows.length ? (
               <div className="log-jobs-table-wrap log-search-table-wrap">
                 <table className="log-jobs-table log-search-table">
                   <thead>
@@ -656,12 +658,6 @@ export default function LogisticsSearch() {
                                   </span>
                                 ) : null}
                               </b>
-                              {biz.contact ? (
-                                <span className="log-hint">{biz.contact}</span>
-                              ) : null}
-                              {biz.email ? (
-                                <span className="log-hint">{biz.email}</span>
-                              ) : null}
                               {biz.phone ? (
                                 <span className="log-hint">{biz.phone}</span>
                               ) : biz.guest ? (
@@ -736,6 +732,7 @@ export default function LogisticsSearch() {
                   </tbody>
                 </table>
               </div>
+              ) : null}
 
               {!loading && !rows.length ? (
                 <EmptyResults

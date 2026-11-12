@@ -115,12 +115,41 @@ function uploadInitScript(relay) {
   };
 }
 
+const CAMERA_ARGS = ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"];
 let browser;
 async function getBrowser() {
   if (!browser) browser = await chromium.launch(HEADED
-    ? { headless: false, channel: "chrome", slowMo: Number(process.env.E2E_SLOWMO || 250), args: ["--ignore-certificate-errors"] }
-    : { headless: true, args: ["--ignore-certificate-errors"] });
+    ? { headless: false, channel: "chrome", slowMo: Number(process.env.E2E_SLOWMO || 250), args: ["--ignore-certificate-errors", ...CAMERA_ARGS] }
+    : { headless: true, args: ["--ignore-certificate-errors", ...CAMERA_ARGS] });
   return browser;
+}
+
+/**
+ * v2.7.66 face photos are live camera only. The page's camera shows a test face (set by
+ * addFacePhoto). window.__e2eCameraError = "NotFoundError" etc. makes it fail;
+ * window.__e2eRealCamera = true uses Chrome's own fake camera device instead.
+ */
+function mockCameraScript() {
+  if (!navigator.mediaDevices) return;
+  const real = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia = async (c) => {
+    if (window.__e2eCameraError) throw new DOMException("mock camera failure", window.__e2eCameraError);
+    if (window.__e2eRealCamera) return real(c);
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 480;
+    const x = canvas.getContext("2d");
+    const img = new Image();
+    if (window.__e2eFaceSrc) img.src = window.__e2eFaceSrc;
+    const paint = () => {
+      x.fillStyle = "#777";
+      x.fillRect(0, 0, 640, 480);
+      if (img.complete && img.naturalWidth) x.drawImage(img, 0, 0, 640, 480);
+    };
+    paint();
+    setInterval(paint, 80);
+    return canvas.captureStream(15);
+  };
 }
 
 /** New isolated browser context for one actor; /api + /public go to the safe 4099 API. */
@@ -131,13 +160,14 @@ async function actor(name, { geo = HOME, mobile = false, viewport = null, scale 
     viewport: viewport || (mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 }),
     deviceScaleFactor: scale,
     geolocation: geo,
-    permissions: ["geolocation", "notifications"],
+    permissions: ["geolocation", "notifications", "camera"],
     // E2E_VIDEO=<dir>: record each actor's session as .webm
     ...(process.env.E2E_VIDEO ? { recordVideo: { dir: process.env.E2E_VIDEO, size: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 } } } : {}),
   });
   const errors = [];
   const apiFails = [];
   await ctx.addInitScript(uploadInitScript, `https://localhost:${await uploadRelay()}`);
+  await ctx.addInitScript(mockCameraScript);
   await ctx.route(/^https:\/\/localhost:3001\/(api|public)\//, async (route) => {
     const url = route.request().url().replace("https://localhost:3001", API);
     try {
@@ -268,7 +298,12 @@ async function addUnitPhotos(page, form = "form.log-fleet-form", kind = "truck")
 
 /** Operator invite form: attach the required face photo (AI face #i). */
 async function addFacePhoto(page, i = 1) {
-  await page.locator('[data-field="profile_photo"] input[type=file]').first().setInputFiles(DOCS.face(i));
+  const src = `data:image/jpeg;base64,${fs.readFileSync(DOCS.face(i)).toString("base64")}`;
+  await page.evaluate((s) => { window.__e2eFaceSrc = s; }, src);
+  await page.locator('[data-field="profile_photo"] [data-testid="face-photo-take"]').first().click();
+  await page.locator('[data-testid="face-camera-capture"]:not([disabled])').click({ timeout: 15000 });
+  await page.locator('[data-testid="face-camera-use"]').click();
+  await page.locator('[data-testid="face-camera-use"]').waitFor({ state: "detached", timeout: 10000 });
 }
 
 /** Cast for the current run (state.json RUN). */
@@ -386,7 +421,7 @@ function docExpiryYmd(years = 3) {
   return new Date(Date.now() + years * 365 * 864e5).toISOString().slice(0, 10);
 }
 
-async function fillSignupBusinessDocs(page, person, { tax = true, face = 5 } = {}) {
+async function fillSignupBusinessDocs(page, person, { tax = true, face = 5, taxExpiry = true } = {}) {
   const f = await businessDocFiles(person, face);
   // 30 Oct 2026: documents live on sign-up step 2 — open it (step 1 must be filled)
   const next = page.locator(".signup-step-next");
@@ -397,7 +432,7 @@ async function fillSignupBusinessDocs(page, person, { tax = true, face = 5 } = {
   await page.locator('select[name="owner_id_kind"]').selectOption("national_id").catch(() => {});
   if (tax) {
     await page.locator("#biz-tax").setInputFiles(f.tax).catch(() => {});
-    await page.locator('input[name="tax_expires"]').fill(docExpiryYmd(1)).catch(() => {});
+    if (taxExpiry) await page.locator('input[name="tax_expires"]').fill(docExpiryYmd(1)).catch(() => {});
   }
   return f;
 }
@@ -441,10 +476,28 @@ async function reviewDocs(subject, id, { status = "verified", reason = "", only 
   }
   return out;
 }
-const verifyDocs = async (subject, id, { roadworthy = true, ...opts } = {}) => {
+const verifyDocs = async (subject, id, { roadworthy = false, face = true, ...opts } = {}) => {
   if (subject === "asset" && roadworthy && !opts.only) await ensureRoadworthy(id);
-  return reviewDocs(subject, id, { ...opts, status: "verified" });
+  const out = await reviewDocs(subject, id, { ...opts, status: "verified" });
+  if (subject === "operator" && face && !opts.only) await verifyFace(id);
+  return out;
 };
+
+/** v2.7.66: the face photo is what lets an operator work. Gives one first if the operator has none. */
+async function verifyFace(id, { face = 1 } = {}) {
+  const d = await db();
+  const oid = new mongoose.Types.ObjectId(String(id));
+  const u = await d.collection("users").findOne({ _id: oid }, { projection: { profile_image: 1, logistics_face_review: 1 } });
+  if (u?.logistics_face_review?.status === "verified") return null;
+  if (!u?.logistics_face_review?.url && !u?.profile_image) {
+    const owner = await d.collection("users").findOne({ _id: oid }, { projection: { owner_id: 1 } });
+    await apiForm("PATCH", `/logistics/sub-user/${id}`, { token: tokenFor(owner.owner_id), files: [["profile_photo", DOCS.face(face)]] });
+  }
+  return api("POST", "/admin/logistics/documents/review", {
+    token: await adminToken(),
+    body: { subject: "face_photo", id: String(id), status: "verified" },
+  });
+}
 
 /**
  * v2.7.61: every truck needs a roadworthy certificate. Tests that make a truck ready upload one
@@ -647,4 +700,4 @@ async function done() {
   if (fail.length) process.exitCode = 1;
 }
 
-module.exports = { ensureRoadworthy, docExpiryYmd, fillSignupBusinessDocs, makeFleetReady, businessDocFiles, reviewDocs, verifyDocs, giveOperatorLicence, HOME, PLACES: castFor.PLACES, cast, docFile, typePhone, castPersonFor, closeDocs: DOCS.close, docRow, fillGoods, photoFixtures, addUnitPhotos, addFacePhoto, apiForm, setPlan, restartFreePeriod, adminToken, approveOwner, WEB, API, HARARE, sec, check, actor, shot, seedAuth, goto, tokenFor, api, db, bodyText, waitText, done, pickDate, pickLocation, typeMoney, postTransportJob, vehicleSelect, setInviteVia, makeCustomer, loadState, saveState, mongoose, results };
+module.exports = { verifyFace, ensureRoadworthy, docExpiryYmd, fillSignupBusinessDocs, makeFleetReady, businessDocFiles, reviewDocs, verifyDocs, giveOperatorLicence, HOME, PLACES: castFor.PLACES, cast, docFile, typePhone, castPersonFor, closeDocs: DOCS.close, docRow, fillGoods, photoFixtures, addUnitPhotos, addFacePhoto, apiForm, setPlan, restartFreePeriod, adminToken, approveOwner, WEB, API, HARARE, sec, check, actor, shot, seedAuth, goto, tokenFor, api, db, bodyText, waitText, done, pickDate, pickLocation, typeMoney, postTransportJob, vehicleSelect, setInviteVia, makeCustomer, loadState, saveState, mongoose, results };

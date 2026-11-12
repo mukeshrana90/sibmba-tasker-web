@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { useCompanyApproval } from "./LogisticsAccountBanner";
 
-// 29 Oct 2026: owners add equipment / invite operators only after Simba approves the company.
+// v2.7.66: one verification, so owners build the whole package before Simba checks it. The old
+// lock returns only when built with REACT_APP_LOGISTICS_ADD_REQUIRES_APPROVAL=true.
 
 /** true while the signed-in owner's company is pending / rejected (false while loading). */
 export function useAddLocked() {
   const approval = useCompanyApproval();
+  if (process.env.REACT_APP_LOGISTICS_ADD_REQUIRES_APPROVAL !== "true") return false;
   return approval === "pending" || approval === "rejected";
 }
 

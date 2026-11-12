@@ -31,6 +31,7 @@ const DOCS = require("./docs");
     // ───────────────────────── Fleet add form
     L.sec("17a. Add truck: photo + paper pickers refuse >10 MB and other types");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
+    await o.page.locator('[data-testid="operated-by-later"]').click(); // this stage doesn't invite an operator here
     const plate = unit.plate;
     await o.page.fill('input[placeholder="Truck 1"]', unit.name);
     await o.page.fill('input[placeholder="AEB1234"]', plate);
@@ -160,10 +161,8 @@ const DOCS = require("./docs");
     const opEmail = opP.email;
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     await o.page.fill('input[placeholder="Full name"]', opP.name);
-    const profileInput = o.page.locator("input[type=file]:not([multiple])[accept='image/*,.heic,.heif']").first();
-    await profileInput.setInputFiles(F.bigJpg);
-    L.check(await toastHas(o, /larger than 10 MB/), "profile photo >10 MB → toast");
-    await profileInput.setInputFiles(F.selfieHeic);
+    // v2.7.66: the face is live camera only; HEIC conversion is checked below through the API
+    await L.addFacePhoto(o.page, 2);
     const lic = L.docRow(o.page, "Driving / plant licence").first();
     await lic.locator("input[type=file]").setInputFiles(F.bigPdf);
     L.check(await toastHas(o, /larger than 10 MB/), "licence >10 MB → toast");
@@ -183,7 +182,11 @@ const DOCS = require("./docs");
     const opStr = JSON.stringify(op || {});
     const opJpgs = [...opStr.matchAll(/"(\/logistics\/operators[^"]+\.(jpg|pdf|heic))"/gi)].map((m) => m[1]);
     L.check(!!op, "invite record created");
-    L.check(rx(`${F.stem(F.selfieHeic)}\\.jpg$`).test(op?.profile_image || "") && (await isJpeg(op.profile_image)).ok, "operator HEIC profile photo → JPEG", op?.profile_image);
+    {
+      const replaced = await L.apiForm("PATCH", `/logistics/invite/${op?._id}`, { token: owner.token, files: [["profile_photo", F.selfieHeic]] });
+      const fresh = await d.collection("logistics_invites").findOne({ _id: op?._id });
+      L.check(rx(`${F.stem(F.selfieHeic)}\\.jpg$`).test(fresh?.profile_image || "") && (await isJpeg(fresh?.profile_image)).ok, "operator HEIC face (replaced via API before acceptance) → JPEG", { i: fresh?.profile_image, m: replaced?.message });
+    }
     L.check(opJpgs.some((u) => rx(`docs/.*${F.stem(F.licenceHeic)}\\.jpg$`).test(u)), "HEIC licence scan → JPEG", opJpgs);
     L.check(opJpgs.some((u) => rx(`${F.re(F.competency)}$`).test(u)), "extra PDF doc stored as .pdf", opJpgs);
     L.check(!opJpgs.some((u) => /\.heic$/i.test(u)), "no raw .heic stored");

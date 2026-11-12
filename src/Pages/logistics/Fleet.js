@@ -57,12 +57,13 @@ import {
   WhoOperatesField,
   useOwnerOperator,
 } from "../../CommanComponents/LogisticsOwnerOperator";
+import LogisticsUnitOperatorStep, { emptyUnitOperator } from "../../CommanComponents/LogisticsUnitOperatorStep";
 import { refreshLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
 
 // Required documents first: a truck can't be added without the Road licence (ZINARA)
 const LOGISTIC_DOCS = [
   { id: "rego", label: "Road licence (ZINARA)", hint: "Road papers", required: true },
-  { id: "roadworthy", label: "Roadworthy / fitness", hint: "Tap to upload", compulsory: true },
+  { id: "roadworthy", label: "Roadworthy / fitness", hint: "Optional" },
   { id: "ownership", label: "Ownership papers", hint: "Proof you own this truck" },
   { id: "insurance", label: "Insurance", hint: "Current cover" },
 ];
@@ -101,8 +102,9 @@ const emptyForm = () => ({
   carriage_height_ft: "",
   needs_operator: "yes",
   operators_needed: "1",
-  // v2.7.61: "I operate it myself" (self) or "Invite an operator" (invite)
+  // v2.7.66: self | invite (new operator here) | existing | later
   operated_by: "invite",
+  op: emptyUnitOperator(),
   // No default machine — the owner must pick (placeholders only suggest)
   equipment: "",
   subtype: "",
@@ -358,7 +360,10 @@ export default function LogisticsFleet() {
     ? urlKind
     : "vehicle";
   const [kind, setKind] = useState(initialKind);
-  const { cabEnabled } = useLogisticsConfig();
+  const { cabEnabled, config } = useLogisticsConfig();
+  const defaultRangeKm = config?.default_operating_range_km ?? 100;
+  // Set when the unit saved but its operator invite didn't: the next save retries only the invite
+  const [savedUnitId, setSavedUnitId] = useState(null);
   const [applied, setApplied] = useState(() => ({
     ...emptyFleetFilters(),
     kind: initialKind,
@@ -524,6 +529,7 @@ export default function LogisticsFleet() {
     });
     setShowForm(false);
     setForm(emptyForm());
+    setSavedUnitId(null);
     if (showAddByRoute) navigate("/logistics/owner/fleet", { replace: true });
   };
 
@@ -611,8 +617,44 @@ export default function LogisticsFleet() {
     }
     // v2.7.61: "I operate it myself" needs the one-time licence + face photo
     if (!cab && form.operated_by === "self" && !ownerOp?.enabled) {
-      toast.error("Upload your licence and face photo first, or choose \"Invite an operator\"");
+      toast.error("Take your face photo first, or choose another option");
       focusField("operated_by");
+      return;
+    }
+    if (!cab && form.operated_by === "existing" && !form.op.existing_id) {
+      toast.error("Choose an operator, or pick Decide later");
+      focusField("op_existing");
+      return;
+    }
+    if (!cab && form.operated_by === "invite") {
+      if (!String(form.op.full_name).trim()) {
+        toast.error("Enter the operator's name, or pick Decide later");
+        focusField("op_full_name");
+        return;
+      }
+      if (!String(form.op.email).trim()) {
+        toast.error("Enter the operator's email, or pick Decide later");
+        focusField("op_email");
+        return;
+      }
+      if (!form.op.face) {
+        toast.error("Take the operator's face photo, or pick Decide later");
+        focusField("profile_photo");
+        return;
+      }
+      const noDate = Object.entries(form.op.docs || {}).find(([, d]) => d?.file && !d?.expires);
+      if (noDate) {
+        toast.error(`${noDate[0] === "licence" ? "Driving / plant licence" : "Medical fitness"}: expiry date is required`);
+        return;
+      }
+    }
+    if (savedUnitId) {
+      setSaving(true);
+      try {
+        if (await attachOperator(savedUnitId)) await finishAdd();
+      } finally {
+        setSaving(false);
+      }
       return;
     }
     // v2.7.59: trucks need the Road licence (ZINARA) before anything else
@@ -681,13 +723,13 @@ export default function LogisticsFleet() {
         subtype: plant ? form.subtype || "" : "",
         mobility: plant ? form.mobility || "" : "",
         engine_type: plant ? form.engine_type || "" : "",
-        operating_range_km: plant ? form.operating_range || "" : "",
+        operating_range_km: form.operating_range || "",
         price: plant ? form.price || "" : "",
         rate_unit: plant && form.price ? form.rate_unit || "day" : "",
         direct_booking_enabled: form.direct_booking_enabled ? "true" : "false",
         // Cabs only: trucks always need a roadworthy certificate (item 11)
         red_plate: cab && form.red_plate ? "true" : "",
-        operated_by: cab ? "" : form.operated_by || "invite",
+        operated_by: cab ? "" : form.operated_by === "self" ? "self" : "invite",
         ...(coords
           ? { lng: String(coords[0]), lat: String(coords[1]) }
           : {}),
@@ -724,6 +766,7 @@ export default function LogisticsFleet() {
       const res = await dispatch(LogisticsActions.createAsset(fd));
       if (res?.meta?.requestStatus === "fulfilled" && res?.payload?.success) {
         toast.success(plant ? "Equipment added" : cab ? "Cab added" : "Vehicle added");
+        const newUnitId = res?.payload?.data?.asset?._id;
         if (saveAsBase && coords) {
           const saved = await dispatch(
             LogisticsActions.patchMe({
@@ -740,8 +783,7 @@ export default function LogisticsFleet() {
           toast.info("Saved. Use \"Use this unit myself\" when you are ready to go live on it.");
           refreshLogisticsAccount();
         }
-        closeAdd();
-        await load();
+        if (cab || (await attachOperator(newUnitId))) await finishAdd();
       } else {
         if (isPlanLimitError(res?.payload)) {
           toast.error(`${res.payload.message} Tap to see plans.`, {
@@ -755,6 +797,67 @@ export default function LogisticsFleet() {
       setSaving(false);
     }
   };
+
+  /** Links the operator chosen in the form to the saved unit. False keeps the form open to retry. */
+  async function attachOperator(unitId) {
+    const mode = form.operated_by;
+    if (mode !== "invite" && mode !== "existing") return true;
+    if (mode === "existing") {
+      const res = await dispatch(LogisticsActions.assignOperator({ id: unitId, sub_user_id: form.op.existing_id }));
+      if (res?.payload?.success) return true;
+      setSavedUnitId(unitId);
+      toast.error(`The unit is saved, but: ${res?.payload?.message || "the operator couldn't be assigned"}`);
+      return false;
+    }
+    const fd = new FormData();
+    const phone = String(form.op.phone_number || "").replace(/\D/g, "");
+    fd.append("sub_user_type", "operator");
+    fd.append("full_name", String(form.op.full_name).trim());
+    fd.append("email", String(form.op.email).trim().toLowerCase());
+    fd.append("phone_number", phone);
+    if (phone) fd.append("country_code", form.op.country_code);
+    fd.append("send_via", JSON.stringify(["email"]));
+    fd.append("pay_type", "percentage");
+    fd.append("pay_value", "20");
+    fd.append("asset_ids", JSON.stringify([unitId]));
+    fd.append("profile_photo", form.op.face);
+    const types = [];
+    const expires = [];
+    const names = [];
+    Object.entries(form.op.docs || {}).forEach(([type, d]) => {
+      if (!d?.file) return;
+      fd.append("documents", d.file);
+      types.push(type);
+      expires.push(d.expires || "");
+      names.push(d.name || type);
+    });
+    if (types.length) {
+      fd.append("document_types", JSON.stringify(types));
+      fd.append("document_expires", JSON.stringify(expires));
+      fd.append("document_names", JSON.stringify(names));
+    }
+    const res = await dispatch(LogisticsActions.createSubUser(fd));
+    if (res?.payload?.success) {
+      toast.success("Operator invited");
+      return true;
+    }
+    setSavedUnitId(unitId);
+    const message = res?.payload?.message || "the invite couldn't be sent";
+    if (isPlanLimitError(res?.payload)) {
+      toast.error(`The unit is saved, but: ${message} Tap to see plans.`, {
+        onClick: () => navigate("/logistics/owner/subscription"),
+      });
+    } else {
+      toast.error(`The unit is saved, but: ${message} Fix it and save again.`);
+    }
+    return false;
+  }
+
+  async function finishAdd() {
+    setSavedUnitId(null);
+    closeAdd();
+    await load();
+  }
 
   const countLabel = useMemo(() => {
     if (loading) return null;
@@ -1100,7 +1203,7 @@ export default function LogisticsFleet() {
                 <span>
                   <b>Red-plate (commercial) vehicle</b>
                   <small>
-                    Red-plate vehicles need a valid roadworthy / fitness certificate — we remind you before it expires.
+                    We remind you before a roadworthy / fitness certificate expires.
                   </small>
                 </span>
               </label>
@@ -1181,6 +1284,11 @@ export default function LogisticsFleet() {
                 value={form.operated_by}
                 onChange={(v) => setForm((f) => ({ ...f, operated_by: v }))}
               />
+              <LogisticsUnitOperatorStep
+                mode={form.operated_by}
+                value={form.op}
+                onChange={(op) => setForm((f) => ({ ...f, op }))}
+              />
               <p className="log-hint log-field--full">
                 Every unit needs someone to operate it — customers can't find or
                 book it until you or an assigned operator goes live on it.
@@ -1210,6 +1318,21 @@ export default function LogisticsFleet() {
                   onToggle={setSaveAsBase}
                 />
               </div>
+              {cab ? null : (
+                <label className="log-field log-field--full" data-field="operating_range">
+                  <span className="log-fl">Operating range (km)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.operating_range}
+                    onChange={set("operating_range")}
+                    placeholder={`Default ${defaultRangeKm} km`}
+                    data-testid="operating-range"
+                  />
+                  <small className="log-hint">You see jobs with a pickup inside this distance of the base location.</small>
+                </label>
+              )}
 
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                 Vehicle documents{" "}
@@ -1217,8 +1340,8 @@ export default function LogisticsFleet() {
               </p>
               <p className="log-hint log-field--full">
                 {cab
-                  ? `The road licence (ZINARA) is required${form.red_plate ? "; the roadworthy certificate is also required (red-plate vehicle)" : ""}. Without a valid one the unit is hidden from customers.`
-                  : "Start with the road licence (ZINARA) — a truck can't be added without it. The roadworthy certificate is also required: without both, verified and in date, the truck is hidden from customers."}{" "}
+                  ? "The road licence (ZINARA) is required. Without a valid one the unit is hidden from customers."
+                  : "Start with the road licence (ZINARA) — a truck can't be added without it, and it must be verified and in date before customers can see the truck."}{" "}
                 The other documents support your listing; a problem with one only shows you a warning.
                 Once a file is attached, pick its expiry date from the calendar (*). {REMINDER_HINT}
               </p>
@@ -1412,6 +1535,11 @@ export default function LogisticsFleet() {
               <WhoOperatesField
                 value={form.operated_by}
                 onChange={(v) => setForm((f) => ({ ...f, operated_by: v }))}
+              />
+              <LogisticsUnitOperatorStep
+                mode={form.operated_by}
+                value={form.op}
+                onChange={(op) => setForm((f) => ({ ...f, op }))}
               />
 
               <div className="log-field--full">

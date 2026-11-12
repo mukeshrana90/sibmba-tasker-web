@@ -1,13 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 import UnifiedSearch from "../../CommanComponents/Landing/UnifiedSearch";
-import GuestMarketplaceSwitch from "../../CommanComponents/Landing/GuestMarketplaceSwitch";
+import GuestMarketplaceSwitch, { AccountMarketplaceSwitch } from "../../CommanComponents/Landing/GuestMarketplaceSwitch";
 import { CategoryGlyph } from "../../CommanComponents/LogisticsFormIcons";
 import { CATEGORIES, CAB_CATEGORY } from "../../CommanComponents/LogisticsCategoryTiles";
-import { accountLinkTo } from "../../utils/authRedirect";
+import { accountLinkTo, isLoggedIn } from "../../utils/authRedirect";
 import truckArt from "../../Assets/Images/logistics/hub-banner-truck.png";
 import "./LogisticsGuestLanding.css";
 
 /**
+ * v2.7.66: also shown to logged-in customers, providers and corporates (switch via
+ * AccountMarketplaceSwitch, "My jobs" card instead of the owner sign-up card).
  * /logistics before login (v2.7.53): the Logistics Hub as a marketing page in the
  * home landing style (landing.css building blocks). Logged-in customers keep the
  * Hub (HubHome). Search, categories and asset pages are public. A guest can fill in
@@ -112,14 +114,16 @@ const TRUST = [
 ];
 
 const BENEFITS = [
-  { big: "Verified", small: "Fleet owners checked by Simba" },
-  { big: "Live", small: "Tracking on every trip" },
+  { big: "Checked", small: "Road licence and owner ID reviewed by Simba Tasker" },
+  { big: "Trip updates", small: "Follow your load from pickup to drop-off" },
   { big: "OTP", small: "Safe delivery confirmation" },
   { big: "4", small: "Categories of trucks & plant" },
 ];
 
 export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, AssetSection, Shimmer }) {
   const navigate = useNavigate();
+  // v2.7.66: logged-in customers, providers and corporates get this page too
+  const signedIn = isLoggedIn();
   const categories = cabEnabled ? [...CATEGORIES, CAB_CATEGORY] : CATEGORIES;
   const sliders = [
     {
@@ -159,7 +163,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
         </div>
 
         <div className="landing-wrap landing-hero__inner">
-          <GuestMarketplaceSwitch active="logistics" />
+          {signedIn ? <AccountMarketplaceSwitch active="logistics" /> : <GuestMarketplaceSwitch active="logistics" />}
           <span className="landing-eyebrow">Zimbabwe&apos;s logistics &amp; equipment marketplace</span>
           <h1>
             Trucks &amp; <span className="landing-hl">machines</span>
@@ -329,16 +333,29 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
               </Link>
             </div>
           </div>
-          <div className="landing-cta__inner">
-            <span className="landing-eyebrow landing-cta__eyebrow">For equipment owners</span>
-            <h2>Own trucks or machines?</h2>
-            <p>List your fleet on Simba Logistics, add your operators and get jobs from customers across Zimbabwe.</p>
-            <div className="landing-cta__actions">
-              <button type="button" className="landing-btn landing-btn--gold" onClick={() => navigate("/sign-up?role=4")}>
-                Join as Equipment Owner
-              </button>
+          {signedIn ? (
+            <div className="landing-cta__inner">
+              <span className="landing-eyebrow landing-cta__eyebrow">Your account</span>
+              <h2>Track your jobs</h2>
+              <p>See the quotes you received, follow your trips live and confirm delivery.</p>
+              <div className="landing-cta__actions">
+                <Link className="landing-btn landing-btn--gold" to="/logistics/jobs">
+                  My jobs
+                </Link>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="landing-cta__inner">
+              <span className="landing-eyebrow landing-cta__eyebrow">For equipment owners</span>
+              <h2>Own trucks or machines?</h2>
+              <p>List your fleet on Simba Logistics, add your operators and get jobs from customers across Zimbabwe.</p>
+              <div className="landing-cta__actions">
+                <button type="button" className="landing-btn landing-btn--gold" onClick={() => navigate("/sign-up?role=4")}>
+                  Join as Equipment Owner
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </div>

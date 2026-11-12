@@ -10,7 +10,6 @@ import {
 } from "./LogisticsAccountBanner";
 import LogisticsOperatorDocRows, { publicUrl } from "./LogisticsOperatorDocRows";
 import LogisticsFacePhotoField from "./LogisticsFacePhotoField";
-import { keepAllowedFiles } from "../utils/uploadLimits";
 import useDocDeepLink from "../Hooks/useDocDeepLink";
 import { readDeviceGps } from "../utils/deviceGps";
 import { docReviewChip } from "../utils/docExpiry";
@@ -33,7 +32,7 @@ export function useOwnerOperator() {
 }
 
 /**
- * One-time licence and face photo for an owner who wants to operate units.
+ * One-time face photo (and optional licence) for an owner who wants to operate units.
  * After the first upload either file can be replaced alone, and it goes back
  * to Pending check.
  */
@@ -58,18 +57,14 @@ export function OwnerOperatorSetup({ onSaved }) {
 
   const hasLicence = Boolean(op?.licence?.url);
   // A driving licence kept as an owner ID is enough: don't ask for it twice
-  const licenceFromOwnerId = op?.licence?.source === "owner_id" && !op?.licence?.needs_upload;
+  const licenceFromOwnerId = op?.licence?.source === "owner_id" && op?.licence?.status !== "rejected";
   const hasFace = Boolean(op?.face_photo?.url);
   const licenceChip = docReviewChip({ status: op?.licence?.status, reason: op?.licence?.reason });
   const faceChip = docReviewChip({ status: op?.face_photo?.status, reason: op?.face_photo?.reason });
 
   const save = async () => {
     if (!licence && !face) {
-      toast.error("Choose your licence or face photo to upload");
-      return;
-    }
-    if (!hasLicence && !licence) {
-      toast.error("Add your driving / plant licence");
+      toast.error("Take your face photo first");
       return;
     }
     if (!hasFace && !face) {
@@ -93,7 +88,7 @@ export function OwnerOperatorSetup({ onSaved }) {
         toast.error(apiErrorMessage(res?.payload, "Could not save your documents"));
         return;
       }
-      toast.success("Saved — Simba will check your licence and face photo");
+      toast.success("Saved — Simba will check your documents");
       setLicence(null);
       setFace(null);
       setFacePreview("");
@@ -116,10 +111,7 @@ export function OwnerOperatorSetup({ onSaved }) {
       <LogisticsFacePhotoField
         preview={facePreview || publicUrl(op?.face_photo?.url) || ""}
         canRemove={Boolean(face)}
-        onPick={(e) => {
-          const [f] = keepAllowedFiles(e.target.files, { imagesOnly: true });
-          e.target.value = "";
-          if (!f) return;
+        onCapture={(f) => {
           setFace(f);
           setFacePreview(URL.createObjectURL(f));
         }}
@@ -174,7 +166,7 @@ export function OwnerOperatorSetup({ onSaved }) {
   );
 }
 
-/** Availability: the owner's own licence and face photo, once they have started operating. */
+/** Availability: the owner's own face photo and optional licence, once they have started operating. */
 export function OwnerOperatorCard() {
   const op = useOwnerOperator();
   useDocDeepLink();
@@ -184,11 +176,11 @@ export function OwnerOperatorCard() {
       <h2 className="log-sect" style={{ marginTop: 0 }}>Operating units yourself</h2>
       {op.can_operate ? (
         <p className="log-hint" data-testid="owner-operator-ready">
-          Your licence, face photo and owner ID are verified. Use a free unit below, or{" "}
+          Your face photo and owner ID are verified. Use a free unit below, or{" "}
           <Link to="/logistics/driver">open your operator dashboard</Link>.
         </p>
       ) : (
-        <p className="log-hint">You can go live after Simba verifies your licence, face photo and owner ID.</p>
+        <p className="log-hint">You can go live after Simba verifies your face photo and owner ID.</p>
       )}
       <OwnerOperatorSetup />
     </section>
@@ -210,21 +202,35 @@ export function WhoOperatesField({ value, onChange }) {
             <small>You go live on it and run its jobs.</small>
           </span>
         </label>
-        <label className={`log-who-operates__opt${!self ? " is-selected" : ""}`} data-testid="operated-by-invite">
-          <input type="radio" name="operated_by" value="invite" checked={!self} onChange={() => onChange("invite")} />
+        <label className={`log-who-operates__opt${value === "invite" ? " is-selected" : ""}`} data-testid="operated-by-invite">
+          <input type="radio" name="operated_by" value="invite" checked={value === "invite"} onChange={() => onChange("invite")} />
           <span>
-            <b>Invite an operator</b>
-            <small>Assign or invite them after saving. They quote and run the jobs.</small>
+            <b>Invite a new operator</b>
+            <small>Add them here. Simba checks them with this unit.</small>
+          </span>
+        </label>
+        <label className={`log-who-operates__opt${value === "existing" ? " is-selected" : ""}`} data-testid="operated-by-existing">
+          <input type="radio" name="operated_by" value="existing" checked={value === "existing"} onChange={() => onChange("existing")} />
+          <span>
+            <b>One of my operators</b>
+            <small>Pick someone you've already added.</small>
+          </span>
+        </label>
+        <label className={`log-who-operates__opt${value === "later" ? " is-selected" : ""}`} data-testid="operated-by-later">
+          <input type="radio" name="operated_by" value="later" checked={value === "later"} onChange={() => onChange("later")} />
+          <span>
+            <b>Decide later</b>
+            <small>The unit stays hidden from customers until someone is assigned.</small>
           </span>
         </label>
       </div>
       {self ? (
         op?.can_operate ? (
-          <p className="log-hint" data-testid="owner-operator-ready">Your licence and face photo are verified. You can go live on this unit once it is saved.</p>
+          <p className="log-hint" data-testid="owner-operator-ready">Your face photo and owner ID are verified. You can go live on this unit once it is saved.</p>
         ) : (
           <>
             <p className="log-hint">
-              Upload these once. Simba checks your licence, face photo and owner ID before you can go live.
+              Do this once. Simba checks your face photo and owner ID before you can go live. Your licence is optional.
             </p>
             <OwnerOperatorSetup />
           </>
@@ -398,7 +404,7 @@ export function UnitOperateControl({ asset, onChanged, compact = false }) {
         </Modal.Header>
         <Modal.Body>
           <p className="log-hint">
-            Upload your licence and face photo once. You can go live after Simba verifies them and your owner ID.
+            Take your face photo once. You can go live after Simba verifies it and your owner ID.
           </p>
           <OwnerOperatorSetup />
         </Modal.Body>

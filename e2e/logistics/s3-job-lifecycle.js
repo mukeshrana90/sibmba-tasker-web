@@ -117,9 +117,10 @@ const L = require("./lib");
       try {
         // only a 2 t truck → can't quote at all
         await L.goto(op, `/logistics/driver/job/${jobId}`);
-        await op.page.waitForFunction(() => /carries up to/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
+        // v2.7.66: a job no unit can carry is hidden from that fleet; the page says it isn't available
+        const nv = await op.page.locator('[data-testid="job-not-visible"]').waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
         let t = await L.bodyText(op);
-        L.check(/This job needs 5 t but .* carries up to 2 t\. None of your trucks can carry this load/.test(t), "2 t truck on a 5 t job: told it can't quote", t.slice(0, 200));
+        L.check(nv, "2 t truck on a 5 t job: job isn't visible to this fleet", t.slice(0, 200));
         L.check(!(await op.page.locator('input[aria-label="Quote amount"]').count()), "quote form hidden");
         await L.shot(op, "s3-truck-too-small");
         let r = await L.api("POST", `/logistics/job/${jobId}/quote`, { token: L.tokenFor(st.operator._id), body: { asset_id: st.truck._id, amount: 280, message: "x" } });

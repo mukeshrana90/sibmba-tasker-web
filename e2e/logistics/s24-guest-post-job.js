@@ -79,12 +79,12 @@ const draftInTab = (a) => a.page.evaluate(() => Boolean(sessionStorage.getItem("
       if (width === 320) await L.shot(p, "s24-hero-phone");
     }
 
-    L.sec("24b. Logged-in customer doesn't get the switch");
+    L.sec("24b. v2.7.66: logged-in customer gets the Services/Logistics choice too");
     const known = await L.makeCustomer(`s24-hero-${RUN}`);
     const lg = await A("known");
     await L.seedAuth(lg, { token: known.token, user: known });
     await L.goto(lg, "/", ".landing-hero h1");
-    L.check((await lg.page.locator(SWITCH).count()) === 0, "no switch once logged in");
+    L.check((await lg.page.locator(SWITCH).count()) > 0, "customer logged in: the switch is shown");
 
     L.sec("24c. Guest fills in a job, customer signs in and posts it");
     const customer = await L.makeCustomer(`s24-post-${RUN}`);

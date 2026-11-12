@@ -14,6 +14,7 @@ import {
   renderStars,
   userImageUrl,
 } from "../utils/landingUtils";
+import { hasReviews, ratingLabel } from "../utils/ratingLabel";
 
 function cleanVal(value) {
   if (value == null || value === "" || value === "undefined" || value === "null") {
@@ -128,9 +129,15 @@ function CorporateCard({ corp, rank, categoryName }) {
 
       <div className="prov-meta">
         <div className="rating">
-          <span className="stars">{renderStars(rating)}</span>
-          {reviewCount > 0 ? rating.toFixed(1) : "0.0"}
-          <span className="rev">({reviewCount})</span>
+          {hasReviews(rating, reviewCount) ? (
+            <>
+              <span className="stars">{renderStars(rating)}</span>
+              {ratingLabel(rating, reviewCount)}
+              <span className="rev">({reviewCount})</span>
+            </>
+          ) : (
+            ratingLabel(rating, reviewCount)
+          )}
         </div>
       </div>
 

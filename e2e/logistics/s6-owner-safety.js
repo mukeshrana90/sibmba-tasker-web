@@ -213,6 +213,7 @@ async function holdSos(a) {
      L.sec("6f. Owner adds plant equipment (UI)");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
     await o.page.locator('form.log-fleet-form button.log-cattile[aria-label="Agricultural"]').click();
+    await o.page.locator('[data-testid="operated-by-later"]').click();
     await o.page.fill('input[placeholder="JD Compact 1"]', tractor.name);
     await o.page.fill('input[placeholder="John Deere"]', tractor.make);
     await o.page.locator(".log-location-btn").first().click();
@@ -304,7 +305,7 @@ async function holdSos(a) {
       await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { documents: docs } });
     }
 
-    L.sec("6h. Document rules (v2.7.61): compulsory documents verified + in date; ZINARA + roadworthy required; optional ones warn");
+    L.sec("6h. Document rules (v2.7.66): ZINARA verified + in date is compulsory; roadworthy and the rest only warn");
     let lastSearch = null;
     const listed = async () => {
       const r = await L.api("GET", `/logistics/assets/search?kind=vehicle&q=${encodeURIComponent(st.truck.name)}&limit=50`, { token: L.tokenFor(st.customer._id) });
@@ -333,13 +334,13 @@ async function holdSos(a) {
         { _id: tid },
         { $set: { red_plate: true, documents: [...docs.filter((x) => x.type !== "roadworthy"), { type: "roadworthy", name: "fitness-certificate.pdf", url: "/x.pdf", expires: past, review: { status: "verified", reason: "", at: new Date(), by: null } }] } }
       );
-      L.check(!(await listed()), "red-plate truck with expired roadworthy → hidden");
+      L.check(await listed(), "red-plate truck with expired roadworthy → only warns, still listed", lastSearch);
       const renewed = new Date(Date.now() + 200 * 86400000);
       await d.collection("logistics_assets").updateOne(
         { _id: tid },
         { $set: { documents: [...docs.filter((x) => x.type !== "roadworthy"), { type: "roadworthy", name: "fitness-certificate.pdf", url: "/x.pdf", expires: renewed, review: { status: "verified", reason: "", at: new Date(), by: null } }] } }
       );
-      L.check(await listed(), "red-plate truck with a renewed, verified roadworthy → listed", lastSearch);
+      L.check(await listed(), "red-plate truck with a renewed roadworthy → still listed", lastSearch);
       await d.collection("logistics_assets").updateOne({ _id: tid }, { $set: { red_plate: false, documents: docs } });
       // Expiry must be after today
       const todayYmd = new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10);

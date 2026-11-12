@@ -16,11 +16,12 @@ import {
 } from "../../CommanComponents/LogisticsCategoryTiles";
 
 import LogisticsGuestLanding from "./LogisticsGuestLanding";
+import { hasMarketplaceChoice } from "../../utils/Roles";
 
 import "./logistics.css";
 
 const HOW_IT_WORKS = [
-  { n: 1, title: "Post or pick", sub: "Post your job, or book a truck, machine or cab directly." },
+  { n: 1, title: "Post or pick", sub: "Post your job, or book a truck or machine directly." },
   { n: 2, title: "Compare quotes", sub: "Nearby verified fleets quote — chat, check ratings, accept one." },
   { n: 3, title: "Track to done", sub: "Follow every step live and confirm with an OTP / PIN." },
 ];
@@ -175,7 +176,7 @@ function HubAssetCard({ row, badge }) {
         <span className="log-hub-asset__body">
           <b>{row.name}</b>
           <span className="log-hub-asset__owner">
-            {row.owner?.full_name || "Fleet"}
+            {row.owner?.company_name || row.owner?.display_name || row.owner?.full_name || "Fleet"}
             {Number(row.owner?.is_verified) === 1 ? " · Verified" : ""}
           </span>
           <span className="log-hub-asset__rating">
@@ -417,8 +418,9 @@ export default function LogisticsHubHome() {
     };
   }, [dispatch]);
 
-  // v2.7.53: before login /logistics is a landing page (home style); signed-in customers keep the Hub
-  if (!localStorage.getItem("token")) {
+  // /logistics is the landing page (home style) for visitors and, since v2.7.66, for
+  // logged-in customers, providers and corporates too. Other roles keep the Hub.
+  if (!localStorage.getItem("token") || hasMarketplaceChoice(localStorage.getItem("role"))) {
     return (
       <LogisticsGuestLanding
         cabEnabled={cabEnabled}

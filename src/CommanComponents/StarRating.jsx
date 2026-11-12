@@ -1,6 +1,16 @@
 import React from 'react';
+import { hasReviews, NEW_RATING_LABEL } from '../utils/ratingLabel';
 
 const StarRating = ({ averageRating, type, reviewCount }) => {
+  // type="noreview" is one person's review, never an overall rating, so it keeps its stars
+  if (type !== "noreview" && !hasReviews(averageRating, reviewCount)) {
+    return (
+      <div className="rating-stars">
+        <p className="rating-stars-caption">{NEW_RATING_LABEL}</p>
+      </div>
+    );
+  }
+
   const maxStars = 5;
   const stars = [];
 

@@ -69,7 +69,7 @@ const path = require("path");
     // 29 Oct 2026: the cab and its operator go live only after Simba verifies their documents
     {
       const before = await L.api("PATCH", "/logistics/me/availability", { token: st.operator2.token, body: { state: "available_now", asset_id: st.cab._id, lat: L.PLACES.coords.harare[1], lng: L.PLACES.coords.harare[0] } });
-      L.check(before?.success === false && before?.data?.code === "DOC_REQUIRED", "operator #2 can't go live before a verified licence", before?.message);
+      L.check(before?.success === false && before?.data?.code === "DOC_PENDING_CHECK" && /face photo/i.test(before?.message), "operator #2 can't go live before Simba verifies the face photo", before);
       await L.makeFleetReady(st.owner.token, { units: [st.cab._id], operators: [{ _id: st.operator2._id, name: op2P.name, face: 2 }] });
       const cabNow = await d.collection("logistics_assets").findOne({ _id: OID(st.cab._id) });
       L.check((cabNow?.documents || []).every((x) => x.review?.status === "verified"), "cab documents verified by Simba");

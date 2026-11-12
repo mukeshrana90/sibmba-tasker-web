@@ -39,8 +39,8 @@ import "./logistics/logistics.css";
 // Files live in formik values but never in localStorage.
 const BUSINESS_DOCS = [
   { name: "business_registration", label: "Business registration certificate", required: true },
-  { name: "owner_id", label: "Owner ID", required: true, expiry: true, hint: "National ID, passport or driving licence" },
-  { name: "tax", label: "Tax certificate", required: false, expiry: true },
+  { name: "owner_id", label: "Owner ID", required: true, expiryRequired: true, hint: "National ID, passport or driving licence" },
+  { name: "tax", label: "Tax certificate", required: false },
   { name: "address_proof", label: "Proof of address", required: false },
 ];
 const OWNER_ID_KINDS = [
@@ -231,7 +231,7 @@ export default function SignUp() {
       const skipped = skipDocsRef.current;
       skipDocsRef.current = false;
       if (isLogisticsSignup && !skipped && BUSINESS_DOC_NAMES.some((n) => values[n])) {
-        const noDate = BUSINESS_DOCS.filter((d) => d.expiry && values[d.name] && !values[`${d.name}_expires`]);
+        const noDate = BUSINESS_DOCS.filter((d) => d.expiryRequired && values[d.name] && !values[`${d.name}_expires`]);
         if (noDate.length) {
           setOwnerStep(2);
           noDate.forEach((d) => {
@@ -817,7 +817,7 @@ export default function SignUp() {
                           </label>
                           {file ? (
                             <label className="log-signup-doc__expiry">
-                              <span>{d.expiry ? "Expiry date *" : "Expiry date (optional)"}</span>
+                              <span>{d.expiryRequired ? "Expiry date *" : "Expiry date (optional)"}</span>
                               <input
                                 type="date"
                                 name={`${d.name}_expires`}

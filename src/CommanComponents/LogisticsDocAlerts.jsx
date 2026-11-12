@@ -63,7 +63,7 @@ export function OwnerDocAlertsCard({ alerts }) {
 
 /** Operator dashboard: my licence / medical status. */
 export function OperatorDocBanner({ compliance }) {
-  // v2.7.49: only the licence blocks; an expired medical is a reminder
+  // v2.7.66: operator documents are optional, so an expired one is a reminder
   const expired = (compliance?.expired || []).filter((d) => d.blocking !== false);
   const expiring = [...(compliance?.expiring || []), ...(compliance?.expired || []).filter((d) => d.blocking === false)];
   if (!expired.length && !expiring.length) return null;

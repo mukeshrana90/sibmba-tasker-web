@@ -38,11 +38,11 @@ try {
   entryEligible = false;
 }
 
-/** Where to send a visitor opening "/" in a new tab, or null for the balanced home. */
+/** Where to send a visitor opening "/" in a new tab, or null for home, which has the Services/Logistics choice. */
 export function lastSectionRedirect() {
   if (!entryEligible) return null;
   const last = getLastSection();
-  return last === "logistics" ? "/logistics" : last === "services" ? "/services" : null;
+  return last === "logistics" ? "/logistics" : null;
 }
 
 export function consumeLastSectionRedirect() {

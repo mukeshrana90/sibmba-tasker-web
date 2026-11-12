@@ -270,9 +270,13 @@ const LogisticsActions = {
     return response.data;
   }),
 
-  getJob: createAsyncThunk("/logistics/job/:id", async (id) => {
-    const response = await Api.get(`/logistics/job/${id}`);
-    return response.data;
+  getJob: createAsyncThunk("/logistics/job/:id", async (id, { rejectWithValue }) => {
+    try {
+      const response = await Api.get(`/logistics/job/${id}`);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || { message: err.message });
+    }
   }),
 
   acceptQuote: createAsyncThunk(
@@ -492,6 +496,30 @@ const LogisticsActions = {
         return response.data;
       } catch (err) {
         return rejectWithValue(err?.response?.data || { message: err.message });
+      }
+    }
+  ),
+
+  patchInvite: createAsyncThunk(
+    "/logistics/invite/patch",
+    async ({ id, formData }, { rejectWithValue }) => {
+      try {
+        const response = await Api.patch(`/logistics/invite/${id}`, formData);
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err.response?.data || { message: err.message });
+      }
+    }
+  ),
+
+  updateMyFacePhoto: createAsyncThunk(
+    "/logistics/me/face-photo",
+    async (formData, { rejectWithValue }) => {
+      try {
+        const response = await Api.patch("/logistics/me/face-photo", formData);
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err.response?.data || { message: err.message });
       }
     }
   ),

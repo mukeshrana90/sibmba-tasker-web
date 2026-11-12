@@ -29,6 +29,7 @@ import {
   parseSearchProvidersQuery,
 } from "../utils/searchProvidersUrl";
 import { serviceProviderPath } from "../utils/normalizeMongoId";
+import { hasReviews, ratingLabel } from "../utils/ratingLabel";
 
 const PAGE_SIZE = 10;
 const RATE_MAX = 40;
@@ -109,9 +110,15 @@ function ProviderCard({ item }) {
       </div>
       <div className="prov-meta">
         <div className="rating">
-          <span className="stars">{renderStars(item.averageRating)}</span>
-          {Number(item.averageRating || 0).toFixed(1)}
-          <span className="rev">({item.reviewCount || 0})</span>
+          {hasReviews(item.averageRating, item.reviewCount || 0) ? (
+            <>
+              <span className="stars">{renderStars(item.averageRating)}</span>
+              {ratingLabel(item.averageRating, item.reviewCount || 0)}
+              <span className="rev">({item.reviewCount})</span>
+            </>
+          ) : (
+            ratingLabel(item.averageRating, item.reviewCount || 0)
+          )}
         </div>
       </div>
       {(item.skills || []).length > 0 && (

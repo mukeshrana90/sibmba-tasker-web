@@ -112,6 +112,13 @@ const ANY_HARARE = /Harare/i;
     await tab.waitForSelector(HOME, { timeout: 10000 }).catch(() => {});
     L.check(new URL(tab.url()).pathname === "/", "same tab again: stays on home", tab.url());
     await tab.close();
+    // v2.7.66: Services returns home, where the Services/Logistics choice is
+    await g3.page.evaluate(() => localStorage.setItem("lastSection", "services"));
+    const tabS = await ctx.newPage();
+    await tabS.goto(`${L.WEB}/`, { waitUntil: "domcontentloaded" });
+    await tabS.waitForTimeout(1500);
+    L.check(new URL(tabS.url()).pathname === "/", "new tab, Services chosen: stays on home (no redirect to /services)", tabS.url());
+    await tabS.close();
     // A deep link in a new tab isn't redirected
     const tab2 = await ctx.newPage();
     await tab2.goto(`${L.WEB}/services`, { waitUntil: "domcontentloaded" });

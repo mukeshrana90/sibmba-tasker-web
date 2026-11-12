@@ -75,7 +75,7 @@ const unreadFrom = (reader, userId, peerId) =>
     L.check(first === second, "the next request reuses it");
     agent.destroy();
 
-    L.sec("25b. Q64: owner's operator list names the rejected licence");
+    L.sec("25b. Q64 (v2.7.66): owner's operator list names the rejected face photo");
     const owner = await F.makeOwner(C.slot("owner", "s25", 0));
     const T1 = await F.makeUnit(owner, C.unit("truck", 251), { body: { operated_by: "self" } });
     const T2 = await F.makeUnit(owner, C.unit("truck", 252));
@@ -83,7 +83,7 @@ const unreadFrom = (reader, userId, peerId) =>
     await L.verifyDocs("asset", T2._id);
     const op = await F.makeOperator(owner, C.slot("operator", "s25", 0), { assets: [T2._id] });
     const rejected = await F.makeOperator(owner, C.slot("operator", "s25", 1));
-    await L.reviewDocs("operator", rejected._id, { status: "rejected", only: ["licence"] });
+    await L.api("POST", "/admin/logistics/documents/review", { token: await L.adminToken(), body: { subject: "face_photo", id: rejected._id, status: "rejected", reason: "Face not clear" } });
     const rows = await L.api("GET", "/logistics/sub-users", { token: owner.token });
     const row = (rows?.data?.operators || []).find((x) => String(x._id) === rejected._id);
     L.check(row?.document_compliance?.block?.code === "DOC_REJECTED", "list row carries document_compliance.block", row?.document_compliance?.block);
@@ -92,7 +92,7 @@ const unreadFrom = (reader, userId, peerId) =>
     await L.goto(o, "/logistics/owner/operators");
     await o.page.waitForSelector(".log-doc-status", { timeout: 15000 });
     const chips = await o.page.locator(".log-doc-status").allInnerTexts();
-    L.check(chips.some((t) => /licence rejected/i.test(t)), "chip names the licence", chips);
+    L.check(chips.some((t) => /face photo rejected/i.test(t)), "chip names the face photo", chips);
     L.check(!chips.some((t) => /^\s*Document rejected/im.test(t)), "not a generic 'Document rejected'", chips);
 
     L.sec("25c. Q70: an owner in drive mode sees only their own jobs");

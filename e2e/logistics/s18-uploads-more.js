@@ -56,6 +56,7 @@ async function waitJson(a, urlRe, method) {
     // ───────────────────────── Truck: corrupt image, exact 10 MB, JPEG named .heic
     L.sec("18a. Add truck: corrupt photo refused by the server with a message");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
+    await o.page.locator('[data-testid="operated-by-later"]').click();
     const plate = unit.plate;
     const truckName = unit.name;
     await o.page.fill('input[placeholder="Truck 1"]', truckName);
@@ -156,6 +157,7 @@ async function waitJson(a, urlRe, method) {
     L.sec("18e. Add equipment: HEIC without extension + HEIC named .jpg");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
     await o.page.locator('form.log-fleet-form button.log-cattile[aria-label="Agricultural"]').click();
+    await o.page.locator('[data-testid="operated-by-later"]').click();
     const eqName = eqUnit.name;
     await o.page.fill('input[placeholder="JD Compact 1"]', eqName);
     await o.page.fill('input[placeholder="John Deere"]', eqUnit.make);
@@ -193,10 +195,8 @@ async function waitJson(a, urlRe, method) {
     const opName = opP.name;
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     await o.page.fill('input[placeholder="Full name"]', opName);
-    const profileInput = () => o.page.locator("input[type=file]:not([multiple])[accept='image/*,.heic,.heif']").first();
-    await profileInput().setInputFiles(F.pdf);
-    L.check(await toastHas(o, rx(`${F.re(F.pdf)}: photos must be images`)), "PDF as profile photo → toast");
-    await profileInput().setInputFiles(F.selfieHeic);
+    // v2.7.66: the face photo is live camera only; HEIC conversion is checked through the API below
+    await L.addFacePhoto(o.page, 5);
     const lic = L.docRow(o.page, "Driving / plant licence").first();
     await lic.locator("input[type=file]").setInputFiles(F.dlPdf);
     await L.pickDate(o.page, lic.locator(".log-doc-row__expiry input"), 8);
@@ -205,7 +205,12 @@ async function waitJson(a, urlRe, method) {
     await o.page.locator('form button[type="submit"]').last().click();
     body = await (await resp).json().catch(() => ({}));
     L.check(body?.success === true, "invite sent", body?.message);
-    const inv = await d.collection("logistics_invites").findOne({ email: opEmail });
+    let inv = await d.collection("logistics_invites").findOne({ email: opEmail });
+    {
+      const up = await L.apiForm("PATCH", `/logistics/invite/${inv._id}`, { token: owner.token, files: [["profile_photo", F.selfieHeic]] });
+      L.check(up?.success !== false, "HEIC face replaced via API before acceptance", up?.message);
+      inv = await d.collection("logistics_invites").findOne({ _id: inv._id });
+    }
     const op = await A("up2-operator");
     await L.goto(op, `/logistics/invite?token=${inv.token}`, "#invite-password");
     await op.page.fill("#invite-password", "Passw0rd!");
@@ -224,9 +229,8 @@ async function waitJson(a, urlRe, method) {
     await o.page.waitForTimeout(1500);
     await o.page.locator("tr", { hasText: opName }).getByRole("button", { name: "Edit" }).click();
     await o.page.waitForSelector('input[aria-label="Pay amount"], .log-doc-row', { timeout: 10000 });
-    await profileInput().setInputFiles(F.bigJpg);
-    L.check(await toastHas(o, /big-photo\.jpg is larger than 10 MB/), "edit: >10 MB photo → toast");
-    await profileInput().setInputFiles(F.selfieHeif);
+    L.check((await o.page.locator('[data-field="profile_photo"] input[type="file"]').count()) === 0, "edit: face field has no file input");
+    L.check(await o.page.locator('[data-testid="face-photo-locked"]').isVisible().catch(() => false), "edit: face photo is read-only for the owner");
     const med = L.docRow(o.page, "Medical").first();
     await med.locator("input[type=file]").setInputFiles(F.bigPdf);
     L.check(await toastHas(o, /larger than 10 MB/), "edit: 11 MB medical paper → toast");
@@ -236,6 +240,11 @@ async function waitJson(a, urlRe, method) {
     await o.page.locator('form button[type="submit"]').last().click();
     body = await (await resp).json().catch(() => ({}));
     L.check(body?.success === true, "operator saved", body?.message);
+    // v2.7.66: only the operator changes the face, by selfie; the server still converts HEIF to JPEG
+    {
+      const self = await L.apiForm("PATCH", "/logistics/me/face-photo", { token: L.tokenFor(opUser._id), files: [["face_photo", F.selfieHeif]] });
+      L.check(self?.success !== false, "operator's own selfie accepted", self?.message);
+    }
     const opUser2 = await d.collection("users").findOne({ _id: opUser._id });
     j = await isJpeg(opUser2?.profile_image);
     L.check(opUser2?.profile_image !== opUser.profile_image && rx(`${F.stem(F.selfieHeif)}\\.jpg$`).test(opUser2?.profile_image || "") && j.ok, "new .heif photo stored as JPEG", `${opUser2?.profile_image} ${j.why}`);

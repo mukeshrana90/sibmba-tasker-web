@@ -61,25 +61,22 @@ export function tomorrowYmd(now = Date.now()) {
 }
 
 /**
- * v2.7.61 client rules — only compulsory documents block work:
- *  - trucks: Road licence (ZINARA) + roadworthy certificate
+ * v2.7.66 client rules — only compulsory items block work:
+ *  - road units: Road licence (ZINARA)
  *  - equipment: at least one verified document of any type
- *  - operators and self-operating owners: driving / plant licence
- * A rejected, pending or expired optional document only warns the owner.
+ *  - operators and self-operating owners: verified face photo (not a document)
+ * Licence and roadworthy are optional. A problem with an optional document only warns the owner.
  */
-export const OPERATOR_BLOCKING_TYPES = ["licence"];
+export const OPERATOR_BLOCKING_TYPES = [];
 
-export function assetBlockingTypes(kind, redPlate) {
-  if (kind === "equipment" || kind === "plant") return [];
-  if (kind === "cab") return ["rego", ...(redPlate ? ["roadworthy"] : [])];
-  return ["rego", "roadworthy"];
+export function assetBlockingTypes(kind) {
+  return kind === "equipment" || kind === "plant" ? [] : ["rego"];
 }
 
 /** Short role of a document under the rules above (shown next to its label). */
 export function docRuleHint(type, { kind = "vehicle", redPlate = false, operator = false } = {}) {
   if (operator) {
-    if (type === "licence") return "Required to go live";
-    if (type === "medical") return "Optional";
+    if (type === "licence" || type === "medical") return "Optional";
     return "Supporting document";
   }
   if (assetBlockingTypes(kind, redPlate).includes(type)) {

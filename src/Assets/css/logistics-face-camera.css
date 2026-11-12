@@ -1,0 +1,42 @@
+.log-face-camera__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1c1a17;
+}
+.log-face-camera__frame video,
+.log-face-camera__frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Mirrors the live view only, like a selfie camera; the saved photo is not mirrored. */
+.log-face-camera__frame video {
+  transform: scaleX(-1);
+}
+.log-face-camera__error {
+  padding: 24px 8px;
+  text-align: center;
+}
+.log-face-camera__error p {
+  margin-bottom: 16px;
+}
+.log-face-photo-take {
+  border: 1px dashed #b9b2a7;
+  background: transparent;
+  cursor: pointer;
+}
+.log-unit-op-step {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e6e0d6;
+  border-radius: 12px;
+}
+.log-invite-fix {
+  margin-top: 6px;
+}

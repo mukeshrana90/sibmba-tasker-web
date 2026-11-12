@@ -12,13 +12,13 @@ describe("last section (item 51)", () => {
     expect(load().lastSectionRedirect()).toBeNull();
   });
 
-  test("a returning visitor lands on the section they chose", () => {
+  test("a returning logistics visitor goes to logistics; a services visitor stays on home", () => {
     localStorage.setItem("lastSection", "logistics");
     expect(load().lastSectionRedirect()).toBe("/logistics");
     jest.resetModules();
     sessionStorage.clear();
     localStorage.setItem("lastSection", "services");
-    expect(load().lastSectionRedirect()).toBe("/services");
+    expect(load().lastSectionRedirect()).toBeNull();
   });
 
   test("only the first page of a tab redirects, so the logo still reaches home", () => {

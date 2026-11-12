@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import CorporatePageShell from "../../CommanComponents/CorporatePageShell";
+import { AccountMarketplaceSwitch } from "../../CommanComponents/Landing/GuestMarketplaceSwitch";
 import { Row, Nav, Col, Tab } from "react-bootstrap";
 import TotalLeadsIcon from "../../Assets/Images/corporate/TotalLeads.svg";
 import PendingIcon from "../../Assets/Images/corporate/PendingIcon.svg";
@@ -126,6 +127,7 @@ const CorporateDashboard = () => {
 
   return (
     <CorporatePageShell title="Corporate Dashboard" crumbLabel="Dashboard">
+          <AccountMarketplaceSwitch active="tasker" />
           <div className="dashbox-box-wrap">
             {dashboardStats.map((item, idx) => (
               <div

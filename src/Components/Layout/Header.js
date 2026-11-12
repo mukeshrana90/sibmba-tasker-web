@@ -969,7 +969,7 @@ export default function Header({ isGuestLanding = false }) {
               <div style={{ display: "flex", justifyContent: "center" }}>
                 <div className="app-store-buttons mt-5">
                   <a
-                    href="https://apps.apple.com/in/app/simbatasker/id6736746247"
+                    href="https://apps.apple.com/zw/app/simbatasker/id6736746247"
                     target="_blank"
                     rel="noopener noreferrer"
                   >

@@ -33,4 +33,6 @@ export LOGISTICS_ROAD_DISTANCE=false LOGISTICS_PRIORITY_FEE=5
 export LOGISTICS_ADMIN_ALERT_EMAILS=simba.sosdesk@yopmail.com
 export LOGISTICS_SOS_SMS_WEBHOOK_TOKEN=e2e-sms-token EMAIL_CHECK_ALLOW_DOMAINS=e2e.example.com,yopmail.com
 export LOGISTICS_DOC_REMINDER_HOUR=25 CAB_SERVICE_ENABLED=true
+# v2.7.66: operating area default; E2E_DEFAULT_RANGE_KM overrides it (s31 restarts the API with another value)
+export LOGISTICS_DEFAULT_OPERATING_RANGE_KM=${E2E_DEFAULT_RANGE_KM:-100}
 exec node -r ./scripts/e2e/mock-providers.js simbaTasker.js

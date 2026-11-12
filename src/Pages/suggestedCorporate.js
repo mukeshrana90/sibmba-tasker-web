@@ -17,6 +17,7 @@ import {
   providerInitials,
   userImageUrl,
 } from "../utils/landingUtils";
+import { hasReviews, ratingLabel } from "../utils/ratingLabel";
 
 const TABS = [
   { key: "business-details", label: "Business Details" },
@@ -326,11 +327,17 @@ export default function SuggestedCorporatePage() {
                   <div className="phero-role">{categoryName}</div>
                   <div className="phero-tags">
                     <span className="pt">
-                      <span className="stars">{starsText(averageRating)}</span>
-                      <b>{averageRating.toFixed(1)}</b>
-                      <span style={{ opacity: 0.8, fontWeight: 600 }}>
-                        ({reviewCount} reviews)
-                      </span>
+                      {hasReviews(averageRating, reviewCount) ? (
+                        <>
+                          <span className="stars">{starsText(averageRating)}</span>
+                          <b>{ratingLabel(averageRating, reviewCount)}</b>
+                          <span style={{ opacity: 0.8, fontWeight: 600 }}>
+                            ({reviewCount} reviews)
+                          </span>
+                        </>
+                      ) : (
+                        <b>{ratingLabel(averageRating, reviewCount)}</b>
+                      )}
                     </span>
                     {(companyAddress || street) && (
                       <span className="pt">
@@ -370,12 +377,12 @@ export default function SuggestedCorporatePage() {
                   <span>Products listed</span>
                 </div>
                 <div className="pstat">
-                  <b>{reviewCount}</b>
+                  <b>{reviewCount > 0 ? reviewCount : "New"}</b>
                   <span>Customer reviews</span>
                 </div>
                 <div className="pstat">
-                  <b>{averageRating.toFixed(1)}</b>
-                  <span>Average rating</span>
+                  <b>{ratingLabel(averageRating, reviewCount)}</b>
+                  <span>{hasReviews(averageRating, reviewCount) ? "Average rating" : "Rating"}</span>
                 </div>
                 <div className="pstat">
                   <b>{corpoProfile?.status === 1 ? "Active" : "Inactive"}</b>
@@ -537,7 +544,7 @@ export default function SuggestedCorporatePage() {
                   <>
                     <div className="rev-summary">
                       <div className="rev-score">
-                        <b>{averageRating.toFixed(1)}</b>
+                        <b>{ratingLabel(averageRating, reviewCount)}</b>
                         <span className="stars">{starsText(averageRating)}</span>
                         <span>{reviewCount} reviews</span>
                       </div>

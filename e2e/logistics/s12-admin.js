@@ -525,23 +525,20 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
       await unitRow.locator('.log-doc-row[data-doc-type="rego"] button.log-doc-verify').first().click();
       await a.page.waitForTimeout(1500);
       L.check(await listed(), "ZINARA verified again → truck back in customer search", lastSearch);
-      // Operator licences: rejected → no ready operator → hidden; verified → listed
-      const withLicence = [];
-      for (const id of opIds) {
-        const u = await db.collection("users").findOne({ _id: OID(id) }, { projection: { logistics_documents: 1 } });
-        if ((u?.logistics_documents || []).some((x) => x.type === "licence" && x.review?.status === "verified")) withLicence.push(id);
-      }
-      for (const id of withLicence) await L.reviewDocs("operator", id, { status: "rejected", reason: "Licence photo cut off", only: ["licence"] });
-      L.check(!(await listed()), "operator licence rejected → truck hidden (no operator with a verified licence)", lastSearch);
+      // v2.7.66: operators need a verified face photo: rejected → no ready operator → hidden; verified → listed
+      const adminTok = await L.adminToken();
+      const faceReview = (id, status) => L.api("POST", "/admin/logistics/documents/review", { token: adminTok, body: { subject: "face_photo", id: String(id), status, ...(status === "rejected" ? { reason: "Face not clear" } : {}) } });
+      for (const id of opIds) await faceReview(id, "rejected");
+      L.check(!(await listed()), "operator face photo rejected → truck hidden (no operator with a verified face)", lastSearch);
       const goLive = await L.api("PATCH", "/logistics/me/availability", { token: tok(st.operator), body: { state: "available_now", active_asset_id: String(st.truck._id) } });
-      L.check(goLive?.success === false && goLive?.data?.code === "DOC_REJECTED", "operator with a rejected licence can't go live (DOC_REJECTED)", goLive?.message);
+      L.check(goLive?.success === false && goLive?.data?.code === "DOC_REJECTED", "operator with a rejected face photo can't go live (DOC_REJECTED)", goLive?.message);
       await a.page.reload({ waitUntil: "networkidle" });
       await a.page.waitForTimeout(800);
       await a.page.locator(".over-view-btn button", { hasText: "Operators" }).click();
       await a.page.waitForTimeout(800);
-      L.check((await a.page.locator(".log-op-block").count()) > 0, "admin Operators tab shows the licence block badge");
-      for (const id of withLicence) await L.reviewDocs("operator", id, { status: "verified", only: ["licence"] });
-      L.check(await listed(), "licence verified again → truck back in customer search", lastSearch);
+      L.check((await a.page.locator(".log-op-block").count()) > 0, "admin Operators tab shows the face photo block badge");
+      for (const id of opIds) await faceReview(id, "verified");
+      L.check(await listed(), "face photo verified again → truck back in customer search", lastSearch);
     } finally {
       await db.collection("logistics_assets").updateOne({ _id: OID(st.truck._id) }, { $set: { documents: savedDocs } });
     }

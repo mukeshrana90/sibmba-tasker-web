@@ -21,6 +21,7 @@ const path = require("path");
     L.sec("2. Owner adds a truck (UI)");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
     await p.locator("form.log-fleet-form").getByText(/^Logistic|Truck/i).first().click().catch(() => {});
+    await p.locator('[data-testid="operated-by-later"]').click(); // operator is invited in 2b
     const plate = truck.plate;
     await p.fill('input[placeholder="Truck 1"]', truck.name);
     await p.fill('input[placeholder="AEB1234"]', plate);
@@ -54,10 +55,10 @@ const path = require("path");
     const rego = L.docRow(p, "Road licence").first();
     await rego.locator('input[type="file"]').setInputFiles(await L.docFile("rego", docInfo));
     await L.pickDate(p, rego.locator(".log-doc-row__expiry input"), 6);
-    // v2.7.61: every truck needs a roadworthy certificate
+    // v2.7.66: roadworthy is optional (only ZINARA is compulsory); this owner adds one anyway
     {
       const rw = L.docRow(p, "Roadworthy").first();
-      L.check(/\*/.test(await rw.locator(".log-doc-row__body > b").innerText()), "Roadworthy marked * (required)");
+      L.check(!/\*/.test(await rw.locator(".log-doc-row__body > b").innerText()), "Roadworthy is not marked * (optional)");
       await rw.locator('input[type="file"]').setInputFiles(await L.docFile("roadworthy", docInfo));
       await L.pickDate(p, rw.locator(".log-doc-row__expiry input"), 6);
     }
@@ -179,16 +180,14 @@ const path = require("path");
       await L.goto(o, `/logistics/owner/fleet/${st.truck._id}`, ".log-detail-item");
       L.check(/Awaiting Simba's document check|Awaiting document check/i.test(await L.bodyText(o)), "owner unit page says it's awaiting Simba's check");
       await L.shot(o, "s2-awaiting-check");
+      // v2.7.66: the verified face photo is what lets an operator work; no licence is needed
       const r1 = await goLive();
-      L.check(r1?.success === false && r1?.data?.code === "DOC_REQUIRED", "operator without a licence can't go live (DOC_REQUIRED)", r1?.message);
-      await L.giveOperatorLicence(st.owner.token, st.operator._id, { holder: opP.name, face: 1, verify: false });
-      const r2 = await goLive();
-      L.check(r2?.success === false && r2?.data?.code === "DOC_PENDING_CHECK", "licence uploaded but not verified → still can't go live (DOC_PENDING_CHECK)", r2?.message);
+      L.check(r1?.success === false && r1?.data?.code === "DOC_PENDING_CHECK" && /face photo/i.test(r1?.message), "face photo waiting for Simba's check → can't go live (DOC_PENDING_CHECK)", r1);
       await L.verifyDocs("asset", st.truck._id);
-      L.check(!(await listed()), "truck documents verified but operator not → still hidden");
-      await L.verifyDocs("operator", st.operator._id);
+      L.check(!(await listed()), "truck documents verified but operator's face not → still hidden");
+      await L.verifyFace(st.operator._id);
       const r3 = await goLive();
-      L.check(r3?.success !== false, "verified licence → operator can go live", r3?.message);
+      L.check(r3?.success !== false, "verified face photo (no licence) → operator can go live", r3?.message);
       L.check(await listed(), "all verified + operator live → truck shown to customers");
       const v1 = await view();
       L.check(v1.bookable === true, "asset page: bookable", v1);

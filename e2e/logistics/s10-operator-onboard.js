@@ -93,7 +93,7 @@ async function pendingRow(o, email) {
       "sign-up stored the business documents (Pending check)",
       (owner?.logistics_business_documents || []).map((x) => `${x.type}:${x.review?.status}`)
     );
-    // 29 Oct 2026: nothing can be added before Simba approves the company
+    // v2.7.66: adding is open while the company is pending (units stay hidden until approval)
     {
       const ownerTok = await o.page.evaluate(() => localStorage.getItem("token"));
       const early = await L.apiForm("POST", "/logistics/asset", {
@@ -101,18 +101,19 @@ async function pendingRow(o, email) {
         body: { kind: "vehicle", name: tip.name, registration: `${tip.plate}X` },
         files: (await L.photoFixtures(tip)).map((f) => ["photos", f]),
       });
-      L.check(early?.success === false && early?.data?.code === "OWNER_PENDING_APPROVAL", "API: pending company can't add a truck (OWNER_PENDING_APPROVAL)", early?.message);
+      L.check(early?.data?.code === "ZINARA_REQUIRED", "API: pending company isn't locked out of adding a truck (only the ZINARA rule applies)", early);
       const earlyInv = await L.api("POST", "/logistics/sub-user", { token: ownerTok, body: { email: `early.${opP.email}`, send_via: ["email"] } });
-      L.check(earlyInv?.success === false && earlyInv?.data?.code === "OWNER_PENDING_APPROVAL", "API: pending company can't invite an operator", earlyInv?.message);
-      await L.goto(o, "/logistics/owner/fleet/add");
-      L.check(await o.page.locator('.log-locked-add[data-locked="equipment"]').first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false), "Add truck page is locked until approval");
-      await L.goto(o, "/logistics/owner/operators/add");
-      L.check(await o.page.locator('.log-locked-add[data-locked="operators"]').first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false), "Invite operator page is locked until approval");
+      L.check(earlyInv?.data?.code === "PHOTO_REQUIRED", "API: pending company isn't locked out of inviting (only the face photo rule applies)", earlyInv);
+      await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
+      L.check(!(await o.page.locator('.log-locked-add[data-locked="equipment"]').count()), "Add truck page is open while pending");
+      await L.goto(o, "/logistics/owner/operators/add", "form");
+      L.check(!(await o.page.locator('.log-locked-add[data-locked="operators"]').count()), "Invite operator page is open while pending");
     }
     L.check((await L.approveOwner(owner._id))?.data?.approval?.status === "approved", "admin approves the new company");
 
     L.sec("10b. Owner adds a truck (UI) — not listed until an operator is assigned");
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
+    await o.page.locator('[data-testid="operated-by-later"]').click(); // operator is invited below
     const truckName = tip.name;
     const plate = tip.plate;
     await o.page.fill('input[placeholder="Truck 1"]', truckName);
@@ -283,9 +284,9 @@ async function pendingRow(o, email) {
     {
       const opTok = await op.page.evaluate(() => localStorage.getItem("token"));
       const early = await L.api("PATCH", "/logistics/me/availability", { token: opTok, body: { state: "available_now", active_asset_id: String(truck?._id) } });
-      L.check(early?.success === false && ["DOC_PENDING_CHECK", "DOC_REQUIRED"].includes(early?.data?.code), "operator can't go live while licence / medical wait for the check", early?.message);
+      L.check(early?.success === false && ["DOC_PENDING_CHECK", "DOC_REQUIRED"].includes(early?.data?.code), "operator can't go live while the face photo waits for the check", early?.message);
       L.check(!(await searchFor()), "truck not in customer search before the documents are verified");
-      // Simba admin verifies the truck's papers and the operator's licence + medical
+      // Simba admin verifies the truck's papers and the operator's face photo and documents
       await L.verifyDocs("asset", truck?._id);
       await L.verifyDocs("operator", opUser?._id);
     }

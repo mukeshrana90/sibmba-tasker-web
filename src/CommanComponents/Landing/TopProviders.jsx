@@ -19,13 +19,14 @@ import {
 import { serviceProviderPath } from "../../utils/normalizeMongoId";
 import ProviderAvatar from "../ProviderAvatar";
 
-const PER_CITY = 3;
+// Same 9 cards as before; cities only decide the order
+const LIST_LIMIT = 9;
 const CITY_RADIUS_M = 50000;
 
 export default function TopProviders() {
   const dispatch = useDispatch();
-  // Item 53: Harare first, then other cities (null while loading / with a location set)
-  const [cityGroups, setCityGroups] = useState(null);
+  // Item 53: one list, Harare matches first, then Bulawayo, Mutare… (null while loading / with a location set)
+  const [cityRanked, setCityRanked] = useState(null);
   const navigate = useNavigate();
   // Cards whose long service name is expanded in place (click the name / "…")
   const [openNames, setOpenNames] = useState({});
@@ -74,7 +75,7 @@ export default function TopProviders() {
 
   useEffect(() => {
     if (hasOwnLocation) {
-      setCityGroups(null);
+      setCityRanked(null);
       return undefined;
     }
     let alive = true;
@@ -82,7 +83,7 @@ export default function TopProviders() {
       TOP_PROVIDER_CITIES.map((city) =>
         Api.get("/customer/top-rated-services", {
           params: {
-            limit: PER_CITY,
+            limit: LIST_LIMIT,
             minReviews: 0,
             nearby: true,
             lat: city.lat,
@@ -98,16 +99,13 @@ export default function TopProviders() {
     ).then((lists) => {
       if (!alive) return;
       const seen = new Set();
-      setCityGroups(
-        TOP_PROVIDER_CITIES.map((city, i) => ({
-          city: city.label,
-          items: lists[i].filter((item) => {
-            if (seen.has(item._id)) return false;
-            seen.add(item._id);
-            return true;
-          }),
-        })).filter((g) => g.items.length)
-      );
+      const ranked = [];
+      lists.flat().forEach((item) => {
+        if (!item?._id || seen.has(item._id)) return;
+        seen.add(item._id);
+        ranked.push(item);
+      });
+      setCityRanked(ranked);
     });
     return () => {
       alive = false;
@@ -115,8 +113,13 @@ export default function TopProviders() {
   }, [hasOwnLocation, selectedCategoryId]);
 
   const catList = categories?.allCat || categories?.data?.allCat || [];
-  const items = topRated?.items || [];
-  const showCities = !hasOwnLocation && (cityGroups?.length || 0) > 0;
+  // City matches in priority order, then the usual list for any slots left
+  const items = useMemo(() => {
+    const baseItems = topRated?.items || [];
+    if (hasOwnLocation || !cityRanked?.length) return baseItems;
+    const seen = new Set(cityRanked.map((item) => item._id));
+    return [...cityRanked, ...baseItems.filter((item) => !seen.has(item._id))].slice(0, LIST_LIMIT);
+  }, [hasOwnLocation, cityRanked, topRated]);
   const total = topRated?.total ?? 0;
   const showViewAll = total > 9;
 
@@ -321,17 +324,7 @@ export default function TopProviders() {
           ))}
         </div>
 
-        {showCities ? (
-          cityGroups.map((group) => (
-            <div className="landing-prov-city" key={group.city} data-testid="top-providers-city" data-city={group.city}>
-              <h3 className="landing-prov-city__title">Top rated in {group.city}</h3>
-              <div className="landing-prov-grid">
-                {group.items.map((item, idx) => renderCard(item, idx))}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="landing-prov-grid">
+        <div className="landing-prov-grid">
             {items.map((item, idx) => renderCard(item, idx))}
             {!items.length && (
               <EmptyResults
@@ -341,7 +334,6 @@ export default function TopProviders() {
               />
             )}
           </div>
-        )}
 
         {showViewAll && (
           <div className="landing-prov-actions">

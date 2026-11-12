@@ -14,6 +14,7 @@ import {
   TRUCK_BODY_TYPES,
   assetBodyType,
   capacityToTier,
+  formatCarriageSize,
   isTruckBodyType,
 } from "../../utils/logisticVehicleWeight";
 import "./logistics.css";
@@ -41,6 +42,7 @@ import { formatRate, rateUnitOf } from "../../utils/assetRate";
 import LogisticsMoneyInput from "../../CommanComponents/LogisticsMoneyInput";
 import { DOC_ACCEPT, PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
+import LogisticsLocationField from "../../CommanComponents/LogisticsLocationField";
 
 const LEGACY_TYPE_LABELS = new Set([
   "below 5 ton truck",
@@ -152,6 +154,15 @@ const emptyEdit = () => ({
   red_plate: false,
 });
 
+/** v2.7.66: the unit's base and range, which decide the jobs it can see. */
+function operatingAreaFields(next) {
+  return {
+    operating_range_km: next?.operating_range_km ?? "",
+    base_label: next?.base_label || next?.location_label || "",
+    base_coords: Array.isArray(next?.home_location?.coordinates) ? next.home_location.coordinates : null,
+  };
+}
+
 function formFromAsset(next) {
   const body = assetBodyType(next);
   const raw = firstCapabilityLabel(next);
@@ -164,6 +175,7 @@ function formFromAsset(next) {
       "regular";
   }
   return {
+    ...operatingAreaFields(next),
     name: next.name || "",
     make: next.make || "",
     model: next.model || "",
@@ -190,7 +202,7 @@ function formFromAsset(next) {
 
 export default function LogisticsOwnerAsset() {
   // Loads the server upload limit (config.upload) for the file pickers
-  useLogisticsConfig();
+  const { config: logisticsConfig } = useLogisticsConfig();
   const { id } = useParams();
   const dispatch = useDispatch();
   const [asset, setAsset] = useState(null);
@@ -478,7 +490,10 @@ export default function LogisticsOwnerAsset() {
         carriage_width_ft: form.carriage_width_ft || "",
         carriage_height_ft: form.carriage_height_ft || "",
         direct_booking_enabled: form.direct_booking_enabled ? "true" : "false",
-        // Cabs only: trucks always need a roadworthy certificate (item 11)
+        operating_range_km: form.operating_range_km ?? "",
+        ...(Array.isArray(form.base_coords)
+          ? { base_lng: String(form.base_coords[0]), base_lat: String(form.base_coords[1]), base_label: form.base_label || "" }
+          : {}),
         ...(asset?.kind === "cab" ? { red_plate: form.red_plate ? "true" : "false" } : {}),
         ...(asset?.kind === "equipment"
           ? { price: form.price || "", rate_unit: form.price ? form.rate_unit || "day" : "" }
@@ -913,6 +928,31 @@ export default function LogisticsOwnerAsset() {
                   </span>
                   <input value={form.name} onChange={set("name")} required />
                 </label>
+                {asset?.kind === "cab" ? null : (
+                  <>
+                    <div className="log-field log-field--full">
+                      <LogisticsLocationField
+                        label="Base location"
+                        address={form.base_label}
+                        coords={form.base_coords}
+                        title="Where this unit is based"
+                        onChange={({ address, coords }) => setForm((f) => ({ ...f, base_label: address || "", base_coords: coords }))}
+                      />
+                    </div>
+                    <label className="log-field" data-field="operating_range">
+                      <span className="log-fl">Operating range (km)</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={form.operating_range_km}
+                        onChange={set("operating_range_km")}
+                        placeholder={`Default ${logisticsConfig?.default_operating_range_km ?? 100} km`}
+                        data-testid="operating-range"
+                      />
+                    </label>
+                  </>
+                )}
                 <label
                   data-field="registration"
                   className={`log-field${idErrors.registration ? " log-field--error" : ""}`}
@@ -945,7 +985,7 @@ export default function LogisticsOwnerAsset() {
                     />
                     <span>
                       <b>Red-plate (commercial) vehicle</b>
-                      <small>Red-plate vehicles need a valid roadworthy / fitness certificate.</small>
+                      <small>We remind you before a roadworthy / fitness certificate expires.</small>
                     </span>
                   </label>
                 ) : null}
@@ -1134,9 +1174,8 @@ export default function LogisticsOwnerAsset() {
                 </p>
                 <p className="log-hint log-field--full">
                   Upload PDF or image files. Expiry dates marked * are required.{" "}
-                  {REMINDER_HINT} From the day after an insurance, road licence,
-                  roadworthy or taxi-permit expiry, the unit is hidden from
-                  customers until you upload the renewed document.
+                  {REMINDER_HINT} From the day after a road licence (ZINARA) expires, the unit is
+                  hidden from customers until you upload the renewed one. Other documents only warn you.
                 </p>
                 <div className="log-field--full">
                   <ul className="log-doc-list">
@@ -1317,6 +1356,14 @@ export default function LogisticsOwnerAsset() {
                     <span className="log-fl">Registration plate</span>
                     <strong>{asset.registration || "—"}</strong>
                   </div>
+                  {asset.kind === "cab" ? null : (
+                    <div className="log-detail-item" data-testid="operating-range-value">
+                      <span className="log-fl">Operating range</span>
+                      <strong>
+                        {asset.operating_range_km ? `${asset.operating_range_km} km` : `Default (${logisticsConfig?.default_operating_range_km ?? 100} km)`}
+                      </strong>
+                    </div>
+                  )}
                   <div className="log-detail-item">
                     <span className="log-fl">Chassis number</span>
                     <strong>{asset.chassis_number || "—"}</strong>
@@ -1338,15 +1385,9 @@ export default function LogisticsOwnerAsset() {
                     <strong>{avail}</strong>
                   </div>
                   <div className="log-detail-item">
-                    <span className="log-fl">Carriage (L × W × H)</span>
+                    <span className="log-fl">Carriage</span>
                     <strong>
-                      {asset.carriage?.length_m != null ||
-                      asset.carriage?.width_m != null ||
-                      asset.carriage?.height_m != null
-                        ? `${asset.carriage?.length_m ?? "—"} × ${
-                            asset.carriage?.width_m ?? "—"
-                          } × ${asset.carriage?.height_m ?? "—"} ft`
-                        : "—"}
+                      {formatCarriageSize(asset.carriage) || "—"}
                     </strong>
                   </div>
                   <div className="log-detail-item">

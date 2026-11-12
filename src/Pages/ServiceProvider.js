@@ -33,6 +33,7 @@ import {
   resolveUserLocation,
 } from "../utils/whatsappQuote";
 import ProviderAvatar from "../CommanComponents/ProviderAvatar";
+import { hasReviews, ratingLabel } from "../utils/ratingLabel";
 
 function starsText(rating) {
   const filled = Math.round(Number(rating) || 0);
@@ -441,11 +442,17 @@ export default function ServiceProvider() {
                   <div className="phero-role">{roleLabel}</div>
                   <div className="phero-tags">
                     <span className="pt">
-                      <span className="stars">{starsText(averageRating)}</span>
-                      <b>{Number(averageRating).toFixed(1)}</b>
-                      <span style={{ opacity: 0.8, fontWeight: 600 }}>
-                        ({feedbackCount} reviews)
-                      </span>
+                      {hasReviews(averageRating, feedbackCount) ? (
+                        <>
+                          <span className="stars">{starsText(averageRating)}</span>
+                          <b>{ratingLabel(averageRating, feedbackCount)}</b>
+                          <span style={{ opacity: 0.8, fontWeight: 600 }}>
+                            ({feedbackCount} reviews)
+                          </span>
+                        </>
+                      ) : (
+                        <b>{ratingLabel(averageRating, feedbackCount)}</b>
+                      )}
                     </span>
                     {locationLabel && (
                       <span className="pt">
@@ -523,8 +530,8 @@ export default function ServiceProvider() {
                   <span>Services listed</span>
                 </div>
                 <div className="pstat">
-                  <b>{Number(averageRating).toFixed(1)}</b>
-                  <span>Average rating</span>
+                  <b>{ratingLabel(averageRating, feedbackCount)}</b>
+                  <span>{hasReviews(averageRating, feedbackCount) ? "Average rating" : "Rating"}</span>
                 </div>
                 <div className="pstat">
                   <b>{distanceKm != null ? `${distanceKm} km` : "—"}</b>
@@ -729,7 +736,7 @@ export default function ServiceProvider() {
                   <>
                     <div className="rev-summary">
                       <div className="rev-score">
-                        <b>{Number(averageRating).toFixed(1)}</b>
+                        <b>{ratingLabel(averageRating, feedbackCount)}</b>
                         <span className="stars">{starsText(averageRating)}</span>
                         <span>{feedbackCount} reviews</span>
                       </div>
@@ -924,25 +931,6 @@ export default function ServiceProvider() {
                   )}
                 </div>
 
-                <div className="guarantee">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 3 4 6v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V6l-8-3Z" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
-                  <span>
-                    Protected by Simba Tasker. Pay securely and only release funds
-                    when the job is done right.
-                  </span>
-                </div>
               </div>
 
               <div className="mini">
@@ -1078,9 +1066,15 @@ export default function ServiceProvider() {
                       </div>
                       <div className="prov-meta">
                         <div className="rating">
-                          <span className="stars">{starsText(rating)}</span>
-                          {Number(rating).toFixed(1)}
-                          <span className="rev">({reviews})</span>
+                          {hasReviews(rating, reviews) ? (
+                            <>
+                              <span className="stars">{starsText(rating)}</span>
+                              {ratingLabel(rating, reviews)}
+                              <span className="rev">({reviews})</span>
+                            </>
+                          ) : (
+                            ratingLabel(rating, reviews)
+                          )}
                         </div>
                         <span className="chip-rate">{rate}</span>
                       </div>
