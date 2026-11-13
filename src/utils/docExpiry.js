@@ -65,9 +65,11 @@ export function tomorrowYmd(now = Date.now()) {
  *  - road units: Road licence (ZINARA)
  *  - equipment: at least one verified document of any type
  *  - operators and self-operating owners: verified face photo (not a document)
- * Licence and roadworthy are optional. A problem with an optional document only warns the owner.
+ * Roadworthy is optional. A problem with an optional document only warns the owner.
+ * 12 Nov 2026: the driving / plant licence is compulsory again for operators and
+ * self-operating owners (verified, in date).
  */
-export const OPERATOR_BLOCKING_TYPES = [];
+export const OPERATOR_BLOCKING_TYPES = ["licence"];
 
 export function assetBlockingTypes(kind) {
   return kind === "equipment" || kind === "plant" ? [] : ["rego"];
@@ -76,7 +78,8 @@ export function assetBlockingTypes(kind) {
 /** Short role of a document under the rules above (shown next to its label). */
 export function docRuleHint(type, { kind = "vehicle", redPlate = false, operator = false } = {}) {
   if (operator) {
-    if (type === "licence" || type === "medical") return "Optional";
+    if (type === "licence") return "Required to go live";
+    if (type === "medical") return "Optional";
     return "Supporting document";
   }
   if (assetBlockingTypes(kind, redPlate).includes(type)) {

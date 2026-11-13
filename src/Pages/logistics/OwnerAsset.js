@@ -966,7 +966,7 @@ export default function LogisticsOwnerAsset() {
                   <input
                     value={form.registration}
                     onChange={set("registration")}
-                    placeholder="AEB1234"
+                    placeholder="e.g. AEB 1234"
                     autoCapitalize="characters"
                     aria-invalid={!!idErrors.registration}
                   />

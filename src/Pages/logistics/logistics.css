@@ -2546,6 +2546,14 @@
   box-sizing: border-box;
 }
 
+/* Examples, not values (12 Nov client: "AEB1234" looked like a real entry) */
+.log-field input::placeholder,
+.log-field textarea::placeholder {
+  color: #a89f92;
+  opacity: 1;
+  font-style: italic;
+}
+
 .log-field input:focus,
 .log-field select:focus,
 .log-field textarea:focus {
@@ -11917,4 +11925,73 @@ button.logistics-cta.is-locked {
   font-weight: 600;
   color: var(--primary, #0f5c4c);
   text-decoration: underline;
+}
+
+/* Equipment Owner: individual / company (sign-up + verification panel, 12 Nov 2026) */
+.log-owner-type {
+  margin: 0 0 14px;
+}
+.log-owner-type__label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink, #1e1a15);
+  margin-bottom: 6px;
+}
+.log-owner-type__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.log-owner-type__opt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line-strong, #d9d2c5);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.log-owner-type__opt input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.log-owner-type__opt b {
+  font-size: 0.92rem;
+  color: var(--ink, #1e1a15);
+}
+.log-owner-type__opt small {
+  font-size: 0.78rem;
+  color: var(--muted, #6b6358);
+  line-height: 1.35;
+}
+.log-owner-type__opt.is-on {
+  border-color: var(--primary, #0d5c4b);
+  background: #eef6f2;
+  box-shadow: 0 0 0 2px rgba(13, 92, 75, 0.12);
+}
+.log-owner-type__opt:focus-within {
+  outline: 2px solid var(--primary, #0d5c4b);
+  outline-offset: 2px;
+}
+@media (max-width: 420px) {
+  .log-owner-type__options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.log-owner-type--panel {
+  margin: 0 0 16px;
+}
+
+/* Operator first screen: own selfie + licence (12 Nov 2026) */
+.log-operator-setup {
+  max-width: 640px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+.log-operator-setup__card h1 {
+  font-size: 1.35rem;
 }

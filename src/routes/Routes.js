@@ -73,6 +73,7 @@ import LogisticsOwnerSubscription from "../Pages/logistics/OwnerSubscription";
 import LogisticsFleet from "../Pages/logistics/Fleet";
 import LogisticsOperators from "../Pages/logistics/Operators";
 import LogisticsDriverHome from "../Pages/logistics/DriverHome";
+import LogisticsOperatorSetup from "../Pages/logistics/OperatorSetup";
 import LogisticsOperatorJob from "../Pages/logistics/OperatorJob";
 import LogisticsInviteActivate from "../Pages/logistics/InviteActivate";
 import LogisticsSupplyPlaceholder from "../Pages/logistics/SupplyPlaceholder";
@@ -275,6 +276,7 @@ const RoutesPage = () => {
 
           <Route path="/logistics/driver" element={<PrivateLogisticsDriver />}>
             <Route index element={<LogisticsDriverHome />} />
+            <Route path="setup" element={<LogisticsOperatorSetup />} />
             <Route path="work" element={<LogisticsOperatorOpportunities />} />
             <Route path="jobs" element={<LogisticsOperatorMyJobs />} />
             <Route path="multi-transit/:id" element={<MultiTransitMode />} />

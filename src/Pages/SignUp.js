@@ -49,6 +49,16 @@ const OWNER_ID_KINDS = [
   { value: "driving_licence", label: "Driving licence" },
 ];
 const BUSINESS_DOC_NAMES = BUSINESS_DOCS.map((d) => d.name);
+// 12 Nov 2026: individuals don't need a business registration certificate
+const OWNER_TYPES = [
+  { value: "individual", label: "Individual", hint: "I own and run my trucks or machines myself" },
+  { value: "company", label: "Company", hint: "A registered business" },
+];
+const isDocRequired = (d, values) =>
+  d.name === "business_registration" ? values.logistics_owner_type !== "individual" : d.required;
+// Zimbabwe national IDs don't expire — expiry only for passport / driving licence
+const isExpiryRequired = (d, values) =>
+  Boolean(d.expiryRequired) && !(d.name === "owner_id" && (values.owner_id_kind || "national_id") === "national_id");
 // As-you-type casing: names Title Case ("ravi KUMAR" → "Ravi Kumar"); business
 // names only get a capital first letter per word so "ABC Logistics" keeps its
 // acronym; emails are always lower case.
@@ -89,6 +99,9 @@ const ROLE_OPTIONS = [
 
 const AUTH_VISUAL_IMG =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80";
+/** Same truck photo as the operator invite page (InviteActivate.js) */
+const LOGISTICS_VISUAL_IMG =
+  "https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=1200&q=80";
 
 function parseRoleFromQuery(value) {
   if (value === "4" || value === "logistics" || value === "equipment") {
@@ -162,6 +175,7 @@ const SIGNUP_DEFAULT_VALUES = {
   terms: false,
   country_code: "+263",
   owner_id_kind: "national_id",
+  logistics_owner_type: "",
   // 30 Oct 2026: optional owner business location → User.logistics_base
   business_base_address: "",
   business_base_coords: null,
@@ -231,7 +245,13 @@ export default function SignUp() {
       const skipped = skipDocsRef.current;
       skipDocsRef.current = false;
       if (isLogisticsSignup && !skipped && BUSINESS_DOC_NAMES.some((n) => values[n])) {
-        const noDate = BUSINESS_DOCS.filter((d) => d.expiryRequired && values[d.name] && !values[`${d.name}_expires`]);
+        if (!values.logistics_owner_type) {
+          setOwnerStep(2);
+          formik.setFieldTouched("logistics_owner_type", true, false);
+          formik.setFieldError("logistics_owner_type", "Choose Individual or Company");
+          return;
+        }
+        const noDate = BUSINESS_DOCS.filter((d) => isExpiryRequired(d, values) && values[d.name] && !values[`${d.name}_expires`]);
         if (noDate.length) {
           setOwnerStep(2);
           noDate.forEach((d) => {
@@ -240,7 +260,7 @@ export default function SignUp() {
           });
           return;
         }
-        const missing = BUSINESS_DOCS.filter((d) => d.required && !values[d.name]);
+        const missing = BUSINESS_DOCS.filter((d) => isDocRequired(d, values) && !values[d.name]);
         if (missing.length) {
           setOwnerStep(2);
           missing.forEach((d) => {
@@ -384,6 +404,7 @@ export default function SignUp() {
           company_name: String(formik.values.company_name || "").trim(),
           vertical: "both",
           owner_id_kind: formik.values.owner_id_kind || "national_id",
+          ...(formik.values.logistics_owner_type ? { logistics_owner_type: formik.values.logistics_owner_type } : {}),
           // "0" = step 2 skipped: documents are uploaded after sign-up
           business_docs: BUSINESS_DOC_NAMES.some((n) => formik.values[n]) ? "1" : "0",
         };
@@ -440,34 +461,65 @@ export default function SignUp() {
       <div className="simba-page p-signup">
         <div className="auth">
           <div className="auth-visual">
-            <img src={AUTH_VISUAL_IMG} alt="Trusted service provider at work" />
+            {isLogisticsSignup ? (
+              <img src={LOGISTICS_VISUAL_IMG} alt="Truck on the road" />
+            ) : (
+              <img src={AUTH_VISUAL_IMG} alt="Trusted service provider at work" />
+            )}
             <div className="av-grain" />
             <div className="av-content">
               <div className="av-top" />
-              <div className="av-bottom">
-                <h2>
-                  Join Zimbabwe&apos;s <span className="hl">trusted</span>{" "}
-                  services marketplace.
-                </h2>
-                <p>
-                  Create your account to find verified pros — or grow your
-                  business with thousands of new customers.
-                </p>
-                <div className="av-stats">
-                  <div>
-                    <b>2,400+</b>
-                    <span>Verified providers</span>
-                  </div>
-                  <div>
-                    <b>15k+</b>
-                    <span>Jobs completed</span>
-                  </div>
-                  <div>
-                    <b>4.8★</b>
-                    <span>Average rating</span>
+              {isLogisticsSignup ? (
+                <div className="av-bottom">
+                  <h2>
+                    Put your <span className="hl">trucks</span> and machines to
+                    work across Zimbabwe.
+                  </h2>
+                  <p>
+                    List your fleet, get job requests from customers and
+                    businesses, and let them book your units directly.
+                  </p>
+                  <div className="av-stats">
+                    <div>
+                      <b>Checked</b>
+                      <span>Road licence and owner ID reviewed</span>
+                    </div>
+                    <div>
+                      <b>Direct</b>
+                      <span>Customers book your units</span>
+                    </div>
+                    <div>
+                      <b>OTP</b>
+                      <span>Secure pickup and drop-off</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="av-bottom">
+                  <h2>
+                    Join Zimbabwe&apos;s <span className="hl">trusted</span>{" "}
+                    services marketplace.
+                  </h2>
+                  <p>
+                    Create your account to find verified pros — or grow your
+                    business with thousands of new customers.
+                  </p>
+                  <div className="av-stats">
+                    <div>
+                      <b>2,400+</b>
+                      <span>Verified providers</span>
+                    </div>
+                    <div>
+                      <b>15k+</b>
+                      <span>Jobs completed</span>
+                    </div>
+                    <div>
+                      <b>4.8★</b>
+                      <span>Average rating</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -763,18 +815,44 @@ export default function SignUp() {
                       />
                       <p className="signup-field-hint">Where your trucks / equipment are usually based — new equipment starts here. You can change it later in your profile.</p>
                   </div>
+                    <div className="log-owner-type" role="radiogroup" aria-label="Registering as" data-testid="owner-type">
+                      <span className="log-owner-type__label">I&apos;m registering as *</span>
+                      <div className="log-owner-type__options">
+                        {OWNER_TYPES.map((t) => (
+                          <label
+                            key={t.value}
+                            className={`log-owner-type__opt${formik.values.logistics_owner_type === t.value ? " is-on" : ""}`}
+                          >
+                            <input
+                              type="radio"
+                              name="logistics_owner_type"
+                              value={t.value}
+                              checked={formik.values.logistics_owner_type === t.value}
+                              onChange={formik.handleChange}
+                            />
+                            <b>{t.label}</b>
+                            <small>{t.hint}</small>
+                          </label>
+                        ))}
+                      </div>
+                      {(formik.touched.logistics_owner_type || formik.submitCount > 0) && formik.errors.logistics_owner_type ? (
+                        <div className="field-error">{formik.errors.logistics_owner_type}</div>
+                      ) : null}
+                    </div>
                     <p className="log-signup-docs__note">
                       Simba checks these before approving your company. You can add equipment and operators once it&apos;s
                       approved. PDF, JPG, PNG or Word. You can skip this step and upload them after sign-up.
                     </p>
                     {BUSINESS_DOCS.map((d) => {
                       const file = formik.values[d.name];
+                      const required = isDocRequired(d, formik.values);
+                      const expiryRequired = isExpiryRequired(d, formik.values);
                       return (
                         <div key={d.name} className="log-signup-doc" data-doc={d.name}>
                           <div className="log-signup-doc__head">
                             <span className="log-signup-doc__label">
                               {d.label}
-                              {d.required ? <span className="log-signup-doc__req"> *</span> : <span className="log-signup-doc__opt"> (optional)</span>}
+                              {required ? <span className="log-signup-doc__req"> *</span> : <span className="log-signup-doc__opt"> (optional)</span>}
                             </span>
                             {d.name === "owner_id" ? (
                               <select
@@ -817,7 +895,13 @@ export default function SignUp() {
                           </label>
                           {file ? (
                             <label className="log-signup-doc__expiry">
-                              <span>{d.expiryRequired ? "Expiry date *" : "Expiry date (optional)"}</span>
+                              <span>
+                                {expiryRequired
+                                  ? "Expiry date *"
+                                  : d.name === "owner_id"
+                                    ? "Expiry date (optional — national IDs don't expire)"
+                                    : "Expiry date (optional)"}
+                              </span>
                               <input
                                 type="date"
                                 name={`${d.name}_expires`}
@@ -827,7 +911,7 @@ export default function SignUp() {
                               />
                             </label>
                           ) : null}
-                          {file && !d.required ? (
+                          {file && !required ? (
                             <button type="button" className="log-signup-doc__remove" onClick={() => formik.setFieldValue(d.name, undefined)}>
                               Remove
                             </button>
@@ -854,8 +938,8 @@ export default function SignUp() {
                     onBlur={formik.handleBlur}
                   />
                   <label htmlFor="terms">
-                    I agree to receive a one-time SMS code for account
-                    verification. Message and data rates may apply. See our{" "}
+                    I agree to receive a one-time code by WhatsApp or email
+                    for account verification. See our{" "}
                     <a
                       href="https://simbatasker.com/terms-and-conditions"
                       className="link-gold"

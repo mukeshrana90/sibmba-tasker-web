@@ -2,13 +2,6 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import LogisticsActions from "../Redux/Actions/LogisticsActions";
 import LogisticsPhoneInput from "./LogisticsPhoneInput";
-import LogisticsFacePhotoField from "./LogisticsFacePhotoField";
-import LogisticsOperatorDocRows from "./LogisticsOperatorDocRows";
-
-const OPTIONAL_DOCS = [
-  { id: "licence", label: "Driving / plant licence", hint: "Optional" },
-  { id: "medical", label: "Medical fitness", hint: "Optional" },
-];
 
 /** Blank operator block for the Add equipment form. */
 export const emptyUnitOperator = () => ({
@@ -35,7 +28,6 @@ export default function LogisticsUnitOperatorStep({ mode, value, onChange }) {
   }, [dispatch, mode]);
 
   const patch = (next) => onChange({ ...value, ...next });
-  const patchDoc = (id, next) => patch({ docs: { ...value.docs, [id]: { ...(value.docs[id] || {}), ...next } } });
 
   if (mode === "existing") {
     return (
@@ -56,20 +48,6 @@ export default function LogisticsUnitOperatorStep({ mode, value, onChange }) {
 
   return (
     <div className="log-field--full log-unit-op-step" data-testid="unit-op-invite">
-      <LogisticsFacePhotoField
-        preview={value.face_preview}
-        canRemove={Boolean(value.face)}
-        onCapture={(file) => {
-          if (value.face_preview) URL.revokeObjectURL(value.face_preview);
-          patch({ face: file, face_preview: URL.createObjectURL(file) });
-        }}
-        onRemove={() => {
-          if (value.face_preview) URL.revokeObjectURL(value.face_preview);
-          patch({ face: null, face_preview: "" });
-        }}
-        label="Operator's face photo"
-        hint="Take this with the operator present. Customers see who is coming once a job is accepted."
-      />
       <label className="log-field" data-field="op_full_name">
         <span className="log-fl">Operator's full name <span className="log-req">*</span></span>
         <input value={value.full_name} onChange={(e) => patch({ full_name: e.target.value })} placeholder="Full name" data-testid="unit-op-name" />
@@ -88,13 +66,10 @@ export default function LogisticsUnitOperatorStep({ mode, value, onChange }) {
         />
       </div>
       <div className="log-field--full">
-        <p className="log-hint">The licence and medical are optional. Simba checks the face photo and any documents with this unit.</p>
-        <LogisticsOperatorDocRows
-          items={OPTIONAL_DOCS}
-          docs={value.docs}
-          onPick={(id, file) => patchDoc(id, { name: file.name, file })}
-          onExpiry={(id, expires) => patchDoc(id, { expires })}
-        />
+        <p className="log-hint" data-testid="unit-op-invite-note">
+          We send the operator an invite link. When they accept, they take a live selfie and upload their driving
+          licence. Simba checks both before they can go live on this unit.
+        </p>
       </div>
     </div>
   );

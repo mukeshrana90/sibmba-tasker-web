@@ -24,7 +24,6 @@ import {
 } from "../../CommanComponents/LogisticsSkeleton";
 import LogisticsOperatorDocRows, { publicUrl } from "../../CommanComponents/LogisticsOperatorDocRows";
 import LogisticsFacePhotoField from "../../CommanComponents/LogisticsFacePhotoField";
-import LogisticsInviteFixes from "../../CommanComponents/LogisticsInviteFixes";
 import {
   OPERATOR_COMPLIANCE_TYPES,
   REMINDER_HINT,
@@ -33,7 +32,6 @@ import { LICENCE_CLASSES } from "../../utils/logisticsLicence";
 import { DOC_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
 import LogisticsAddLock, { ADD_LOCKED_TITLE, useAddLocked } from "../../CommanComponents/LogisticsAddLock";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
-import { focusField } from "../../utils/focusField";
 import { apiErrorMessage, isApiFailure } from "../../utils/ownerOperator";
 import useDocDeepLink from "../../Hooks/useDocDeepLink";
 
@@ -140,7 +138,9 @@ function OperatorDocStatus({ compliance }) {
   // v2.7.66: a verified face photo is what lets an operator go live
   const block = compliance.block;
   if (block?.code === "DOC_REQUIRED" && block.type === "face_photo") {
-    chips.unshift({ key: "b-face", tone: "closed", text: "No face photo — can't go live" });
+    chips.unshift({ key: "b-face", tone: "closed", text: "Waiting for the operator's selfie — can't go live" });
+  } else if (block?.code === "DOC_REQUIRED" && block.type === "licence") {
+    chips.unshift({ key: "b-licence", tone: "closed", text: "Waiting for the operator's licence — can't go live" });
   } else if (block?.code === "DOC_PENDING_CHECK") {
     chips.unshift({
       key: "b-pending",
@@ -414,12 +414,7 @@ export default function LogisticsOperators() {
       );
       return;
     }
-    // doc 12 · 4.2: every new operator needs a face photo
-    if (!form.profile_photo) {
-      toast.error("Add the operator's face photo");
-      focusField("profile_photo");
-      return;
-    }
+    // 12 Nov 2026: no face photo from the owner — the operator takes a live selfie after accepting
     setSaving(true);
     try {
       const fd = new FormData();
@@ -815,9 +810,10 @@ export default function LogisticsOperators() {
           <p className="log-hint" style={{ marginTop: 0 }}>
             {isEditing
               ? "Update name, photo, documents, and pay type only. The operator is notified of each change."
-              : "We send the invite by email and SMS with a link. The operator opens it, sets a password and lands on their dashboard. Assign units now or later — they become active when the invite is accepted."}
+              : "We send the invite link by email (and WhatsApp if you add a phone). The operator sets a password, then takes a live selfie and uploads their driving licence. Simba checks both before they can go live. Assign units now or later."}
           </p>
 
+          {isEditing && form.profile_saved ? (
           <LogisticsFacePhotoField
             preview={form.profile_preview}
             canRemove={Boolean(form.profile_photo)}
@@ -839,6 +835,7 @@ export default function LogisticsOperators() {
             }
             hint="A clear photo of the operator's face — customers see who is coming once a job is accepted."
           />
+          ) : null}
 
           <div className="log-form-grid">
             <label className="log-field">
@@ -1320,7 +1317,7 @@ export default function LogisticsOperators() {
                               <OperatorDocStatus compliance={op.document_compliance} />
                               {!photo ? (
                                 <span className="log-unit-notbookable">
-                                  No face photo — Edit to add one
+                                  Operator hasn&apos;t taken their selfie yet
                                 </span>
                               ) : null}
                             </td>
@@ -1468,7 +1465,6 @@ export default function LogisticsOperators() {
                               <span className={`log-chip ${state.chip}`}>
                                 {state.label}
                               </span>
-                              <LogisticsInviteFixes invite={inv} onSaved={load} />
                               {inv.last_sent_at ? (
                                 <p className="log-hint" style={{ margin: "4px 0 0" }}>
                                   Sent {new Date(inv.last_sent_at).toLocaleDateString()}

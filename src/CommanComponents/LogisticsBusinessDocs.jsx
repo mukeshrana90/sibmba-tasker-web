@@ -28,10 +28,15 @@ const EXPIRY_CHIP = {
   today: { label: "Expires today", chip: "log-chip--closed" },
   expiring: { label: "Expiring soon", chip: "log-chip--pending" },
 };
+// 12 Nov 2026: national IDs have no expiry date in Zimbabwe
 const FALLBACK_KINDS = [
-  { value: "national_id", label: "National ID" },
-  { value: "passport", label: "Passport" },
-  { value: "driving_licence", label: "Driving licence" },
+  { value: "national_id", label: "National ID", expiry_required: false },
+  { value: "passport", label: "Passport", expiry_required: true },
+  { value: "driving_licence", label: "Driving licence", expiry_required: true },
+];
+const OWNER_TYPES = [
+  { value: "individual", label: "Individual" },
+  { value: "company", label: "Company" },
 ];
 
 const REVIEW_CHIP = {
@@ -118,6 +123,29 @@ export function BusinessDocsPanel() {
   const types = data?.types?.length ? data.types : FALLBACK_TYPES;
   const kinds = data?.id_kinds?.length ? data.id_kinds : FALLBACK_KINDS;
   const missing = data?.missing || [];
+  const ownerType = data?.owner_type || "company";
+  // Owner ID: expiry depends on the kind (none for a national ID)
+  const expiryRequiredFor = (t) =>
+    t.type === "owner_id"
+      ? kinds.find((k) => k.value === idKind)?.expiry_required ?? idKind !== "national_id"
+      : Boolean(t.expiry_required);
+
+  const changeOwnerType = async (next) => {
+    if (next === ownerType || busy) return;
+    setBusy("owner_type");
+    try {
+      const res = await dispatch(LogisticsActions.patchMe({ logistics_owner_type: next }));
+      const p = res?.payload;
+      if (p?.success === false || res?.error) {
+        toast.error(p?.message || "Could not change it");
+        return;
+      }
+      await load();
+      refreshLogisticsAccount();
+    } finally {
+      setBusy("");
+    }
+  };
 
   return (
     <div className="log-bizdoc-page" data-approval={approval}>
@@ -162,6 +190,32 @@ export function BusinessDocsPanel() {
           </div>
         ) : null}
       </div>
+
+      {approval !== "approved" ? (
+        <div className="log-owner-type log-owner-type--panel" role="radiogroup" aria-label="Registering as" data-testid="owner-type">
+          <span className="log-owner-type__label">Registering as</span>
+          <div className="log-owner-type__options">
+            {OWNER_TYPES.map((t) => (
+              <label key={t.value} className={`log-owner-type__opt${ownerType === t.value ? " is-on" : ""}`}>
+                <input
+                  type="radio"
+                  name="logistics_owner_type"
+                  value={t.value}
+                  checked={ownerType === t.value}
+                  disabled={Boolean(busy)}
+                  onChange={() => changeOwnerType(t.value)}
+                />
+                <b>{t.label}</b>
+                <small>
+                  {t.value === "individual"
+                    ? "Owner ID only — no business registration certificate needed"
+                    : "Business registration certificate and owner ID"}
+                </small>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="log-bizdoc-list">
         {types.map((t) => {
@@ -248,7 +302,13 @@ export function BusinessDocsPanel() {
                   </select>
                 ) : null}
                 <label className="log-bizdoc__date">
-                  <span>{t.expiry_required ? "Expiry date *" : "Expiry date (optional)"}</span>
+                  <span>
+                    {expiryRequiredFor(t)
+                      ? "Expiry date *"
+                      : t.type === "owner_id"
+                        ? "Expiry date (optional — national IDs don't expire)"
+                        : "Expiry date (optional)"}
+                  </span>
                   <input
                     type="date"
                     name={`${t.type}_expires`}
@@ -259,11 +319,11 @@ export function BusinessDocsPanel() {
                 </label>
                 <label
                   className={`logistics-cta ${sameKind ? "logistics-cta--ghost" : "logistics-cta--primary"} log-bizdoc__upload${busy === t.type ? " is-busy" : ""}${
-                    t.expiry_required && !expiries[t.type] ? " is-locked" : ""
+                    expiryRequiredFor(t) && !expiries[t.type] ? " is-locked" : ""
                   }`}
-                  title={t.expiry_required && !expiries[t.type] ? "Pick the expiry date first" : undefined}
+                  title={expiryRequiredFor(t) && !expiries[t.type] ? "Pick the expiry date first" : undefined}
                   onClick={(e) => {
-                    if (t.expiry_required && !expiries[t.type]) {
+                    if (expiryRequiredFor(t) && !expiries[t.type]) {
                       e.preventDefault();
                       toast.info(`Pick the ${t.label.toLowerCase()} expiry date first`);
                     }

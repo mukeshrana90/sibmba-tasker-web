@@ -637,11 +637,6 @@ export default function LogisticsFleet() {
         focusField("op_email");
         return;
       }
-      if (!form.op.face) {
-        toast.error("Take the operator's face photo, or pick Decide later");
-        focusField("profile_photo");
-        return;
-      }
       const noDate = Object.entries(form.op.docs || {}).find(([, d]) => d?.file && !d?.expires);
       if (noDate) {
         toast.error(`${noDate[0] === "licence" ? "Driving / plant licence" : "Medical fitness"}: expiry date is required`);
@@ -789,7 +784,8 @@ export default function LogisticsFleet() {
           toast.error(`${res.payload.message} Tap to see plans.`, {
             onClick: () => navigate("/logistics/owner/subscription"),
           });
-        } else {
+        } else if (res?.payload?.code !== "NETWORK_ERROR") {
+          // network failures were already shown once by the API layer
           toast.error(res?.payload?.message || "Could not save");
         }
       }
@@ -820,7 +816,7 @@ export default function LogisticsFleet() {
     fd.append("pay_type", "percentage");
     fd.append("pay_value", "20");
     fd.append("asset_ids", JSON.stringify([unitId]));
-    fd.append("profile_photo", form.op.face);
+    if (form.op.face) fd.append("profile_photo", form.op.face);
     const types = [];
     const expires = [];
     const names = [];
@@ -1169,7 +1165,7 @@ export default function LogisticsFleet() {
                 <input
                   value={form.registration}
                   onChange={set("registration")}
-                  placeholder="AEB1234"
+                  placeholder="e.g. AEB 1234"
                   autoCapitalize="characters"
                   required
                   aria-invalid={!!idErrors.registration}
@@ -1185,7 +1181,7 @@ export default function LogisticsFleet() {
                 <input
                   value={form.chassis_number}
                   onChange={set("chassis_number")}
-                  placeholder="JALFSR34H7K012345"
+                  placeholder="e.g. JALFSR34H7K012345"
                   autoCapitalize="characters"
                   aria-invalid={!!idErrors.chassis_number}
                 />
@@ -1213,7 +1209,7 @@ export default function LogisticsFleet() {
                 <input
                   value={form.vin}
                   onChange={set("vin")}
-                  placeholder="JALFSR34H7K012345"
+                  placeholder="e.g. JALFSR34H7K012345"
                 />
               </label>
 
@@ -1405,7 +1401,7 @@ export default function LogisticsFleet() {
                 <input
                   value={form.model}
                   onChange={set("model")}
-                  placeholder="5075E"
+                  placeholder="e.g. 5075E"
                 />
               </label>
               <label className="log-field">
@@ -1457,7 +1453,7 @@ export default function LogisticsFleet() {
                 <input
                   value={form.vin}
                   onChange={set("vin")}
-                  placeholder="1JD5075EKF1234567"
+                  placeholder="e.g. 1JD5075EKF1234567"
                 />
               </label>
               <label
@@ -1467,7 +1463,7 @@ export default function LogisticsFleet() {
                 <input
                   value={form.chassis_number}
                   onChange={set("chassis_number")}
-                  placeholder="JD5075ECH88421"
+                  placeholder="e.g. JD5075ECH88421"
                   autoCapitalize="characters"
                   aria-invalid={!!idErrors.chassis_number}
                 />
@@ -1500,7 +1496,7 @@ export default function LogisticsFleet() {
                   <input
                     value={form.registration}
                     onChange={set("registration")}
-                    placeholder="AEBPLANT09"
+                    placeholder="e.g. AEBPLANT09"
                     autoCapitalize="characters"
                     required
                     aria-invalid={!!idErrors.registration}

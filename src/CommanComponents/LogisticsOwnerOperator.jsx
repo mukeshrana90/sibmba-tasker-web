@@ -26,6 +26,21 @@ import "../Pages/logistics/logistics.css";
 const LICENCE_ROW = [{ id: "licence", label: "Driving / plant licence", hint: "Tap to upload" }];
 const dateInput = (v) => (v ? new Date(v).toISOString().slice(0, 10) : "");
 
+/**
+ * One line on what is still needed, from the server's blocks (12 Nov 2026: the client
+ * read every block as "face photo rejected"). Uploaded and only waiting → says so.
+ */
+export function ownerOperatorStatusText(op) {
+  const blocks = op?.blocks || [];
+  if (!blocks.length) return "";
+  const codes = blocks.map((b) => String(b.code || ""));
+  const toUpload = codes.filter((c) => /_(MISSING|REJECTED|EXPIRED)$/.test(c) || c === "NOT_ENABLED");
+  if (!toUpload.length && codes.every((c) => /_PENDING$/.test(c) || c === "COMPANY_NOT_APPROVED")) {
+    return "Everything is uploaded. Simba is checking it — you can go live once it's verified.";
+  }
+  return "To go live yourself you need a verified face photo, owner ID and driving / plant licence. Still to do:";
+}
+
 /** The signed-in owner's operator state (null until /me reports it). */
 export function useOwnerOperator() {
   return useLogisticsAccount()?.owner_operator || null;
@@ -62,13 +77,20 @@ export function OwnerOperatorSetup({ onSaved }) {
   const licenceChip = docReviewChip({ status: op?.licence?.status, reason: op?.licence?.reason });
   const faceChip = docReviewChip({ status: op?.face_photo?.status, reason: op?.face_photo?.reason });
 
+  // 12 Nov 2026: the licence is compulsory (a driving licence owner ID counts)
+  const licenceNeeded = Boolean(op?.licence?.needs_upload) && !licenceFromOwnerId;
+
   const save = async () => {
     if (!licence && !face) {
-      toast.error("Take your face photo first");
+      toast.error(hasFace ? "Upload your driving / plant licence" : "Take your face photo first");
       return;
     }
     if (!hasFace && !face) {
       toast.error("Add a clear photo of your face");
+      return;
+    }
+    if (licenceNeeded && !licence) {
+      toast.error("Upload your driving / plant licence too — it's required to go live");
       return;
     }
     if (licence && !expires) {
@@ -101,6 +123,7 @@ export function OwnerOperatorSetup({ onSaved }) {
 
   return (
     <div className="log-owner-op-setup" data-testid="owner-operator-setup">
+      {op?.blocks?.length ? <p className="log-hint log-owner-op-setup__status">{ownerOperatorStatusText(op)}</p> : null}
       {op?.blocks?.length ? (
         <ul className="log-owner-op-setup__blocks" data-testid="owner-operator-blocks">
           {op.blocks.map((b) => (
@@ -160,7 +183,7 @@ export function OwnerOperatorSetup({ onSaved }) {
         disabled={saving || (!licence && !face)}
         onClick={save}
       >
-        {saving ? "Saving…" : licenceFromOwnerId && !hasFace ? "Save photo" : hasLicence || hasFace ? "Save changes" : "Save licence and photo"}
+        {saving ? "Saving…" : licenceFromOwnerId && !hasFace ? "Save photo" : hasLicence || hasFace ? "Save changes" : "Save photo and licence"}
       </button>
     </div>
   );
@@ -176,11 +199,11 @@ export function OwnerOperatorCard() {
       <h2 className="log-sect" style={{ marginTop: 0 }}>Operating units yourself</h2>
       {op.can_operate ? (
         <p className="log-hint" data-testid="owner-operator-ready">
-          Your face photo and owner ID are verified. Use a free unit below, or{" "}
+          Your face photo, owner ID and licence are verified. Use a free unit below, or{" "}
           <Link to="/logistics/driver">open your operator dashboard</Link>.
         </p>
       ) : (
-        <p className="log-hint">You can go live after Simba verifies your face photo and owner ID.</p>
+        <p className="log-hint">You can go live after Simba verifies your face photo, owner ID and driving / plant licence.</p>
       )}
       <OwnerOperatorSetup />
     </section>
@@ -226,11 +249,11 @@ export function WhoOperatesField({ value, onChange }) {
       </div>
       {self ? (
         op?.can_operate ? (
-          <p className="log-hint" data-testid="owner-operator-ready">Your face photo and owner ID are verified. You can go live on this unit once it is saved.</p>
+          <p className="log-hint" data-testid="owner-operator-ready">Your face photo, owner ID and licence are verified. You can go live on this unit once it is saved.</p>
         ) : (
           <>
             <p className="log-hint">
-              Do this once. Simba checks your face photo and owner ID before you can go live. Your licence is optional.
+              Do this once. Simba checks your face photo, owner ID and driving / plant licence before you can go live.
             </p>
             <OwnerOperatorSetup />
           </>
@@ -403,9 +426,6 @@ export function UnitOperateControl({ asset, onChanged, compact = false }) {
           <Modal.Title>Operate your own units</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p className="log-hint">
-            Take your face photo once. You can go live after Simba verifies it and your owner ID.
-          </p>
           <OwnerOperatorSetup />
         </Modal.Body>
         <Modal.Footer>

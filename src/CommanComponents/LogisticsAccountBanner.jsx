@@ -29,6 +29,9 @@ function load(force = false) {
             owner_operator: user.owner_operator || null,
             logistics_self_operator: Boolean(user.logistics_self_operator),
             whatsapp: user.whatsapp || null,
+            // 12 Nov 2026: operator's own selfie + licence (first screen after accepting)
+            operator_face: user.operator_face || null,
+            operator_licence: user.operator_licence || null,
           }
         : null;
       cacheAt = Date.now();

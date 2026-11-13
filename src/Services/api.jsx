@@ -1,5 +1,6 @@
 import axios from "axios";
 import { toast } from "react-toastify";
+import { prepareFormData } from "../utils/shrinkImage";
 
 const Api = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL,
@@ -46,8 +47,29 @@ const redirectToLoginOnAuthFailure = (message) => {
   window.location.href = "/login";
 };
 
+/** Friendly text when the request got no readable reply from the server. */
+const networkFailureMessage = (error) => {
+  if (error?.code === "FILE_UNREADABLE") return error.message;
+  const upload = error?.config?.data instanceof FormData;
+  if (error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")) {
+    return upload
+      ? "The upload took too long. Try again with fewer or smaller photos."
+      : "The server took too long to answer. Please try again.";
+  }
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return "You're offline. Check your connection and try again.";
+  }
+  return upload
+    ? "Couldn't send your files. Check your connection and try again — if it keeps failing, try fewer or smaller photos."
+    : "Couldn't reach Simba Tasker. Check your connection and try again.";
+};
+
 Api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Smaller photos + files read up front (see utils/shrinkImage.js)
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+      config.data = await prepareFormData(config.data);
+    }
     if (config.skipAuth) {
       if (config.headers) {
         delete config.headers.Authorization;
@@ -106,13 +128,18 @@ Api.interceptors.response.use(
       if (error?.response?.data?.message === "No Quatations found for this user.") {
         return error.response;
       }
-      const msg =
-        error?.response?.data?.message ||
-        (error?.message === "Network Error"
-          ? "Network error — check API URL / HTTPS mixed content"
-          : error?.message);
-      if (msg && !error?.config?.skipErrorToast) {
-        toast.error(msg);
+      // No reply at all (timeout, dropped connection, or a server error page
+      // without CORS headers): one friendly toast; payload code NETWORK_ERROR
+      // tells pages not to toast the same failure again.
+      if (!error?.response) {
+        if (!error?.config?.skipErrorToast) {
+          toast.error(networkFailureMessage(error), { toastId: "network-error" });
+        }
+      } else {
+        const msg = error?.response?.data?.message || error?.message;
+        if (msg && !error?.config?.skipErrorToast) {
+          toast.error(msg);
+        }
       }
     }
     // Never return undefined — callers do response.data
@@ -121,10 +148,8 @@ Api.interceptors.response.use(
         data: {
           success: false,
           status_code: 0,
-          message:
-            error?.message === "Network Error"
-              ? "Network error — HTTPS pages cannot call HTTP APIs. Use the same host scheme as the API, or open the invite over HTTP."
-              : error?.message || "Request failed",
+          code: "NETWORK_ERROR",
+          message: networkFailureMessage(error),
         },
         status: 0,
         config: error.config,

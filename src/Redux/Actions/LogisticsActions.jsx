@@ -512,6 +512,18 @@ const LogisticsActions = {
     }
   ),
 
+  // 12 Nov 2026: operator's own licence (doc_licence + doc_licence_expires)
+  updateMyDocuments: createAsyncThunk(
+    "/logistics/me/documents",
+    async (formData, { rejectWithValue }) => {
+      try {
+        const response = await Api.patch("/logistics/me/documents", formData);
+        return response.data;
+      } catch (err) {
+        return rejectWithValue(err.response?.data || { message: err.message });
+      }
+    }
+  ),
   updateMyFacePhoto: createAsyncThunk(
     "/logistics/me/face-photo",
     async (formData, { rejectWithValue }) => {
