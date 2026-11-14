@@ -74,7 +74,7 @@ const STEPS = [
 const TRUST = [
   {
     title: "Verified fleet owners",
-    description: "Every company is approved by Simba before its trucks and machines appear.",
+    description: "Every company is approved by Simba Tasker before its trucks and machines appear.",
     icon: (
       <Svg>
         <path d="M12 3 4 6v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V6l-8-3Z" />
@@ -94,7 +94,7 @@ const TRUST = [
   },
   {
     title: "Live tracking & SOS",
-    description: "See each step of the trip, and raise an SOS that reaches Simba and the fleet at once.",
+    description: "See each step of the trip, and raise an SOS that reaches Simba Tasker and the fleet at once.",
     icon: (
       <Svg>
         <circle cx="12" cy="12" r="9" />
@@ -258,7 +258,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
           <div className="landing-sec-head landing-sec-head--center">
             <div className="landing-sec-head__text">
               <span className="landing-eyebrow">Simple &amp; safe</span>
-              <h2>How Simba Logistics works</h2>
+              <h2>How Simba Tasker works</h2>
               <p>From request to delivery in three steps.</p>
             </div>
           </div>
@@ -303,7 +303,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
               </svg>
             </div>
             <h3>Approved fleets only</h3>
-            <p>Simba reviews each company and its documents before its trucks and machines can be booked.</p>
+            <p>Simba Tasker reviews each company and its documents before its trucks and machines can be booked.</p>
             <div className="landing-trust-visual__stats">
               <div>
                 <b>OTP</b>

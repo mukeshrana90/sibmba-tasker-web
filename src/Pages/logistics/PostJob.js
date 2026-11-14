@@ -127,7 +127,7 @@ const GOODS_PRESETS = [
     icon: <IconGear size={18} />,
   },
 ];
-const GOODS_DEFAULT = "General Parts & Industrial";
+const GOODS_DEFAULT = "Home & Living";
 const GOODS_MAX_WORDS = 11;
 
 // First letter of the text in capitals (leading spaces kept), as the user types

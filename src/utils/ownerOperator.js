@@ -80,7 +80,7 @@ export function apiErrorMessage(payload, fallback = "Something went wrong — tr
         : "You can't operate units yet: your licence, face photo and owner ID must be verified by Simba.";
     }
     case "COMPANY_NOT_APPROVED":
-      return "Your company must be approved by Simba before you can operate a unit.";
+      return "Your company must be approved by Simba Tasker before you can operate a unit.";
     case "ACTIVE_JOB":
       return "You have an active job on this unit. Finish or reassign it before you stop using the unit.";
     case "OPERATOR_ON_ACTIVE_JOB":
