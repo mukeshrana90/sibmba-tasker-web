@@ -323,8 +323,7 @@ const { OID } = F;
     opU = await user(op._id);
     L.check(docOf(opU, "licence").review?.status === "pending" && (opU.logistics_documents || []).filter((x) => x.type === "licence").length === 1, "licence back to Pending, not duplicated", (opU.logistics_documents || []).map((x) => [x.type, x.review?.status]));
     r = await F.goLive(op, T._id);
-    L.check(r?.success !== false, "v2.7.66: pending licence doesn't stop the operator", r);
-    await F.goOffline(op);
+    L.check(r?.success === false && r?.data?.code === "DOC_PENDING_CHECK" && /licen[cs]e/i.test(r?.message || ""), "v2.7.68: a replaced licence waiting for Simba's check stops the operator", r);
     await L.verifyDocs("operator", op._id);
     // Optional medical rejected: warns, doesn't block
     await L.apiForm("PATCH", `/logistics/sub-user/${op._id}`, { token: owner.token, body: { document_types: ["medical"], document_expires: [future], document_names: ["medical.pdf"] }, files: [["documents", await L.docFile("medical", { holder: op.name, expires: DOCS.addMonths(12) })]] });
@@ -390,7 +389,7 @@ const { OID } = F;
     const op2 = o.page;
     await op2.locator('[data-testid="operated-by-later"]').click();
     await op2.fill('input[placeholder="Truck 1"]', uR.name);
-    await op2.fill('input[placeholder="AEB1234"]', uR.plate);
+    await op2.fill('input[placeholder="e.g. AEB 1234"]', uR.plate);
     await op2.fill('input[placeholder="15"]', "16").catch(() => {});
     await op2.fill('input[placeholder="Isuzu"]', uR.make);
     await op2.fill('input[placeholder="FVZ"]', uR.model);

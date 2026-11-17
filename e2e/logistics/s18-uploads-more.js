@@ -60,7 +60,7 @@ async function waitJson(a, urlRe, method) {
     const plate = unit.plate;
     const truckName = unit.name;
     await o.page.fill('input[placeholder="Truck 1"]', truckName);
-    await o.page.fill('input[placeholder="AEB1234"]', plate);
+    await o.page.fill('input[placeholder="e.g. AEB 1234"]', plate);
     await o.page.fill('input[placeholder="Isuzu"]', unit.make).catch(() => {});
     await o.page.fill('input[placeholder="FVZ"]', unit.model).catch(() => {});
     await o.page.fill('input[placeholder="2019"]', unit.year).catch(() => {});
@@ -133,7 +133,7 @@ async function waitJson(a, urlRe, method) {
     await o.page.fill('input[placeholder="Cab 1"]', cabUnit.name);
     await o.page.locator("form.log-fleet-form .log-field", { hasText: "Cab type" }).locator("select").selectOption("car");
     const cabPlate = cabUnit.plate;
-    await o.page.fill('input[placeholder="AEB1234"]', cabPlate);
+    await o.page.fill('input[placeholder="e.g. AEB 1234"]', cabPlate);
     await pickBaseLocation(o);
     // doc 12 · 4.3: 2 photos — the .heif plus one JPEG (named .heic)
     await o.page.locator("form.log-fleet-form .log-photo-slot--add input[type=file]").setInputFiles([F.heif, F.reallyJpegCab]);
@@ -195,8 +195,7 @@ async function waitJson(a, urlRe, method) {
     const opName = opP.name;
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     await o.page.fill('input[placeholder="Full name"]', opName);
-    // v2.7.66: the face photo is live camera only; HEIC conversion is checked through the API below
-    await L.addFacePhoto(o.page, 5);
+    // v2.7.68: no face on the invite (the operator takes their own); HEIC conversion is checked through the API below
     const lic = L.docRow(o.page, "Driving / plant licence").first();
     await lic.locator("input[type=file]").setInputFiles(F.dlPdf);
     await L.pickDate(o.page, lic.locator(".log-doc-row__expiry input"), 8);

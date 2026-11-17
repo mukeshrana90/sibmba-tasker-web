@@ -13,6 +13,7 @@ import { Roles } from "./Roles";
 import { autoCompleteCustomerProfile } from "./customerProfileAutoComplete";
 import { persistUserId, otpVerificationPath } from "./normalizeMongoId";
 import { emit } from "./socketService";
+import { SUPPLY_DRAFT_MESSAGE, clearLogisticsJobDraft, hasLogisticsJobDraft } from "./logisticsJobDraft";
 import {
   clearProviderServiceGateCache,
   notifyProviderServiceRequired,
@@ -129,6 +130,17 @@ export async function handleAuthSuccess({
   }
 
   emit("new_user_connect", { userid: userId });
+  // Owners / operators go to their dashboard, so the guest "Post a job" page never sees a
+  // draft they started before signing in: discard it here and say why (they can't post jobs).
+  if (Number(role) === Roles.LOGISTICS && hasLogisticsJobDraft()) {
+    clearLogisticsJobDraft();
+    navigate(dest, { replace: true });
+    // Only one toast shows at a time: this one replaces the login / push-permission notices
+    toast.clearWaitingQueue();
+    toast.dismiss();
+    toast.error(SUPPLY_DRAFT_MESSAGE, { toastId: "logistics-draft-supply", autoClose: 7000 });
+    return true;
+  }
   navigate(dest, { replace: true });
   toast.success(payload?.message);
   return true;

@@ -25,7 +25,7 @@ const path = require("path");
     await o.page.fill('input[placeholder="Cab 1"]', cabU.name);
     await o.page.locator("form.log-fleet-form .log-field", { hasText: "Cab type" }).locator("select").selectOption("car");
     const plate = cabU.plate;
-    await o.page.fill('input[placeholder="AEB1234"]', plate);
+    await o.page.fill('input[placeholder="e.g. AEB 1234"]', plate);
     await o.page.locator(".log-location-btn").first().click();
     await o.page.waitForSelector(".simba-book-loc-modal");
     await o.page.waitForTimeout(2500);
@@ -52,7 +52,7 @@ const path = require("path");
     await o.page.fill('input[placeholder="Full name"]', op2P.name);
     await o.page.fill('input[placeholder="name@example.com"]', email);
     await o.page.locator(".log-asset-pick__list li").filter({ hasText: cabU.name }).locator('input[type="checkbox"]').check();
-    await L.addFacePhoto(o.page, 2);
+    // v2.7.68: no face photo on the invite — the operator takes their own selfie after accepting
     await o.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /Invite (sent|created)/), "invite #2 sent");
     await o.page.waitForTimeout(1000);
@@ -63,13 +63,14 @@ const path = require("path");
     await op2.page.fill("#invite-password-confirm", "Passw0rd!");
     await op2.page.locator('button[type="submit"]').click();
     await op2.page.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" });
+    await L.completeOperatorSetup(op2.page, { holder: op2P.name, face: 2 });
     const u2 = await d.collection("users").findOne({ email });
     st.operator2 = { _id: String(u2._id), email, name: op2P.name, role: 4, owner_id: st.owner._id, token: await op2.page.evaluate(() => localStorage.getItem("token")) };
     L.check(true, "operator #2 activated");
     // 29 Oct 2026: the cab and its operator go live only after Simba verifies their documents
     {
       const before = await L.api("PATCH", "/logistics/me/availability", { token: st.operator2.token, body: { state: "available_now", asset_id: st.cab._id, lat: L.PLACES.coords.harare[1], lng: L.PLACES.coords.harare[0] } });
-      L.check(before?.success === false && before?.data?.code === "DOC_PENDING_CHECK" && /face photo/i.test(before?.message), "operator #2 can't go live before Simba verifies the face photo", before);
+      L.check(before?.success === false && before?.data?.code === "DOC_PENDING_CHECK", "operator #2 can't go live before Simba verifies the selfie and licence", before);
       await L.makeFleetReady(st.owner.token, { units: [st.cab._id], operators: [{ _id: st.operator2._id, name: op2P.name, face: 2 }] });
       const cabNow = await d.collection("logistics_assets").findOne({ _id: OID(st.cab._id) });
       L.check((cabNow?.documents || []).every((x) => x.review?.status === "verified"), "cab documents verified by Simba");

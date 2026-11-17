@@ -24,7 +24,7 @@ const path = require("path");
     await p.locator('[data-testid="operated-by-later"]').click(); // operator is invited in 2b
     const plate = truck.plate;
     await p.fill('input[placeholder="Truck 1"]', truck.name);
-    await p.fill('input[placeholder="AEB1234"]', plate);
+    await p.fill('input[placeholder="e.g. AEB 1234"]', plate);
     await p.fill('input[placeholder="15"]', truck.capacity).catch(() => {});
     await p.fill('input[placeholder="Isuzu"]', truck.make);
     await p.fill('input[placeholder="FVZ"]', truck.model);
@@ -122,14 +122,14 @@ const path = require("path");
     await p.fill('input[placeholder="Licence number"]', C.licence("s2-op"));
     const pick = p.locator(".log-asset-pick__list li").filter({ hasText: truck.name });
     await pick.locator('input[type="checkbox"]').check();
-    // doc 12 · 4.2: face photo is compulsory for a new operator
-    await p.locator('form button[type="submit"]').last().click();
-    L.check(await L.waitText(o, /Add the operator's face photo/), "invite without a face photo is refused (toast)");
+    // 12 Nov 2026 (v2.7.68): the owner never takes the operator's face — the invite is name + email (+ phone)
+    L.check(!(await p.locator('form [data-field="profile_photo"]').count()), "invite form has no face photo field");
     {
-      const noPhoto = await L.api("POST", "/logistics/sub-user", { token: st.owner.token, body: { email: `${C.person("operator", 40).first.toLowerCase()}.${RUN}@yopmail.com`, send_via: ["email"] } });
-      L.check(noPhoto?.success === false && noPhoto?.data?.code === "PHOTO_REQUIRED", "API: invite without photo → PHOTO_REQUIRED", noPhoto?.message);
+      const noPhoto = await L.api("POST", "/logistics/sub-user", { token: st.owner.token, body: { full_name: C.person("operator", 40).name, email: `${C.person("operator", 40).first.toLowerCase()}.${RUN}@yopmail.com`, send_via: ["email"] } });
+      L.check(noPhoto?.success !== false, "API: invite without a photo is accepted", noPhoto?.message);
+      // don't keep the extra invite: it would take an operator seat later stages count
+      await d.collection("logistics_invites").deleteMany({ email: `${C.person("operator", 40).first.toLowerCase()}.${RUN}@yopmail.com` });
     }
-    await L.addFacePhoto(p, 1);
     await L.shot(o, "s2-invite-form");
     await p.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /Invite (sent|created)/), "invite sent toast", (await L.bodyText(o)).slice(0, 200));
@@ -156,6 +156,12 @@ const path = require("path");
     await q.locator('button[type="submit"]').click();
     await q.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" }).then(() => L.check(true, "activated → /logistics/driver")).catch(async () => L.check(false, "activated → /logistics/driver", (await L.bodyText(op)).slice(0, 300)));
     await q.waitForLoadState("networkidle").catch(() => {});
+    // v2.7.68: first screen asks for the operator's own live selfie + licence
+    await q.waitForURL(/\/logistics\/driver\/setup/, { timeout: 15000 }).then(() => L.check(true, "first screen: selfie + licence setup")).catch(() => L.check(false, "first screen: selfie + licence setup", q.url()));
+    await L.goto(op, "/logistics/driver/work");
+    L.check(/\/logistics\/driver\/setup/.test(q.url()), "other operator pages wait until setup is done", q.url());
+    await L.completeOperatorSetup(q, { holder: opP.name, face: 1 });
+    L.check(/\/logistics\/driver\/?$/.test(new URL(q.url()).pathname), "setup saved → operator dashboard", q.url());
     await L.shot(op, "s2-driver-home");
     const opUser = await d.collection("users").findOne({ email: opEmail });
     L.check(opUser && String(opUser.owner_id) === st.owner._id, "operator linked to owner");
@@ -178,16 +184,19 @@ const path = require("path");
       const v0 = await view();
       L.check(v0.bookable === false && v0.status_detail === "Awaiting document check", "asset page: 'Awaiting document check'", v0);
       await L.goto(o, `/logistics/owner/fleet/${st.truck._id}`, ".log-detail-item");
-      L.check(/Awaiting Simba's document check|Awaiting document check/i.test(await L.bodyText(o)), "owner unit page says it's awaiting Simba's check");
+      L.check(/Awaiting Simba Tasker's document check|Awaiting document check/i.test(await L.bodyText(o)), "owner unit page says it's awaiting Simba's check");
       await L.shot(o, "s2-awaiting-check");
-      // v2.7.66: the verified face photo is what lets an operator work; no licence is needed
+      // v2.7.68: the operator works once their selfie and licence are both verified
       const r1 = await goLive();
-      L.check(r1?.success === false && r1?.data?.code === "DOC_PENDING_CHECK" && /face photo/i.test(r1?.message), "face photo waiting for Simba's check → can't go live (DOC_PENDING_CHECK)", r1);
+      L.check(r1?.success === false && r1?.data?.code === "DOC_PENDING_CHECK", "selfie / licence waiting for Simba's check → can't go live (DOC_PENDING_CHECK)", r1);
       await L.verifyDocs("asset", st.truck._id);
-      L.check(!(await listed()), "truck documents verified but operator's face not → still hidden");
+      L.check(!(await listed()), "truck documents verified but operator's papers not → still hidden");
       await L.verifyFace(st.operator._id);
+      const r2 = await goLive();
+      L.check(r2?.success === false, "verified selfie but licence not checked → still can't go live", r2?.data?.code || r2?.message);
+      await L.verifyDocs("operator", st.operator._id);
       const r3 = await goLive();
-      L.check(r3?.success !== false, "verified face photo (no licence) → operator can go live", r3?.message);
+      L.check(r3?.success !== false, "verified selfie + licence → operator can go live", r3?.message);
       L.check(await listed(), "all verified + operator live → truck shown to customers");
       const v1 = await view();
       L.check(v1.bookable === true, "asset page: bookable", v1);

@@ -77,7 +77,7 @@ export function apiErrorMessage(payload, fallback = "Something went wrong — tr
       const blocks = (d.blocks || []).map((b) => b?.message).filter(Boolean);
       return blocks.length
         ? `You can't operate units yet: ${blocks.join(" ")}`
-        : "You can't operate units yet: your licence, face photo and owner ID must be verified by Simba.";
+        : "You can't operate units yet: your licence, face photo and owner ID must be verified by Simba Tasker.";
     }
     case "COMPANY_NOT_APPROVED":
       return "Your company must be approved by Simba Tasker before you can operate a unit.";
@@ -115,6 +115,6 @@ export function whatsappExtrasLabel(wa) {
     if (Number.isFinite(n)) return `Paid benefits free: ${n} day${n === 1 ? "" : "s"} left`;
     return "Paid benefits free: free period active";
   }
-  if (wa.trial_status === "not_started") return "Paid benefits free for 60 days once Simba approves your company";
+  if (wa.trial_status === "not_started") return "Paid benefits free for 60 days once Simba Tasker approves your company";
   return "WhatsApp extras: free period ended. Essentials stay free.";
 }

@@ -39,9 +39,10 @@ const TOGGLE = ".module-switcher button";
       await a.page.waitForURL((u) => r.taskerHome.test(new URL(u).pathname), { timeout: 15000 }).catch(() => {});
       L.check(r.taskerHome.test(new URL(a.page.url()).pathname), `${r.name}: Services returns to their own home`, a.page.url());
       L.check((await a.page.evaluate(() => localStorage.getItem("lastSection"))) === "services", `${r.name}: Services choice saved`);
-      // nav toggle stays
+      // v2.7.66: on the home page the large choice replaces the small nav toggle (no duplicate switch)
       await a.page.waitForLoadState("networkidle").catch(() => {});
-      L.check(await a.page.locator(TOGGLE).first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false), `${r.name}: small nav toggle is still there`);
+      await a.page.waitForTimeout(800);
+      L.check(await a.page.locator(SWITCH).isVisible() && !(await a.page.locator(TOGGLE).count()), `${r.name}: home shows the large choice, not a second small toggle`);
       // A returning Services visitor isn't sent to /services from "/"
       if (r.home === "/") {
         await a.page.evaluate(() => localStorage.setItem("lastSection", "services"));

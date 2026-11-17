@@ -287,6 +287,22 @@ const CustomerActions = {
     }
   ),
 
+  // MARK: - CHANGE PHONE (v2.7.69) — code goes to the new number; saved after verify
+  sendPhoneChangeCode: createAsyncThunk(
+    "/customer/phone/send-code",
+    async (reqBody) => {
+      const response = await Api.post("/customer/phone/send-code", reqBody);
+      return response.data;
+    }
+  ),
+  verifyPhoneChange: createAsyncThunk(
+    "/customer/phone/verify",
+    async (reqBody) => {
+      const response = await Api.post("/customer/phone/verify", reqBody);
+      return response.data;
+    }
+  ),
+
   // MARK: - LOG OUT
   logOut: createAsyncThunk("/user/logOut", async () => {
     const response = await Api.patch("/user/logOut");

@@ -144,7 +144,7 @@ const BACKEND = path.resolve(__dirname, "../../../sibmba-tasker-backend");
   const ob = await L.actor("susp-owner");
   await L.seedAuth(ob, { token: L.tokenFor(owner._id), user: { ...owner, role: 4 } });
   await ob.page.goto(`${L.WEB}/logistics/owner`, { waitUntil: "domcontentloaded" });
-  L.check(await L.waitText(ob, /Account suspended by Simba admin/, 15000), "owner web shows the suspension banner");
+  L.check(await L.waitText(ob, /Account suspended by Simba Tasker admin/, 15000), "owner web shows the suspension banner");
   await L.shot(ob, "s13-owner-suspended-banner");
   await ob.ctx.close();
   // Customer + Tasker provider suspension blocks new work

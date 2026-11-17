@@ -158,23 +158,23 @@ export function BusinessDocsPanel() {
         <p>
           {approval === "approved" ? (
             <>
-              <strong>Your company is approved by Simba.</strong> You can add equipment and invite operators. Each unit is
-              shown to customers once Simba verifies its documents and its operator&apos;s licence.
+              <strong>Your company is approved by Simba Tasker.</strong> You can add equipment and invite operators. Each unit is
+              shown to customers once Simba Tasker verifies its documents and its operator&apos;s licence.
             </>
           ) : approval === "rejected" ? (
             <>
-              <strong>Simba couldn&apos;t approve your company.</strong>{" "}
+              <strong>Simba Tasker couldn&apos;t approve your company.</strong>{" "}
               {data?.approval?.reason ? `Reason: ${data.approval.reason}. ` : ""}Upload corrected documents below — they go
-              back to Simba for a new check.
+              back to Simba Tasker for a new check.
             </>
           ) : missing.length ? (
             <>
-              <strong>Upload your business documents.</strong> Simba needs your{" "}
+              <strong>Upload your business documents.</strong> Simba Tasker needs your{" "}
               {missing.map((m) => m.label.toLowerCase()).join(" and ")} before it can approve your company.
             </>
           ) : (
             <>
-              <strong>Simba is checking your documents.</strong> You can add equipment and invite operators once your
+              <strong>Simba Tasker is checking your documents.</strong> You can add equipment and invite operators once your
               company is approved — we&apos;ll email you.
             </>
           )}
@@ -237,7 +237,7 @@ export function BusinessDocsPanel() {
                 </div>
                 {isOwnerId ? (
                   <p className="log-hint log-bizdoc__idhelp" data-testid="owner-id-help">
-                    Add one or more: national ID, passport, driving licence. Simba checks each one. You need a driving licence to operate a unit yourself.
+                    Add one or more: national ID, passport, driving licence. Simba Tasker checks each one. You need a driving licence to operate a unit yourself.
                   </p>
                 ) : null}
                 {copies.map((c) => {
@@ -272,7 +272,7 @@ export function BusinessDocsPanel() {
                   <p className="log-bizdoc__reason">Rejected: {c.review.reason}</p>
                 ) : null}
                 {c.expiry_status === "expired" ? (
-                  <p className="log-bizdoc__reason">Expired — upload the renewed document. The old file is removed and Simba checks the new one.</p>
+                  <p className="log-bizdoc__reason">Expired — upload the renewed document. The old file is removed and Simba Tasker checks the new one.</p>
                 ) : null}
                     </div>
                   );
@@ -375,7 +375,7 @@ export default function LogisticsBusinessDocsCard() {
   return (
     <div className="log-bizdoc-profile" id="business-documents">
       <b>Business documents</b>
-      <p className="log-hint mb-2">Upload or replace your company documents. Simba is told right away and checks them.</p>
+      <p className="log-hint mb-2">Upload or replace your company documents. Simba Tasker is told right away and checks them.</p>
       <BusinessDocsPanel />
     </div>
   );

@@ -15,7 +15,7 @@ export function notBookableReason(asset) {
   }
   // 29 Oct 2026: every document must be verified by Simba first
   if (detail === "Awaiting document check") {
-    return "Awaiting Simba's document check — the unit is shown to customers once verified";
+    return "Awaiting Simba Tasker's document check — the unit is shown to customers once verified";
   }
   // Road licence missing / rejected, or documents expired (doc 12 · L36)
   if (detail === "Documents expired" || / (required|rejected)$/.test(detail)) {

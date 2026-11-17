@@ -10,7 +10,7 @@ export default function LogisticsSosProfileCard() {
       <div>
         <b>Logistics safety (SOS)</b>
         <p className="mb-0">
-          Hold SOS in an emergency to alert the fleet owner, Simba and your
+          Hold SOS in an emergency to alert the fleet owner, Simba Tasker and your
           emergency contacts.{" "}
           <Link to={emergencyContactsPath()}>Emergency contacts</Link>
         </p>

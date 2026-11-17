@@ -35,6 +35,19 @@ describe("resolvePostLoginPath", () => {
     ).toBe("/logistics/owner");
   });
 
+  it("sends owners and operators from guest Hub pages to their dashboard", () => {
+    for (const returnUrl of ["/logistics", "/logistics/search?q=truck", "/logistics/asset/a1", "/logistics/post"]) {
+      expect(resolvePostLoginPath({ role: Roles.LOGISTICS, returnUrl })).toBe("/logistics/owner");
+      expect(resolvePostLoginPath({ role: Roles.LOGISTICS, ownerId: "o1", returnUrl })).toBe("/logistics/driver");
+    }
+    // Owner-operator pages stay reachable; operators can't open owner pages
+    expect(resolvePostLoginPath({ role: Roles.LOGISTICS, returnUrl: "/logistics/driver/jobs" })).toBe("/logistics/driver/jobs");
+    expect(resolvePostLoginPath({ role: Roles.LOGISTICS, ownerId: "o1", returnUrl: "/logistics/owner/fleet" })).toBe("/logistics/driver");
+    expect(resolvePostLoginPath({ role: Roles.LOGISTICS, ownerId: "o1", returnUrl: "/logistics/driver/work" })).toBe("/logistics/driver/work");
+    // Prefix lookalikes are not the owner's area
+    expect(resolvePostLoginPath({ role: Roles.LOGISTICS, returnUrl: "/logistics/ownerx" })).toBe("/logistics/owner");
+  });
+
   it("does not send Tasker roles into logistics supply portals", () => {
     expect(
       resolvePostLoginPath({

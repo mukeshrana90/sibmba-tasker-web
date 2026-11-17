@@ -98,7 +98,8 @@ async function passwordIs(User, id, pass) {
     await a.page.waitForURL(/otp-varification/, { timeout: 15000 });
     const [mail] = await waitMsg(t0, (r) => r.channel === "email" && r.to === corp.email);
     L.check(mail?.ok && /Verify Your/.test(mail.subject), `reset email sent ("${mail?.subject}")`);
-    const code = (String(mail?.html || "").match(/href="#">\s*(\d{4})\s*<\/a>/) || [])[1];
+    // the code sits in the big styled <span> (older template: <a href="#">)
+    const code = (String(mail?.html || "").match(/>\s*(\d{4})\s*<\/(?:a|span)>/) || [])[1];
     L.check(/^\d{4}$/.test(code || ""), "4-digit code read from the email");
     L.check(outbox(t0).filter((r) => r.to === corp.email).length === 1, "exactly one email (no extra code from the lookup step)");
     // resetPass before verifying = the old takeover path

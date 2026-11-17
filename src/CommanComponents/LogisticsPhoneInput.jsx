@@ -5,7 +5,7 @@ import {
   parseCountry,
 } from "react-international-phone";
 import "react-international-phone/style.css";
-import { DEFAULT_COUNTRY_CODE, splitPhoneValue } from "../utils/logisticsPhone";
+import { DEFAULT_COUNTRY_CODE, leadingZeroError, splitPhoneValue } from "../utils/logisticsPhone";
 
 export { DEFAULT_COUNTRY_CODE };
 
@@ -55,6 +55,10 @@ export default function LogisticsPhoneInput({
           onChange?.(splitPhoneValue(phone, meta?.country?.dialCode, code))
         }
       />
+      {/* v2.7.71 (client test B1): +263 0788… → ask to drop the 0 (the server drops it too) */}
+      {!disabled && leadingZeroError(local, code) ? (
+        <small className="log-phone-input__err" role="alert">{leadingZeroError(local, code)}</small>
+      ) : null}
     </div>
   );
 }

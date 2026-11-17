@@ -22,6 +22,7 @@ import LogisticsWhatsappNotifyCard from "../CommanComponents/LogisticsWhatsappNo
 import LogisticsBusinessDocsCard from "../CommanComponents/LogisticsBusinessDocs";
 import LogisticsLocationField from "../CommanComponents/LogisticsLocationField";
 import LogisticsActions from "../Redux/Actions/LogisticsActions";
+import ProfilePhoneField from "../CommanComponents/ProfilePhoneField";
 
 // Logistics fleet / equipment owner (role 4 without an owner above them)
 const isFleetOwner = () =>
@@ -523,6 +524,11 @@ export default function EditProfileUser() {
                         />
                        
                       </Form.Group>
+                      <ProfilePhoneField
+                        countryCode={customerDetails?.country_code}
+                        phoneNumber={customerDetails?.phone_number}
+                        onChanged={getProfileApiCall}
+                      />
 
                     </div>
                     <div>

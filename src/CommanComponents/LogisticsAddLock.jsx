@@ -11,7 +11,7 @@ export function useAddLocked() {
   return approval === "pending" || approval === "rejected";
 }
 
-export const ADD_LOCKED_TITLE = "Available after Simba approves your company";
+export const ADD_LOCKED_TITLE = "Available after Simba Tasker approves your company";
 
 /** Shown instead of an add form while the company waits for approval. */
 export default function LogisticsAddLock({ what = "equipment" }) {
@@ -26,8 +26,8 @@ export default function LogisticsAddLock({ what = "equipment" }) {
       <p>
         <strong>{ADD_LOCKED_TITLE}.</strong>{" "}
         {approval === "rejected"
-          ? `Simba couldn't approve your company yet — upload corrected business documents, then you can ${thing}.`
-          : `Simba is checking your business documents. You can ${thing} as soon as your company is approved.`}
+          ? `Simba Tasker couldn't approve your company yet — upload corrected business documents, then you can ${thing}.`
+          : `Simba Tasker is checking your business documents. You can ${thing} as soon as your company is approved.`}
       </p>
       <Link className="logistics-cta logistics-cta--ghost" to="/logistics/owner/verification">
         Business documents

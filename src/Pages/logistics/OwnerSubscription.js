@@ -223,7 +223,7 @@ export default function LogisticsOwnerSubscription() {
                   </p>
                 ) : current === lowestPlan?.id && freePeriod?.status === "not_started" ? (
                   <p className="log-sub-expiry" data-testid="free-period-status">
-                    All Paid benefits are free for {freePeriod.days} days, starting the day Simba approves your company.
+                    All Paid benefits are free for {freePeriod.days} days, starting the day Simba Tasker approves your company.
                   </p>
                 ) : current === lowestPlan?.id && freePeriod?.status === "ended" ? (
                   <p className="log-sub-expiry" data-testid="free-period-status">

@@ -437,7 +437,7 @@ export default function LogisticsHubHome() {
       <div className="log-hub-home">
         <section className="log-hub-hero" aria-labelledby="hub-hero-title">
           <div className="log-hub-hero__copy">
-            <span className="log-hub-hero__kicker">Simba Logistics</span>
+            <span className="log-hub-hero__kicker">Simba Tasker Logistics</span>
             <h2 id="hub-hero-title">
               Move goods, hire machines{cabEnabled ? ", ride now" : ""} — all in
               one place.
@@ -531,7 +531,7 @@ export default function LogisticsHubHome() {
             />
             <HubAssetSection
               title="Top rated logistics"
-              lead="Best-reviewed trucks and transporters on Simba Logistics."
+              lead="Best-reviewed trucks and transporters on Simba Tasker Logistics."
               rows={spotlight.top_rated_logistics}
               empty={<EmptyResults compact module="logistics" kind="vehicle" />}
               seeAllTo="/logistics/search?category=logistic&scope=category"

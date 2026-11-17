@@ -315,7 +315,7 @@ export function LogisticsSosSheet({ jobId, jobRef, onClose }) {
                   : "We sent your location and details."
                 : phase === "offline"
                   ? "You're offline, so the SOS couldn't go over the internet — text it instead."
-                  : "Press and hold the button for 3 seconds. We send your location once to your fleet owner, Simba and your emergency contacts."}
+                  : "Press and hold the button for 3 seconds. We send your location once to your fleet owner, Simba Tasker and your emergency contacts."}
             </p>
           </div>
           {phase !== "sending" ? (
@@ -330,7 +330,7 @@ export function LogisticsSosSheet({ jobId, jobRef, onClose }) {
             <div className="log-sos-offline">
               <p>
                 <strong>No internet connection.</strong> Send your SOS by SMS instead —
-                it reaches Simba, your fleet owner and your emergency contacts.
+                it reaches Simba Tasker, your fleet owner and your emergency contacts.
               </p>
               {smsNumber ? (
                 <a
@@ -415,7 +415,7 @@ export function LogisticsSosSheet({ jobId, jobRef, onClose }) {
                 <div className="log-callout log-callout--warn" style={{ marginBottom: 14 }}>
                   <p>
                     You have no emergency contacts yet — SOS will still alert your fleet
-                    owner and Simba.{" "}
+                    owner and Simba Tasker.{" "}
                     <Link to={emergencyContactsPath()} onClick={onClose}>
                       Add contacts
                     </Link>

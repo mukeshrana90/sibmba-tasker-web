@@ -69,7 +69,13 @@ export function resolvePostLoginPath({ role, ownerId, returnUrl } = {}) {
   if (!deep) return home;
 
   if (isLogisticsRole(role)) {
-    if (deep.startsWith("/logistics")) return deep;
+    // Owners and operators only keep links into their own area. Guest Logistics
+    // pages (/logistics, /logistics/search, asset pages, post a job) send them to
+    // /login?redirect=… — following that left owners on the customer Hub.
+    const inArea = (base) => deep === base || deep.startsWith(`${base}/`) || deep.startsWith(`${base}?`);
+    if (inArea(home)) return deep;
+    // An owner who also operates units uses the operator pages (the guard bounces others)
+    if (!ownerId && inArea("/logistics/driver")) return deep;
     return home;
   }
 

@@ -7414,3 +7414,47 @@ header.appnav .avatar-menu .am-item {
   background: #fff;
   color: var(--ink);
 }
+
+/* Sign-up role switcher: icon cards (Equipment Owner / Need a Service / Provider / Corporate) */
+.simba-page.p-signup .role-toggle.role-toggle--cards {
+  gap: 6px;
+  padding: 6px;
+  border-radius: 18px;
+}
+.simba-page.p-signup .role-toggle--cards button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 7px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink, #3a3d38);
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.simba-page.p-signup .role-toggle--cards button:hover:not(.active) {
+  border-color: var(--primary);
+}
+.simba-page.p-signup .role-toggle--cards button.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.simba-page.p-signup .role-toggle__icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--muted);
+}
+.simba-page.p-signup .role-toggle--cards button.active .role-toggle__icon {
+  color: #fff;
+}
+@media (max-width: 420px) {
+  .simba-page.p-signup .role-toggle--cards button {
+    gap: 8px;
+    padding: 10px;
+    font-size: 0.8rem;
+  }
+}

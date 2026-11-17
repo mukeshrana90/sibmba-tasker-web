@@ -599,7 +599,7 @@ export default function LogisticsOperators() {
       toast.error(apiErrorMessage(res?.payload, "Could not replace the document"));
       return false;
     }
-    toast.success("Document replaced — Simba will check it");
+    toast.success("Document replaced — Simba Tasker will check it");
     setForm((f) => ({
       ...f,
       docs: {
@@ -810,7 +810,7 @@ export default function LogisticsOperators() {
           <p className="log-hint" style={{ marginTop: 0 }}>
             {isEditing
               ? "Update name, photo, documents, and pay type only. The operator is notified of each change."
-              : "We send the invite link by email (and WhatsApp if you add a phone). The operator sets a password, then takes a live selfie and uploads their driving licence. Simba checks both before they can go live. Assign units now or later."}
+              : "We send the invite link by email (and WhatsApp if you add a phone). The operator sets a password, then takes a live selfie and uploads their driving licence. Simba Tasker checks both before they can go live. Assign units now or later."}
           </p>
 
           {isEditing && form.profile_saved ? (

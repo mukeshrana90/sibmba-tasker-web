@@ -47,7 +47,7 @@ const { OID } = F;
     const p = o.page;
     L.check(!(await p.locator(".log-locked-add").count()), "the form is open while the company is pending");
     await p.fill('input[placeholder="Truck 1"]', truck.name);
-    await p.fill('input[placeholder="AEB1234"]', truck.plate);
+    await p.fill('input[placeholder="e.g. AEB 1234"]', truck.plate);
     await p.fill('input[placeholder="15"]', truck.capacity).catch(() => {});
     await p.fill('input[placeholder="Isuzu"]', truck.make);
     await p.fill('input[placeholder="FVZ"]', truck.model);
@@ -71,9 +71,7 @@ const { OID } = F;
     L.check(!(await d.collection("logistics_assets").findOne({ registration: truck.plate })), "nothing saved yet");
     await p.fill('[data-testid="unit-op-name"]', pOp.name);
     await p.fill('[data-testid="unit-op-email"]', pOp.email);
-    await p.locator('form.log-fleet-form button[type="submit"]').click();
-    L.check(await L.waitText(o, /Take the operator's face photo, or pick Decide later/), "operator's face photo required before saving");
-    await L.addFacePhoto(p, 2);
+    // v2.7.68: name + email is enough — the operator takes their own selfie after accepting
     await L.shot(o, "s30-add-form-operator");
     await p.locator('form.log-fleet-form button[type="submit"]').click();
     L.check(await L.waitText(o, /Vehicle added/), "Vehicle added toast");
@@ -83,7 +81,7 @@ const { OID } = F;
     L.check(saved?.owner_unapproved === true, "truck held back (owner_unapproved) while the company is pending", saved?.owner_unapproved);
     const inv = await d.collection("logistics_invites").findOne({ email: pOp.email });
     L.check(!!inv && (inv.asset_ids || []).map(String).includes(String(saved?._id)), "invite carries the truck", inv?.asset_ids);
-    L.check(!!inv?.profile_image && inv?.face_review?.status === "pending", "invite holds the face photo, Pending", inv?.face_review);
+    L.check(!!inv && !inv.profile_image, "v2.7.68: invite has no face photo (the operator takes their own)", inv?.profile_image);
     const T = { _id: String(saved?._id), name: truck.name, plate: truck.plate };
 
     L.sec("30b. Approve all is refused and lists what's missing");
@@ -117,16 +115,8 @@ const { OID } = F;
     let t = await unit(T._id);
     L.check(t.documents.find((x) => x.type === "rego").review?.status === "pending", "replaced ZINARA back to Pending", t.documents.find((x) => x.type === "rego").review);
     L.check(t.documents.find((x) => x.type === "insurance").review?.status === "verified", "insurance stays Verified (not sent back)");
-    // Reject the operator's face photo on the invite: it comes back alone too
-    await review({ subject: "invite_face", id: String(inv._id), status: "rejected", reason: "Face not clear" });
-    pack = (await adminOwner(owner._id))?.package;
-    L.check(pack?.can_approve === false && (pack?.missing || []).some((m) => /face photo/i.test(m.label)), "rejected invite face: missing", pack?.missing);
-    t = await unit(T._id);
-    L.check(t.documents.find((x) => x.type === "rego").review?.status === "pending", "other items are unchanged");
-    const fixFace = await L.apiForm("PATCH", `/logistics/invite/${inv._id}`, { token: owner.token, files: [["profile_photo", DOCS.face(6)]] });
-    L.check(fixFace?.success !== false, "owner replaces the face photo before acceptance", fixFace?.message);
-    const inv2 = await d.collection("logistics_invites").findOne({ _id: inv._id });
-    L.check(inv2?.face_review?.status === "pending", "face back to Pending", inv2?.face_review);
+    // v2.7.68: an operator without a face yet doesn't hold up Approve all
+    L.check(!((await adminOwner(owner._id))?.package?.missing || []).some((m) => /face photo/i.test(m.label)), "operator's missing face is not on the missing list");
     pack = (await adminOwner(owner._id))?.package;
     L.check(pack?.can_approve === true && !pack?.missing?.length, "package: complete again", pack?.missing);
 
@@ -145,7 +135,6 @@ const { OID } = F;
     L.check(t.documents.every((x) => x.review?.status === "verified"), "unit documents verified", t.documents.map((x) => [x.type, x.review?.status]));
     L.check(t.owner_unapproved !== true, "unit no longer held back", t.owner_unapproved);
     const inv3 = await d.collection("logistics_invites").findOne({ _id: inv._id });
-    L.check(inv3?.face_review?.status === "verified", "invite face verified", inv3?.face_review);
 
     L.sec("30e. Operator accepts: documents stay verified");
     const op = await A("operator", {});
@@ -154,11 +143,17 @@ const { OID } = F;
     await op.page.fill("#invite-password-confirm", "Passw0rd!");
     await op.page.locator('button[type="submit"]').click();
     await op.page.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" }).catch(() => {});
-    const opU = await d.collection("users").findOne({ email: pOp.email });
-    L.check(!!opU && opU.logistics_face_review?.status === "verified", "accepted: face stays verified", opU?.logistics_face_review);
+    // v2.7.68: the operator's own selfie + licence, then Simba's check
+    await L.completeOperatorSetup(op.page, { holder: pOp.name, face: 2 });
+    let opU = await d.collection("users").findOne({ email: pOp.email });
+    L.check(!!opU && opU.logistics_face_review?.status === "pending", "accepted: own selfie waiting for Simba's check", opU?.logistics_face_review);
+    L.check((await unit(T._id)).documents.every((x) => x.review?.status === "verified"), "accepted: unit documents stay verified");
     const opTok = L.tokenFor(opU._id);
     let r = await F.goLive({ token: opTok }, T._id);
-    L.check(r?.success !== false, "operator goes live straight after accepting", r);
+    L.check(r?.success === false && r?.data?.code === "DOC_PENDING_CHECK", "can't go live until Simba checks the selfie and licence", r?.data?.code || r?.message);
+    await L.verifyDocs("operator", opU._id);
+    r = await F.goLive({ token: opTok }, T._id);
+    L.check(r?.success !== false, "operator goes live once the selfie and licence are verified", r);
     await F.goOffline({ token: opTok });
 
     L.sec("30f. A later unit is its own package");

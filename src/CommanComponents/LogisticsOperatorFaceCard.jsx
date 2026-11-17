@@ -5,8 +5,8 @@ import LogisticsActions from "../Redux/Actions/LogisticsActions";
 import LogisticsFaceCamera from "./LogisticsFaceCamera";
 
 const COPY = {
-  rejected: "Simba rejected your face photo. Take a new one so you can go live.",
-  pending: "Simba is checking your face photo.",
+  rejected: "Simba Tasker rejected your face photo. Take a new one so you can go live.",
+  pending: "Simba Tasker is checking your face photo.",
   missing: "Add your face photo so you can go live.",
 };
 
@@ -36,7 +36,7 @@ export default function LogisticsOperatorFaceCard() {
     const res = await dispatch(LogisticsActions.updateMyFacePhoto(fd));
     setSaving(false);
     if (res?.payload?.success) {
-      toast.success("Saved — Simba will check your photo");
+      toast.success("Saved — Simba Tasker will check your photo");
       setFace({ ...face, status: "pending", reason: "" });
     } else {
       toast.error(res?.payload?.message || "Could not save your photo");

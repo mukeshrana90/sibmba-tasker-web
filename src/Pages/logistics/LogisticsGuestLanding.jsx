@@ -137,7 +137,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
     {
       key: "rated-trucks",
       title: "Top rated logistics",
-      lead: "Best-reviewed trucks and transporters on Simba Logistics.",
+      lead: "Best-reviewed trucks and transporters on Simba Tasker Logistics.",
       rows: spotlight.top_rated_logistics,
       seeAllTo: "/logistics/search?category=logistic&scope=category",
     },
@@ -237,7 +237,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
           <div className="landing-wrap">
             <div className="landing-sec-head">
               <div className="landing-sec-head__text">
-                <span className="landing-eyebrow">On Simba Logistics</span>
+                <span className="landing-eyebrow">On Simba Tasker Logistics</span>
                 <h2>Top fleets and machines</h2>
                 <p>Rated by customers after real jobs.</p>
               </div>
@@ -281,7 +281,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
             <span className="landing-eyebrow">Built on trust</span>
             <h2 className="landing-trust__title">Safe trips, checked fleets</h2>
             <p className="landing-trust__lead">
-              Every truck and machine on Simba Logistics belongs to an approved company with its papers in order.
+              Every truck and machine on Simba Tasker Logistics belongs to an approved company with its papers in order.
             </p>
             <div className="landing-trust-features">
               {TRUST.map((f) => (
@@ -348,7 +348,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
             <div className="landing-cta__inner">
               <span className="landing-eyebrow landing-cta__eyebrow">For equipment owners</span>
               <h2>Own trucks or machines?</h2>
-              <p>List your fleet on Simba Logistics, add your operators and get jobs from customers across Zimbabwe.</p>
+              <p>List your fleet on Simba Tasker Logistics, add your operators and get jobs from customers across Zimbabwe.</p>
               <div className="landing-cta__actions">
                 <button type="button" className="landing-btn landing-btn--gold" onClick={() => navigate("/sign-up?role=4")}>
                   Join as Equipment Owner

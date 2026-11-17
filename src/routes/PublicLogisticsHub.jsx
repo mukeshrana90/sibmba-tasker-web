@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import Layout from "../Components/Layout/Layout";
 import { guestLoginPath } from "../utils/authRedirect";
-import { clearLogisticsJobDraft, hasLogisticsJobDraft } from "../utils/logisticsJobDraft";
+import { SUPPLY_DRAFT_MESSAGE, clearLogisticsJobDraft, hasLogisticsJobDraft } from "../utils/logisticsJobDraft";
 import { canHubConsume, homeRouteForRole, Roles } from "../utils/Roles";
 
 /**
@@ -43,10 +43,7 @@ const PublicLogisticsHub = () => {
       // Only one toast shows at a time: this one replaces the login message
       toast.clearWaitingQueue();
       toast.dismiss();
-      toast.error(
-        "Equipment owner and operator accounts can't post this job. Sign in with a customer account to post it.",
-        { toastId: "logistics-draft-supply", autoClose: 7000 }
-      );
+      toast.error(SUPPLY_DRAFT_MESSAGE, { toastId: "logistics-draft-supply", autoClose: 7000 });
       setRedirect(homeRouteForRole(role, localStorage.getItem("owner_id")));
       return;
     }

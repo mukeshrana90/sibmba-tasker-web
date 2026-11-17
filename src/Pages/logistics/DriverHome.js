@@ -122,6 +122,8 @@ function OperatorDashboard() {
   const [locating, setLocating] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState("");
   const [selectedState, setSelectedState] = useState("offline");
+  // v2.7.71: re-render every 30 s so the check-in prompt appears on time
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   const reload = async ({ soft = false } = {}) => {
     if (!soft) setLoading(true);
@@ -167,6 +169,18 @@ function OperatorDashboard() {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
+
+  // Check-in clock: tick every 30 s; once the check-in time has passed, reload so the
+  // server's offline state shows (it goes offline on its own — utils/logistics/availabilityExpiry.js)
+  const untilAt = data?.availability?.available_until ? new Date(data.availability.available_until).getTime() : 0;
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    if (untilAt && nowTick > untilAt + 5000) reload({ soft: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowTick, untilAt]);
 
   // Owner changed this operator's truck status / map pin → refresh banner,
   // Using now, Set status and map (also on tab focus as a fallback)
@@ -385,7 +399,14 @@ function OperatorDashboard() {
     }
   };
 
-  const saveStatus = async () => {
+  // v2.7.71 one-tap Go online / Confirm: same checks and GPS read as Update status
+  const saveStatus = (override = null) =>
+    saveStatusFor(override?.state || selectedState, override?.asset_id || selectedAssetId);
+
+  // eslint-disable-next-line no-shadow
+  const saveStatusFor = async (selectedState, selectedAssetId) => {
+    // eslint-disable-next-line no-shadow
+    const draftAsset = assigned.find((a) => String(a._id) === String(selectedAssetId)) || null;
     if (!assigned.length) {
       toast.error(ownerOperating ? "Add a unit to your fleet first" : "No vehicle assigned yet — ask your owner");
       return;
@@ -456,6 +477,20 @@ function OperatorDashboard() {
     );
   };
 
+  // v2.7.71 (client test §6): one tap — Go online on the unit in Using now (or the only one)
+  const goOnlineUnitId =
+    String(selectedAssetId || committedAssetId || (usableUnits.length === 1 ? usableUnits[0]._id : "") || "");
+  const goOnline = () =>
+    saveStatus({ state: "available_now", asset_id: goOnlineUnitId || undefined });
+  const goOffline = () =>
+    saveStatus({ state: "offline", asset_id: committedAssetId || selectedAssetId || undefined });
+  // "Still online here?" — keep the current live status, fresh GPS, new check-in period
+  const confirmStillOnline = () =>
+    saveStatus({
+      state: uiState === "returning_empty" ? "returning_empty" : "available_now",
+      asset_id: committedAssetId || selectedAssetId || undefined,
+    });
+
   const readGpsPosition = () =>
     new Promise((resolve) => {
       if (!navigator.geolocation) {
@@ -491,6 +526,13 @@ function OperatorDashboard() {
   }
 
   const busy = saving || locating;
+  const onlineNow = uiState === "available_now" || uiState === "returning_empty";
+  const untilMs = availability.available_until ? new Date(availability.available_until).getTime() : 0;
+  const minsLeft = onlineNow && untilMs ? Math.round((untilMs - nowTick) / 60000) : null;
+  const checkinDue = minsLeft !== null && minsLeft <= 15;
+  const untilLabel = untilMs
+    ? new Date(untilMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "";
   const bannerPhoto =
     jobImageUrl(committedAsset?.photos?.[0]) ||
     (committedAsset ? defaultImage : null);
@@ -504,6 +546,79 @@ function OperatorDashboard() {
         Drive one vehicle at a time. Change truck, status, and verify GPS here —
         other assigned assets go offline when you go live.
       </p> */}
+
+      {assigned.length ? (
+        <section
+          className={`log-go-card${onlineNow ? " is-online" : uiState === "on_job" ? " is-job" : " is-offline"}`}
+          aria-label="Go online"
+          data-testid="go-online-card"
+        >
+          <div className="log-go-card__text">
+            <strong className="log-go-card__title">
+              {onlineNow
+                ? "You're online"
+                : uiState === "on_job"
+                  ? "You're on a job"
+                  : "You're offline"}
+            </strong>
+            <span className="log-go-card__sub">
+              {onlineNow
+                ? checkinDue
+                  ? minsLeft > 0
+                    ? `Still online here? Confirm in the next ${minsLeft} min or you go offline.`
+                    : "Still online here? Confirm now or you go offline."
+                  : `Customers can book you. Confirm you're still here by ${untilLabel} (every ${availability.checkin_hours || 2} h).`
+                : uiState === "on_job"
+                  ? "Finish the job from My jobs. You stay visible until it's done."
+                  : availability.lapsed
+                    ? "You went offline because nobody confirmed you were still online. Ready to go?"
+                    : "Ready to go? Customers can only book you while you're online."}
+            </span>
+          </div>
+          <div className="log-go-card__actions">
+            {onlineNow ? (
+              <>
+                {checkinDue ? (
+                  <button
+                    type="button"
+                    className="logistics-cta logistics-cta--primary log-go-card__confirm"
+                    disabled={busy}
+                    onClick={confirmStillOnline}
+                  >
+                    {locating ? "Reading GPS…" : "Confirm · still here"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="logistics-cta logistics-cta--ghost log-go-card__update"
+                    disabled={busy}
+                    onClick={confirmStillOnline}
+                  >
+                    {locating ? "Reading GPS…" : "Update location"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="log-go-card__btn log-go-card__btn--off"
+                  disabled={busy}
+                  onClick={goOffline}
+                >
+                  Go offline
+                </button>
+              </>
+            ) : uiState === "on_job" ? null : (
+              <button
+                type="button"
+                className="log-go-card__btn log-go-card__btn--on"
+                disabled={busy || !usableUnits.length || !goOnlineUnitId}
+                onClick={goOnline}
+              >
+                {locating ? "Reading GPS…" : saving ? "Going online…" : "Go online"}
+              </button>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <section className="log-dash-avail-block" aria-label="Availability">
         <div className={`log-dash-avail${isLive ? " is-on" : " is-off"}`}>
@@ -588,7 +703,7 @@ function OperatorDashboard() {
                     type="button"
                     className="logistics-cta logistics-cta--primary"
                     disabled={busy || (!usableUnits.length && selectedState !== "offline")}
-                    onClick={saveStatus}
+                    onClick={() => saveStatus()}
                   >
                     {locating
                       ? "Reading GPS…"

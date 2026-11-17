@@ -68,7 +68,7 @@ export default function LogisticsUnitOperatorStep({ mode, value, onChange }) {
       <div className="log-field--full">
         <p className="log-hint" data-testid="unit-op-invite-note">
           We send the operator an invite link. When they accept, they take a live selfie and upload their driving
-          licence. Simba checks both before they can go live on this unit.
+          licence. Simba Tasker checks both before they can go live on this unit.
         </p>
       </div>
     </div>

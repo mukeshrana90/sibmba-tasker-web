@@ -98,8 +98,8 @@ export function docNeedsReplace(doc) {
 /** Chip for the Simba document check (review), or null when not checked yet / old upload. */
 export function docReviewChip(review) {
   const s = review?.status;
-  if (s === "pending") return { label: "Pending Simba check", tone: "progress" };
-  if (s === "verified") return { label: "Verified by Simba", tone: "done" };
+  if (s === "pending") return { label: "Pending Simba Tasker check", tone: "progress" };
+  if (s === "verified") return { label: "Verified by Simba Tasker", tone: "done" };
   if (s === "rejected") return { label: `Rejected${review.reason ? `: ${review.reason}` : ""}`, tone: "closed" };
   return null;
 }

@@ -506,10 +506,10 @@ export default function LogisticsFleet() {
       if (!data) return;
       setIdErrors({
         registration: data.registration_taken
-          ? "This registration plate is already on Simba"
+          ? "This registration plate is already on Simba Tasker"
           : "",
         chassis_number: data.chassis_taken
-          ? "This chassis number is already on Simba"
+          ? "This chassis number is already on Simba Tasker"
           : "",
       });
     }, 400);
@@ -973,7 +973,7 @@ export default function LogisticsFleet() {
 
           <LogisticsCategoryTiles
             value={form.category}
-            hint="One Equipment Provider account — fields below change with the category you pick."
+            hint="One Equipment Owner account — fields below change with the category you pick."
             onChange={(category) =>
               setForm((f) => ({
                 ...f,
@@ -1152,7 +1152,7 @@ export default function LogisticsFleet() {
                 Identity &amp; verification
               </p>
               <p className="log-hint log-field--full">
-                Registration plate and chassis must be unique on Simba. Plate
+                Registration plate and chassis must be unique on Simba Tasker. Plate
                 uses capital letters and numbers only.
               </p>
               <label
@@ -1332,7 +1332,7 @@ export default function LogisticsFleet() {
 
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                 Vehicle documents{" "}
-                <span className="log-sect__soft">(checked by Simba before you go live)</span>
+                <span className="log-sect__soft">(checked by Simba Tasker before you go live)</span>
               </p>
               <p className="log-hint log-field--full">
                 {cab
@@ -1445,7 +1445,7 @@ export default function LogisticsFleet() {
                 Identity &amp; verification
               </p>
               <p className="log-hint log-field--full">
-                Chassis and registration must be unique on Simba. Letters and
+                Chassis and registration must be unique on Simba Tasker. Letters and
                 numbers only (capitals).
               </p>
               <label className="log-field">
@@ -1600,7 +1600,7 @@ export default function LogisticsFleet() {
 
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                 Equipment documents{" "}
-                <span className="log-sect__soft">(checked by Simba before you go live)</span>
+                <span className="log-sect__soft">(checked by Simba Tasker before you go live)</span>
               </p>
               <p className="log-hint log-field--full">
                 Ownership, insurance and road papers support your listing and stop bogus
@@ -1638,7 +1638,7 @@ export default function LogisticsFleet() {
 
           <div className="log-callout log-field--full" style={{ marginTop: 16 }}>
             <p>
-              <strong>Equipment Provider</strong> — Logistic trucks and plant
+              <strong>Equipment Owner</strong> — Logistic trucks and plant
               share one list. Operators are assigned per asset.
             </p>
           </div>

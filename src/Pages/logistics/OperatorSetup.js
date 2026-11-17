@@ -92,7 +92,7 @@ export default function OperatorSetup() {
         setLicence(null);
       }
       const fresh = await refreshLogisticsAccount();
-      toast.success("Saved — Simba will check your selfie and licence");
+      toast.success("Saved — Simba Tasker will check your selfie and licence");
       if (!operatorNeedsSetup(fresh)) navigate("/logistics/driver", { replace: true });
     } finally {
       setSaving(false);
@@ -105,7 +105,7 @@ export default function OperatorSetup() {
         <h1 className="log-sect" style={{ marginTop: 0 }}>Finish setting up your account</h1>
         <p className="log-hint">
           Before you can go live, take a live selfie and upload your driving / plant licence. Customers see your face
-          once a job is accepted. Simba checks both.
+          once a job is accepted. Simba Tasker checks both.
         </p>
 
         <LogisticsFacePhotoField

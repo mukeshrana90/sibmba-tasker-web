@@ -1,6 +1,7 @@
-/* Stage 29 — v2.7.66 compulsory items: road units need a verified ZINARA, operators a verified face
-   photo, self-operating owners face + owner ID, equipment 1 verified document. Licence and roadworthy
-   are optional (they only warn) and keep their reminders. Own accounts; needs only state.json RUN. */
+/* Stage 29 — compulsory items: road units need a verified ZINARA, operators a verified selfie and
+   (v2.7.68, 12 Nov) a verified driving / plant licence, self-operating owners face + licence,
+   equipment 1 verified document. Roadworthy is optional (only warns) and keeps its reminders.
+   Own accounts; needs only state.json RUN. */
 const L = require("./lib");
 const F = require("./fleet-helpers");
 const DOCS = require("./docs");
@@ -31,7 +32,7 @@ const { OID } = F;
   const ownerView = async (token, id) => (await L.api("GET", `/logistics/asset/${id}`, { token }))?.data;
 
   try {
-    L.sec("29a. Truck with a verified ZINARA only is shown; operator has a verified face and no licence");
+    L.sec("29a. Truck with a verified ZINARA only is shown; operator needs face + licence (v2.7.68)");
     const owner = await F.makeOwner(mkOwnerP(0, "a"));
     const t1 = await F.makeUnit(owner, C.unit("truck", 290), { docs: { rego: 8 } });
     const doc1 = await d.collection("logistics_assets").findOne({ _id: OID(t1._id) });
@@ -40,14 +41,18 @@ const { OID } = F;
     const u1 = await d.collection("users").findOne({ _id: OID(opOk._id) }, { projection: { logistics_documents: 1, logistics_face_review: 1 } });
     L.check(!(u1?.logistics_documents || []).length && u1?.logistics_face_review?.status === "verified", "operator has no licence, verified face", { docs: u1?.logistics_documents, face: u1?.logistics_face_review?.status });
     let r = await F.goLive(opOk, t1._id);
-    L.check(r?.success !== false, "no licence + verified face → operator goes live", r);
+    L.check(r?.success === false && /licen[cs]e/i.test(r?.message || ""), "verified face but no licence → can't go live (licence compulsory)", r?.data?.code || r?.message);
+    L.check(!(await inSearch("vehicle", t1._id)), "no licence: truck hidden");
+    await L.giveOperatorLicence(owner.token, opOk._id, { holder: opOk.name, face: 1 });
+    r = await F.goLive(opOk, t1._id);
+    L.check(r?.success !== false, "verified face + verified licence → operator goes live", r);
     L.check(await inSearch("vehicle", t1._id), "truck with verified ZINARA only is listed");
     let cv = await custView(t1._id);
     L.check(cv?.bookable === true, "customer view: bookable", cv);
 
     L.sec("29b. Red-plate cab with a verified ZINARA only is shown");
     const cab = await F.makeUnit(owner, C.unit("cab", 290), { kind: "cab", docs: { rego: 8 }, body: { cab_class: "car", seats: 4, red_plate: "true" } });
-    const opCab = await F.makeOperator(owner, person("operator", 3, "cab"), { assets: [cab._id], licence: false, face: 2 });
+    const opCab = await F.makeOperator(owner, person("operator", 3, "cab"), { assets: [cab._id], face: 2 });
     r = await F.goLive(opCab, cab._id);
     L.check(r?.success !== false, "cab operator goes live with no roadworthy on the red-plate cab", r);
     L.check(await inSearch("cab", cab._id), "red-plate cab with verified ZINARA only is listed");
@@ -57,7 +62,7 @@ const { OID } = F;
     const t2 = await F.makeUnit(owner, C.unit("truck", 291), { docs: { rego: 8, roadworthy: 8 }, verify: false });
     await L.verifyDocs("asset", t2._id, { only: ["rego"] });
     await L.reviewDocs("asset", t2._id, { status: "rejected", only: ["roadworthy"], reason: "Certificate unreadable" });
-    const opR = await F.makeOperator(owner, person("operator", 4, "r"), { assets: [t2._id], licence: false, face: 3 });
+    const opR = await F.makeOperator(owner, person("operator", 4, "r"), { assets: [t2._id], face: 3 });
     r = await F.goLive(opR, t2._id);
     L.check(r?.success !== false, "operator goes live on a truck with a rejected roadworthy", r);
     L.check(await inSearch("vehicle", t2._id), "rejected roadworthy: truck still listed");
@@ -80,10 +85,11 @@ const { OID } = F;
     L.check((rw?.expiry_reminders_sent || []).length > 0, "roadworthy reminder recorded", rw?.expiry_reminders_sent);
     L.check(F.outbox(since).some((m) => /roadworthy/i.test(JSON.stringify([m.subject, m.body, m.html, m.variables]))), "roadworthy reminder sent to the owner");
 
-    L.sec("29d. Pending face photo hides the unit");
+    L.sec("29d. Pending selfie hides the unit (operator takes it, v2.7.68)");
     const t4 = await F.makeUnit(owner, C.unit("truck", 293), { docs: { rego: 8 } });
-    const opPending = await F.makeOperator(owner, person("operator", 5, "p"), { assets: [t4._id], licence: false, verify: false });
-    await L.apiForm("PATCH", `/logistics/sub-user/${opPending._id}`, { token: owner.token, files: [["profile_photo", DOCS.face(4)]] });
+    const opPending = await F.makeOperator(owner, person("operator", 5, "p"), { assets: [t4._id] });
+    const selfie = await L.apiForm("PATCH", "/logistics/me/face-photo", { token: opPending.token, files: [["face_photo", DOCS.face(4)]] });
+    L.check(selfie?.success !== false, "operator uploads a new selfie", selfie?.message);
     r = await F.goLive(opPending, t4._id);
     L.check(r?.success === false && r?.data?.code === "DOC_PENDING_CHECK" && /face photo/i.test(r?.message), "pending face: can't go live (DOC_PENDING_CHECK)", r);
     L.check(!(await inSearch("vehicle", t4._id)), "pending face: truck hidden");
@@ -95,14 +101,22 @@ const { OID } = F;
     L.check(await inSearch("vehicle", t4._id), "face verified: truck listed");
     await F.goOffline(opPending);
 
-    L.sec("29e. Owner-operator with face + owner ID operates; no licence");
+    L.sec("29e. Owner-operator: face + owner ID is not enough without a licence (v2.7.68)");
     const owner2 = await F.makeOwner(mkOwnerP(1, "b"));
     const t5 = await F.makeUnit(owner2, C.unit("truck", 294), { docs: { rego: 8 } });
     const en = await L.apiForm("POST", "/logistics/owner-operator/enable", { token: owner2.token, files: [["face_photo", DOCS.face(5)]] });
-    L.check(en?.success !== false, "owner enables operating with the face photo only", en?.message);
+    L.check(en?.success !== false, "owner enables operating with the face photo", en?.message);
     await L.api("POST", "/admin/logistics/documents/review", { token: await L.adminToken(), body: { subject: "face_photo", id: owner2._id, status: "verified" } });
-    const me2 = (await L.api("GET", "/logistics/me", { token: owner2.token }))?.data?.owner_operator;
-    L.check(me2?.can_operate === true && me2?.licence?.required === false && !me2?.blocks?.length, "/me: can_operate with face + owner ID, licence not required", me2);
+    let me2 = (await L.api("GET", "/logistics/me", { token: owner2.token }))?.data?.owner_operator;
+    L.check(me2?.can_operate !== true && me2?.licence?.required === true, "/me: face + national ID only → can't operate, licence required", { can: me2?.can_operate, licence: me2?.licence, blocks: me2?.blocks });
+    r = await L.api("POST", `/logistics/asset/${t5._id}/operate-self`, { token: owner2.token, body: { state: "available_now", lat: F.LAT, lng: F.LNG } });
+    L.check(r?.success === false, "owner can't operate without a licence", r?.data?.code || r?.message);
+    const licFile = await L.docFile("licence", { holder: owner2.name, face: DOCS.face(5), expires: DOCS.addMonths(8), kind: "vehicle" });
+    const up = await L.apiForm("POST", "/logistics/owner-operator/enable", { token: owner2.token, body: { doc_licence_expires: F.ymd(DOCS.addMonths(8)) }, files: [["doc_licence", licFile]] });
+    L.check(up?.success !== false, "owner adds a driving licence", up?.message);
+    await L.verifyDocs("operator", owner2._id).catch(() => {});
+    me2 = (await L.api("GET", "/logistics/me", { token: owner2.token }))?.data?.owner_operator;
+    L.check(me2?.can_operate === true && !me2?.blocks?.length, "/me: face + verified licence → can_operate", { can: me2?.can_operate, licence: me2?.licence, blocks: me2?.blocks });
     r = await L.api("POST", `/logistics/asset/${t5._id}/operate-self`, { token: owner2.token, body: { state: "available_now", lat: F.LAT, lng: F.LNG } });
     L.check(r?.success !== false, "owner operates his truck", r);
     L.check(await inSearch("vehicle", t5._id), "owner-operated truck listed");
@@ -111,7 +125,7 @@ const { OID } = F;
     L.sec("29f. Equipment with no verified document is hidden");
     const owner3 = await F.makeOwner(mkOwnerP(2, "c"));
     const eq = await F.makeUnit(owner3, C.unit("jcb", 295), { kind: "equipment", verify: false });
-    const opE = await F.makeOperator(owner3, person("operator", 6, "e"), { assets: [eq._id], licence: false, face: 2 });
+    const opE = await F.makeOperator(owner3, person("operator", 6, "e"), { assets: [eq._id], face: 2, licence: true });
     await F.goLive(opE, eq._id);
     L.check(!(await inSearch("equipment", eq._id)), "equipment with no verified document is hidden");
     await L.verifyDocs("asset", eq._id);

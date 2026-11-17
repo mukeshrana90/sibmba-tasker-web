@@ -103,7 +103,9 @@ async function pendingRow(o, email) {
       });
       L.check(early?.data?.code === "ZINARA_REQUIRED", "API: pending company isn't locked out of adding a truck (only the ZINARA rule applies)", early);
       const earlyInv = await L.api("POST", "/logistics/sub-user", { token: ownerTok, body: { email: `early.${opP.email}`, send_via: ["email"] } });
-      L.check(earlyInv?.data?.code === "PHOTO_REQUIRED", "API: pending company isn't locked out of inviting (only the face photo rule applies)", earlyInv);
+      // v2.7.68: no face photo on invites, so the invite simply goes out
+      L.check(earlyInv?.success !== false, "API: pending company isn't locked out of inviting", earlyInv?.message);
+      await d.collection("logistics_invites").deleteMany({ email: `early.${opP.email}` }); // keep the seat free
       await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
       L.check(!(await o.page.locator('.log-locked-add[data-locked="equipment"]').count()), "Add truck page is open while pending");
       await L.goto(o, "/logistics/owner/operators/add", "form");
@@ -117,7 +119,7 @@ async function pendingRow(o, email) {
     const truckName = tip.name;
     const plate = tip.plate;
     await o.page.fill('input[placeholder="Truck 1"]', truckName);
-    await o.page.fill('input[placeholder="AEB1234"]', plate);
+    await o.page.fill('input[placeholder="e.g. AEB 1234"]', plate);
     await o.page.fill('input[placeholder="15"]', tip.capacity).catch(() => {});
     await o.page.fill('input[placeholder="Isuzu"]', tip.make).catch(() => {});
     await o.page.fill('input[placeholder="FVZ"]', tip.model).catch(() => {});
@@ -179,7 +181,6 @@ async function pendingRow(o, email) {
     await med.locator('input[type="file"]').setInputFiles(medFile);
     await L.pickDate(o.page, med.locator(".log-doc-row__expiry input"), 6);
     await o.page.locator(".log-asset-pick__list li").filter({ hasText: truckName }).locator('input[type="checkbox"]').check();
-    await L.addFacePhoto(o.page, 4);
     // v2.7.61: invites are essential → WhatsApp works on Free
     const waOpt = o.page.locator('.log-invite-via__opt[data-channel="whatsapp"]');
     L.check(!(await waOpt.locator("input").isDisabled()) && !/Paid plans only/i.test(await waOpt.innerText()), "Free plan: WhatsApp invite option available");
@@ -229,6 +230,9 @@ async function pendingRow(o, email) {
     await op.page.locator('button[type="submit"]').click();
     await op.page.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" });
     L.check(await L.waitText(op, /Account activated/), "activated → operator dashboard, 'Account activated'");
+    // v2.7.68: first screen is the operator's own selfie (the owner already sent the licence)
+    await op.page.waitForURL(/\/logistics\/driver\/setup/, { timeout: 15000 }).then(() => L.check(true, "first screen: selfie setup")).catch(() => L.check(false, "first screen: selfie setup", op.page.url()));
+    await L.completeOperatorSetup(op.page, { holder: opName, face: 4, licence: false });
 
     L.sec("10g. Operator first login: profile, unit, documents, access");
     const opUser = await d.collection("users").findOne({ email: opEmail });
@@ -300,13 +304,11 @@ async function pendingRow(o, email) {
     L.sec("10j. Duplicate email, expired invite (seat freed), cancel");
     await L.goto(o, "/logistics/owner/operators/add", "form");
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
-    await L.addFacePhoto(o.page, 4);
     await o.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /already|exists|registered/i), "inviting an existing operator's email is refused", (await L.bodyText(o)).match(/[^.]*(already|exist)[^.]*/i)?.[0]);
     const op2Email = op2P.email;
     await L.goto(o, "/logistics/owner/operators/add", "form");
     await o.page.fill('input[placeholder="name@example.com"]', op2Email);
-    await L.addFacePhoto(o.page, 6);
     t0 = now();
     await o.page.locator('form button[type="submit"]').last().click();
     const [m2] = await waitMsg(t0, (r) => r.channel === "email" && r.to === op2Email);

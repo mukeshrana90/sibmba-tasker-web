@@ -306,6 +306,29 @@ async function addFacePhoto(page, i = 1) {
   await page.locator('[data-testid="face-camera-use"]').waitFor({ state: "detached", timeout: 10000 });
 }
 
+/**
+ * 12 Nov 2026 (v2.7.68): an invited operator's first screen (/logistics/driver/setup) needs a live
+ * selfie and their driving / plant licence. Fills it through the UI and saves.
+ */
+async function completeOperatorSetup(page, { holder = "Operator", face = 2, kind = "vehicle", monthsAhead = 8, licence = true } = {}) {
+  const root = page.locator('[data-testid="operator-setup"]');
+  await root.waitFor({ timeout: 20000 });
+  const src = `data:image/jpeg;base64,${fs.readFileSync(DOCS.face(face)).toString("base64")}`;
+  await page.evaluate((s) => { window.__e2eFaceSrc = s; }, src);
+  await root.locator('[data-testid="face-photo-take"]').first().click();
+  await page.locator('[data-testid="face-camera-capture"]:not([disabled])').click({ timeout: 15000 });
+  await page.locator('[data-testid="face-camera-use"]').click();
+  await page.locator('[data-testid="face-camera-use"]').waitFor({ state: "detached", timeout: 10000 });
+  // licence: false — the owner already sent it with the invite, so only the selfie is due
+  if (licence) {
+    const file = await DOCS.docFor("licence", { holder, face: DOCS.face(face), expires: DOCS.addMonths(monthsAhead), kind });
+    await root.locator('.log-doc-row__add input[type="file"]').first().setInputFiles(file);
+    await pickDate(page, root.locator(".log-doc-row__expiry input").first(), monthsAhead);
+  }
+  await root.locator('[data-testid="operator-setup-save"]').click();
+  await page.waitForURL((u) => !/\/setup/.test(new URL(u).pathname), { timeout: 20000 });
+}
+
 /** Cast for the current run (state.json RUN). */
 function cast(RUN) {
   return castFor(RUN || loadState().RUN || "run");
@@ -331,7 +354,9 @@ async function typePhone(locator, cc, number) {
   const box = locator.locator("xpath=ancestor::*[contains(@class,'react-international-phone-input-container')][1]");
   if (iso && (await box.count())) {
     await box.locator(".react-international-phone-country-selector-button").first().click();
-    const item = box.page().locator(`.react-international-phone-country-selector-dropdown li[data-country="${iso}"]`).first();
+    // the list of THIS field (a page can hold several phone inputs, e.g. /edit-profile)
+    const sel = `.react-international-phone-country-selector-dropdown li[data-country="${iso}"]`;
+    const item = (await box.locator(sel).count()) ? box.locator(sel).first() : box.page().locator(sel).first();
     await item.scrollIntoViewIfNeeded().catch(() => {});
     await item.click();
   }
@@ -421,11 +446,13 @@ function docExpiryYmd(years = 3) {
   return new Date(Date.now() + years * 365 * 864e5).toISOString().slice(0, 10);
 }
 
-async function fillSignupBusinessDocs(page, person, { tax = true, face = 5, taxExpiry = true } = {}) {
+async function fillSignupBusinessDocs(page, person, { tax = true, face = 5, taxExpiry = true, ownerType = "company" } = {}) {
   const f = await businessDocFiles(person, face);
   // 30 Oct 2026: documents live on sign-up step 2 — open it (step 1 must be filled)
   const next = page.locator(".signup-step-next");
   if (await next.isVisible().catch(() => false)) await next.click();
+  // 12 Nov 2026: "I'm registering as" Individual / Company is required once documents are attached
+  if (ownerType) await page.locator(`input[name="logistics_owner_type"][value="${ownerType}"]`).check({ force: true }).catch(() => {});
   await page.locator("#biz-business_registration").setInputFiles(f.business_registration);
   await page.locator("#biz-owner_id").setInputFiles(f.owner_id);
   await page.locator('input[name="owner_id_expires"]').fill(docExpiryYmd());
@@ -700,4 +727,4 @@ async function done() {
   if (fail.length) process.exitCode = 1;
 }
 
-module.exports = { verifyFace, ensureRoadworthy, docExpiryYmd, fillSignupBusinessDocs, makeFleetReady, businessDocFiles, reviewDocs, verifyDocs, giveOperatorLicence, HOME, PLACES: castFor.PLACES, cast, docFile, typePhone, castPersonFor, closeDocs: DOCS.close, docRow, fillGoods, photoFixtures, addUnitPhotos, addFacePhoto, apiForm, setPlan, restartFreePeriod, adminToken, approveOwner, WEB, API, HARARE, sec, check, actor, shot, seedAuth, goto, tokenFor, api, db, bodyText, waitText, done, pickDate, pickLocation, typeMoney, postTransportJob, vehicleSelect, setInviteVia, makeCustomer, loadState, saveState, mongoose, results };
+module.exports = { completeOperatorSetup, verifyFace, ensureRoadworthy, docExpiryYmd, fillSignupBusinessDocs, makeFleetReady, businessDocFiles, reviewDocs, verifyDocs, giveOperatorLicence, HOME, PLACES: castFor.PLACES, cast, docFile, typePhone, castPersonFor, closeDocs: DOCS.close, docRow, fillGoods, photoFixtures, addUnitPhotos, addFacePhoto, apiForm, setPlan, restartFreePeriod, adminToken, approveOwner, WEB, API, HARARE, sec, check, actor, shot, seedAuth, goto, tokenFor, api, db, bodyText, waitText, done, pickDate, pickLocation, typeMoney, postTransportJob, vehicleSelect, setInviteVia, makeCustomer, loadState, saveState, mongoose, results };

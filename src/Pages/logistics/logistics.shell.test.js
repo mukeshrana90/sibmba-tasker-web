@@ -126,13 +126,13 @@ describe("logistics web shell source contracts", () => {
     }
   });
 
-  it("SignUp puts Equipment Owner first and uses logistics auth for role 4", () => {
+  it("SignUp puts Need a Service first, then Equipment Owner, and uses logistics auth for role 4", () => {
     const src = read("Pages/SignUp.js");
     const optionsIdx = src.indexOf("ROLE_OPTIONS");
     const logisticsIdx = src.indexOf("Equipment Owner", optionsIdx);
     const customerIdx = src.indexOf("Need a Service", optionsIdx);
-    expect(logisticsIdx).toBeGreaterThan(-1);
-    expect(customerIdx).toBeGreaterThan(logisticsIdx);
+    expect(customerIdx).toBeGreaterThan(-1);
+    expect(logisticsIdx).toBeGreaterThan(customerIdx);
     expect(src).toContain("Sign up as Equipment Owner");
     expect(src).toContain("brand-module");
     expect(src).toContain("LogisticsActions.register");

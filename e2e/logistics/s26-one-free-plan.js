@@ -26,7 +26,7 @@ const { OID } = F;
     L.check(s?.whatsapp?.extras_active === false && s?.whatsapp?.trial_status === "not_started", "no extras before approval", s?.whatsapp);
     const a = await A("owner-26", o);
     await L.goto(a, "/logistics/owner/subscription", '[data-testid="free-period-status"]');
-    L.check(/starting the day Simba approves/.test(await status(a)), "page: starts on approval", await status(a));
+    L.check(/starting the day Simba Tasker approves/.test(await status(a)), "page: starts on approval", await status(a));
     await L.shot(a, "s26-before-approval");
 
     L.sec("26b. Approved: Paid benefits, still called Free");

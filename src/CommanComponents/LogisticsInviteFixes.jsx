@@ -15,7 +15,7 @@ export default function LogisticsInviteFixes({ invite, onSaved }) {
     formData.append("profile_photo", file);
     const res = await dispatch(LogisticsActions.patchInvite({ id: invite._id, formData }));
     if (res?.payload?.success) {
-      toast.success("Photo updated — Simba will check it");
+      toast.success("Photo updated — Simba Tasker will check it");
       onSaved?.();
     } else {
       toast.error(res?.payload?.message || "Could not save the photo");

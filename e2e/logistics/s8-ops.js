@@ -103,34 +103,34 @@ async function accept(c, jobId, amt) {
       L.check(s.some((x) => Number(x.status) === 2), "a stop advanced to Collect from multi-transit", s.map((x) => x.status));
     } else L.check(false, "Start collect button present");
 
-    L.sec("8e. v2.7.66: expired licence only warns; a rejected face photo blocks going live");
+    L.sec("8e. v2.7.68: an expired licence or a rejected selfie sends the operator back to setup; can't go live");
     const u = await d.collection("users").findOne({ _id: OID(st.operator._id) });
     const prevDocs = u.logistics_documents || [];
     const prevFace = u.logistics_face_review;
-    await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: [...prevDocs.filter((x) => x.type !== "licence"), { type: "licence", name: "driving-licence.jpg", url: "/x.jpg", expires: new Date(Date.now() - 5 * 86400000) }] } });
-    const setStatusUi = async (v) => {
-      await L.goto(op, "/logistics/driver", ".log-dash-avail-controls");
-      await op.page.waitForSelector(".log-dash-avail-controls select");
-      await op.page.locator('select[aria-label="Set status"]').selectOption(v);
-      await op.page.getByRole("button", { name: "Update status" }).click();
-      await op.page.waitForTimeout(2000);
-    };
+    const [lng, lat] = L.PLACES.coords.harare;
+    const goLiveApi = () => L.api("PATCH", "/logistics/me/availability", { token: st.operator.token, body: { state: "available_now", asset_id: st.truck._id, lat, lng } });
     const state = async () => (await d.collection("users").findOne({ _id: u._id }, { projection: { logistics_availability: 1 } }))?.logistics_availability?.state;
     try {
-      await setStatusUi("offline");
-      await setStatusUi("available_now");
-      L.check((await state()) === "available_now", "expired licence: operator still goes live (optional document)", await state());
+      await L.api("PATCH", "/logistics/me/availability", { token: st.operator.token, body: { state: "offline" } });
+      const lic = prevDocs.find((x) => x.type === "licence") || { type: "licence", name: "driving-licence.jpg", url: "/x.jpg" };
+      await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: [...prevDocs.filter((x) => x.type !== "licence"), { ...lic, expires: new Date(Date.now() - 5 * 86400000) }] } });
+      await L.goto(op, "/logistics/driver");
+      await op.page.waitForURL(/\/logistics\/driver\/setup/, { timeout: 15000 }).catch(() => {});
+      L.check(/\/logistics\/driver\/setup/.test(op.page.url()), "expired licence: operator is sent to the setup screen", op.page.url());
       await L.shot(op, "s8-licence-expired");
-      await setStatusUi("offline");
-      await d.collection("users").updateOne({ _id: u._id }, { $set: { "logistics_face_review.status": "rejected", "logistics_face_review.reason": "Blurry photo" } });
-      await L.goto(op, "/logistics/driver", ".log-dash-avail-controls");
-      await op.page.waitForSelector(".log-dash-avail-controls select");
-      await op.page.locator('select[aria-label="Set status"]').selectOption("available_now");
-      await op.page.getByRole("button", { name: "Update status" }).click();
-      const blocked = await L.waitText(op, /face photo/i, 8000);
-      L.check(blocked, "rejected face photo: going live blocked with a face-photo message", (await L.bodyText(op)).match(/[^.]*face[^.]*/i)?.[0]);
-      L.check((await state()) !== "available_now", "operator isn't live while the face photo is rejected", await state());
+      let r = await goLiveApi();
+      L.check(r?.success === false, "expired licence: going live refused", r?.data?.code || r?.message);
+      L.check((await state()) !== "available_now", "operator isn't live with an expired licence", await state());
+
+      await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: prevDocs, "logistics_face_review.status": "rejected", "logistics_face_review.reason": "Blurry photo" } });
+      await L.goto(op, "/logistics/driver");
+      await op.page.waitForURL(/\/logistics\/driver\/setup/, { timeout: 15000 }).catch(() => {});
+      L.check(/\/logistics\/driver\/setup/.test(op.page.url()), "rejected selfie: operator is sent to the setup screen", op.page.url());
+      L.check(/Blurry photo/.test(await L.bodyText(op)), "setup screen shows Simba's reason", (await L.bodyText(op)).slice(0, 200));
       await L.shot(op, "s8-face-rejected");
+      r = await goLiveApi();
+      L.check(r?.success === false, "rejected selfie: going live refused", r?.data?.code || r?.message);
+      L.check((await state()) !== "available_now", "operator isn't live while the selfie is rejected", await state());
     } finally {
       await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: prevDocs, logistics_face_review: prevFace } });
     }

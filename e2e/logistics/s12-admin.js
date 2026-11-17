@@ -221,11 +221,11 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     al = await db.collection("logistics_sos_alerts").findOne({ _id: new L.mongoose.Types.ObjectId(String(alertId)) });
     L.check(al?.status === "resolved" && al?.resolved_by_role === "admin" && al?.resolve_note === "Operator safe, tyre changed with help from the ZRP traffic section at Chitungwiza.", "alert resolved by admin with note");
     m = (await a.page.locator(".modal.show").innerText()).replace(/\s+/g, " ");
-    L.check(/Resolved/.test(m) && /Simba admin/.test(m), "detail now says resolved by Simba admin");
+    L.check(/Resolved/.test(m) && /Simba Tasker admin/.test(m), "detail now says resolved by Simba admin");
     await L.shot(a, "s12-sos-resolved");
     await a.page.locator(".modal.show button", { hasText: "Close" }).click();
     const upd = await db.collection(" notifications").find({ receiver_id: new L.mongoose.Types.ObjectId(String(st.operator._id)), type: "LOGISTICS_SOS_UPDATE" }).sort({ _id: -1 }).limit(2).toArray();
-    L.check(upd.some((x) => x._id.getTimestamp() >= new Date(n0 - 2000) && /Simba admin/.test(x.message || "")), "operator told 'Simba admin …' in-app");
+    L.check(upd.some((x) => x._id.getTimestamp() >= new Date(n0 - 2000) && /Simba Tasker admin/.test(x.message || "")), "operator told 'Simba admin …' in-app");
 
     L.sec("12.3c Simba Tasker → SOS Management = Helpline Numbers (Add Number's / Remove)");
     await withModule("tasker");
@@ -723,7 +723,7 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     await a.page.locator('select[name="userType"]').selectOption("operators");
     await a.page.locator('input[name="title"]').fill(title);
     await a.page.locator('textarea[name="description"]').fill("Loading bays at Industrial Area Phase 1 & 2 close at 6 pm from 30 Oct to 3 Nov. Plan pickups before noon. Happy Diwali!");
-    L.check(new RegExp(`Simba Logistics: ${esc(title)}`).test(await L.bodyText(a)), "form shows how users will see the title");
+    L.check(new RegExp(`Simba Tasker Logistics: ${esc(title)}`).test(await L.bodyText(a)), "form shows how users will see the title");
     await a.page.locator("button", { hasText: /^CREATE$/i }).click();
     L.check(await L.waitText(a, new RegExp(`Notification sent to ${expect.operators} user`), 10000), `toast: sent to ${expect.operators} operators`);
     await a.page.waitForURL(/\/Notification$/, { timeout: 8000 }).catch(() => {});
@@ -735,9 +735,9 @@ const LEAK_RE = /"(otp|email_otp|phone_otp|whatsapp_otp|password|device_token)"\
     const rec = await db.collection("admin_notifications").findOne({ title, module: "logistics" });
     await new Promise((r) => setTimeout(r, 2500));
     const sentRows = await db.collection(" notifications").find({ "meta.announcement_id": String(rec?._id) }).toArray();
-    L.check(sentRows.length === expect.operators && sentRows.every((n) => n.title === `Simba Logistics: ${title}` && n.type === "LOGISTICS_ADMIN_ANNOUNCEMENT"), `${sentRows.length} in-app notifications titled "Simba Logistics: …"`);
+    L.check(sentRows.length === expect.operators && sentRows.every((n) => n.title === `Simba Tasker Logistics: ${title}` && n.type === "LOGISTICS_ADMIN_ANNOUNCEMENT"), `${sentRows.length} in-app notifications titled "Simba Logistics: …"`);
     const opList = await L.api("GET", "/customer/Notificationlist_user", { token: tok(st.operator) });
-    L.check(JSON.stringify(opList).includes(`Simba Logistics: ${title}`), "operator sees it in their notifications");
+    L.check(JSON.stringify(opList).includes(`Simba Tasker Logistics: ${title}`), "operator sees it in their notifications");
     const custList = await L.api("GET", "/customer/Notificationlist_user", { token: tok(st.customer) });
     L.check(!JSON.stringify(custList).includes(title), "customers don't get an operators-only notice");
 

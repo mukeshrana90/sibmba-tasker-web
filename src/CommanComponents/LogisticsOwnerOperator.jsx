@@ -36,7 +36,7 @@ export function ownerOperatorStatusText(op) {
   const codes = blocks.map((b) => String(b.code || ""));
   const toUpload = codes.filter((c) => /_(MISSING|REJECTED|EXPIRED)$/.test(c) || c === "NOT_ENABLED");
   if (!toUpload.length && codes.every((c) => /_PENDING$/.test(c) || c === "COMPANY_NOT_APPROVED")) {
-    return "Everything is uploaded. Simba is checking it — you can go live once it's verified.";
+    return "Everything is uploaded. Simba Tasker is checking it — you can go live once it's verified.";
   }
   return "To go live yourself you need a verified face photo, owner ID and driving / plant licence. Still to do:";
 }
@@ -110,7 +110,7 @@ export function OwnerOperatorSetup({ onSaved }) {
         toast.error(apiErrorMessage(res?.payload, "Could not save your documents"));
         return;
       }
-      toast.success("Saved — Simba will check your documents");
+      toast.success("Saved — Simba Tasker will check your documents");
       setLicence(null);
       setFace(null);
       setFacePreview("");
@@ -153,7 +153,7 @@ export function OwnerOperatorSetup({ onSaved }) {
       ) : null}
       {licenceFromOwnerId ? (
         <p className="log-hint" data-testid="owner-licence-from-id">
-          We&apos;ll use the driving licence you added as your owner ID{op.licence.status === "verified" ? "." : ". Simba is checking it."}
+          We&apos;ll use the driving licence you added as your owner ID{op.licence.status === "verified" ? "." : ". Simba Tasker is checking it."}
         </p>
       ) : (
       <LogisticsOperatorDocRows
@@ -174,7 +174,7 @@ export function OwnerOperatorSetup({ onSaved }) {
       />
       )}
       {licenceChip && op?.licence?.status === "rejected" ? (
-        <p className="log-field-error">Upload a new licence so Simba can check it again.</p>
+        <p className="log-field-error">Upload a new licence so Simba Tasker can check it again.</p>
       ) : null}
       <button
         type="button"
@@ -203,7 +203,7 @@ export function OwnerOperatorCard() {
           <Link to="/logistics/driver">open your operator dashboard</Link>.
         </p>
       ) : (
-        <p className="log-hint">You can go live after Simba verifies your face photo, owner ID and driving / plant licence.</p>
+        <p className="log-hint">You can go live after Simba Tasker verifies your face photo, owner ID and driving / plant licence.</p>
       )}
       <OwnerOperatorSetup />
     </section>
@@ -229,7 +229,7 @@ export function WhoOperatesField({ value, onChange }) {
           <input type="radio" name="operated_by" value="invite" checked={value === "invite"} onChange={() => onChange("invite")} />
           <span>
             <b>Invite a new operator</b>
-            <small>Add them here. Simba checks them with this unit.</small>
+            <small>Add them here. Simba Tasker checks them with this unit.</small>
           </span>
         </label>
         <label className={`log-who-operates__opt${value === "existing" ? " is-selected" : ""}`} data-testid="operated-by-existing">
@@ -253,7 +253,7 @@ export function WhoOperatesField({ value, onChange }) {
         ) : (
           <>
             <p className="log-hint">
-              Do this once. Simba checks your face photo, owner ID and driving / plant licence before you can go live.
+              Do this once. Simba Tasker checks your face photo, owner ID and driving / plant licence before you can go live.
             </p>
             <OwnerOperatorSetup />
           </>
@@ -362,6 +362,21 @@ export function UnitOperateControl({ asset, onChanged, compact = false }) {
     body = (
       <>
         <span className="log-chip log-chip--active" data-testid="unit-owner-operating">You are operating this</span>
+        {/* v2.7.71 (client test B4): being online lasts until the next check-in */}
+        {op?.available_until && occ.reason !== "on_job" ? (
+          <button
+            type="button"
+            className="logistics-cta logistics-cta--ghost"
+            data-testid="unit-confirm-online"
+            disabled={busy}
+            onClick={claim}
+            title="Confirm you're still here with this unit"
+          >
+            {busy
+              ? "Saving…"
+              : `Still here? Confirm (online until ${new Date(op.available_until).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`}
+          </button>
+        ) : null}
         {jobLink}
         <Link className="log-unit-op__job" data-testid="open-operator-dashboard" to="/logistics/driver">
           Open dashboard

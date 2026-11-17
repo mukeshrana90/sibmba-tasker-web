@@ -1529,7 +1529,7 @@ export function LogisticsJobDetail() {
         {jobAccepted && jobStatus <= 4 ? (
           <LogisticsSosJobBar jobId={job._id} jobRef={job.job_number}>
             Feel unsafe on this {cabRide ? "ride" : "job"}? Hold SOS to alert the
-            fleet owner, Simba and your emergency contacts.
+            fleet owner, Simba Tasker and your emergency contacts.
           </LogisticsSosJobBar>
         ) : null}
         {jobAccepted && jobStatus <= 4 ? <LogisticsSosContactsPrompt /> : null}
@@ -1578,7 +1578,7 @@ export function LogisticsJobDetail() {
           <div className="log-job-report">
             <h2 className="log-sect">Report an issue</h2>
             <p className="log-op-lead">
-              Tell the fleet owner (and Simba admin) about anything that went
+              Tell the fleet owner (and Simba Tasker admin) about anything that went
               wrong — behaviour, charges, equipment, mishandling, or any other
               concern. You can mark it resolved when it is fixed.
             </p>

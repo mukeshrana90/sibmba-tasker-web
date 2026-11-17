@@ -212,7 +212,7 @@ export default function LandingGuestHeader() {
                   </svg>
                 </span>
                 <span className="landing-join-txt">
-                  <b>Join as Equipment Provider</b>
+                  <b>Join as Equipment Owner</b>
                   <small>List trucks &amp; equipment and get hire jobs</small>
                 </span>
               </button>
@@ -317,7 +317,7 @@ export default function LandingGuestHeader() {
                 navigate("/sign-up?role=4");
               }}
             >
-              Join as Equipment Provider
+              Join as Equipment Owner
             </button>
             <button
               type="button"

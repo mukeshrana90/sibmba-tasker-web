@@ -9404,8 +9404,8 @@ footer .logo{color:#fff;margin-bottom:16px}
     grid-template-columns:minmax(260px,340px) 1fr;
     gap:24px;
     align-items:stretch;
-    height:calc(100dvh - 250px);
-    max-height:calc(100vh - 250px);
+    height:calc(100dvh - var(--msg-top, 250px) - var(--msg-gap, 24px));
+    max-height:calc(100vh - var(--msg-top, 250px) - var(--msg-gap, 24px));
     min-height:360px;
   }
   .message-chat-list,.message-chat-box{
@@ -9503,8 +9503,8 @@ footer .logo{color:#fff;margin-bottom:16px}
   @media(max-width:900px){
     .message-chat-contain{
       grid-template-columns:1fr;
-      height:calc(100dvh - 220px);
-      max-height:calc(100vh - 220px);
+      height:calc(100dvh - var(--msg-top, 220px) - var(--msg-gap, 16px));
+      max-height:calc(100vh - var(--msg-top, 220px) - var(--msg-gap, 16px));
       min-height:320px;
     }
     .message-chat-list,.message-chat-box{height:100%;max-height:100%;min-height:0}
@@ -9517,8 +9517,8 @@ footer .logo{color:#fff;margin-bottom:16px}
     .page{padding:16px 0 28px}
     .messages-page-head{margin-bottom:14px}
     .message-chat-contain{
-      height:calc(100dvh - 190px);
-      max-height:calc(100vh - 190px);
+      height:calc(100dvh - var(--msg-top, 190px) - var(--msg-gap, 12px));
+      max-height:calc(100vh - var(--msg-top, 190px) - var(--msg-gap, 12px));
       min-height:280px;
       gap:16px;
     }

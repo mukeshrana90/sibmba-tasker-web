@@ -764,7 +764,7 @@ export default function LogisticsOperatorJob() {
       loc = await confirmQuoteLocation();
     }
     if (!loc) {
-      toast.error("Allow location access to send a quote — Simba checks where you are before you quote");
+      toast.error("Allow location access to send a quote — Simba Tasker checks where you are before you quote");
       return;
     }
     setSubmitting(true);
@@ -1374,7 +1374,7 @@ export default function LogisticsOperatorJob() {
         {canRun && status <= 4 ? (
           <LogisticsSosJobBar jobId={job._id} jobRef={job.job_number}>
             In danger or had an incident? Hold SOS to alert your fleet owner,
-            Simba and your emergency contacts. The customer on this job is not
+            Simba Tasker and your emergency contacts. The customer on this job is not
             told.
           </LogisticsSosJobBar>
         ) : null}

@@ -349,10 +349,10 @@ export default function LogisticsOwnerAsset() {
       if (!data) return;
       setIdErrors({
         registration: data.registration_taken
-          ? "This registration plate is already on Simba"
+          ? "This registration plate is already on Simba Tasker"
           : "",
         chassis_number: data.chassis_taken
-          ? "This chassis number is already on Simba"
+          ? "This chassis number is already on Simba Tasker"
           : "",
       });
     }, 400);
@@ -626,7 +626,7 @@ export default function LogisticsOwnerAsset() {
       toast.error(apiErrorMessage(res?.payload, "Could not replace the document"));
       return false;
     }
-    toast.success("Document replaced — Simba will check it");
+    toast.success("Document replaced — Simba Tasker will check it");
     await load();
     return true;
   };
@@ -847,7 +847,7 @@ export default function LogisticsOwnerAsset() {
             ) : docCompliance?.block?.code === "DOC_PENDING_CHECK" ? (
               <div className="log-callout log-callout--warn log-doc-pending" style={{ marginBottom: 16 }}>
                 <p>
-                  <strong>Awaiting Simba&apos;s document check — the unit is shown to customers once verified.</strong>{" "}
+                  <strong>Awaiting Simba Tasker&apos;s document check — the unit is shown to customers once verified.</strong>{" "}
                   {docCompliance.block.message}
                 </p>
               </div>
@@ -1409,7 +1409,7 @@ export default function LogisticsOwnerAsset() {
                   <div className="log-callout log-callout--warn" data-testid="photos-rejected" style={{ marginBottom: 12 }}>
                     <p>
                       <strong>
-                        Simba rejected {rejectedPhotos.length} photo{rejectedPhotos.length === 1 ? "" : "s"}.
+                        Simba Tasker rejected {rejectedPhotos.length} photo{rejectedPhotos.length === 1 ? "" : "s"}.
                       </strong>{" "}
                       {rejectedPhotos[0].reason ? `${rejectedPhotos[0].reason}. ` : ""}
                       Customers don&apos;t see rejected photos. Use Edit to add a new one.

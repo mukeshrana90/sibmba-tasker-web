@@ -34,14 +34,22 @@ const base = (u) => path.basename(String(u || "")).split("?")[0];
     await page.locator('[data-testid="face-camera-preview"]').waitFor({ timeout: 10000 });
   };
 
+  // v2.7.68: the owner never takes an operator's face; the camera field lives in the owner's own
+  // "I operate it myself" setup (Add unit) and in the operator's setup screen
+  const openFaceField = async (page) => {
+    await page.goto(`${L.WEB}/logistics/owner/fleet/add`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-testid="operated-by-self"]').click({ timeout: 15000 });
+    await page.waitForSelector('[data-testid="owner-operator-setup"] [data-field="profile_photo"]', { timeout: 10000 });
+  };
+
   try {
-    L.sec("35a. Chrome's fake camera, no file input (operator invite)");
+    L.sec("35a. Chrome's fake camera, no file input (owner's own face on Add unit)");
     const owner = await F.makeOwner(pOwner);
     const truck = await F.makeUnit(owner, C.unit("truck", 350), { docs: { rego: 8 } });
     const o = await A("owner", {});
     await L.seedAuth(o, { token: owner.token, user: owner });
-    await L.goto(o, "/logistics/owner/operators/add", "form");
-    L.check((await o.page.locator('[data-field="profile_photo"] input[type="file"]').count()) === 0, "operator form: no file input on the face field");
+    await openFaceField(o.page);
+    L.check((await o.page.locator('[data-field="profile_photo"] input[type="file"]').count()) === 0, "face field: no file input");
     await capture(o.page, { real: true });
     L.check(await o.page.locator('[data-testid="face-camera-retake"]').isVisible(), "preview shows Retake");
     await o.page.locator('[data-testid="face-camera-retake"]').click();
@@ -57,7 +65,7 @@ const base = (u) => path.basename(String(u || "")).split("?")[0];
       ["NotAllowedError", /Camera access is blocked/],
       ["NotReadableError", /used by another app/],
     ];
-    await L.goto(o, "/logistics/owner/operators/add", "form");
+    await openFaceField(o.page);
     for (const [name, msg] of errors) {
       await o.page.evaluate((n) => { window.__e2eRealCamera = false; window.__e2eCameraError = n; }, name);
       await o.page.locator('[data-testid="face-photo-take"]').first().click();
@@ -73,21 +81,20 @@ const base = (u) => path.basename(String(u || "")).split("?")[0];
       await o.page.waitForTimeout(400);
     }
 
-    L.sec("35c. Owner takes the face when adding an operator; can replace it before acceptance");
+    L.sec("35c. v2.7.68: no face on the invite form; an older client's invite photo still works");
     await L.goto(o, "/logistics/owner/operators/add", "form");
     await o.page.fill('input[placeholder="Full name"]', pOp.name);
     await o.page.fill('input[placeholder="name@example.com"]', pOp.email);
     const pick = o.page.locator(".log-asset-pick__list li").filter({ hasText: C.unit("truck", 350).name });
     await pick.locator('input[type="checkbox"]').check();
-    await L.addFacePhoto(o.page, 2);
+    L.check(!(await o.page.locator('form [data-field="profile_photo"]').count()), "invite form has no face photo field");
     await o.page.locator('form button[type="submit"]').last().click();
-    L.check(await L.waitText(o, /Invite (sent|created)/), "invite sent with the face photo");
+    L.check(await L.waitText(o, /Invite (sent|created)/), "invite sent without a face photo");
     const inv = await d.collection("logistics_invites").findOne({ email: pOp.email });
-    L.check(!!inv?.profile_image && inv?.face_review?.status === "pending", "invite has the face, Pending", inv?.face_review);
-    const before = inv.profile_image;
+    L.check(!!inv && !inv.profile_image, "invite has no face", inv?.profile_image);
     const re = await L.apiForm("PATCH", `/logistics/invite/${inv._id}`, { token: owner.token, files: [["profile_photo", DOCS.face(1)]] });
     const inv2 = await d.collection("logistics_invites").findOne({ _id: inv._id });
-    L.check(re?.success !== false && inv2.profile_image !== before && inv2.face_review?.status === "pending", "before acceptance: owner can replace the face", re?.message);
+    L.check(re?.success !== false && !!inv2.profile_image && inv2.face_review?.status === "pending", "older client: a photo sent with the invite is kept, Pending", re?.message);
 
     L.sec("35d. After acceptance only the operator can change it");
     const op = await A("operator", {});
@@ -96,6 +103,8 @@ const base = (u) => path.basename(String(u || "")).split("?")[0];
     await op.page.fill("#invite-password-confirm", "Passw0rd!");
     await op.page.locator('button[type="submit"]').click();
     await op.page.waitForURL(/\/logistics\/driver/, { timeout: 20000, waitUntil: "commit" }).catch(() => {});
+    // v2.7.68 first screen: selfie + licence
+    await L.completeOperatorSetup(op.page, { holder: pOp.name, face: 2 });
     const opU = await d.collection("users").findOne({ email: pOp.email });
     L.check(!!opU?.owner_id, "operator accepted", opU?.owner_id);
     const opTok = L.tokenFor(opU._id);
@@ -115,7 +124,7 @@ const base = (u) => path.basename(String(u || "")).split("?")[0];
     await op.page.locator('[data-testid="operator-face-update"]').click();
     await op.page.locator('[data-testid="face-camera-capture"]:not([disabled])').click({ timeout: 15000 });
     await op.page.locator('[data-testid="face-camera-use"]').click();
-    L.check(await L.waitText(op, /Simba will check your photo/, 15000), "operator: saved toast");
+    L.check(await L.waitText(op, /Simba Tasker will check your photo/, 15000), "operator: saved toast");
     await op.page.waitForTimeout(1500);
     let face = (await me(opTok))?.user?.operator_face || (await me(opTok))?.operator_face;
     L.check(face?.status === "pending", "/me operator_face back to Pending", face);
@@ -131,9 +140,13 @@ const base = (u) => path.basename(String(u || "")).split("?")[0];
     L.check(r?.success !== false, "admin rejects the face", r?.message);
     face = (await me(opTok))?.user?.operator_face || (await me(opTok))?.operator_face;
     L.check(face?.status === "rejected" && /not clear/i.test(face?.reason || ""), "/me operator_face rejected with the reason", face);
-    await L.goto(op, "/logistics/driver", '[data-testid="operator-face-card"]');
-    L.check((await op.page.locator('[data-testid="operator-face-card"]').getAttribute("data-status")) === "rejected", "operator's card shows rejected");
-    L.check(/rejected/i.test(await op.page.locator('[data-testid="operator-face-card"]').innerText()) && await op.page.locator('[data-testid="operator-face-update"]').isVisible(), "operator can retake");
+    // v2.7.68: a rejected selfie sends the operator back to the setup screen to retake it
+    await L.goto(op, "/logistics/driver");
+    await op.page.waitForURL(/\/logistics\/driver\/setup/, { timeout: 15000 }).catch(() => {});
+    L.check(/\/logistics\/driver\/setup/.test(op.page.url()), "rejected selfie: operator is sent to the setup screen", op.page.url());
+    const setupTxt = await op.page.locator('[data-testid="operator-setup"]').innerText().catch(() => "");
+    L.check(/rejected/i.test(setupTxt) && /not clear/i.test(setupTxt), "setup screen shows rejected with the reason", setupTxt.slice(0, 200));
+    L.check(await op.page.locator('[data-testid="operator-setup"] [data-testid="face-photo-take"]').isVisible(), "operator can retake");
     await L.shot(op, "s35-operator-rejected");
     r = await F.goLive({ token: opTok }, truck._id);
     L.check(r?.success === false && r?.data?.code === "DOC_REJECTED", "rejected face blocks going live", r);
@@ -159,8 +172,12 @@ const base = (u) => path.basename(String(u || "")).split("?")[0];
     await capture(a2.page, { real: true });
     await a2.page.locator('[data-testid="face-camera-use"]').click();
     await a2.page.locator('[data-testid="face-camera-use"]').waitFor({ state: "detached", timeout: 10000 });
+    // v2.7.68: the owner's driving / plant licence is compulsory too
+    const licRow = L.docRow(a2.page, "Driving / plant licence").first();
+    await licRow.locator('input[type="file"]').setInputFiles(await L.docFile("licence", { holder: owner2.name, face: DOCS.face(7), expires: DOCS.addMonths(8), kind: "vehicle" }));
+    await L.pickDate(a2.page, licRow.locator(".log-doc-row__expiry input"), 8);
     await a2.page.locator('[data-testid="owner-operator-save"]').click();
-    L.check(await L.waitText(a2, /Simba will check your documents/, 15000), "self-operating owner: face saved from the camera");
+    L.check(await L.waitText(a2, /Simba Tasker will check your documents/, 15000), "self-operating owner: face saved from the camera");
     await a2.page.waitForTimeout(1200);
     u2 = await userDoc(owner2._id);
     L.check(u2.logistics_face_review?.status === "pending" && u2.logistics_face_review?.url, "face in review", u2.logistics_face_review);
@@ -176,7 +193,7 @@ const base = (u) => path.basename(String(u || "")).split("?")[0];
     L.check(u2.profile_image !== profileBefore && u2.logistics_face_review.url === faceUrl, "new profile picture didn't change the face photo", { p: u2.profile_image, f: u2.logistics_face_review.url });
 
     L.sec("35h. Customer sees the face on an owner-driven quote, company picture on the owner card");
-    await L.api("POST", "/admin/logistics/documents/review", { token: adminTok, body: { subject: "face_photo", id: owner2._id, status: "verified" } });
+    await F.verifySelfOperator(owner2); // face + licence
     const t2 = await F.makeUnit(owner2, C.unit("truck", 351), { docs: { rego: 8 } });
     r = await L.api("POST", `/logistics/asset/${t2._id}/operate-self`, { token: owner2.token, body: { state: "available_now", lat: F.LAT, lng: F.LNG } });
     L.check(r?.success !== false, "owner goes live on his truck", r?.message);

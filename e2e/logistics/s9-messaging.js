@@ -147,7 +147,6 @@ async function signupOwner(a, { name, company, email, phone, channel }) {
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     const ph = o.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
     await L.typePhone(ph, CC, opPhone);
-    await L.addFacePhoto(o.page, 2);
     t0 = now();
     await o.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(o, /Invite sent by email and WhatsApp\./), "UI toast: 'Invite sent by email and WhatsApp'", (await L.bodyText(o)).match(/Invite[^.]*\./)?.[0]);
@@ -193,7 +192,6 @@ async function signupOwner(a, { name, company, email, phone, channel }) {
     const ph3 = w.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
     await L.typePhone(ph3, CC, waOnlyPhone);
     await L.setInviteVia(w.page, ["whatsapp"]);
-    await L.addFacePhoto(w.page, 3);
     t0 = now();
     await w.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(w, /Invite sent by SMS \(WhatsApp wasn't available, so the link went by SMS\)/), "UI toast: WhatsApp unavailable → sent by SMS", (await L.bodyText(w)).match(/Invite[^.]*\./)?.[0]);
@@ -206,7 +204,6 @@ async function signupOwner(a, { name, company, email, phone, channel }) {
     await L.goto(o, "/logistics/owner/operators/add", "form");
     await o.page.fill('input[placeholder="name@example.com"]', op2Email);
     await L.setInviteVia(o.page, ["email"]);
-    await L.addFacePhoto(o.page, 4);
     t0 = now();
     await o.page.locator('form button[type="submit"]').last().click();
     let [first] = await waitMsg(t0, (r) => r.channel === "email" && r.to === op2Email);
@@ -233,7 +230,6 @@ async function signupOwner(a, { name, company, email, phone, channel }) {
     await w.page.fill('input[placeholder="name@example.com"]', `fail.${extra[2].email}`); // fail.* → MOCK_FAIL_TO (email)
     const ph2 = w.page.locator("#op-phone, .log-field:has(#op-phone) input[type=tel]").first();
     await L.typePhone(ph2, CC, failNo(1));
-    await L.addFacePhoto(w.page, 5);
     await w.page.locator('form button[type="submit"]').last().click();
     L.check(await L.waitText(w, /couldn't be sent — copy the link/), "UI: 'Invite created, but it couldn't be sent — copy the link'");
 

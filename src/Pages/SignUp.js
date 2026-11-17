@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PHONE_FORMAT_HINT, leadingZeroError } from "../utils/logisticsPhone";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useFormik } from "formik";
@@ -89,12 +90,53 @@ const ROLE_COPY = {
   },
 };
 
-/** Equipment/Logistic first — under logo, before Tasker role tabs */
+const roleIcon = (children) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {children}
+  </svg>
+);
+
+/** Role tab icons: truck, briefcase + search, person + wrench, hardware shop front */
+const ROLE_ICONS = {
+  [Roles.LOGISTICS]: roleIcon(
+    <>
+      <path d="M2 6h11v10H2z" />
+      <path d="M13 9h4l3.5 3.5V16H13" />
+      <circle cx="6" cy="17.5" r="1.8" />
+      <circle cx="17" cy="17.5" r="1.8" />
+    </>
+  ),
+  [Roles.CUSTOMER]: roleIcon(
+    <>
+      <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
+      <path d="M11 20H4.5A1.5 1.5 0 0 1 3 18.5v-10A1.5 1.5 0 0 1 4.5 7h15A1.5 1.5 0 0 1 21 8.5V12" />
+      <circle cx="17" cy="16" r="3" />
+      <path d="m19.2 18.2 2 2" />
+    </>
+  ),
+  [Roles.SERVICE_PROVIDER]: roleIcon(
+    <>
+      <circle cx="9" cy="7" r="3.5" />
+      <path d="M2.5 20v-1a5.5 5.5 0 0 1 9.5-3.8" />
+      <path d="M17.5 13.5a2.6 2.6 0 0 0-3.4 3.4l-2.6 2.6a1 1 0 0 0 1.4 1.4l2.6-2.6a2.6 2.6 0 0 0 3.4-3.4l-1.5 1.5-1.4-.4-.4-1.4z" />
+    </>
+  ),
+  [Roles.CORPORATE]: roleIcon(
+    <>
+      <path d="M3 9.5 4.5 4h15L21 9.5" />
+      <path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+      <path d="M4.5 12v8h15v-8" />
+      <path d="M10 20v-4.5h4V20" />
+    </>
+  ),
+};
+
+// Display order: Need a Service first.
 const ROLE_OPTIONS = [
-  { key: Roles.LOGISTICS, label: "Equipment Owner" },
   { key: Roles.CUSTOMER, label: "Need a Service" },
-  { key: Roles.SERVICE_PROVIDER, label: "Provider" },
+  { key: Roles.LOGISTICS, label: "Equipment Owner" },
   { key: Roles.CORPORATE, label: "Corporate" },
+  { key: Roles.SERVICE_PROVIDER, label: "Provider" },
 ];
 
 const AUTH_VISUAL_IMG =
@@ -230,6 +272,11 @@ export default function SignUp() {
         .required("Email is Required"),
       phone: Yup.string()
         .transform((value) => value.replace(/\D/g, ""))
+        // v2.7.71 (client test B1): no trunk 0 after the dial code
+        .test("no-leading-zero", function (value) {
+          const msg = leadingZeroError(value, this.parent?.country_code);
+          return msg ? this.createError({ message: msg }) : true;
+        })
         .matches(/^\d{7,15}$/, "Please enter a valid phone number")
         .required("Phone number is required"),
       password: Yup.string()
@@ -537,7 +584,7 @@ export default function SignUp() {
 
               <div
                 className={`role-toggle${
-                  ROLE_OPTIONS.length > 3 ? " role-toggle--quad" : ""
+                  ROLE_OPTIONS.length > 3 ? " role-toggle--quad role-toggle--cards" : ""
                 }`}
               >
                 {ROLE_OPTIONS.map((opt) => (
@@ -547,7 +594,8 @@ export default function SignUp() {
                     className={selectedRole === opt.key ? "active" : ""}
                     onClick={() => handleRoleChange(opt.key)}
                   >
-                    {opt.label}
+                    <span className="role-toggle__icon">{ROLE_ICONS[opt.key]}</span>
+                    <span className="role-toggle__label">{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -640,7 +688,8 @@ export default function SignUp() {
                   </div>
                 ) : null}
 
-
+                {/* Email + phone share a row for Equipment Owner only; other roles stack them. */}
+                <div className={isLogisticsSignup ? "field-row" : undefined}>
                 <div className="field">
                   <label htmlFor="email">Email ID</label>
                   <div className="input-shell">
@@ -698,6 +747,8 @@ export default function SignUp() {
                     />
                   </div>
                   {fieldError("phone")}
+                  <small className="signup-phone-hint" style={{ display: "block", marginTop: 4, color: "#6b6f68", fontSize: 12.5 }}>{PHONE_FORMAT_HINT}</small>
+                </div>
                 </div>
 
                 <div className="field-row">
@@ -840,7 +891,7 @@ export default function SignUp() {
                       ) : null}
                     </div>
                     <p className="log-signup-docs__note">
-                      Simba checks these before approving your company. You can add equipment and operators once it&apos;s
+                      Simba Tasker checks these before approving your company. You can add equipment and operators once it&apos;s
                       approved. PDF, JPG, PNG or Word. You can skip this step and upload them after sign-up.
                     </p>
                     {BUSINESS_DOCS.map((d) => {

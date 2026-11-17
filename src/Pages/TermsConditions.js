@@ -93,7 +93,7 @@ export default function TermsConditions() {
               </p>
               {/* end */}
               <p>
-                <b> 2. Acceptance of Terms</b> By creating an account on Simba
+                <b> 2. Acceptance of Terms</b> By creating an account on Simba Tasker
                 Tasker, both service providers and customers agree to these
                 terms and conditions. If you do not agree with any part of these
                 terms, you should immediately cease using the platform.
@@ -141,7 +141,7 @@ export default function TermsConditions() {
                 is absolved of any responsibility for those transactions.
               </h4>
               <h4>
-                5. Service Providers Responsibilities By signing up to Simba
+                5. Service Providers Responsibilities By signing up to Simba Tasker
                 Tasker, service providers agree to:
               </h4>
               <p>

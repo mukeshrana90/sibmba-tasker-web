@@ -11995,3 +11995,101 @@ button.logistics-cta.is-locked {
 .log-operator-setup__card h1 {
   font-size: 1.35rem;
 }
+
+/* /edit-profile phone number + verified change (v2.7.69, all roles) */
+.profile-phone__row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.profile-phone__current {
+  flex: 1;
+  min-width: 0;
+}
+.profile-phone .log-phone-input input.react-international-phone-input {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  min-height: 46px;
+  border: 0;
+  border-radius: 0 9px 9px 0;
+  box-shadow: none;
+  background: transparent;
+}
+.profile-phone__change {
+  flex: 0 0 auto;
+  min-width: 96px;
+  border-radius: 10px;
+}
+.profile-phone__panel {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e3ddd1;
+  border-radius: 12px;
+  background: #faf8f3;
+}
+.profile-phone__channels {
+  margin: 12px 0 4px;
+}
+.profile-phone__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+.profile-phone__otp {
+  max-width: 180px;
+  letter-spacing: 0.3em;
+}
+@media (max-width: 480px) {
+  .profile-phone__row {
+    flex-direction: column;
+  }
+}
+
+/* v2.7.71 (client test §6): one-tap Go online / Go offline card on the operator dashboard */
+.log-go-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: #1f2a2e;
+  color: #fff;
+}
+.log-go-card.is-online { background: #0f5c4c; }
+.log-go-card.is-job { background: #7a4b00; }
+.log-go-card__text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 260px; }
+.log-go-card__title { font-size: 1.35rem; line-height: 1.2; }
+.log-go-card__sub { opacity: 0.9; font-size: 0.95rem; }
+.log-go-card__actions { display: flex; gap: 10px; flex-wrap: wrap; flex: 0 1 auto; }
+.log-go-card__btn {
+  min-width: 180px;
+  min-height: 52px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.log-go-card__btn--on { background: #22c55e; color: #08281c; }
+.log-go-card__btn--off { background: #fff; color: #1f2a2e; }
+.log-go-card__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.log-go-card .logistics-cta { min-height: 52px; border-radius: 999px; }
+.log-go-card .logistics-cta--ghost { background: transparent; color: #fff; border: 1.5px solid rgba(255, 255, 255, 0.7); }
+.log-go-card__confirm { background: #fde047 !important; color: #1f2a2e !important; border: 0 !important; }
+@media (max-width: 560px) {
+  .log-go-card__actions, .log-go-card__btn, .log-go-card .logistics-cta { width: 100%; }
+}
+
+/* v2.7.71 (client test I1 / I2) */
+.log-operator-waiting__list { margin: 4px 0 8px 18px; padding: 0; }
+.log-operator-waiting__list li { margin: 2px 0; }
+.log-approval-banner__msg { align-self: center; font-size: 0.9rem; }
+.log-chip.log-chip--direct { background: #fff4d6; color: #7a4b00; border: 1px solid #f5d27a; font-weight: 600; }
+.log-phone-input__err { display: block; margin-top: 4px; color: #b42318; font-size: 0.85rem; }

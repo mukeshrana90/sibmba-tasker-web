@@ -61,7 +61,7 @@ export default function LogisticsOwnerOnboarding() {
       if ((fresh?.business_docs_missing || []).length) {
         toast.info("Details saved — now upload the required business documents below");
       } else {
-        toast.success("Thanks — Simba will check your documents and approve your company");
+        toast.success("Thanks — Simba Tasker will check your documents and approve your company");
         setDismissed(true);
       }
     } finally {
@@ -76,7 +76,7 @@ export default function LogisticsOwnerOnboarding() {
       </Modal.Header>
       <Modal.Body>
         <p className="log-hint mb-3">
-          Add these, your units and your operators. Simba checks everything at once.
+          Add these, your units and your operators. Simba Tasker checks everything at once.
         </p>
         <div className="log-onboard-grid">
           <label className="log-onboard-field">

@@ -34,7 +34,7 @@ const DOCS = require("./docs");
     await o.page.locator('[data-testid="operated-by-later"]').click(); // this stage doesn't invite an operator here
     const plate = unit.plate;
     await o.page.fill('input[placeholder="Truck 1"]', unit.name);
-    await o.page.fill('input[placeholder="AEB1234"]', plate);
+    await o.page.fill('input[placeholder="e.g. AEB 1234"]', plate);
     await o.page.fill('input[placeholder="Isuzu"]', unit.make).catch(() => {});
     await o.page.fill('input[placeholder="FVZ"]', unit.model).catch(() => {});
     await o.page.fill('input[placeholder="2019"]', unit.year).catch(() => {});
@@ -82,7 +82,9 @@ const DOCS = require("./docs");
     const j0 = await isJpeg(p0);
     L.check(j0.ok && j0.thumb, "HEIC photo → real JPEG ≤1920px + thumb_", j0.why);
     const j1 = await isJpeg(p1);
-    L.check(j1.ok && /1920x/.test(j1.why) && j1.thumb, "2400px JPG resized to 1920 + thumb_", j1.why);
+    // 12 Nov 2026: the web shrinks photos to ≤1600 px before upload (the server still caps at 1920)
+    const w1 = Number((String(j1.why).match(/(\d+)x\d+/) || [])[1]);
+    L.check(j1.ok && w1 > 0 && w1 <= 1920 && j1.thumb, "2400px JPG resized (≤1920) + thumb_", j1.why);
     const docOf = (t) => (asset?.documents || []).find((x) => x.type === t);
     const regoDoc = docOf("rego");
     L.check(rx(`${F.re(F.roadTax)}$`).test(regoDoc?.url || ""), "PDF paper keeps .pdf", regoDoc?.url);
@@ -161,8 +163,7 @@ const DOCS = require("./docs");
     const opEmail = opP.email;
     await o.page.fill('input[placeholder="name@example.com"]', opEmail);
     await o.page.fill('input[placeholder="Full name"]', opP.name);
-    // v2.7.66: the face is live camera only; HEIC conversion is checked below through the API
-    await L.addFacePhoto(o.page, 2);
+    // v2.7.68: no face on the invite (the operator takes their own); HEIC conversion is checked through the API
     const lic = L.docRow(o.page, "Driving / plant licence").first();
     await lic.locator("input[type=file]").setInputFiles(F.bigPdf);
     L.check(await toastHas(o, /larger than 10 MB/), "licence >10 MB → toast");

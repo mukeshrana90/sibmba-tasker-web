@@ -77,7 +77,7 @@ const code = (r) => r?.data?.code;
     await L.goto(o, "/logistics/owner/fleet/add", "form.log-fleet-form");
     const p = o.page;
     await p.fill('input[placeholder="Truck 1"]', truck1.name);
-    await p.fill('input[placeholder="AEB1234"]', truck1.plate);
+    await p.fill('input[placeholder="e.g. AEB 1234"]', truck1.plate);
     await p.fill('input[placeholder="15"]', "16").catch(() => {});
     await p.fill('input[placeholder="Isuzu"]', truck1.make);
     await p.fill('input[placeholder="FVZ"]', truck1.model);
@@ -100,7 +100,7 @@ const code = (r) => r?.data?.code;
     await licRow.locator('input[type="file"]').setInputFiles(await L.docFile("licence", { holder: owner.name, face: DOCS.face(3), expires: DOCS.addMonths(6), kind: "vehicle" }));
     await L.pickDate(p, licRow.locator(".log-doc-row__expiry input"), 6);
     await setup.locator('[data-testid="owner-operator-save"]').click();
-    L.check(await L.waitText(o, /Simba will check your documents/), "toast: Simba will check");
+    L.check(await L.waitText(o, /Simba Tasker will check your documents/), "toast: Simba will check");
     await p.waitForSelector('[data-testid="owner-face-status"]', { timeout: 8000 }).catch(() => {});
     L.check(/Pending|check/i.test(await p.locator('[data-testid="owner-face-status"]').first().innerText().catch(() => "")), "face photo shows pending", await p.locator('[data-testid="owner-face-status"]').first().innerText().catch(() => "missing"));
     let ou = await userDoc(owner._id);
@@ -130,7 +130,7 @@ const code = (r) => r?.data?.code;
     L.check(Number(opSeat) === 0, "self-operating uses no operator seat", usage);
 
     // ── Stricter check
-    L.sec("20c. Blocked until face photo and owner ID are Verified; licence no longer blocks");
+    L.sec("20c. Blocked until face photo, owner ID and licence are Verified (licence compulsory, v2.7.68)");
     const expectBlocked = async (label, want) => {
       const r = await L.api("POST", `/logistics/asset/${T1._id}/operate-self`, { token: owner.token, body: { state: "available_now", lat: F.LAT, lng: F.LNG } });
       L.check(r?.success === false && code(r) === "OWNER_NOT_ELIGIBLE" && (r?.data?.blocks || []).some((b) => b.code === want), `${label}: refused, block ${want}`, r?.data || r);
@@ -138,7 +138,7 @@ const code = (r) => r?.data?.code;
     await expectBlocked("face Pending", "FACE_PHOTO_PENDING");
     {
       const m = (await L.api("GET", "/logistics/me", { token: owner.token }))?.data?.owner_operator;
-      L.check(m?.licence?.required === false && !(m?.blocks || []).some((b) => /^LICENCE/.test(b.code)), "/me: licence required=false and no LICENCE_ block codes", m);
+      L.check(m?.licence?.required === true && (m?.blocks || []).some((b) => b.code === "LICENCE_PENDING"), "/me: licence required, LICENCE_PENDING while Simba checks it", m);
     }
     const qBlocked = await F.postJob(customer, { goods: `Blocked quote ${RUN}` });
     let r = await F.quote(owner, qBlocked, T1._id);
@@ -168,13 +168,13 @@ const code = (r) => r?.data?.code;
     }
     await L.api("POST", "/admin/logistics/documents/review", { token: admin, body: { subject: "business", id: owner._id, doc_id: String(idDoc._id), status: "verified" } });
     await L.approveOwner(owner._id, "approved", "", { withDocs: false });
-    // v2.7.66: an expired licence only warns
+    // v2.7.68: an expired licence blocks again
     {
       const u = await userDoc(owner._id);
       const docs = u.logistics_documents.map((x) => (x.type === "licence" ? { ...x, expires: new Date(Date.now() - 3 * F.DAY) } : x));
       await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: docs } });
       const m = (await L.api("GET", "/logistics/me", { token: owner.token }))?.data?.owner_operator;
-      L.check(m?.can_operate === true, "licence expired: still can_operate", m);
+      L.check(m?.can_operate === false && (m?.blocks || []).some((b) => b.code === "LICENCE_EXPIRED") && m?.licence?.needs_upload === true, "licence expired: can't operate, LICENCE_EXPIRED, asks for the renewed one", m);
       await d.collection("users").updateOne({ _id: u._id }, { $set: { logistics_documents: u.logistics_documents } });
     }
     me = (await L.api("GET", "/logistics/me", { token: owner.token }))?.data;

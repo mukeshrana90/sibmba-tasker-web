@@ -88,6 +88,74 @@ export function useLogisticsAccount() {
   return account;
 }
 
+/**
+ * v2.7.71 (client test I1): an operator's own checks still waiting after the company is
+ * approved — named one by one so nobody wonders which approval is missing.
+ */
+export function operatorWaitingItems(account) {
+  if (!account) return [];
+  const out = [];
+  const face = account.operator_face;
+  if (face && face.status && face.status !== "verified") {
+    out.push({
+      key: "face",
+      label: "Face photo",
+      text:
+        face.status === "pending"
+          ? "waiting for Simba Tasker's check"
+          : face.status === "rejected"
+            ? `rejected${face.reason ? ` (${face.reason})` : ""}: take a new selfie`
+            : "not taken yet",
+    });
+  }
+  const lic = account.operator_licence;
+  if (lic && lic.required !== false && lic.status && lic.status !== "verified") {
+    out.push({
+      key: "licence",
+      label: "Driving / plant licence",
+      text:
+        lic.status === "pending"
+          ? "waiting for Simba Tasker's check"
+          : lic.status === "rejected"
+            ? `rejected${lic.reason ? ` (${lic.reason})` : ""}: upload a clear copy`
+            : lic.status === "expired"
+              ? "expired: upload the renewed one"
+              : "not uploaded yet",
+    });
+  }
+  return out;
+}
+
+function ResubmitButton() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  return (
+    <>
+      <button
+        type="button"
+        className="logistics-cta logistics-cta--primary log-approval-banner__resubmit"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setMsg("");
+          try {
+            const r = await Api.post("/logistics/me/resubmit", {});
+            setMsg(r?.data?.message || "");
+            await load(true);
+          } catch {
+            setMsg("Could not send — try again");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? "Sending…" : "Send for a new check"}
+      </button>
+      {msg ? <span className="log-approval-banner__msg">{msg}</span> : null}
+    </>
+  );
+}
+
 /** Shown above every owner / operator page while Simba admin has restricted the fleet. */
 export default function LogisticsAccountBanner({ isDriver }) {
   const account = useLogisticsAccount();
@@ -97,11 +165,11 @@ export default function LogisticsAccountBanner({ isDriver }) {
     return (
       <div className="log-callout log-callout--danger log-account-banner" role="alert">
         <p>
-          <strong>{account.deletion_pending ? "This account is being closed by Simba admin." : "Account suspended by Simba admin."}</strong>{" "}
+          <strong>{account.deletion_pending ? "This account is being closed by Simba Tasker admin." : "Account suspended by Simba Tasker admin."}</strong>{" "}
           {account.restriction_message || "You can browse and finish work already in progress, but you can't start anything new."}
         </p>
         <Link className="logistics-cta logistics-cta--ghost" to={support}>
-          Contact Simba admin
+          Contact Simba Tasker admin
         </Link>
       </div>
     );
@@ -120,32 +188,66 @@ export default function LogisticsAccountBanner({ isDriver }) {
           <strong>
             {approval === "pending"
               ? fleet
-                ? "Your fleet owner's company is waiting for Simba approval."
-                : "Your company is waiting for Simba approval."
+                ? "Your fleet owner's company is waiting for Simba Tasker approval."
+                : "Your company is waiting for Simba Tasker approval."
               : fleet
-                ? "Your fleet owner's company wasn't approved by Simba."
-                : "Simba couldn't approve your company."}
+                ? "Your fleet owner's company wasn't approved by Simba Tasker."
+                : "Simba Tasker couldn't approve your company."}
           </strong>{" "}
           {approval === "pending"
             ? fleet
-              ? "You can't go live or take jobs until Simba approves it."
-              : "Add your business documents, units and operators so Simba can check everything at once."
+              ? "You can't go live or take jobs until Simba Tasker approves it."
+              : "Add your business documents, units and operators so Simba Tasker can check everything at once."
             : fleet
               ? "You can't go live or take jobs until it's approved."
-              : `${account.approval.reason ? `Reason: ${account.approval.reason}. ` : ""}Upload corrected business documents — Simba will check them again.`}
+              : `${account.approval.reason ? `Reason: ${account.approval.reason}. ` : ""}Fix what the reason says: edit your details (phone, company name…) or upload corrected documents, then send it back for a new check.`}
         </p>
+        {!fleet && approval === "rejected" ? (
+          // v2.7.71 (client test I2): fix a profile detail, then resubmit — not only documents
+          <Link className="logistics-cta logistics-cta--ghost log-approval-banner__edit" to="/edit-profile">
+            Edit my details
+          </Link>
+        ) : null}
         {!fleet ? (
           <Link className="logistics-cta logistics-cta--ghost log-approval-banner__docs" to="/logistics/owner/verification">
             {approval === "rejected" ? "Upload corrected documents" : "Business documents"}
           </Link>
         ) : null}
+        {!fleet && approval === "rejected" ? <ResubmitButton /> : null}
         {approval === "rejected" ? (
           <Link className="logistics-cta logistics-cta--ghost" to={support}>
-            Contact Simba admin
+            Contact Simba Tasker admin
           </Link>
         ) : null}
       </div>
     );
+  }
+  // v2.7.71 (client test I1): company approved, but the operator's own face / licence check is open
+  if (!account?.banned && isDriver) {
+    const waiting = operatorWaitingItems(account);
+    if (waiting.length) {
+      return (
+        <div className="log-callout log-callout--warn log-account-banner log-operator-waiting" role="status" data-testid="operator-waiting">
+          <p>
+            <strong>
+              {approval === "approved" || !approval ? "Your company is approved. " : ""}You can go live once {waiting.length === 1 ? "this is" : "these are"} done:
+            </strong>
+          </p>
+          <ul className="log-operator-waiting__list">
+            {waiting.map((w) => (
+              <li key={w.key}>
+                <b>{w.label}</b>: {w.text}
+              </li>
+            ))}
+          </ul>
+          {waiting.some((w) => !/waiting for/.test(w.text)) ? (
+            <Link className="logistics-cta logistics-cta--ghost" to="/logistics/driver/setup">
+              Fix it now
+            </Link>
+          ) : null}
+        </div>
+      );
+    }
   }
   if (!account?.banned) return null;
   return (
@@ -153,8 +255,8 @@ export default function LogisticsAccountBanner({ isDriver }) {
       <p>
         <strong>
           {account.scope === "fleet"
-            ? "Your fleet owner's account is restricted by Simba admin."
-            : "Your account is restricted by Simba admin."}
+            ? "Your fleet owner's account is restricted by Simba Tasker admin."
+            : "Your account is restricted by Simba Tasker admin."}
         </strong>{" "}
         {account.scope === "fleet"
           ? "You can finish jobs already in progress, but you can't go live or take new jobs."
@@ -162,7 +264,7 @@ export default function LogisticsAccountBanner({ isDriver }) {
         {account.scope !== "fleet" && account.reason ? <> Reason: {account.reason}.</> : null}
       </p>
       <Link className="logistics-cta logistics-cta--ghost" to={support}>
-        Contact Simba admin
+        Contact Simba Tasker admin
       </Link>
     </div>
   );

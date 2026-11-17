@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import LogisticsActions from "../../Redux/Actions/LogisticsActions";
 import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import { placeShortLabel } from "../../CommanComponents/LogisticsJobRoutePanel";
-import { isEquipmentJob, jobCategoryKey, jobKindTypeChip } from "../../utils/jobKind";
+import { isDirectBookJob, isEquipmentJob, jobCategoryKey, jobKindTypeChip } from "../../utils/jobKind";
 import { jobListPrice } from "../../utils/jobPrice";
 import {
   JobCategoryBadge,
@@ -405,6 +405,12 @@ function SupplyOpportunitiesPage({ midLabel, homeTo, jobBasePath, ownerView = fa
                       >
                         {isReturn ? "RETURN" : isNow ? "⚡ LOCAL · NOW" : "CORRIDOR"}
                       </span>
+                      {/* v2.7.71 (client test I4): a direct booking is a private request to this unit */}
+                      {isDirectBookJob(job) ? (
+                        <span className="log-chip log-chip--direct" title="The customer booked your unit directly — no other fleet sees this job">
+                          ★ Sent only to you
+                        </span>
+                      ) : null}
                       {weight ? <span>{weight}</span> : null}
                       {job.budget?.negotiable === false ? (
                         <span className="log-chip log-chip--muted">fixed</span>

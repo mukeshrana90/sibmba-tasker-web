@@ -31,6 +31,10 @@ async function withStore(mode, work) {
   }
 }
 
+/** Shown when an owner / operator signs in with a guest job draft open (they can't post jobs). */
+export const SUPPLY_DRAFT_MESSAGE =
+  "Equipment owner and operator accounts can't post this job. Sign in with a customer account to post it.";
+
 export function hasLogisticsJobDraft() {
   try {
     return Boolean(sessionStorage.getItem(DRAFT_KEY));

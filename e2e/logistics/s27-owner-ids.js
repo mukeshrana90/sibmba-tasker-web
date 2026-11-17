@@ -24,7 +24,8 @@ const { OID } = F;
     let list = await ids(o._id);
     L.check(list.length === 1 && list[0].id_kind === "national_id", "starts with a national ID", list.map((x) => x.id_kind));
     let op = await me(o.token);
-    L.check(op?.licence?.status === "missing" && op?.licence?.required === false && op?.licence?.needs_upload === false && op?.licence?.source === null, "API: licence missing, not required", op?.licence);
+    // v2.7.68: the licence is compulsory again — a national ID alone asks for one
+    L.check(op?.licence?.status === "missing" && op?.licence?.required === true && op?.licence?.needs_upload === true && op?.licence?.source === null, "API: licence missing, required, upload asked", op?.licence);
     const a = await L.actor("owner-27");
     actors.push(a);
     await L.seedAuth(a, { token: o.token, user: o });
@@ -86,7 +87,8 @@ const { OID } = F;
     r = await L.apiForm("POST", "/logistics/owner-operator/enable", { token: o.token, files: [["face_photo", face]] });
     L.check(r?.success !== false, "enable with the face photo only", r?.message);
     op = await me(o.token);
-    L.check(op?.enabled === true && blockCodes(op).includes("FACE_PHOTO_PENDING") && !blockCodes(op).some((c) => c.startsWith("LICENCE")), "waits for the face photo only (no licence block codes)", blockCodes(op));
+    // v2.7.68: the licence is compulsory again — the driving licence owner ID counts, but waits for Simba's check like the face
+    L.check(op?.enabled === true && blockCodes(op).includes("FACE_PHOTO_PENDING") && blockCodes(op).includes("LICENCE_PENDING") && !blockCodes(op).includes("LICENCE_MISSING"), "waits for the face photo and the licence-ID check (no second licence asked)", blockCodes(op));
 
     L.sec("27d. Admin approves each one");
     const results = await L.verifyDocs("business", o._id);
@@ -102,7 +104,7 @@ const { OID } = F;
     list = await ids(o._id);
     await reject(list.find((x) => x.id_kind === "driving_licence"));
     op = await me(o.token);
-    L.check(op?.licence?.status === "rejected" && op?.licence?.required === false, "licence rejected: not required, so nothing blocks on it", op?.licence);
+    L.check(op?.licence?.status === "rejected" && op?.licence?.required === true && op?.licence?.needs_upload === true && blockCodes(op).includes("LICENCE_REJECTED"), "licence ID rejected: LICENCE_REJECTED, asks for a new upload", { licence: op?.licence, blocks: blockCodes(op) });
     L.check(!blockCodes(op).includes("OWNER_ID_REJECTED"), "other IDs still meet the owner ID check", blockCodes(op));
     L.check((await d.collection("users").findOne({ _id: OID(o._id) })).logistics_approval.status === "approved", "company stays approved while another ID is good");
     setup = await openSetup();

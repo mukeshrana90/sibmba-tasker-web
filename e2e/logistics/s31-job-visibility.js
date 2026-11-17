@@ -57,7 +57,7 @@ async function restartApi(km) {
     const addUnit = async (i, km, opts = {}) => {
       const pos = offset(km);
       const u = await F.makeUnit(owner, C.unit("truck", 310 + i), { docs: { rego: 8 }, body: { lat: pos.lat, lng: pos.lng, location_label: `Base ${km} km`, ...(opts.range ? { operating_range_km: opts.range } : {}), capacity_value: opts.capacity || 16, capacity_unit: "tons" } });
-      const op = await F.makeOperator(owner, person("operator", i, `u${i}`), { assets: [u._id], licence: false, face: (i % 4) + 1 });
+      const op = await F.makeOperator(owner, person("operator", i, `u${i}`), { assets: [u._id], face: (i % 4) + 1 });
       return { ...u, op, km };
     };
     const near = await addUnit(0, 5);

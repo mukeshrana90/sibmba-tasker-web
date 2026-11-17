@@ -116,6 +116,8 @@ const F = require("./fleet-helpers");
       L.check(row0?.owner_unapproved === true, "API: a pending owner can add a truck, and it is held back (owner_unapproved)", row0);
       const invTry = await L.api("POST", "/logistics/sub-user", { token: st.owner.token, body: { email: `op.${RUN}@yopmail.com`, send_via: ["email"] } });
       L.check(invTry?.data?.code !== "OWNER_PENDING_APPROVAL", "API: pending owner isn't locked out of inviting operators", invTry?.data);
+      // v2.7.68: invites need no face photo, so this trial invite now goes out — drop it (s6 counts the seats)
+      await d.collection("logistics_invites").deleteMany({ email: `op.${RUN}@yopmail.com` });
       await d.collection("logistics_assets").deleteOne({ _id: F.OID(added._id) }); // trial unit only: s5 counts this fleet's plan limits
       await L.goto(o, "/logistics/owner/fleet/add");
       const openForm = await p.locator("form.log-fleet-form").first().waitFor({ timeout: 15000 }).then(() => true).catch(() => false);

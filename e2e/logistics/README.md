@@ -95,5 +95,9 @@ v2.7.49 notes: fresh owners in s1 / s9 / s10 are approved through the admin API 
 | s33-market-switch | Services/Logistics choice for logged-in roles |
 | s34-client-fixes | "New" ratings, payment text, plus codes, tax expiry |
 | s35-face-camera | Live camera, its errors, who can change a face photo |
+| s36-client-points-nov12 | Customer privacy, wording, return weight, carriage |
+| s37-login-landing | Owners and operators land on their dashboard after signing in from a Logistics page |
+| s38-profile-phone | /edit-profile shows the stored phone; Change sends a code to the new number (WhatsApp / SMS) and saves it only after the code; taken / same number and wrong code refused (owner + customer) |
+| s39-client-test-nov16 | Client field test 14–15 Nov fixes: leading 0 refused / dropped, PATCH /me phone rule, Available lapses after the check-in period (not bookable, admin Offline + last seen, one-tap Go online, "Still online here?"), all open checks listed, edit + resubmit after rejection, "Sent only to you" chip, Simba Tasker wording |
 
 The page's camera is mocked in `lib.js` (`mockCameraScript`): `L.addFacePhoto` feeds it a test face, `window.__e2eCameraError` makes it fail, and `window.__e2eRealCamera` uses Chrome's fake device.
