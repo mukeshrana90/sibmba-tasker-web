@@ -152,3 +152,40 @@ export function photosMissingNote(asset) {
     ? `Add at least ${MIN_ASSET_PHOTOS} real photos (${n} uploaded)`
     : "";
 }
+
+/**
+ * 17 Nov 2026 (client): one listing status in the owner's unit header — never
+ * "Listed" next to "Hidden from customers". Order: Plan limit, Disabled,
+ * Hidden (document reason), Listed. Being offline or without an operator is
+ * not "hidden": the unit is still listed and its own callout explains it.
+ * Returns { label, tone } for `log-chip log-chip--{tone}`.
+ */
+export function ownerUnitHeadline(asset, docCompliance, customerView) {
+  if (!asset) return { label: "—", tone: "closed" };
+  if (Number(asset.is_active) !== 1) {
+    return asset.plan_locked
+      ? { label: "Plan limit", tone: "closed" }
+      : { label: "Disabled", tone: "closed" };
+  }
+  const block = docCompliance?.block?.code;
+  if (block === "DOC_REQUIRED") return { label: "Hidden — document required", tone: "closed" };
+  if (block === "DOC_REJECTED") return { label: "Hidden — document rejected", tone: "closed" };
+  if (block === "DOC_PENDING_CHECK") return { label: "Hidden — awaiting document check", tone: "progress" };
+  if (docCompliance?.expired?.some((d) => d.blocking !== false)) {
+    return { label: "Hidden — documents expired", tone: "closed" };
+  }
+  const detail = String((customerView || asset.customer_view)?.status_detail || "");
+  if (detail === "Documents expired") return { label: "Hidden — documents expired", tone: "closed" };
+  if (detail === "Awaiting document check") return { label: "Hidden — awaiting document check", tone: "progress" };
+  if (/ required$/.test(detail)) return { label: "Hidden — document required", tone: "closed" };
+  if (/ rejected$/.test(detail)) return { label: "Hidden — document rejected", tone: "closed" };
+  return { label: "Listed", tone: "active" };
+}
+
+/** 17 Nov 2026 (client): body type for owner screens — capitalised, "regular" → "Truck". */
+export function ownerBodyTypeLabel(raw, fallback = "Vehicle") {
+  const v = String(raw || "").trim();
+  if (!v) return fallback;
+  if (v.toLowerCase() === "regular") return "Truck";
+  return v.charAt(0).toUpperCase() + v.slice(1);
+}

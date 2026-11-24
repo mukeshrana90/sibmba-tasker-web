@@ -1,3 +1,4 @@
+import useHomeStats, { plusCount, ratingText } from "../Hooks/useHomeStats";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PHONE_FORMAT_HINT, leadingZeroError } from "../utils/logisticsPhone";
 import { Link, useNavigate } from "react-router-dom";
@@ -35,6 +36,7 @@ import { EMAIL_PATTERN, checkEmailRemote } from "../utils/emailCheck";
 import { DOC_ACCEPT, keepAllowedFiles } from "../utils/uploadLimits";
 import LogisticsLocationField from "../CommanComponents/LogisticsLocationField";
 import "./logistics/logistics.css";
+import LogisticsLaunchLine from "../CommanComponents/LogisticsLaunchLine";
 
 // Company documents for the Simba approval (Equipment Owner sign-up only).
 // Files live in formik values but never in localStorage.
@@ -235,6 +237,7 @@ function getSignupInitialValues() {
 }
 
 export default function SignUp() {
+  const homeStats = useHomeStats();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const query = useQuery();
@@ -469,7 +472,8 @@ export default function SignUp() {
         BUSINESS_DOCS.forEach((d) => {
           if (!formik.values[d.name]) return;
           logisticsBody.append(d.name, formik.values[d.name]);
-          if (formik.values[`${d.name}_expires`]) logisticsBody.append(`${d.name}_expires`, formik.values[`${d.name}_expires`]);
+          const noExpiry = d.name === "owner_id" && (formik.values.owner_id_kind || "national_id") === "national_id";
+          if (!noExpiry && formik.values[`${d.name}_expires`]) logisticsBody.append(`${d.name}_expires`, formik.values[`${d.name}_expires`]);
         });
       }
       const response = isLogisticsSignup
@@ -553,15 +557,15 @@ export default function SignUp() {
                   </p>
                   <div className="av-stats">
                     <div>
-                      <b>2,400+</b>
-                      <span>Verified providers</span>
+                      <b>{plusCount(homeStats.registered_providers)}</b>
+                      <span>Registered providers</span>
                     </div>
                     <div>
-                      <b>15k+</b>
-                      <span>Jobs completed</span>
+                      <b>{plusCount(homeStats.users)}</b>
+                      <span>Users</span>
                     </div>
                     <div>
-                      <b>4.8★</b>
+                      <b>{ratingText(homeStats.rating)}</b>
                       <span>Average rating</span>
                     </div>
                   </div>
@@ -849,6 +853,7 @@ export default function SignUp() {
                         Skip for now
                       </button>
                     </div>
+                    <LogisticsLaunchLine className="log-launch-line--left" />
                     <div className="field signup-base-field">
                       <label>
                         Business location <span className="signup-optional">(optional)</span>
@@ -944,15 +949,10 @@ export default function SignUp() {
                             <span className="log-signup-doc__file">{file ? file.name : d.hint ? `Upload — ${d.hint}` : "Upload file"}</span>
                             {file ? <span className="log-signup-doc__change">Change</span> : null}
                           </label>
-                          {file ? (
+                          {/* 23 Nov (client): no expiry field for a national ID (they don't expire) */}
+                          {file && !(d.name === "owner_id" && (formik.values.owner_id_kind || "national_id") === "national_id") ? (
                             <label className="log-signup-doc__expiry">
-                              <span>
-                                {expiryRequired
-                                  ? "Expiry date *"
-                                  : d.name === "owner_id"
-                                    ? "Expiry date (optional — national IDs don't expire)"
-                                    : "Expiry date (optional)"}
-                              </span>
+                              <span>{expiryRequired ? "Expiry date *" : "Expiry date (optional)"}</span>
                               <input
                                 type="date"
                                 name={`${d.name}_expires`}

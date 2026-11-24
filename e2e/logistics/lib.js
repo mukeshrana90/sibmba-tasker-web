@@ -455,8 +455,10 @@ async function fillSignupBusinessDocs(page, person, { tax = true, face = 5, taxE
   if (ownerType) await page.locator(`input[name="logistics_owner_type"][value="${ownerType}"]`).check({ force: true }).catch(() => {});
   await page.locator("#biz-business_registration").setInputFiles(f.business_registration);
   await page.locator("#biz-owner_id").setInputFiles(f.owner_id);
-  await page.locator('input[name="owner_id_expires"]').fill(docExpiryYmd());
   await page.locator('select[name="owner_id_kind"]').selectOption("national_id").catch(() => {});
+  // 23 Nov (client): a national ID has no expiry field; other kinds still do
+  const idExpiry = page.locator('input[name="owner_id_expires"]');
+  if (await idExpiry.count()) await idExpiry.fill(docExpiryYmd());
   if (tax) {
     await page.locator("#biz-tax").setInputFiles(f.tax).catch(() => {});
     if (taxExpiry) await page.locator('input[name="tax_expires"]').fill(docExpiryYmd(1)).catch(() => {});

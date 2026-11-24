@@ -6,6 +6,7 @@ import { buildPublicAssetUrl } from "../utils/ImagePath";
 import { serviceProviderPath } from "../utils/normalizeMongoId";
 import { formatDisplayTitle, providerDisplayName, providerLocation } from "../utils/landingUtils";
 import { haversineKm } from "../utils/multiTransitRoute";
+import LogisticsTruckRoad from "./LogisticsTruckRoad";
 
 const LIMIT = 6;
 
@@ -205,12 +206,18 @@ export default function EmptyResults({
 }) {
   const [state, setState] = useState({ loading: true, rows: [], heading: "", other: false, fromUser: false, inHarare: false });
   const coordKey = coords ? `${coords.lat},${coords.lng}` : "";
+  // Logistics: the truck road shows search progress; the answer appears once it has driven off
+  const truckRoad = module === "logistics";
+  const [progress, setProgress] = useState({ done: 0, total: 1, run: 0 });
+  const [arrived, setArrived] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setState({ loading: true, rows: [], heading: "", other: false, fromUser: false, inHarare: false });
+    setArrived(false);
     (async () => {
       const steps = fallbackSteps({ module, query, categoryId, kind, category, coords });
+      setProgress((p) => ({ done: 0, total: steps.length || 1, run: p.run + 1 }));
       for (const step of steps) {
         try {
           const { rows, heading, other = false, fromUser = false, inHarare = false } = await step();
@@ -222,6 +229,7 @@ export default function EmptyResults({
         } catch {
           /* try the next, wider step */
         }
+        if (alive) setProgress((p) => ({ ...p, done: p.done + 1 }));
       }
       if (alive) setState({ loading: false, rows: [], heading: "", other: false, fromUser: false, inHarare: false });
     })();
@@ -231,6 +239,9 @@ export default function EmptyResults({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [module, query, categoryId, kind, category, coordKey]);
 
+  // Still "loading" until the truck has left the road, so the answer never pops in under it
+  const loading = state.loading || (truckRoad && !arrived);
+
   const postTo = module === "logistics" ? "/logistics/post" : "/post-task";
   const cards = state.rows.map((r) => rowCard(module, r, { fromUser: state.fromUser }));
   const wanted = module === "logistics" ? wantedLabel({ kind, category }) : "";
@@ -238,7 +249,7 @@ export default function EmptyResults({
   const hasUser = coords?.lat != null && coords?.lng != null;
   const harareKm = hasUser ? haversineKm({ lat: Number(coords.lat), lng: Number(coords.lng) }, HARARE) : null;
   const farHarare = module === "logistics" && state.inHarare && hasUser && harareKm > 20;
-  const lead = state.loading
+  const lead = loading
     ? "Looking further afield…"
     : farHarare && cards.length
       ? `No ${wanted || "units"} near your location. The nearest are in Harare, about ${kmText(harareKm)} from you.`
@@ -255,15 +266,26 @@ export default function EmptyResults({
       className={`empty-results${compact ? " empty-results--compact" : ""}`}
       data-testid="empty-results"
       data-module={module}
-      data-state={state.loading ? "loading" : cards.length ? (state.other ? "other" : "fallback") : "none"}
+      data-state={loading ? "loading" : cards.length ? (state.other ? "other" : "fallback") : "none"}
     >
       {/* Logistics: every explanation (other categories, far from Harare, closest match,
           nothing yet) uses the same notice box */}
-      <p className={`empty-results__lead${module === "logistics" && !state.loading ? " empty-results__lead--notice" : ""}`}>
-        {lead}
-      </p>
-      {state.heading ? <h3 className="empty-results__heading" data-testid="empty-results-heading">{state.heading}</h3> : null}
-      {cards.length ? (
+      {truckRoad && loading ? (
+        <LogisticsTruckRoad
+          key={progress.run}
+          done={progress.done}
+          total={progress.total}
+          finished={!state.loading}
+          onArrive={() => setArrived(true)}
+          label={lead}
+        />
+      ) : (
+        <p className={`empty-results__lead${module === "logistics" && !loading ? " empty-results__lead--notice" : ""}`}>
+          {lead}
+        </p>
+      )}
+      {!loading && state.heading ? <h3 className="empty-results__heading" data-testid="empty-results-heading">{state.heading}</h3> : null}
+      {!loading && cards.length ? (
         <ul className="empty-results__list">
           {cards.map((c) => (
             <li key={c.key}>

@@ -119,9 +119,11 @@ const LONE_SIMBA = /\bSimba\b(?! Tasker)(?! Tracker)/;
     const cardOff = await oa.page.locator('[data-testid="go-online-card"]').innerText();
     L.check(/You're offline/.test(cardOff) && /nobody confirmed/.test(cardOff), "card: went offline because nobody confirmed", cardOff);
     await L.shot(oa, "s39-b4-lapsed");
-    await oa.page.locator(".log-go-card__btn--on").click();
+    // 23 Nov (client): one status control — the Set status dropdown + Update status
+    await oa.page.locator('select[aria-label="Set status"]').selectOption("available_now");
+    await oa.page.getByRole("button", { name: "Update status" }).click();
     opU = await waitDb(op._id, (u) => u?.logistics_availability?.state === "available_now");
-    L.check(opU.logistics_availability?.state === "available_now", "one tap Go online works", opU.logistics_availability?.state);
+    L.check(opU.logistics_availability?.state === "available_now", "Available now via the single status control works", opU.logistics_availability?.state);
     // 10 minutes left → "Still online here?" with Confirm
     await d.collection("users").updateOne({ _id: OID(op._id) }, { $set: { "logistics_availability.available_until": new Date(Date.now() + 10 * 60e3) } });
     await L.goto(oa, "/logistics/driver", '[data-testid="go-online-card"]');

@@ -30,6 +30,7 @@ import { guestLoginPath, isLoggedIn } from "../../utils/authRedirect";
 import { geocodeLocationText } from "../../utils/landingGeocode";
 import EmptyResults from "../../CommanComponents/EmptyResults";
 import UseMyLocationButton from "../../CommanComponents/UseMyLocationButton";
+import LogisticsLiveMapModal from "../../CommanComponents/LogisticsLiveMapModal";
 import "./logistics.css";
 import { hasReviews, NEW_RATING_LABEL } from "../../utils/ratingLabel";
 import {
@@ -222,6 +223,7 @@ export default function LogisticsSearch() {
   const boot = useRef(initialSearchState()).current;
   const [filters, setFilters] = useState(boot.filters);
   const [allEquipment, setAllEquipment] = useState(boot.allEquipment);
+  const [mapOpen, setMapOpen] = useState(false);
   const [allKinds, setAllKinds] = useState(boot.allKinds);
   const [rows, setRows] = useState([]);
   const [searched, setSearched] = useState(false);
@@ -557,6 +559,27 @@ export default function LogisticsSearch() {
         </aside>
 
         <section className="log-search-main" aria-live="polite">
+          {/* 23 Nov (client): live equipment on a map (default Harare, 100 km, last 2 h) */}
+          <div className="log-search-mapbar">
+            <button
+              type="button"
+              className="logistics-cta logistics-cta--ghost log-search-mapbar__btn"
+              data-testid="view-on-map"
+              onClick={() => setMapOpen(true)}
+            >
+              View on map
+            </button>
+          </div>
+          <LogisticsLiveMapModal
+            show={mapOpen}
+            onHide={() => setMapOpen(false)}
+            kind={mixed ? "all" : plant ? "equipment" : cab ? "cab" : "vehicle"}
+            initialCenter={
+              hasLocation(filters)
+                ? { lat: filters.location_coords[1], lng: filters.location_coords[0], label: filters.location }
+                : null
+            }
+          />
           {!searched ? (
             <div className="log-search-empty">
               <p className="log-search-empty__title">

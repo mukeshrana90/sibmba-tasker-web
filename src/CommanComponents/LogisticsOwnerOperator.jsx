@@ -46,6 +46,16 @@ export function useOwnerOperator() {
   return useLogisticsAccount()?.owner_operator || null;
 }
 
+/** True while the signed-in owner is using this unit himself (same rule as UnitOperateControl). */
+export function useOwnerOnUnit(asset) {
+  const op = useOwnerOperator();
+  if (!asset) return false;
+  return (
+    unitOccupancy(asset).by === "owner" ||
+    Boolean(op?.active_asset_id && String(op.active_asset_id) === String(asset._id))
+  );
+}
+
 /**
  * One-time face photo (and optional licence) for an owner who wants to operate units.
  * After the first upload either file can be replaced alone, and it goes back
@@ -211,9 +221,15 @@ export function OwnerOperatorCard() {
 }
 
 /** Add unit: "Who operates this?" */
-export function WhoOperatesField({ value, onChange }) {
+/**
+ * `simple` (Add screen): only "I operate it myself" shows (the client's recommended default);
+ * the other choices open from a small link, so the form stays short.
+ */
+export function WhoOperatesField({ value, onChange, simple = false }) {
   const op = useOwnerOperator();
   const self = value === "self";
+  const [showAll, setShowAll] = useState(!simple);
+  const allOptions = showAll || !self;
   return (
     <div className="log-field log-field--full log-who-operates" data-field="operated_by">
       <span className="log-fl">Who operates this?</span>
@@ -225,6 +241,8 @@ export function WhoOperatesField({ value, onChange }) {
             <small>You go live on it and run its jobs.</small>
           </span>
         </label>
+        {allOptions ? (
+          <>
         <label className={`log-who-operates__opt${value === "invite" ? " is-selected" : ""}`} data-testid="operated-by-invite">
           <input type="radio" name="operated_by" value="invite" checked={value === "invite"} onChange={() => onChange("invite")} />
           <span>
@@ -246,6 +264,8 @@ export function WhoOperatesField({ value, onChange }) {
             <small>The unit stays hidden from customers until someone is assigned.</small>
           </span>
         </label>
+          </>
+        ) : null}
       </div>
       {self ? (
         op?.can_operate ? (
@@ -259,6 +279,16 @@ export function WhoOperatesField({ value, onChange }) {
           </>
         )
       ) : null}
+      {allOptions ? null : (
+        <button
+          type="button"
+          className="log-who-operates__more"
+          data-testid="operated-by-more"
+          onClick={() => setShowAll(true)}
+        >
+          Someone else will operate it
+        </button>
+      )}
     </div>
   );
 }
@@ -269,16 +299,14 @@ export function WhoOperatesField({ value, onChange }) {
  */
 export function UnitOperateControl({ asset, onChanged, compact = false }) {
   const dispatch = useDispatch();
-  const account = useLogisticsAccount();
-  const op = account?.owner_operator || null;
+  const op = useOwnerOperator();
+  const ownerOn = useOwnerOnUnit(asset);
   const [busy, setBusy] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
 
   if (!isFleetOwnerUser() || !asset || Number(asset.is_active) === 0) return null;
 
   const occ = unitOccupancy(asset);
-  const ownerOn =
-    occ.by === "owner" || (op?.active_asset_id && String(op.active_asset_id) === String(asset._id));
   const cls = `log-unit-op${compact ? " log-unit-op--compact" : ""}`;
 
   const claim = async () => {
@@ -351,8 +379,13 @@ export function UnitOperateControl({ asset, onChanged, compact = false }) {
     }
   };
 
+  const onJob = Boolean(occ.job_id) || occ.reason === "on_job";
   const jobLink = occ.job_id ? (
-    <Link className="log-unit-op__job" data-testid="unit-view-job" to={`/logistics/owner/job/${occ.job_id}`}>
+    <Link
+      className="log-unit-op__job log-unit-op__btn log-unit-op__btn--job"
+      data-testid="unit-view-job"
+      to={`/logistics/owner/job/${occ.job_id}`}
+    >
       View job
     </Link>
   ) : null;
@@ -361,7 +394,13 @@ export function UnitOperateControl({ asset, onChanged, compact = false }) {
   if (ownerOn) {
     body = (
       <>
-        <span className="log-chip log-chip--active" data-testid="unit-owner-operating">You are operating this</span>
+        {/* Pulses while the owner is on this unit and it has a running job */}
+        <span
+          className={`log-chip log-chip--active${onJob ? " log-chip--live" : ""}`}
+          data-testid="unit-owner-operating"
+        >
+          You are operating this
+        </span>
         {/* v2.7.71 (client test B4): being online lasts until the next check-in */}
         {op?.available_until && occ.reason !== "on_job" ? (
           <button
@@ -378,7 +417,11 @@ export function UnitOperateControl({ asset, onChanged, compact = false }) {
           </button>
         ) : null}
         {jobLink}
-        <Link className="log-unit-op__job" data-testid="open-operator-dashboard" to="/logistics/driver">
+        <Link
+          className="log-unit-op__job log-unit-op__btn"
+          data-testid="open-operator-dashboard"
+          to="/logistics/driver"
+        >
           Open dashboard
         </Link>
         {occ.reason === "on_job" ? null : (

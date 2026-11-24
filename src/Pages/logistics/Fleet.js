@@ -31,7 +31,6 @@ import {
 } from "../../utils/logisticsIdentity";
 import {
   TRUCK_BODY_TYPES,
-  capacityToTier,
 } from "../../utils/logisticVehicleWeight";
 import {
   parseLogisticsMoney,
@@ -48,7 +47,7 @@ import {
   docRuleHint,
   tomorrowYmd,
 } from "../../utils/docExpiry";
-import { MIN_ASSET_PHOTOS, unitStatusChip } from "../../utils/ownerUnitStatus";
+import { MIN_ASSET_PHOTOS, ownerBodyTypeLabel, unitStatusChip } from "../../utils/ownerUnitStatus";
 import { focusField } from "../../utils/focusField";
 import { DOC_ACCEPT, PHOTO_ACCEPT, keepAllowedFiles } from "../../utils/uploadLimits";
 import LogisticsAddLock, { ADD_LOCKED_TITLE, useAddLocked } from "../../CommanComponents/LogisticsAddLock";
@@ -103,7 +102,7 @@ const emptyForm = () => ({
   needs_operator: "yes",
   operators_needed: "1",
   // v2.7.66: self | invite (new operator here) | existing | later
-  operated_by: "invite",
+  operated_by: "self",
   op: emptyUnitOperator(),
   // No default machine — the owner must pick (placeholders only suggest)
   equipment: "",
@@ -360,8 +359,7 @@ export default function LogisticsFleet() {
     ? urlKind
     : "vehicle";
   const [kind, setKind] = useState(initialKind);
-  const { cabEnabled, config } = useLogisticsConfig();
-  const defaultRangeKm = config?.default_operating_range_km ?? 100;
+  const { cabEnabled } = useLogisticsConfig();
   // Set when the unit saved but its operator invite didn't: the next save retries only the invite
   const [savedUnitId, setSavedUnitId] = useState(null);
   const [applied, setApplied] = useState(() => ({
@@ -1113,8 +1111,7 @@ export default function LogisticsFleet() {
                 ) : null}
                 {capacityTons != null && capacityTons > 0 ? (
                   <span className="log-weight-hint">
-                    Matches customer{" "}
-                    <strong>Vehicle needed: {capacityToTier(capacityTons)}</strong>
+                    Matches loads up to <strong>{formatTons(capacityTons)}</strong>
                   </span>
                 ) : null}
               </div>
@@ -1223,6 +1220,7 @@ export default function LogisticsFleet() {
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                 Carriage area
               </p>
+              <div className="log-field--full log-carriage-row">
               <label className="log-field">
                 <span className="log-fl">Length (ft)</span>
                 <input
@@ -1256,27 +1254,10 @@ export default function LogisticsFleet() {
                   placeholder="9"
                 />
               </label>
+              </div>
 
-              <label className="log-field">
-                <span className="log-fl">Needs operator? · Locked</span>
-                <select value="yes" disabled>
-                  <option value="yes">Yes</option>
-                </select>
-              </label>
-              <label className="log-field">
-                <span className="log-fl">Operators needed</span>
-                <select
-                  value={form.operators_needed}
-                  onChange={set("operators_needed")}
-                >
-                  {[1, 2, 3, 4].map((n) => (
-                    <option key={n} value={String(n)}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <WhoOperatesField
+                simple
                 value={form.operated_by}
                 onChange={(v) => setForm((f) => ({ ...f, operated_by: v }))}
               />
@@ -1314,21 +1295,7 @@ export default function LogisticsFleet() {
                   onToggle={setSaveAsBase}
                 />
               </div>
-              {cab ? null : (
-                <label className="log-field log-field--full" data-field="operating_range">
-                  <span className="log-fl">Operating range (km)</span>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={form.operating_range}
-                    onChange={set("operating_range")}
-                    placeholder={`Default ${defaultRangeKm} km`}
-                    data-testid="operating-range"
-                  />
-                  <small className="log-hint">You see jobs with a pickup inside this distance of the base location.</small>
-                </label>
-              )}
+              {/* Add screen: the default operating range applies; it can be changed on the unit page */}
 
               <p className="log-sect log-field--full" style={{ marginBottom: 0 }}>
                 Vehicle documents{" "}
@@ -1337,13 +1304,12 @@ export default function LogisticsFleet() {
               <p className="log-hint log-field--full">
                 {cab
                   ? "The road licence (ZINARA) is required. Without a valid one the unit is hidden from customers."
-                  : "Start with the road licence (ZINARA) — a truck can't be added without it, and it must be verified and in date before customers can see the truck."}{" "}
-                The other documents support your listing; a problem with one only shows you a warning.
+                  : "Add the road licence (ZINARA) — a truck can't be added without it, and it must be verified and in date before customers can see the truck. You can add the other documents later on the truck's page."}{" "}
                 Once a file is attached, pick its expiry date from the calendar (*). {REMINDER_HINT}
               </p>
               <div className="log-field--full">
                 <DocRows
-                  items={cab ? CAB_DOCS : LOGISTIC_DOCS}
+                  items={cab ? CAB_DOCS : LOGISTIC_DOCS.filter((d) => d.required)}
                   kind={cab ? "cab" : "vehicle"}
                   redPlate={Boolean(form.red_plate)}
                   docs={form.docs}
@@ -1509,26 +1475,8 @@ export default function LogisticsFleet() {
                 </label>
               ) : null}
 
-              <label className="log-field">
-                <span className="log-fl">Needs operator? · Locked</span>
-                <select value="yes" disabled>
-                  <option value="yes">Yes</option>
-                </select>
-              </label>
-              <label className="log-field">
-                <span className="log-fl">Operators needed</span>
-                <select
-                  value={form.operators_needed}
-                  onChange={set("operators_needed")}
-                >
-                  {[1, 2, 3, 4].map((n) => (
-                    <option key={n} value={String(n)}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <WhoOperatesField
+                simple
                 value={form.operated_by}
                 onChange={(v) => setForm((f) => ({ ...f, operated_by: v }))}
               />
@@ -1559,17 +1507,6 @@ export default function LogisticsFleet() {
                   onToggle={setSaveAsBase}
                 />
               </div>
-              <label className="log-field log-field--full">
-                <span className="log-fl">Operating range (km)</span>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={form.operating_range}
-                  onChange={set("operating_range")}
-                  placeholder="e.g. 80 — hire jobs outside this distance won’t alert you"
-                />
-              </label>
               <div className="log-field log-rate-field" data-field="price">
                 <span className="log-fl">Rate (optional)</span>
                 <div className="log-rate-row">
@@ -1669,10 +1606,11 @@ export default function LogisticsFleet() {
       {loading ? (
         <LogisticsGridSkeleton cards={6} label="Loading fleet" />
       ) : assets.length ? (
-        <>
+        <div className={`log-fleet-list${showForm ? " log-fleet-list--under-form" : ""}`}>
           {hubFeature && assets.some((x) => x.kind === "vehicle") ? (
             <p className={`log-feature-note${hubFeature.eligible ? "" : " is-locked"}`}>
               <span aria-hidden="true">★</span>
+              <span className="log-feature-note__text">
               {hubFeature.eligible ? (
                 <>
                   One of your logistic trucks is shown in the Hub&rsquo;s{" "}
@@ -1685,10 +1623,11 @@ export default function LogisticsFleet() {
                   a truck in the Hub&rsquo;s <b>Top logistics providers</b> and pick which one.
                 </>
               )}
+              </span>
             </p>
           ) : null}
-          <div className="log-jobs-table-wrap">
-            <table className="log-jobs-table">
+          <div className="log-jobs-table-wrap log-fleet-table-wrap log-card-table-wrap">
+            <table className="log-jobs-table log-fleet-table log-card-table">
               <thead>
                 <tr>
                   <th>Vehicle</th>
@@ -1707,12 +1646,14 @@ export default function LogisticsFleet() {
                   const cat =
                     a.services?.[0] ||
                     (a.kind === "equipment" ? "Equipment" : a.kind === "cab" ? "Cab" : "Logistic");
-                  const type =
-                    a.capabilities?.find((c) => !String(c).includes(":")) ||
-                    (a.kind === "equipment" ? "Equipment" : a.kind === "cab" ? "Cab" : "Vehicle");
+                  // 17 Nov (client): no bare lowercase "regular"
+                  const type = ownerBodyTypeLabel(
+                    a.capabilities?.find((c) => !String(c).includes(":")),
+                    a.kind === "equipment" ? "Equipment" : a.kind === "cab" ? "Cab" : "Vehicle"
+                  );
                   return (
                     <tr key={a._id}>
-                      <td>
+                      <td className="log-fleet-table__name log-card-table__title">
                         <b>{a.name}</b>
                         {hubFeature?.featured_asset_id === a._id ? (
                           <span
@@ -1731,20 +1672,20 @@ export default function LogisticsFleet() {
                           <div className="log-hint">{cap}</div>
                         ) : null}
                       </td>
-                      <td>
+                      <td data-label="Type">
                         {String(cat).charAt(0).toUpperCase() +
                           String(cat).slice(1)}{" "}
                         · {type}
                       </td>
-                      <td>{a.registration || "—"}</td>
-                      <td>
+                      <td data-label="Registration">{a.registration || "—"}</td>
+                      <td data-label="Operators">
                         {a.assigned_sub_user_ids?.length
                           ? a.assigned_sub_user_ids.length
                           : a.owner_operating
                             ? "You"
                             : "None"}
                       </td>
-                      <td>
+                      <td data-label="Status">
                         {!listed ? (
                           <span
                             className={`log-chip log-chip--closed${a.plan_locked ? " log-chip--plan" : ""}`}
@@ -1758,7 +1699,7 @@ export default function LogisticsFleet() {
                           </span>
                         )}
                       </td>
-                      <td>
+                      <td className="log-fleet-table__actions log-card-table__actions">
                         <div className="log-fleet-row-actions">
                           <UnitOperateControl asset={a} onChanged={load} compact />
                           {a.kind === "vehicle" && listed ? (
@@ -1814,7 +1755,7 @@ export default function LogisticsFleet() {
               </button>
             </div>
           ) : null}
-        </>
+        </div>
       ) : !showForm ? (
         <div className="log-fleet-empty">
           <span className="log-fleet-empty__icon" aria-hidden="true">

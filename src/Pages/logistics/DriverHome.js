@@ -28,7 +28,7 @@ import LogisticsDateInput from "../../CommanComponents/LogisticsDateInput";
 import LogisticsSosContactsPrompt from "../../CommanComponents/LogisticsSosContactsPrompt";
 import LogisticsOperatorFaceCard from "../../CommanComponents/LogisticsOperatorFaceCard";
 import { OperatorDocBanner } from "../../CommanComponents/LogisticsDocAlerts";
-import { refreshLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
+import { refreshLogisticsAccount, useLogisticsAccount } from "../../CommanComponents/LogisticsAccountBanner";
 import { apiErrorMessage, isFleetOwnerUser, unitHeldByOther } from "../../utils/ownerOperator";
 
 const PLACEHOLDER_LABELS = new Set([
@@ -256,6 +256,64 @@ function OperatorDashboard() {
     setSelectedState((prev) => coerceStatusSelection(prev, statusOptions));
   }, [statusOptions]);
 
+  // 23 Nov (client): company waiting for / refused Simba approval → Offline only,
+  // with the reason on the page instead of an error toast after the tap
+  const account = useLogisticsAccount();
+  const approvalStatus = account?.approval?.status || null;
+  const companyBlocked = approvalStatus === "pending" || approvalStatus === "rejected";
+  const companyBlockedText = !companyBlocked
+    ? ""
+    : approvalStatus === "rejected"
+      ? `Simba Tasker couldn't approve ${ownerOperating ? "your" : "your company's"} account${account?.approval?.reason ? ` (${account.approval.reason})` : ""} — you can go online once it's fixed and approved.`
+      : ownerOperating
+        ? "Your company is waiting for Simba Tasker approval — you can go online once it's approved."
+        : "Your company is waiting for Simba Tasker approval — you can go online once it's approved.";
+  useEffect(() => {
+    if (companyBlocked && selectedState !== "offline") setSelectedState("offline");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyBlocked]);
+
+  // 23 Nov (client): while available (or on a job) the dashboard sends the GPS
+  // position on its own every 15 min — location only, the check-in is not renewed.
+  // Customers' "View on map" shows units updated in the last 2 h.
+  const [autoPing, setAutoPing] = useState({ at: null, denied: false });
+  const pingMinutes = Math.max(1, Number(process.env.REACT_APP_LOGISTICS_LOCATION_PING_MIN) || 15);
+  const pingActive = ["available_now", "returning_empty", "on_job"].includes(uiState);
+  useEffect(() => {
+    if (!pingActive || !navigator.geolocation) return undefined;
+    let stopped = false;
+    const ping = () => {
+      navigator.geolocation.getCurrentPosition(
+        async (p) => {
+          if (stopped) return;
+          const res = await dispatch(
+            LogisticsActions.patchMyAvailability({
+              location_only: true,
+              lat: p.coords.latitude,
+              lng: p.coords.longitude,
+            })
+          );
+          if (!stopped && res?.payload?.success) {
+            setAutoPing({ at: new Date(), denied: false });
+          }
+        },
+        (err) => {
+          if (!stopped && err?.code === 1) setAutoPing((x) => ({ ...x, denied: true }));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+      );
+    };
+    // First ping when the last fix is older than one period
+    const last = availability.last_verified_at ? new Date(availability.last_verified_at).getTime() : 0;
+    if (!last || Date.now() - last > pingMinutes * 60000) ping();
+    const t = setInterval(ping, pingMinutes * 60000);
+    return () => {
+      stopped = true;
+      clearInterval(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pingActive, pingMinutes, dispatch]);
+
   const mapVehicles = useMemo(() => {
     if (!hasCoords || !committedAsset) return [];
     return [
@@ -477,13 +535,6 @@ function OperatorDashboard() {
     );
   };
 
-  // v2.7.71 (client test §6): one tap — Go online on the unit in Using now (or the only one)
-  const goOnlineUnitId =
-    String(selectedAssetId || committedAssetId || (usableUnits.length === 1 ? usableUnits[0]._id : "") || "");
-  const goOnline = () =>
-    saveStatus({ state: "available_now", asset_id: goOnlineUnitId || undefined });
-  const goOffline = () =>
-    saveStatus({ state: "offline", asset_id: committedAssetId || selectedAssetId || undefined });
   // "Still online here?" — keep the current live status, fresh GPS, new check-in period
   const confirmStillOnline = () =>
     saveStatus({
@@ -570,10 +621,19 @@ function OperatorDashboard() {
                   : `Customers can book you. Confirm you're still here by ${untilLabel} (every ${availability.checkin_hours || 2} h).`
                 : uiState === "on_job"
                   ? "Finish the job from My jobs. You stay visible until it's done."
-                  : availability.lapsed
-                    ? "You went offline because nobody confirmed you were still online. Ready to go?"
-                    : "Ready to go? Customers can only book you while you're online."}
+                  : companyBlocked
+                    ? companyBlockedText
+                    : availability.lapsed
+                      ? "You went offline because nobody confirmed you were still online. Pick Available now below and tap Update status."
+                      : "Ready to go? Pick Available now below and tap Update status — customers can only book you while you're online."}
             </span>
+            {pingActive ? (
+              <span className="log-go-card__sub log-go-card__autoloc" data-testid="auto-location-note">
+                {autoPing.denied
+                  ? "Location access is off — your position isn't updated automatically. Allow it, or use Update location."
+                  : `Your location updates automatically every ${pingMinutes} min${autoPing.at ? ` · last ${autoPing.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}.`}
+              </span>
+            ) : null}
           </div>
           <div className="log-go-card__actions">
             {onlineNow ? (
@@ -597,25 +657,8 @@ function OperatorDashboard() {
                     {locating ? "Reading GPS…" : "Update location"}
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="log-go-card__btn log-go-card__btn--off"
-                  disabled={busy}
-                  onClick={goOffline}
-                >
-                  Go offline
-                </button>
               </>
-            ) : uiState === "on_job" ? null : (
-              <button
-                type="button"
-                className="log-go-card__btn log-go-card__btn--on"
-                disabled={busy || !usableUnits.length || !goOnlineUnitId}
-                onClick={goOnline}
-              >
-                {locating ? "Reading GPS…" : saving ? "Going online…" : "Go online"}
-              </button>
-            )}
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -692,7 +735,7 @@ function OperatorDashboard() {
                     onChange={(e) => setSelectedState(e.target.value)}
                   >
                     {statusOptions.map((s) => (
-                      <option key={s.value} value={s.value}>
+                      <option key={s.value} value={s.value} disabled={companyBlocked && s.value !== "offline"}>
                         {s.label}
                       </option>
                     ))}
@@ -702,7 +745,12 @@ function OperatorDashboard() {
                   <button
                     type="button"
                     className="logistics-cta logistics-cta--primary"
-                    disabled={busy || (!usableUnits.length && selectedState !== "offline")}
+                    disabled={
+                      busy ||
+                      (!usableUnits.length && selectedState !== "offline") ||
+                      (companyBlocked && selectedState !== "offline")
+                    }
+                    title={companyBlocked && selectedState !== "offline" ? companyBlockedText : undefined}
                     onClick={() => saveStatus()}
                   >
                     {locating
@@ -713,6 +761,11 @@ function OperatorDashboard() {
                   </button>
                 </div>
               </div>
+              {companyBlocked ? (
+                <p className="log-plan-locked-strip log-plan-locked-strip--op" role="status" data-testid="company-pending-reason">
+                  <b>{companyBlockedText}</b>
+                </p>
+              ) : null}
               {disabledUnits.length ? (
                 <p className="log-plan-locked-strip log-plan-locked-strip--op" role="alert">
                   <b>

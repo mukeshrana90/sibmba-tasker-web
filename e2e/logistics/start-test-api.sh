@@ -35,4 +35,6 @@ export LOGISTICS_SOS_SMS_WEBHOOK_TOKEN=e2e-sms-token EMAIL_CHECK_ALLOW_DOMAINS=e
 export LOGISTICS_DOC_REMINDER_HOUR=25 CAB_SERVICE_ENABLED=true
 # v2.7.66: operating area default; E2E_DEFAULT_RANGE_KM overrides it (s31 restarts the API with another value)
 export LOGISTICS_DEFAULT_OPERATING_RANGE_KM=${E2E_DEFAULT_RANGE_KM:-100}
+# 23 Nov: launch date off by default so free periods start at approval; s41 restarts with E2E_APPROVALS_FROM_TS
+export LOGISTICS_APPROVALS_FROM_TS=${E2E_APPROVALS_FROM_TS:-} LOGISTICS_SUPPORT_WHATSAPP=+263786545442
 exec node -r ./scripts/e2e/mock-providers.js simbaTasker.js

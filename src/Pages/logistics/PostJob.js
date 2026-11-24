@@ -257,9 +257,16 @@ function jobToForm(job) {
     date: toDateInput(job.when_needed),
     orig_date: toDateInput(job.when_needed),
     when_mode: job.job_class === "local" ? "now" : "date",
-    vehicle_needed: normalizeVehicleNeededLabel(
-      vehicleMatch ? vehicleMatch[1].trim() : "below 2 ton"
-    ),
+    // 17 Nov: a direct booking keeps the unit's exact capacity ("15 ton") on edit
+    ...(() => {
+      const raw = vehicleMatch ? vehicleMatch[1].trim() : "";
+      const exact =
+        Boolean(job.targeted_asset_id) && /^\d+(\.\d+)?\s*ton$/i.test(raw);
+      return {
+        vehicle_needed: exact ? raw : normalizeVehicleNeededLabel(raw || "below 2 ton"),
+        vehicle_exact: exact,
+      };
+    })(),
     truck_type: (() => {
       const raw = truckMatch ? truckMatch[1].trim() : "";
       if (TRUCK_BODY_TYPES.includes(raw)) return raw;
@@ -346,8 +353,13 @@ function formFromTargetAsset(asset) {
   return {
     ...defaultForm,
     category: "logistic",
+    // 17 Nov (client): a direct booking saves the truck's real capacity
+    // ("Vehicle: 15 ton"), not the size band it falls in ("20 ton")
     vehicle_needed:
-      capacityToTier(assetCapacityTons(asset)) || "below 2 ton",
+      assetCapacityTons(asset) > 0
+        ? `${Math.round(assetCapacityTons(asset) * 1000) / 1000} ton`
+        : capacityToTier(assetCapacityTons(asset)) || "below 2 ton",
+    vehicle_exact: assetCapacityTons(asset) > 0,
     truck_type: assetBodyType(asset) || "regular",
   };
 }
@@ -548,7 +560,7 @@ export default function LogisticsPostJob() {
   }, [plant, categoryLocked, form.truck_type]);
 
   useEffect(() => {
-    if (plant || categoryLocked) return;
+    if (plant || categoryLocked || form.vehicle_exact) return;
     if (!vehicleOptions.length) return;
     if (vehicleOptions.includes(form.vehicle_needed)) return;
     setForm((f) => ({
@@ -558,7 +570,7 @@ export default function LogisticsPostJob() {
         f.vehicle_needed
       ),
     }));
-  }, [plant, categoryLocked, vehicleOptions, form.vehicle_needed]);
+  }, [plant, categoryLocked, vehicleOptions, form.vehicle_needed, form.vehicle_exact]);
 
   // Bring back the job a guest filled in before signing in
   useEffect(() => {
@@ -916,7 +928,10 @@ export default function LogisticsPostJob() {
           : [
               form.special_notes,
               form.vehicle_needed ? `Vehicle: ${form.vehicle_needed}` : "",
-              form.truck_type ? `Truck type: ${form.truck_type}` : "",
+              // 17 Nov (client): "Regular", never a bare lowercase "regular"
+              form.truck_type
+                ? `Truck type: ${String(form.truck_type).charAt(0).toUpperCase()}${String(form.truck_type).slice(1)}`
+                : "",
               form.return_trip
                 ? `Return: ${form.return_goods || "goods"} (${
                     returnTons != null
@@ -1117,7 +1132,14 @@ export default function LogisticsPostJob() {
                   <span className="log-cat-block__lock"> · Locked</span>
                 ) : null}
               </LogFieldLabel>
-              {categoryLocked && assetCapacityTons(targetAsset) != null ? (
+              {!categoryLocked && form.vehicle_exact ? (
+                // Editing a direct booking: the booked truck's exact capacity
+                <input
+                  readOnly
+                  value={`Up to ${vehicleMaxTons(form.vehicle_needed).toLocaleString()} t — booked unit`}
+                  aria-label="Vehicle capacity (booked unit)"
+                />
+              ) : categoryLocked && assetCapacityTons(targetAsset) != null ? (
                 // Direct booking: show this truck's real capacity (e.g. 15 t),
                 // not the size band it falls in ("20 ton")
                 <input

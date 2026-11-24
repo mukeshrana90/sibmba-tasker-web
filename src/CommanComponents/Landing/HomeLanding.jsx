@@ -1,3 +1,4 @@
+import useHomeStats, { plusCount, ratingText } from "../../Hooks/useHomeStats";
 import React, { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -123,6 +124,7 @@ const TRUST_FEATURES = [
 ];
 
 export default function HomeLanding() {
+  const homeStats = useHomeStats();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -196,20 +198,21 @@ export default function HomeLanding() {
           </div>
 
           <div className="landing-stats">
+            {/* 23 Nov (client): live numbers — registered (not "verified") providers, users instead of jobs */}
             <div className="landing-hstat">
-              <b>2,400+</b>
-              <span>Verified providers</span>
+              <b>{plusCount(homeStats.registered_providers)}</b>
+              <span>Registered providers</span>
             </div>
             <div className="landing-hstat">
-              <b>30+</b>
+              <b>{plusCount(homeStats.categories)}</b>
               <span>Service categories</span>
             </div>
             <div className="landing-hstat">
-              <b>15k+</b>
-              <span>Jobs completed</span>
+              <b>{plusCount(homeStats.users)}</b>
+              <span>Users</span>
             </div>
             <div className="landing-hstat">
-              <b>4.8★</b>
+              <b>{ratingText(homeStats.rating)}</b>
               <span>Average rating</span>
             </div>
           </div>

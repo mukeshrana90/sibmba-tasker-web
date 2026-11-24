@@ -40,7 +40,8 @@ const OWNER_TYPES = [
 ];
 
 const REVIEW_CHIP = {
-  pending: { label: "Pending check", chip: "log-chip--progress" },
+  // 23 Nov (client): say plainly the file arrived and is waiting for Simba Tasker
+  pending: { label: "Uploaded · Pending review", chip: "log-chip--progress" },
   verified: { label: "Verified", chip: "log-chip--done" },
   rejected: { label: "Rejected", chip: "log-chip--closed" },
 };
@@ -74,16 +75,19 @@ export function BusinessDocsPanel() {
   const [busy, setBusy] = useState("");
   const [idKind, setIdKind] = useState("national_id");
   const [expiries, setExpiries] = useState({});
+  const [loadError, setLoadError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await dispatch(LogisticsActions.getBusinessDocs());
-      if (res?.payload?.success === false || res?.error) {
-        toast.error(res?.payload?.message || "Could not load your documents");
+      const d = res?.payload?.data || null;
+      // 23 Nov (client): a failed load used to show every document as red "Missing"
+      if (res?.payload?.success === false || res?.error || !d) {
+        setLoadError(res?.payload?.message || "Couldn't load your documents");
         return;
       }
-      const d = res?.payload?.data || null;
+      setLoadError("");
       setData(d);
       setIdKind(nextIdKind(d));
     } finally {
@@ -99,7 +103,7 @@ export function BusinessDocsPanel() {
     const fd = new FormData();
     fd.append(type, file);
     if (type === "owner_id") fd.append("owner_id_kind", idKind);
-    if (expiries[type]) fd.append(`${type}_expires`, expiries[type]);
+    if (expiries[type] && !(type === "owner_id" && idKind === "national_id")) fd.append(`${type}_expires`, expiries[type]);
     setBusy(type);
     try {
       const res = await dispatch(LogisticsActions.uploadBusinessDocs(fd));
@@ -109,8 +113,13 @@ export function BusinessDocsPanel() {
         return;
       }
       toast.success(p?.message || "Document uploaded");
-      setData(p?.data || null);
-      if (type === "owner_id") setIdKind(nextIdKind(p?.data));
+      if (p?.data?.documents) {
+        setData(p.data);
+        if (type === "owner_id") setIdKind(nextIdKind(p.data));
+      } else {
+        // No list in the reply: read it again rather than show the upload as missing
+        await load();
+      }
       setExpiries((x) => ({ ...x, [type]: "" }));
       refreshLogisticsAccount();
     } finally {
@@ -146,6 +155,27 @@ export function BusinessDocsPanel() {
       setBusy("");
     }
   };
+
+  // Never draw the list without the server's copy of the documents (it would say "Missing")
+  if (!data) {
+    return (
+      <div className="log-bizdoc-panel" data-testid="bizdocs-panel">
+        {loading ? (
+          <p className="log-hint">Loading your documents…</p>
+        ) : (
+          <div className="log-bizdoc-status" data-testid="bizdocs-load-error">
+            <p>
+              <strong>{loadError || "Couldn't load your documents"}.</strong> Your uploaded files are safe — check your
+              connection and try again.
+            </p>
+            <button type="button" className="logistics-cta logistics-cta--ghost" onClick={load}>
+              Retry
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="log-bizdoc-page" data-approval={approval}>
@@ -301,13 +331,13 @@ export function BusinessDocsPanel() {
                     ))}
                   </select>
                 ) : null}
+                {/* 23 Nov (client): Zimbabwe national IDs don't expire — no date field */}
+                {t.type === "owner_id" && idKind === "national_id" ? null : (
                 <label className="log-bizdoc__date">
                   <span>
                     {expiryRequiredFor(t)
                       ? "Expiry date *"
-                      : t.type === "owner_id"
-                        ? "Expiry date (optional — national IDs don't expire)"
-                        : "Expiry date (optional)"}
+                      : "Expiry date (optional)"}
                   </span>
                   <input
                     type="date"
@@ -317,6 +347,7 @@ export function BusinessDocsPanel() {
                     onChange={(e) => setExpiries((x) => ({ ...x, [t.type]: e.target.value }))}
                   />
                 </label>
+                )}
                 <label
                   className={`logistics-cta ${sameKind ? "logistics-cta--ghost" : "logistics-cta--primary"} log-bizdoc__upload${busy === t.type ? " is-busy" : ""}${
                     expiryRequiredFor(t) && !expiries[t.type] ? " is-locked" : ""

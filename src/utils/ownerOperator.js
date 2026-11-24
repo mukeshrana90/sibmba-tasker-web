@@ -1,3 +1,4 @@
+import { freeDays } from "./logisticsLaunch";
 /**
  * v2.7.61 owner-operator rule: an owner can run any of their own units while no
  * operator is using it (live, or on an active job on that unit). Pure helpers —
@@ -81,6 +82,10 @@ export function apiErrorMessage(payload, fallback = "Something went wrong — tr
     }
     case "COMPANY_NOT_APPROVED":
       return "Your company must be approved by Simba Tasker before you can operate a unit.";
+    case "OWNER_PENDING_APPROVAL":
+      return "Your company is waiting for Simba Tasker approval — you can go online once it's approved.";
+    case "OWNER_REJECTED":
+      return "Simba Tasker couldn't approve your company yet — you can go online once it's fixed and approved.";
     case "ACTIVE_JOB":
       return "You have an active job on this unit. Finish or reassign it before you stop using the unit.";
     case "OPERATOR_ON_ACTIVE_JOB":
@@ -92,7 +97,7 @@ export function apiErrorMessage(payload, fallback = "Something went wrong — tr
     case "WA_CHAT_NO_PHONE":
       return "This person has no WhatsApp number on file. Use the in-app chat or call instead.";
     case "WA_CHAT_PLAN_REQUIRED":
-      return "WhatsApp chat is available during the 60-day free period or on the Paid plan.";
+      return `WhatsApp chat is available during the ${freeDays()}-day free period or on the Paid plan.`;
     default:
       return payload?.message || fallback;
   }
@@ -103,8 +108,8 @@ export function isApiFailure(res) {
   return res?.meta?.requestStatus === "rejected" || res?.payload?.success === false;
 }
 
-/** Item 40: one sentence wherever the old "paid only" text was. */
-export const WHATSAPP_PACK_TEXT = "Essentials free, full pack free for 60 days from company approval";
+/** Item 40: one sentence wherever the old "paid only" text was. 23 Nov: days from backend .env. */
+export const whatsappPackText = () => `Essentials free, full pack free for ${freeDays()} days from company approval`;
 
 /** "Paid benefits free: 12 days left" (item 37, v2.7.64); "" when the API doesn't report it. */
 export function whatsappExtrasLabel(wa) {
@@ -115,6 +120,10 @@ export function whatsappExtrasLabel(wa) {
     if (Number.isFinite(n)) return `Paid benefits free: ${n} day${n === 1 ? "" : "s"} left`;
     return "Paid benefits free: free period active";
   }
-  if (wa.trial_status === "not_started") return "Paid benefits free for 60 days once Simba Tasker approves your company";
+  if (wa.trial_status === "not_started") {
+    return wa.trial_starts_at
+      ? `Paid benefits free for ${freeDays()} days from ${new Date(wa.trial_starts_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+      : `Paid benefits free for ${freeDays()} days once Simba Tasker approves your company`;
+  }
   return "WhatsApp extras: free period ended. Essentials stay free.";
 }

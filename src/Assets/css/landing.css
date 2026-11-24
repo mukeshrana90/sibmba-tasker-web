@@ -1990,6 +1990,52 @@ button.landing-prov-service:focus-visible {
   font-weight: 600;
   margin-bottom: 14px;
 }
+/* Logistics fallback loading: truck road in the notice box's place (LogisticsTruckRoad) */
+.truck-road {
+  position: relative;
+  height: 48px;
+  margin-bottom: 14px;
+  border-left: 3px solid #c8962e;
+  border-radius: 8px;
+  background: #f3ecdf;
+  overflow: hidden;
+}
+.truck-road::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 7px;
+  border-bottom: 2px dashed rgba(200, 150, 46, 0.35);
+}
+.truck-road__truck {
+  position: absolute;
+  left: 0;
+  bottom: 8px;
+  z-index: 1;
+  height: 34px;
+  width: auto;
+  max-width: none;
+  transform: translateX(-120px);
+  will-change: transform;
+}
+.truck-road__label {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  color: #5a4520;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+@media (max-width: 520px) {
+  .truck-road__label {
+    font-size: 11.5px;
+  }
+}
 /* Logistics search: gap between "No exact matches…" and the fallback box */
 .log-jobs-meta + .empty-results {
   margin-top: 14px;

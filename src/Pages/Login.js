@@ -1,3 +1,4 @@
+import useHomeStats, { plusCount, ratingText } from "../Hooks/useHomeStats";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -78,6 +79,7 @@ function isTokenValid() {
 }
 
 export default function Login() {
+  const homeStats = useHomeStats();
   const [fcmToken, setFcmToken] = useState(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -265,15 +267,15 @@ export default function Login() {
                 </p>
                 <div className="av-stats">
                   <div>
-                    <b>2,400+</b>
-                    <span>Verified providers</span>
+                    <b>{plusCount(homeStats.registered_providers)}</b>
+                    <span>Registered providers</span>
                   </div>
                   <div>
-                    <b>15k+</b>
-                    <span>Jobs completed</span>
+                    <b>{plusCount(homeStats.users)}</b>
+                    <span>Users</span>
                   </div>
                   <div>
-                    <b>4.8★</b>
+                    <b>{ratingText(homeStats.rating)}</b>
                     <span>Average rating</span>
                   </div>
                 </div>

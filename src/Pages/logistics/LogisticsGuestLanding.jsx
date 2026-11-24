@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import UnifiedSearch from "../../CommanComponents/Landing/UnifiedSearch";
 import GuestMarketplaceSwitch, { AccountMarketplaceSwitch } from "../../CommanComponents/Landing/GuestMarketplaceSwitch";
@@ -5,7 +6,98 @@ import { CategoryGlyph } from "../../CommanComponents/LogisticsFormIcons";
 import { CATEGORIES, CAB_CATEGORY } from "../../CommanComponents/LogisticsCategoryTiles";
 import { accountLinkTo, isLoggedIn } from "../../utils/authRedirect";
 import truckArt from "../../Assets/Images/logistics/hub-banner-truck.png";
+import driveTruck from "../../Assets/Images/logistics/hero-truck-drive.webp";
 import "./LogisticsGuestLanding.css";
+import LogisticsLaunchLine from "../../CommanComponents/LogisticsLaunchLine";
+
+const DRIVE_MS = 4200;
+const DRIVE_OPACITY = 0.6;
+
+/**
+ * Hero headline "Trucks & machines": once per page load a Simba Tasker truck drives
+ * behind the text. The "T" is the tunnel exit and the final "s" the tunnel entrance:
+ * the truck is clipped to the strip between them, wheels on the text baseline.
+ */
+function DrivingTruckHeadline() {
+  const roadRef = useRef(null);
+
+  useEffect(() => {
+    const road = roadRef.current;
+    if (!road) return undefined;
+    const lane = road.querySelector(".lgl-drive__lane");
+    const truck = road.querySelector(".lgl-drive__truck");
+    const tOut = road.querySelector(".lgl-drive__exit");
+    const sIn = road.querySelector(".lgl-drive__entry");
+    const base = road.querySelector(".lgl-drive__baseline");
+    let anim = null;
+    let cancelled = false;
+
+    const layout = () => {
+      const r = road.getBoundingClientRect();
+      const a = tOut.getBoundingClientRect();
+      const z = sIn.getBoundingClientRect();
+      const b = base.getBoundingClientRect();
+      const th = truck.getBoundingClientRect().height;
+      // "Trucks &" and "machines" wrapped onto two lines: no straight road, skip.
+      if (Math.abs(a.top - z.top) > th / 2) return null;
+      const left = a.left + a.width / 2 - r.left;
+      const width = Math.max(0, z.left + z.width / 2 - r.left - left);
+      lane.style.left = `${left}px`;
+      lane.style.width = `${width}px`;
+      lane.style.top = `${b.top - r.top - th - 4}px`;
+      lane.style.height = `${th + 4}px`;
+      return { width, tw: truck.getBoundingClientRect().width };
+    };
+
+    const play = () => {
+      if (cancelled || !truck.animate) return;
+      const m = layout();
+      if (!m || !m.width || !m.tw) return;
+      truck.style.opacity = String(DRIVE_OPACITY);
+      anim = truck.animate(
+        [{ transform: `translateX(${-m.tw}px)` }, { transform: `translateX(${m.width}px)` }],
+        { duration: DRIVE_MS, easing: "cubic-bezier(.35,.1,.45,.95)", iterations: 1, fill: "forwards" }
+      );
+    };
+
+    const start = () => {
+      if (truck.complete && truck.naturalWidth) play();
+      else truck.addEventListener("load", play, { once: true });
+    };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(start);
+    else start();
+
+    const onResize = () => {
+      if (!layout()) truck.style.opacity = "0";
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("resize", onResize);
+      truck.removeEventListener("load", play);
+      if (anim) anim.cancel();
+    };
+  }, []);
+
+  return (
+    <h1>
+      <span className="lgl-drive" ref={roadRef}>
+        <span className="lgl-drive__text">
+          <span className="lgl-drive__exit">T</span>rucks &amp;{" "}
+          <span className="landing-hl">
+            machine<span className="lgl-drive__entry">s</span>
+          </span>
+          <span className="lgl-drive__baseline" aria-hidden="true" />
+        </span>
+        <span className="lgl-drive__lane" aria-hidden="true">
+          <img className="lgl-drive__truck" src={driveTruck} alt="" />
+        </span>
+      </span>
+      <br />
+      from trusted fleets.
+    </h1>
+  );
+}
 
 /**
  * v2.7.66: also shown to logged-in customers, providers and corporates (switch via
@@ -165,11 +257,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
         <div className="landing-wrap landing-hero__inner">
           {signedIn ? <AccountMarketplaceSwitch active="logistics" /> : <GuestMarketplaceSwitch active="logistics" />}
           <span className="landing-eyebrow">Zimbabwe&apos;s logistics &amp; equipment marketplace</span>
-          <h1>
-            Trucks &amp; <span className="landing-hl">machines</span>
-            <br />
-            from trusted fleets.
-          </h1>
+          <DrivingTruckHeadline />
           <p className="landing-hero__lead">
             Book trucks, tractors, excavators and more{cabEnabled ? ", or ride a cab" : ""} — compare quotes
             from verified fleet owners near you, all across Zimbabwe.
@@ -349,6 +437,7 @@ export default function LogisticsGuestLanding({ cabEnabled, spotlight, loading, 
               <span className="landing-eyebrow landing-cta__eyebrow">For equipment owners</span>
               <h2>Own trucks or machines?</h2>
               <p>List your fleet on Simba Tasker Logistics, add your operators and get jobs from customers across Zimbabwe.</p>
+              <LogisticsLaunchLine className="log-launch-line--on-dark" />
               <div className="landing-cta__actions">
                 <button type="button" className="landing-btn landing-btn--gold" onClick={() => navigate("/sign-up?role=4")}>
                   Join as Equipment Owner

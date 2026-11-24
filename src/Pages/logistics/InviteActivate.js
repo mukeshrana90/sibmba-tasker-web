@@ -101,7 +101,17 @@ export default function LogisticsInviteActivate() {
           setError("");
         } else if (data?.code === "INVITE_ACCEPTED") {
           setInfo(null);
-          setAccepted({ email: data.email || "", business_name: data.business_name || "" });
+          // The API only sends a masked address; the full one is known only
+          // if this browser activated the invite.
+          let fullEmail = "";
+          try {
+            fullEmail = localStorage.getItem(`log_invite_email:${token}`) || "";
+          } catch {}
+          setAccepted({
+            masked: data.email_masked || "",
+            email: fullEmail,
+            business_name: data.business_name || "",
+          });
           setError("");
         } else {
           setInfo(null);
@@ -141,6 +151,11 @@ export default function LogisticsInviteActivate() {
       if (res?.payload?.success) {
         const data = res.payload.data;
         localStorage.setItem("token", data.token);
+        if (data.user?.email) {
+          try {
+            localStorage.setItem(`log_invite_email:${token}`, String(data.user.email));
+          } catch {}
+        }
         localStorage.setItem("role", String(data.user.role));
         persistUserId(data.user._id);
         if (data.user.owner_id) {
@@ -394,9 +409,9 @@ export default function LogisticsInviteActivate() {
                 <div className="log-invite-error log-invite-accepted">
                   <p>
                     Already accepted — log in
-                    {accepted.email ? (
+                    {accepted.masked ? (
                       <>
-                        {" "}as <b>{accepted.email}</b>
+                        {" "}as <b>{accepted.masked}</b>
                       </>
                     ) : null}
                     .

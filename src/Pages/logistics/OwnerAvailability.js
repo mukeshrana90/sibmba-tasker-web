@@ -325,8 +325,8 @@ export default function OwnerAvailability() {
           <LogisticsGridSkeleton cards={6} label="Loading vehicles" />
         ) : (
           <>
-            <div className="log-jobs-table-wrap">
-              <table className="log-jobs-table log-owner-avail__table">
+            <div className="log-jobs-table-wrap log-card-table-wrap">
+              <table className="log-jobs-table log-owner-avail__table log-card-table">
                 <thead>
                   <tr>
                     <th>Vehicle</th>
@@ -350,12 +350,12 @@ export default function OwnerAvailability() {
                     const busy = savingId === asset._id;
                     return (
                       <tr key={asset._id}>
-                        <td>
+                        <td className="log-card-table__title">
                           <b>{asset.name}</b>
                           <div className="log-hint">{capabilityLine(asset)}</div>
                         </td>
-                        <td>{ops || "—"}</td>
-                        <td>
+                        <td data-label="Operator">{ops || "—"}</td>
+                        <td data-label="Status" className="log-owner-avail__cell-wide">
                           <span className={`log-chip log-chip--${chip.tone}`}>
                             {chip.label}
                           </span>
@@ -379,7 +379,7 @@ export default function OwnerAvailability() {
                           {control.hint ? <div className="log-hint">{control.hint}</div> : null}
                           <UnitOperateControl asset={asset} onChanged={() => load({ soft: true })} />
                         </td>
-                        <td>
+                        <td data-label="GPS / map pin" className="log-owner-avail__cell-wide">
                           <div className="log-hint">{gpsHint(asset)}</div>
                           <div className="log-owner-avail__loc">
                             <LogisticsLocationField
@@ -407,7 +407,7 @@ export default function OwnerAvailability() {
                             </button>
                           </div>
                         </td>
-                        <td>
+                        <td className="log-card-table__actions">
                           <Link
                             className="log-jobs-table__open"
                             to={`/logistics/owner/fleet/${asset._id}`}

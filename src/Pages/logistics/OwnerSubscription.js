@@ -6,7 +6,7 @@ import LogisticsPageShell from "../../CommanComponents/LogisticsPageShell";
 import LogisticsReasonModal from "../../CommanComponents/LogisticsReasonModal";
 import LogisticsPlanUnitsModal from "../../CommanComponents/LogisticsPlanUnitsModal";
 import { useLogisticsConfig } from "../../CommanComponents/useLogisticsConfig";
-import LogisticsWhatsappExtras, { WHATSAPP_PACK_TEXT } from "../../CommanComponents/LogisticsWhatsappExtras";
+import LogisticsWhatsappExtras, { whatsappPackText } from "../../CommanComponents/LogisticsWhatsappExtras";
 import "./logistics.css";
 import {
   LogisticsStatsSkeleton,
@@ -223,7 +223,9 @@ export default function LogisticsOwnerSubscription() {
                   </p>
                 ) : current === lowestPlan?.id && freePeriod?.status === "not_started" ? (
                   <p className="log-sub-expiry" data-testid="free-period-status">
-                    All Paid benefits are free for {freePeriod.days} days, starting the day Simba Tasker approves your company.
+                    {freePeriod.starts_at
+                      ? `All Paid benefits are free for ${freePeriod.days} days, starting ${new Date(freePeriod.starts_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.`
+                      : `All Paid benefits are free for ${freePeriod.days} days, starting the day Simba Tasker approves your company.`}
                   </p>
                 ) : current === lowestPlan?.id && freePeriod?.status === "ended" ? (
                   <p className="log-sub-expiry" data-testid="free-period-status">
@@ -450,7 +452,7 @@ export default function LogisticsOwnerSubscription() {
                     <h3>Paid plans</h3>
                     <p>
                       You're currently on the {lowestPlan?.name || "Free"} plan. Paid plans will be available soon,
-                      with additional features and higher limits. No action is required at this time. WhatsApp: {WHATSAPP_PACK_TEXT.toLowerCase()}.
+                      with additional features and higher limits. No action is required at this time. WhatsApp: {whatsappPackText().toLowerCase()}.
                     </p>
                   </div>
                 </article>

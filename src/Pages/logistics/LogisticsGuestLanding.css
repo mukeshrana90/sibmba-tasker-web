@@ -1,5 +1,42 @@
 /* Guest Logistics landing (v2.7.53) — only what landing.css doesn't already cover */
 
+/* Hero headline truck: drives out of the "T" and into the final "s", behind the text, once per load */
+.lgl-drive {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+.lgl-drive__text {
+  position: relative;
+  z-index: 1;
+}
+.lgl-drive__baseline {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  vertical-align: baseline;
+}
+.lgl-drive__lane {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.lgl-drive__truck {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1.05em;
+  width: auto;
+  max-width: none;
+  opacity: 0;
+  will-change: transform;
+}
+
 .lgl-hero .lgl-hero__truck {
   position: absolute;
   right: -40px;

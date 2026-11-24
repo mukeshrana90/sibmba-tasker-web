@@ -1,3 +1,4 @@
+import { freeDays } from "./logisticsLaunch";
 import { toast } from "react-toastify";
 import {
   messagesPath,
@@ -113,7 +114,7 @@ export function openLogisticsJobChat({
   if (supply) {
     if (!(status >= 1 && status <= 5)) {
       toast.info(
-        "Customers start the conversation until a quote is accepted. After accept you can open chat here. Replying is free for the first 60 days, then needs the Paid plan."
+        `Customers start the conversation until a quote is accepted. After accept you can open chat here. Replying is free for the first ${freeDays()} days, then needs the Paid plan.`
       );
       return false;
     }

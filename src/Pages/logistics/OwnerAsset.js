@@ -13,7 +13,6 @@ import {
 import {
   TRUCK_BODY_TYPES,
   assetBodyType,
-  capacityToTier,
   formatCarriageSize,
   isTruckBodyType,
 } from "../../utils/logisticVehicleWeight";
@@ -33,10 +32,10 @@ import {
 } from "../../utils/docExpiry";
 import { DEFAULT_COUNTRY_CODE } from "../../utils/logisticsPhone";
 import { focusField } from "../../utils/focusField";
-import { MIN_ASSET_PHOTOS, photosMissingNote, unitStatusChip } from "../../utils/ownerUnitStatus";
+import { MIN_ASSET_PHOTOS, ownerUnitHeadline, photosMissingNote, unitStatusChip } from "../../utils/ownerUnitStatus";
 import { apiErrorMessage, isApiFailure } from "../../utils/ownerOperator";
 import LogisticsDocReplace, { DocWarning } from "../../CommanComponents/LogisticsDocReplace";
-import { UnitOperateControl } from "../../CommanComponents/LogisticsOwnerOperator";
+import { UnitOperateControl, useOwnerOnUnit } from "../../CommanComponents/LogisticsOwnerOperator";
 import useDocDeepLink from "../../Hooks/useDocDeepLink";
 import { formatRate, rateUnitOf } from "../../utils/assetRate";
 import LogisticsMoneyInput from "../../CommanComponents/LogisticsMoneyInput";
@@ -279,7 +278,10 @@ export default function LogisticsOwnerAsset() {
       dispatch(LogisticsActions.getAsset(id)),
       dispatch(LogisticsActions.listSubUsers()),
     ]);
-    const next = assetRes?.payload?.data?.asset || null;
+    const rawAsset = assetRes?.payload?.data?.asset || null;
+    // The server sends who holds the unit (and its running job) next to the asset; keep it on the asset like the fleet list does
+    const occupancy = assetRes?.payload?.data?.occupancy;
+    const next = rawAsset && occupancy && !rawAsset.occupancy ? { ...rawAsset, occupancy } : rawAsset;
     const ops =
       assetRes?.payload?.data?.operators ||
       next?.assigned_sub_user_ids ||
@@ -683,6 +685,8 @@ export default function LogisticsOwnerAsset() {
   const active = Number(asset?.is_active) === 1;
   const vin = assetVin(asset);
   const isTruck = asset?.kind !== "equipment";
+  // While the owner uses this unit himself, operator management stays hidden until he taps Stop using
+  const ownerOnUnit = useOwnerOnUnit(asset) && active;
   const docDefs = useMemo(() => {
     const base =
       asset?.kind === "equipment"
@@ -705,28 +709,25 @@ export default function LogisticsOwnerAsset() {
     asset?.category_id?.name ||
     asset?.services?.[0] ||
     (isTruck ? "Logistic" : "Plant");
+  // 17 Nov (client): body type capitalised; the default "regular" isn't shown in the header
+  const bodyType = isTruck ? assetBodyType(asset) : "";
+  const isRegularBody = String(bodyType).toLowerCase() === "regular";
   const typeLabel = (() => {
     if (!isTruck) return firstCapabilityLabel(asset) || kindLabel;
-    const body = assetBodyType(asset);
-    if (body) return body;
+    if (bodyType) return bodyType.charAt(0).toUpperCase() + bodyType.slice(1);
     const raw = firstCapabilityLabel(asset);
     if (raw && !LEGACY_TYPE_LABELS.has(String(raw).toLowerCase())) return raw;
-    const tons =
-      asset?.capacity?.value != null
-        ? toTons(asset.capacity.value, asset.capacity.unit || "tons")
-        : null;
-    const tier = capacityToTier(tons);
-    if (tier) return tier;
-    return raw || kindLabel;
+    return "";
   })();
-  const capacityTierLabel = (() => {
-    if (!isTruck || asset?.capacity?.value == null) return null;
-    return capacityToTier(
-      toTons(asset.capacity.value, asset.capacity.unit || "tons")
-    );
-  })();
+  // 17 Nov (client): the real capacity ("15 tons"), never the Vehicle needed tier ("20 ton")
+  const capacityLabel =
+    isTruck && asset?.capacity?.value != null
+      ? formatTons(toTons(asset.capacity.value, asset.capacity.unit || "tons"))
+      : "";
   // doc 12 · L36: what customers see — never "Available now" on a unit they can't book
   const avail = asset ? unitStatusChip({ ...asset, customer_view: customerView }).label : "—";
+  // 17 Nov (client): one status in the header (Listed / Hidden — reason / Plan limit / Disabled)
+  const headline = ownerUnitHeadline(asset, docCompliance, customerView);
 
   return (
     <LogisticsPageShell
@@ -757,18 +758,14 @@ export default function LogisticsOwnerAsset() {
                   <h2 className="log-asset-detail__name" style={{ margin: 0 }}>
                     {asset.name}
                   </h2>
-                  <span
-                    className={`log-chip log-chip--${active ? "active" : "closed"}`}
-                  >
-                    {active ? "Listed" : asset.plan_locked ? "Plan limit" : "Disabled"}
+                  <span className={`log-chip log-chip--${headline.tone}`}>
+                    {headline.label}
                   </span>
                 </div>
                 <p className="log-lead" style={{ margin: 0 }}>
                   {kindLabel} · {category}
-                  {typeLabel ? ` · ${typeLabel}` : ""}
-                  {isTruck && capacityTierLabel && capacityTierLabel !== typeLabel
-                    ? ` · ${capacityTierLabel}`
-                    : ""}
+                  {typeLabel && !isRegularBody ? ` · ${typeLabel}` : ""}
+                  {capacityLabel ? ` · ${capacityLabel}` : ""}
                 </p>
               </div>
               <div className="log-detail-actions">
@@ -1067,10 +1064,7 @@ export default function LogisticsOwnerAsset() {
                   ) : null}
                   {isTruck && capacityTons != null && capacityTons > 0 ? (
                     <span className="log-weight-hint">
-                      Matches customer{" "}
-                      <strong>
-                        Vehicle needed: {capacityToTier(capacityTons)}
-                      </strong>
+                      Matches loads up to <strong>{formatTons(capacityTons)}</strong>
                     </span>
                   ) : null}
                 </div>
@@ -1325,14 +1319,8 @@ export default function LogisticsOwnerAsset() {
                 <div className="log-detail-grid">
                   <div className="log-detail-item">
                     <span className="log-fl">Type</span>
-                    <strong>{typeLabel}</strong>
+                    <strong>{typeLabel || kindLabel}</strong>
                   </div>
-                  {isTruck && capacityTierLabel ? (
-                    <div className="log-detail-item">
-                      <span className="log-fl">Vehicle needed tier</span>
-                      <strong>{capacityTierLabel}</strong>
-                    </div>
-                  ) : null}
                   <div className="log-detail-item">
                     <span className="log-fl">Category</span>
                     <strong>
@@ -1376,7 +1364,7 @@ export default function LogisticsOwnerAsset() {
                     <span className="log-fl">Capacity</span>
                     <strong>
                       {asset.capacity?.value != null
-                        ? `${asset.capacity.value} ${asset.capacity.unit || ""}`
+                        ? `${asset.capacity.value} ${asset.capacity.unit || "tons"}`
                         : "—"}
                     </strong>
                   </div>
@@ -1545,14 +1533,18 @@ export default function LogisticsOwnerAsset() {
                 </p>
                 <UnitOperateControl asset={asset} onChanged={load} />
               </div>
-              <Link
-                className="logistics-cta logistics-cta--ghost"
-                to="/logistics/owner/operators"
-              >
-                Manage operators
-              </Link>
+              {ownerOnUnit ? null : (
+                <Link
+                  className="logistics-cta logistics-cta--ghost"
+                  to="/logistics/owner/operators"
+                >
+                  Manage operators
+                </Link>
+              )}
             </div>
 
+            {ownerOnUnit ? null : (
+            <>
             {operators.length ? (
               <ul className="log-doc-list" style={{ marginBottom: 14 }}>
                 {operators.map((op) => (
@@ -1674,6 +1666,8 @@ export default function LogisticsOwnerAsset() {
                 {isTruck && operators.length ? "Assign" : "Add operator"}
               </button>
             </div>
+            </>
+            )}
           </div>
         </>
       )}

@@ -1,3 +1,4 @@
+import { freeDays } from "../utils/logisticsLaunch";
 import React, { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { io } from "socket.io-client";
 import {
@@ -808,8 +809,8 @@ const MainChat = ({ sender_id, reciverID, socket, onBack }) => {
               {Number(userRole) === 4
                 ? logisticsSubscriptionHeldByOwner() ||
                   localStorage.getItem("owner_id")
-                  ? "Replying is free for the first 60 days, then your fleet owner needs the Paid plan. You can still read messages."
-                  : "Replying is free for the first 60 days, then needs the Paid plan. Operators follow the owner's plan. You can still read messages."
+                  ? `Replying is free for the first ${freeDays()} days, then your fleet owner needs the Paid plan. You can still read messages.`
+                  : `Replying is free for the first ${freeDays()} days, then needs the Paid plan. Operators follow the owner's plan. You can still read messages.`
                 : "You can read customer messages. Subscribe to a plan to reply."}
             </p>
           )}

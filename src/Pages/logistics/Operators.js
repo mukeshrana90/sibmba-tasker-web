@@ -1,3 +1,4 @@
+import { freeDays } from "../../utils/logisticsLaunch";
 import { useEffect, useMemo, useState } from "react";
 import LogisticsMoneyInput from "../../CommanComponents/LogisticsMoneyInput";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -1104,7 +1105,7 @@ export default function LogisticsOperators() {
                         <small>
                           {paidOnly ? (
                             <>
-                              Essentials free, full pack free for 60 days — <Link to="/logistics/owner/subscription">see plans</Link>
+                              Essentials free, full pack free for {freeDays()} days — <Link to="/logistics/owner/subscription">see plans</Link>
                             </>
                           ) : noPhone ? (
                             "Add a phone number first"
@@ -1263,8 +1264,8 @@ export default function LogisticsOperators() {
               </div>
 
               {filteredOperators.length ? (
-                <div className="log-jobs-table-wrap">
-                  <table className="log-jobs-table">
+                <div className="log-jobs-table-wrap log-card-table-wrap">
+                  <table className="log-jobs-table log-card-table log-op-card-table">
                     <thead>
                       <tr>
                         <th>Operator</th>
@@ -1280,7 +1281,7 @@ export default function LogisticsOperators() {
                         const photo = publicUrl(op.profile_image);
                         return (
                           <tr key={op._id}>
-                            <td>
+                            <td className="log-card-table__title">
                               <div className="log-op-table-user">
                                 {photo ? (
                                   <img
@@ -1303,14 +1304,14 @@ export default function LogisticsOperators() {
                                 </span>
                               </div>
                             </td>
-                            <td>
+                            <td data-label="Assets" className="log-op-card-table__assets">
                               {assigned.length
                                 ? `${assigned.length} · ${assigned
                                     .map((a) => a.name)
                                     .join(" · ")}`
                                 : "No equipment assigned"}
                             </td>
-                            <td>
+                            <td data-label="Status">
                               <span className="log-chip log-chip--active">
                                 Active
                               </span>
@@ -1321,7 +1322,7 @@ export default function LogisticsOperators() {
                                 </span>
                               ) : null}
                             </td>
-                            <td>
+                            <td data-label="Contact">
                               <div className="log-op-contact">
                                 <button
                                   type="button"
@@ -1390,7 +1391,7 @@ export default function LogisticsOperators() {
                                 )}
                               </div>
                             </td>
-                            <td>
+                            <td className="log-card-table__actions">
                               <div className="log-op-table-actions">
                                 <button
                                   type="button"
@@ -1434,8 +1435,8 @@ export default function LogisticsOperators() {
               ) : null}
 
               {filteredInvites.length ? (
-                <div className="log-jobs-table-wrap">
-                  <table className="log-jobs-table">
+                <div className="log-jobs-table-wrap log-card-table-wrap">
+                  <table className="log-jobs-table log-card-table">
                     <thead>
                       <tr>
                         <th>Pending invite</th>
@@ -1452,7 +1453,7 @@ export default function LogisticsOperators() {
                         const expired = inv.invite_state === "expired";
                         return (
                           <tr key={inv._id}>
-                            <td>
+                            <td className="log-card-table__title">
                               <b>{inv.full_name || inv.email}</b>
                               <p className="log-hint" style={{ margin: 0 }}>
                                 {inv.email}
@@ -1461,7 +1462,7 @@ export default function LogisticsOperators() {
                                   : ""}
                               </p>
                             </td>
-                            <td>
+                            <td data-label="Status">
                               <span className={`log-chip ${state.chip}`}>
                                 {state.label}
                               </span>
@@ -1471,7 +1472,7 @@ export default function LogisticsOperators() {
                                 </p>
                               ) : null}
                             </td>
-                            <td>
+                            <td data-label="Expires">
                               {inv.expires_at
                                 ? new Date(inv.expires_at).toLocaleDateString()
                                 : "—"}
@@ -1481,7 +1482,7 @@ export default function LogisticsOperators() {
                                 </p>
                               ) : null}
                             </td>
-                            <td>
+                            <td className="log-card-table__actions">
                               <div className="log-op-table-actions">
                                 {SHOW_COPY_INVITE_LINK && link ? (
                                   <button

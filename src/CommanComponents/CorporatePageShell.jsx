@@ -8,6 +8,7 @@ export default function CorporatePageShell({
   homeTo,
   pageClass = "p-corporate-portal p-corporate",
   showBanner = true,
+  beforeTitle = null,
   children,
 }) {
   return (
@@ -22,6 +23,7 @@ export default function CorporatePageShell({
         ) : null}
         <main className="page">
           <div className="wrap corp-portal-content">
+            {beforeTitle}
             {!showBanner && title ? <h1>{title}</h1> : null}
             {children}
           </div>

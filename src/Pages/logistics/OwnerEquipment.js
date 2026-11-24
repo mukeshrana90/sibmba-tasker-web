@@ -209,8 +209,8 @@ export default function OwnerEquipment() {
           <LogisticsGridSkeleton cards={6} label="Loading equipment" />
         ) : (
           <>
-            <div className="log-jobs-table-wrap">
-              <table className="log-jobs-table">
+            <div className="log-jobs-table-wrap log-card-table-wrap">
+              <table className="log-jobs-table log-card-table">
                 <thead>
                   <tr>
                     <th>Equipment</th>
@@ -229,16 +229,16 @@ export default function OwnerEquipment() {
                     const ops = assetOperators(asset);
                     return (
                       <tr key={asset._id}>
-                        <td>
+                        <td className="log-card-table__title">
                           <b>{asset.name}</b>
                           {meta.extra ? (
                             <span className="log-equip-row__sub">{meta.extra}</span>
                           ) : null}
                         </td>
-                        <td>{meta.category || "—"}</td>
-                        <td>{meta.equipmentType || "—"}</td>
-                        <td>{meta.subtype || "—"}</td>
-                        <td>
+                        <td data-label="Category">{meta.category || "—"}</td>
+                        <td data-label="Equipment type">{meta.equipmentType || "—"}</td>
+                        <td data-label="Sub type">{meta.subtype || "—"}</td>
+                        <td data-label="Operator">
                           {ops.length ? (
                             <span className="log-equip-ops">
                               {ops.map((op) => (
@@ -263,7 +263,7 @@ export default function OwnerEquipment() {
                             </Link>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Status" className="log-card-table__wide">
                           <span className={`log-chip log-chip--${chip.tone}`}>
                             {chip.label}
                           </span>
@@ -272,7 +272,7 @@ export default function OwnerEquipment() {
                           ) : null}
                           <UnitOperateControl asset={asset} onChanged={load} compact />
                         </td>
-                        <td>
+                        <td className="log-card-table__actions">
                           <Link
                             className="log-jobs-table__open"
                             to={`/logistics/owner/fleet/${asset._id}`}

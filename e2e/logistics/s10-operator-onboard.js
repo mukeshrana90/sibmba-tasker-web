@@ -240,6 +240,7 @@ async function pendingRow(o, email) {
     L.check((opUser.logistics_documents || []).filter((x) => x.expires).length >= 2, "licence + medical stored with expiry", (opUser.logistics_documents || []).map((x) => x.type));
     L.check(JSON.stringify(opUser).includes("25"), "pay terms (fixed 25) stored");
     await op.page.waitForLoadState("networkidle").catch(() => {});
+    await op.page.waitForSelector('[data-testid="go-online-card"], .log-dash-avail', { timeout: 20000 }).catch(() => {});
     await L.shot(op, "s10-driver-first");
     const dash = await L.bodyText(op);
     L.check(dash.includes(opName), "dashboard shows operator name");
@@ -259,12 +260,18 @@ async function pendingRow(o, email) {
       return txt;
     };
     const accTxt = await checkAccepted("reopened link");
-    L.check(accTxt.includes(opEmail), "shows the email to log in with", accTxt.match(/log in as [^.]*/i)?.[0]);
+    // 23 Nov (client): anyone with the link sees it, so the email is masked ("ta***1@…")
+    const masked = (accTxt.match(/log in as (\S+@\S+?)\.?(\s|$)/i) || [])[1] || "";
+    L.check(/\*\*\*/.test(masked) && !accTxt.includes(opEmail), "shows the email masked, never in full", masked);
     const logInBtn = reuse.page.locator(".log-invite-accepted a", { hasText: "Log in" });
-    L.check((await logInBtn.getAttribute("href") || "").includes(encodeURIComponent(opEmail)), "Log in button carries the email");
-    await logInBtn.click();
-    await reuse.page.waitForURL(/\/login/, { timeout: 10000 }).catch(() => {});
-    L.check((await reuse.page.inputValue("#email").catch(() => "")) === opEmail, "login page opens with the email filled in");
+    L.check(!(await logInBtn.getAttribute("href") || "").includes(encodeURIComponent(opEmail)), "another browser: Log in link has no email");
+    // the browser that accepted the invite still gets the email filled in
+    await L.goto(op, `/logistics/invite?token=${tok(link)}`, ".log-invite-accepted");
+    const ownBtn = op.page.locator(".log-invite-accepted a", { hasText: "Log in" });
+    L.check((await ownBtn.getAttribute("href") || "").includes(encodeURIComponent(opEmail)), "same browser: Log in link carries the email");
+    await ownBtn.click();
+    await op.page.waitForURL(/\/login/, { timeout: 10000 }).catch(() => {});
+    L.check((await op.page.inputValue("#email").catch(() => "")) === opEmail, "same browser: login page opens with the email filled in");
     // Accepted wins over the expiry date: still "Already accepted" after the 7 days
     await d.collection("logistics_invites").updateOne({ email: opEmail, status: "activated" }, { $set: { expires_at: new Date(Date.now() - 3600000) } });
     await checkAccepted("accepted link after its expiry date");

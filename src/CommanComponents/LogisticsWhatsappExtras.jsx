@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { useLogisticsAccount } from "./LogisticsAccountBanner";
-import { WHATSAPP_PACK_TEXT, whatsappExtrasLabel } from "../utils/ownerOperator";
+import { whatsappPackText, whatsappExtrasLabel } from "../utils/ownerOperator";
 
-export { WHATSAPP_PACK_TEXT, whatsappExtrasLabel };
+export { whatsappPackText, whatsappExtrasLabel };
 
 /** Countdown line. Pass `whatsapp`, or it reads the signed-in account. */
 export default function LogisticsWhatsappExtras({ whatsapp, upgradeLink = true, className = "" }) {

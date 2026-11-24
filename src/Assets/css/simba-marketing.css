@@ -618,6 +618,17 @@
   box-sizing: border-box;
 }
 
+/* Marketplace switch sits first — match the Logistics hero top spacing (landing.css .landing-hero) */
+.simba-page.p-corporate-portal.p-sp-requests .page {
+  padding-top: 70px;
+}
+
+@media (max-width: 860px) {
+  .simba-page.p-corporate-portal.p-sp-requests .page {
+    padding-top: 48px;
+  }
+}
+
 @media (max-width: 600px) {
   .simba-page.p-sp-requests .corp-portal-content,
   .simba-page.p-browsetask .corp-portal-content {

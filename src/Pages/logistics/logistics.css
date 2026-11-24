@@ -9629,6 +9629,204 @@ a.log-mt-transit-link:hover {
   font-size: 1rem;
   line-height: 1.3;
 }
+/* Add equipment: carriage length / width / height on one row */
+.log-carriage-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.log-carriage-row > .log-field {
+  min-width: 0;
+}
+
+/* "Who operates this?" on Add: link that opens the other choices */
+.log-who-operates__more {
+  justify-self: start;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary, #0f5c4c);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Phones: the fleet list under the Add form is hidden so the form stays short */
+@media (max-width: 640px) {
+  .log-fleet-list--under-form {
+    display: none;
+  }
+}
+
+/* Unit page "Details" on phones: one compact list, label left and value right */
+@media (max-width: 720px) {
+  .log-detail-grid {
+    display: block;
+    padding: 2px 14px;
+    border: 1px solid var(--line, #e9e1d4);
+    border-radius: 14px;
+    background: #fbf9f4;
+  }
+  .log-detail-grid > .log-detail-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line, #ebe4d6);
+  }
+  .log-detail-grid > .log-detail-item:last-child {
+    border-bottom: 0;
+  }
+  .log-detail-grid > .log-detail-item .log-fl {
+    flex: 0 0 auto;
+    max-width: 48%;
+    font-size: 0.82rem;
+    color: var(--muted, #6b645b);
+  }
+  .log-detail-grid > .log-detail-item strong {
+    min-width: 0;
+    font-size: 0.95rem;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* The text is one block, so the flex row doesn't split it into narrow columns */
+.log-feature-note > .log-feature-note__text {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Owner lists on phones (fleet, operators, invites): each row is a card, no sideways scrolling */
+@media (max-width: 640px) {
+  .log-card-table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .log-card-table.log-jobs-table {
+    min-width: 0;
+  }
+  .log-card-table thead {
+    display: none;
+  }
+  .log-card-table,
+  .log-card-table tbody {
+    display: block;
+  }
+  .log-card-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+  .log-card-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--line, #e5e0d4);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(30, 26, 21, 0.05);
+  }
+  .log-card-table tbody tr:hover td {
+    background: transparent;
+  }
+  .log-card-table.log-jobs-table td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .log-card-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted, #6b645b);
+  }
+  .log-card-table td.log-card-table__title {
+    grid-column: 1 / -1;
+    font-size: 1rem;
+  }
+  .log-card-table td.log-card-table__title .log-feature-tag {
+    margin-left: 6px;
+  }
+  .log-card-table td.log-card-table__actions {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    border-top: 1px solid var(--line, #ebe6da);
+  }
+  .log-card-table .log-fleet-row-actions {
+    justify-content: flex-start;
+  }
+  /* Operators: name + photo across the top, assets on their own line, buttons share the row */
+  .log-card-table .log-op-table-user {
+    min-width: 0;
+  }
+  .log-card-table .log-op-table-user__text {
+    min-width: 0;
+  }
+  .log-card-table td.log-op-card-table__assets {
+    grid-column: 1 / -1;
+  }
+  .log-card-table .log-op-table-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-flow: column;
+  }
+  .log-card-table .log-op-table-actions .logistics-cta {
+    min-height: 40px;
+    padding: 0 10px;
+  }
+  /* Wide cells (status controls, map pin) get the full card width */
+  .log-card-table td.log-card-table__wide,
+  .log-card-table td.log-owner-avail__cell-wide {
+    grid-column: 1 / -1;
+  }
+  .log-card-table td.log-card-table__wide .log-unit-op {
+    margin-top: 10px;
+  }
+  .log-card-table td.log-owner-avail__cell-wide .log-owner-avail__status select {
+    width: 100%;
+    max-width: none;
+    min-height: 42px;
+  }
+  .log-card-table .log-owner-avail__loc {
+    max-width: none;
+  }
+  .log-card-table .log-owner-avail__loc .logistics-cta {
+    justify-self: stretch;
+    width: 100%;
+  }
+  .log-card-table td.log-card-table__actions .log-jobs-table__open {
+    display: inline-flex;
+  }
+  .log-card-table.log-jobs-table td[data-label] .log-chip {
+    display: inline-block;
+    margin: 0;
+    white-space: normal;
+    line-height: 1.35;
+  }
+  .log-card-table td.logistics-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+}
+
 .log-feature-note.is-locked {
   background: #f8f6f1;
   border-color: #e6dfd1;
@@ -11660,6 +11858,72 @@ button.logistics-cta.is-locked {
   font-weight: 600;
   white-space: nowrap;
 }
+/* "View job" / "Open dashboard": real buttons, so they aren't missed */
+.log-unit-op a.log-unit-op__btn,
+.log-unit-op a.log-unit-op__btn:link,
+.log-unit-op a.log-unit-op__btn:visited {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1.5px solid var(--primary, #0f5c4c);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary, #0f5c4c);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1;
+}
+.log-unit-op a.log-unit-op__btn::after {
+  content: "→";
+  font-size: 0.9em;
+}
+.log-unit-op a.log-unit-op__btn:hover,
+.log-unit-op a.log-unit-op__btn:focus-visible {
+  background: var(--primary-soft, #e6f0ec);
+  color: var(--primary, #0f5c4c);
+}
+.log-unit-op a.log-unit-op__btn--job,
+.log-unit-op a.log-unit-op__btn--job:link,
+.log-unit-op a.log-unit-op__btn--job:visited {
+  background: var(--primary, #0f5c4c);
+  color: #fff;
+}
+.log-unit-op a.log-unit-op__btn--job:hover,
+.log-unit-op a.log-unit-op__btn--job:focus-visible {
+  background: #0a4338;
+  color: #fff;
+}
+/* Owner is on this unit and it has a running job: live dot + soft pulsing ring */
+.log-chip.log-chip--live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  animation: log-unit-live-ring 1.8s ease-out infinite;
+}
+.log-chip.log-chip--live::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  flex-shrink: 0;
+  animation: log-unit-live-dot 1.2s ease-in-out infinite;
+}
+@keyframes log-unit-live-ring {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+  70%, 100% { box-shadow: 0 0 0 9px rgba(22, 163, 74, 0); }
+}
+@keyframes log-unit-live-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .log-chip.log-chip--live { animation: none; box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.35); }
+  .log-chip.log-chip--live::before { animation: none; }
+}
 .log-who-operates__options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
@@ -12029,7 +12293,50 @@ button.logistics-cta.is-locked {
   background: #faf8f3;
 }
 .profile-phone__channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  align-items: center;
   margin: 12px 0 4px;
+}
+/* Page-wide input sizing stretched the radios into ovals: keep them round 18px dots */
+.profile-phone__channels .form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding-left: 0;
+  min-height: 0;
+}
+.profile-phone__channels .form-check-input[type="radio"] {
+  float: none;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  max-height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid #9aa59f;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.profile-phone__channels .form-check-input[type="radio"]:checked {
+  /* white ring + green dot (a global rule overrides box-shadow, so draw it as a gradient) */
+  background-color: #fff;
+  background-image: radial-gradient(circle, #1f8a55 0 4.5px, transparent 5px);
+  border-color: #1f8a55;
+}
+.profile-phone__channels .form-check-input[type="radio"]:focus-visible {
+  outline: 2px solid rgba(31, 138, 85, 0.35);
+  outline-offset: 2px;
+}
+.profile-phone__channels .form-check-label {
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
 }
 .profile-phone__actions {
   display: flex;
@@ -12093,3 +12400,233 @@ button.logistics-cta.is-locked {
 .log-approval-banner__msg { align-self: center; font-size: 0.9rem; }
 .log-chip.log-chip--direct { background: #fff4d6; color: #7a4b00; border: 1px solid #f5d27a; font-weight: 600; }
 .log-phone-input__err { display: block; margin-top: 4px; color: #b42318; font-size: 0.85rem; }
+
+/* 23 Nov (client): launch line — approvals date, free days, contact */
+.log-launch-line {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #3d4f47;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 2px;
+}
+.log-launch-line a {
+  color: #0f5132;
+  font-weight: 600;
+  text-decoration: none;
+}
+.log-launch-line a:hover { text-decoration: underline; }
+.log-launch-line--left { justify-content: flex-start; }
+/* On the dark green "For equipment owners" card: light text, gold links, centred */
+.log-launch-line--on-dark {
+  justify-content: center;
+  margin: 14px auto 18px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+}
+.log-launch-line--on-dark a {
+  color: #f6c453;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.log-launch-line--on-dark a:hover { color: #ffd77a; }
+
+/* 23 Nov (client): customer "View on map" */
+.log-search-mapbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 8px;
+}
+.log-search-mapbar__btn {
+  min-height: 38px;
+  padding: 6px 16px;
+}
+.log-live-map__controls {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.simba-book-loc-modal .log-live-map__search {
+  flex: 1 1 340px;
+  min-width: 240px;
+  margin-bottom: 0;
+}
+/* Same height and corners as the search box beside it */
+.log-live-map-modal .use-my-location.log-live-map__mine {
+  height: 50px;
+  min-height: 50px;
+  border-radius: 14px;
+  padding: 0 18px;
+}
+/* All · Trucks · Equipment filter on the live map */
+.log-live-map__kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.log-live-map__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 14px;
+  border: 1px solid #cfd8d2;
+  border-radius: 999px;
+  background: #fff;
+  color: #2b3a31;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.log-live-map__kind:hover { border-color: #1f6b45; }
+.log-live-map__kind.is-active {
+  background: #1f6b45;
+  border-color: #1f6b45;
+  color: #fff;
+}
+.log-live-map__kind-n {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #eef6f1;
+  color: #1f4d35;
+  font-size: 0.78rem;
+  line-height: 18px;
+  text-align: center;
+}
+.log-live-map__kind.is-active .log-live-map__kind-n { background: rgba(255, 255, 255, 0.22); color: #fff; }
+.log-live-map__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #eef6f1;
+  color: #1f4d35;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.log-live-map__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: #1f9d55;
+  box-shadow: 0 0 0 3px rgba(31, 157, 85, 0.18);
+}
+.log-live-map__meta.is-empty {
+  background: #f6f3ec;
+  color: #5b5548;
+}
+.log-live-map__meta.is-empty .log-live-map__dot {
+  background: #b8ae9c;
+  box-shadow: none;
+}
+.log-live-map__meta.is-error {
+  background: #fdecec;
+  color: #8a1f1f;
+}
+.log-live-map__meta.is-error .log-live-map__dot {
+  background: #c0392b;
+  box-shadow: none;
+}
+/* The map fills the rounded frame (the frame has no inner padding) */
+.simba-book-loc-modal .log-live-map__map {
+  min-height: 0;
+  background: #eef2ee;
+}
+.log-live-map__map .log-fleet-map {
+  border: none;
+  border-radius: 0;
+}
+@media (max-width: 575px) {
+  .log-live-map-modal .use-my-location.log-live-map__mine {
+    width: 100%;
+  }
+}
+/* 23 Nov: several units on one spot — count badge on the pin + list popup */
+.log-map-pin-wrap {
+  position: relative;
+  display: inline-block;
+}
+.log-map-pin-count {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: #fff;
+  color: #0f5132;
+  border: 2px solid #0f5132;
+  font: 700 12px/18px system-ui, sans-serif;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.log-map-popup-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 220px;
+}
+.log-map-popup-list li {
+  padding: 6px 0;
+  border-top: 1px solid #eee;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.log-map-popup-list li span {
+  color: #5b5548;
+}
+/* 23 Nov: unit card inside a customer map popup — thumbnail + name + plate + line */
+.log-map-unit {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 240px;
+}
+.log-map-unit__thumb {
+  width: 56px;
+  height: 42px;
+  flex: 0 0 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #eef2ee;
+}
+.log-map-unit__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.log-map-unit__name {
+  font-size: 13px;
+}
+.log-map-unit__plate {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1.5px solid #1f2a24;
+  border-radius: 4px;
+  background: #fff8d6;
+  color: #1f2a24;
+  font: 700 11px/18px ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.06em;
+}
+.log-map-unit__sub {
+  color: #5b5548;
+}
+.log-map-popup-list li .log-map-unit {
+  min-width: 0;
+}

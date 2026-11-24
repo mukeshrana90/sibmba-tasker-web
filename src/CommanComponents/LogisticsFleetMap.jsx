@@ -27,8 +27,34 @@ function fleetVehicleTone(v) {
   return unitMapTone(v) || vehicleMapPinTone(v.availability);
 }
 
-/** Teardrop truck pin — only the pin body colour changes (red / yellow / green). */
-export function truckStatusPinHtml(tone) {
+/** 23 Nov: excavator glyph for equipment pins (same 24×18 box as the truck). */
+const EQUIPMENT_GLYPH = `<g fill="#151515" transform="translate(11.5 15)">
+        <rect x="1" y="13.2" width="13.6" height="3.4" rx="1.7"/>
+        <circle cx="3" cy="14.9" r="0.75" fill="#fff"/><circle cx="7.8" cy="14.9" r="0.75" fill="#fff"/><circle cx="12.6" cy="14.9" r="0.75" fill="#fff"/>
+        <path d="M2.2 8.6h10.6v4H2.2z"/>
+        <path d="M4.2 3.6h5.6v5H4.2z"/>
+        <rect x="5.1" y="4.5" width="2.6" height="2.2" rx="0.3" fill="#fff"/>
+        <path d="M12 9.2 17.6 3.2l1.3 1.1-5.4 6z"/>
+        <path d="M17.4 3.4 21.6 7.6l-1.2 1.1-4.1-4.2z"/>
+        <path d="M19.6 8.1 23.6 9.4 22.4 13.4 18.8 11.2z"/>
+      </g>`;
+const TRUCK_GLYPH = `<g fill="#151515" transform="translate(11.5 16)">
+        <path d="M2.2 11.2h20.2v3.1H2.2z"/>
+        <path d="M3.2 4.2h11.6v7H3.2z"/>
+        <path d="M14.8 6.1h4.6l2.4 5.1h-7V6.1z"/>
+        <rect x="4.1" y="5.4" width="3.2" height="2.4" rx="0.35" fill="#fff"/>
+        <rect x="8.2" y="6.8" width="4.6" height="0.85" rx="0.2" fill="#fff" fill-opacity="0.85"/>
+        <circle cx="6.2" cy="14.35" r="1.85" fill="#151515"/>
+        <circle cx="6.2" cy="14.35" r="0.75" fill="#fff"/>
+        <circle cx="17.6" cy="14.35" r="1.85" fill="#151515"/>
+        <circle cx="17.6" cy="14.35" r="0.75" fill="#fff"/>
+      </g>`;
+
+/**
+ * Teardrop unit pin — only the pin body colour changes (red / yellow / green).
+ * `glyph`: "truck" (default) or "equipment" (excavator, 23 Nov).
+ */
+export function truckStatusPinHtml(tone, glyph = "truck") {
   const palette = {
     offline: { light: "#e53935", dark: "#b71c1c", title: "Offline" },
     available: { light: "#f5c518", dark: "#d4a017", title: "Available" },
@@ -42,17 +68,7 @@ export function truckStatusPinHtml(tone) {
       <path fill="${colors.dark}" d="M24 2c0 0 0 60 0 60s19-26.5 19-41C43 10.5 34.5 2 24 2Z"/>
       <circle cx="24" cy="22" r="12.5" fill="#f0f0f0"/>
       <path fill="#ffffff" d="M24 9.5c-6.9 0-12.5 5.6-12.5 12.5 0 6.9 5.6 12.5 12.5 12.5V9.5Z"/>
-      <g fill="#151515" transform="translate(11.5 16)">
-        <path d="M2.2 11.2h20.2v3.1H2.2z"/>
-        <path d="M3.2 4.2h11.6v7H3.2z"/>
-        <path d="M14.8 6.1h4.6l2.4 5.1h-7V6.1z"/>
-        <rect x="4.1" y="5.4" width="3.2" height="2.4" rx="0.35" fill="#fff"/>
-        <rect x="8.2" y="6.8" width="4.6" height="0.85" rx="0.2" fill="#fff" fill-opacity="0.85"/>
-        <circle cx="6.2" cy="14.35" r="1.85" fill="#151515"/>
-        <circle cx="6.2" cy="14.35" r="0.75" fill="#fff"/>
-        <circle cx="17.6" cy="14.35" r="1.85" fill="#151515"/>
-        <circle cx="17.6" cy="14.35" r="0.75" fill="#fff"/>
-      </g>
+      ${glyph === "equipment" ? EQUIPMENT_GLYPH : TRUCK_GLYPH}
     </svg>
   </div>`;
 }
@@ -94,14 +110,48 @@ export function isLocalNowJob(job) {
   return job?.job_class === "local" && Boolean(job?.expires_at);
 }
 
-function vehicleIconOptions(L, tone) {
+function vehicleIconOptions(L, tone, glyph) {
   return L.divIcon({
     className: "log-map-icon",
-    html: truckStatusPinHtml(tone),
+    html: truckStatusPinHtml(tone, glyph),
     iconSize: [40, 52],
     iconAnchor: [20, 50],
     popupAnchor: [0, -44],
   });
+}
+
+/** 23 Nov: several units on one spot — the same pin with a count badge. */
+function groupIconOptions(L, tone, count, glyph) {
+  return L.divIcon({
+    className: "log-map-icon log-map-icon--group",
+    html: `<span class="log-map-pin-wrap">${truckStatusPinHtml(tone, glyph)}<span class="log-map-pin-count" aria-label="${count} units">${count}</span></span>`,
+    iconSize: [40, 52],
+    iconAnchor: [20, 50],
+    popupAnchor: [0, -44],
+  });
+}
+
+/**
+ * 23 Nov: one unit in a customer map popup — thumbnail, name, plate chip (when sent),
+ * status line and View link.
+ */
+function unitCardHtml(it) {
+  const fallback = "this.onerror=null;this.style.visibility='hidden'";
+  return `<div class="log-map-unit">${
+    it.photo
+      ? `<img class="log-map-unit__thumb" src="${escapeHtml(it.photo)}" alt="" loading="lazy" onerror="${fallback}"/>`
+      : ""
+  }<div class="log-map-unit__body"><b class="log-map-unit__name">${escapeHtml(it.name)}</b>${
+    it.plate ? `<span class="log-map-unit__plate">${escapeHtml(it.plate)}</span>` : ""
+  }${it.sub ? `<span class="log-map-unit__sub">${escapeHtml(it.sub)}</span>` : ""}${
+    it.href ? `<a class="log-map-popup-link" href="${escapeHtml(it.href)}">View →</a>` : ""
+  }</div></div>`;
+}
+
+/** Popup for a group: every unit as a card (scrolls when long). */
+function buildGroupPopupHtml(point) {
+  const items = (point.items || []).map((it) => `<li>${unitCardHtml(it)}</li>`).join("");
+  return `<b>${escapeHtml(point.label)}</b><ul class="log-map-popup-list">${items}</ul>`;
 }
 
 function jobIconOptions(L, local = false) {
@@ -217,7 +267,13 @@ function buildPoints(vehicles, jobs, showVehicles, showJobs, showLocalJobs, jobH
             kind: "vehicle",
             tone,
             label: v.name,
-            sub,
+            // 23 Nov: customer "View on map" passes its own line + a link to the unit
+            sub: v.popup_sub || sub,
+            href: v.href || "",
+            count: Number(v.count) > 1 ? Number(v.count) : 1,
+            items: Array.isArray(v.popup_items) ? v.popup_items : null,
+            unit: v.popup_unit || null,
+            glyph: v.pin_glyph === "equipment" ? "equipment" : "truck",
           };
         })
       : []),
@@ -254,6 +310,7 @@ export function fleetMapDataKey(vehicles, jobs, showVehicles, showJobs, showLoca
   const v = showVehicles
     ? (vehicles || []).map((x) => [
         x.asset_id || x._id || "",
+        x.count || 1,
         x.live_location?.lat,
         x.live_location?.lng,
         x.name || "",
@@ -296,11 +353,15 @@ export default function LogisticsFleetMap({
   showLocalJobs = true,
   jobHrefBase = "",
   height = 420,
+  // 23 Nov: where to look when there are no pins ({lat,lng}, zoom 9); default all Zimbabwe
+  emptyCenter = null,
 }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const LRef = useRef(null);
+  const emptyCenterRef = useRef(emptyCenter);
+  emptyCenterRef.current = emptyCenter;
   const dataKey = fleetMapDataKey(vehicles, jobs, showVehicles, showJobs, showLocalJobs);
   const propsRef = useRef({ vehicles, jobs, showVehicles, showJobs, showLocalJobs, jobHrefBase });
   propsRef.current = { vehicles, jobs, showVehicles, showJobs, showLocalJobs, jobHrefBase };
@@ -330,10 +391,12 @@ export default function LogisticsFleetMap({
         layerRef.current = L.layerGroup().addTo(map);
       }
 
-      const iconCache = {
-        offline: vehicleIconOptions(L, "offline"),
-        on_route: vehicleIconOptions(L, "on_route"),
-        available: vehicleIconOptions(L, "available"),
+      const iconCache = {};
+      const unitIcon = (tone, glyph) => {
+        const t = ["offline", "on_route", "available"].includes(tone) ? tone : "offline";
+        const key = `${t}:${glyph}`;
+        if (!iconCache[key]) iconCache[key] = vehicleIconOptions(L, t, glyph);
+        return iconCache[key];
       };
       const jobIcon = jobIconOptions(L);
       const localJobIcon = jobIconOptions(L, true);
@@ -345,12 +408,20 @@ export default function LogisticsFleetMap({
             ? p.local
               ? localJobIcon
               : jobIcon
-            : iconCache[p.tone] || iconCache.offline;
+            : p.count > 1
+              ? groupIconOptions(L, p.tone, p.count, p.glyph)
+              : unitIcon(p.tone, p.glyph);
         const marker = L.marker([p.lat, p.lng], { icon });
         marker.bindPopup(
           p.kind === "job"
             ? buildJobPopupHtml(p)
-            : `<b>${escapeHtml(p.label)}</b><br/>${escapeHtml(p.sub || "")}`
+            : p.items && p.items.length
+              ? buildGroupPopupHtml(p)
+              : p.unit
+                ? unitCardHtml(p.unit)
+                : `<b>${escapeHtml(p.label)}</b><br/>${escapeHtml(p.sub || "")}${
+                p.href ? `<br/><a class="log-map-popup-link" href="${escapeHtml(p.href)}">View →</a>` : ""
+              }`
         );
         layerRef.current.addLayer(marker);
         bounds.push([p.lat, p.lng]);
@@ -366,6 +437,8 @@ export default function LogisticsFleetMap({
           });
         } else if (bounds.length === 1) {
           map.setView(bounds[0], 12, { animate: false });
+        } else if (emptyCenterRef.current) {
+          map.setView([emptyCenterRef.current.lat, emptyCenterRef.current.lng], 9, { animate: false });
         }
       } catch {
         /* map mid-teardown */

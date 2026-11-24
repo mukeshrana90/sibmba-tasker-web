@@ -287,8 +287,8 @@ export default function Requests() {
         title="Requests"
         pageClass="p-corporate-portal p-bookings p-sp-requests"
         showBanner={false}
+        beforeTitle={<AccountMarketplaceSwitch active="tasker" />}
       >
-        <AccountMarketplaceSwitch active="tasker" />
         <div className="tabs">
           {requestTabs.map(({ key, label }) => (
             <button

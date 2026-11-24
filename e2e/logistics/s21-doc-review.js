@@ -85,7 +85,9 @@ const { OID } = F;
     L.check(await row.evaluate((el) => el.classList.contains("is-doc-highlight")), "deep link highlights the document");
     await L.shot(o1, "s21-demo-rejected");
     const fDemo = await L.businessDocFiles(pDemo);
-    await row.locator('input[name="owner_id_expires"]').fill(L.docExpiryYmd());
+    // 23 Nov: no expiry field when the kind is a national ID
+    const idExp = row.locator('input[name="owner_id_expires"]');
+    if (await idExp.count()) await idExp.fill(L.docExpiryYmd());
     await row.locator('input[type=file][name="owner_id"]').setInputFiles(fDemo.owner_id);
     await p.waitForFunction(() => document.querySelector('.log-bizdoc[data-type="owner_id"]')?.dataset.status === "pending", null, { timeout: 15000 }).catch(() => {});
     L.check((await row.getAttribute("data-status")) === "pending", "replaced owner ID goes back to Pending", await row.getAttribute("data-status"));

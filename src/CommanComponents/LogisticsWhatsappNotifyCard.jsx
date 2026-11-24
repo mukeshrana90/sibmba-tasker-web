@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import Api from "../Services/api";
-import LogisticsWhatsappExtras, { WHATSAPP_PACK_TEXT } from "./LogisticsWhatsappExtras";
+import LogisticsWhatsappExtras, { whatsappPackText } from "./LogisticsWhatsappExtras";
 
 /**
  * Profile → "WhatsApp notifications" (v2.7.50). On by default; off → job alerts,
@@ -58,13 +58,13 @@ export default function LogisticsWhatsappNotifyCard() {
         <p className="mb-0">
           {available ? (
             prefs.whatsapp ? (
-              `Job updates, codes and reminders also come on WhatsApp. ${WHATSAPP_PACK_TEXT}. Turn off to get them only in the app, by push and email.`
+              `Job updates, codes and reminders also come on WhatsApp. ${whatsappPackText()}. Turn off to get them only in the app, by push and email.`
             ) : (
               "Off — you get job updates in the app, by push and email (and SMS where needed), not on WhatsApp."
             )
           ) : (
             <>
-              {WHATSAPP_PACK_TEXT}. After that, the full pack needs the Paid plan; essentials still come on WhatsApp, and
+              {whatsappPackText()}. After that, the full pack needs the Paid plan; essentials still come on WhatsApp, and
               everything else comes in the app, by push and email.{" "}
               {isOwner ? <Link to="/logistics/owner/subscription">See plans</Link> : "Ask your fleet owner about the Paid plan."}
             </>
